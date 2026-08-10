@@ -8,6 +8,7 @@ import { CommentSection } from "@/components/tasks/comment-section";
 import { DependencySection } from "@/components/tasks/dependency-section";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
+import { ActualTimeForm } from "@/components/tasks/actual-time-form";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -150,10 +151,13 @@ export default async function TaskDetailPage({
               label="Temps estimé"
               value={task.tempsEstimeHeures ? `${task.tempsEstimeHeures} h` : "—"}
             />
-            <Info
-              label="Temps réel"
-              value={task.tempsReelHeures ? `${task.tempsReelHeures} h` : "—"}
-            />
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Temps réel</div>
+              <ActualTimeForm
+                taskId={task.id}
+                initialValue={task.tempsReelHeures !== null ? Number(task.tempsReelHeures) : null}
+              />
+            </div>
             <Info label="Avancement" value={`${task.avancement}%`} />
           </CardContent>
         </Card>

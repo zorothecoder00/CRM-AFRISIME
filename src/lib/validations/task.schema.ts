@@ -32,3 +32,8 @@ export const addDependencySchema = z.object({
   taskId: z.string().min(1),
   dependsOnTaskId: z.string().min(1),
 });
+
+export const updateActualTimeSchema = z.object({
+  taskId: z.string().min(1),
+  tempsReelHeures: z.string().min(1, "La valeur est requise."),
+});

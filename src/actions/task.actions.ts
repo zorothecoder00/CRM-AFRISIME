@@ -11,6 +11,7 @@ import {
   addCommentSchema,
   addChecklistItemSchema,
   addDependencySchema,
+  updateActualTimeSchema,
   type CreateTaskInput,
 } from "@/lib/validations/task.schema";
 
@@ -136,4 +137,20 @@ export async function addDependency(taskId: string, dependsOnTaskId: string) {
 
   revalidatePath(`/taches/${taskId}`);
   return dependency;
+}
+
+export async function updateActualTime(taskId: string, tempsReelHeures: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+
+  const data = updateActualTimeSchema.parse({ taskId, tempsReelHeures });
+
+  const task = await prisma.task.update({
+    where: { id: data.taskId },
+    data: { tempsReelHeures: Number(data.tempsReelHeures) },
+  });
+
+  revalidatePath(`/taches/${taskId}`);
+  revalidatePath("/charge-de-travail");
+  return task;
 }

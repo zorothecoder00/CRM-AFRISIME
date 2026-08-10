@@ -41,6 +41,9 @@ export const PERMISSIONS = {
   OBJECTIVE_UPDATE: "objective.update",
   OBJECTIVE_DELETE: "objective.delete",
 
+  WORKLOAD_READ: "workload.read",
+  WORKLOAD_MANAGE: "workload.manage",
+
   DEPARTMENT_MANAGE: "department.manage",
 
   ADMINISTRATION_ACCESS: "administration.access",
@@ -97,6 +100,9 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.OBJECTIVE_UPDATE, label: "Modifier un objectif / mettre à jour un indicateur", category: "Objectifs & KPI" },
   { key: PERMISSIONS.OBJECTIVE_DELETE, label: "Supprimer un objectif", category: "Objectifs & KPI" },
 
+  { key: PERMISSIONS.WORKLOAD_READ, label: "Consulter la charge de l'équipe", category: "Charge de travail" },
+  { key: PERMISSIONS.WORKLOAD_MANAGE, label: "Modifier la capacité des collaborateurs", category: "Charge de travail" },
+
   { key: PERMISSIONS.DEPARTMENT_MANAGE, label: "Gérer un département", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
@@ -143,6 +149,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
+    PERMISSIONS.WORKLOAD_READ,
+    PERMISSIONS.WORKLOAD_MANAGE,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
   ],
@@ -178,6 +186,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
+    PERMISSIONS.WORKLOAD_READ,
+    PERMISSIONS.WORKLOAD_MANAGE,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -210,6 +220,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
+    PERMISSIONS.WORKLOAD_READ,
+    PERMISSIONS.WORKLOAD_MANAGE,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -240,6 +252,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
+    PERMISSIONS.WORKLOAD_READ,
   ],
 
   RESPONSABLE: [
@@ -263,6 +276,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
+    PERMISSIONS.WORKLOAD_READ,
   ],
 
   MANAGER: [
@@ -284,6 +298,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
+    PERMISSIONS.WORKLOAD_READ,
+    PERMISSIONS.WORKLOAD_MANAGE,
   ],
 
   COLLABORATEUR: [

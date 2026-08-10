@@ -195,21 +195,26 @@ async function main() {
   const daysFromNow = (n: number) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000);
 
   const taskDefs = [
-    { id: "demo-task-1", titre: "Rédiger le cahier des charges", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-10), assignee: RoleKey.CHEF_PROJET },
-    { id: "demo-task-2", titre: "Maquettes UI", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-3), assignee: RoleKey.COLLABORATEUR },
-    { id: "demo-task-3", titre: "Intégration page d'accueil", sectionId: lotFrontend.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(0), assignee: RoleKey.COLLABORATEUR },
-    { id: "demo-task-4", titre: "Intégration espace client", sectionId: lotFrontend.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(2), assignee: RoleKey.COLLABORATEUR },
-    { id: "demo-task-5", titre: "API authentification", sectionId: phaseDeveloppement.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(-1), assignee: RoleKey.MANAGER },
-    { id: "demo-task-6", titre: "Tests de charge", sectionId: phaseDeveloppement.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(5), assignee: RoleKey.MANAGER },
-    { id: "demo-task-7", titre: "Rédaction contenus", sectionId: phaseDeveloppement.id, statut: TaskStatus.BLOQUEE, echeance: daysFromNow(-5), assignee: RoleKey.COLLABORATEUR },
-    { id: "demo-task-8", titre: "Recette finale", sectionId: phaseDeveloppement.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(6), assignee: RoleKey.CHEF_PROJET },
+    { id: "demo-task-1", titre: "Rédiger le cahier des charges", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-10), assignee: RoleKey.CHEF_PROJET, tempsEstimeHeures: 8, tempsReelHeures: 10 },
+    { id: "demo-task-2", titre: "Maquettes UI", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-3), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 12, tempsReelHeures: 14 },
+    { id: "demo-task-3", titre: "Intégration page d'accueil", sectionId: lotFrontend.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(0), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 20 },
+    { id: "demo-task-4", titre: "Intégration espace client", sectionId: lotFrontend.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(2), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 16 },
+    { id: "demo-task-5", titre: "API authentification", sectionId: phaseDeveloppement.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(-1), assignee: RoleKey.MANAGER, tempsEstimeHeures: 15 },
+    { id: "demo-task-6", titre: "Tests de charge", sectionId: phaseDeveloppement.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(5), assignee: RoleKey.MANAGER, tempsEstimeHeures: 10 },
+    { id: "demo-task-7", titre: "Rédaction contenus", sectionId: phaseDeveloppement.id, statut: TaskStatus.BLOQUEE, echeance: daysFromNow(-5), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 8 },
+    { id: "demo-task-8", titre: "Recette finale", sectionId: phaseDeveloppement.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(6), assignee: RoleKey.CHEF_PROJET, tempsEstimeHeures: 6 },
   ];
 
   const tasks: Record<string, { id: string }> = {};
   for (const t of taskDefs) {
     const task = await prisma.task.upsert({
       where: { id: t.id },
-      update: {},
+      update: {
+        statut: t.statut,
+        echeance: t.echeance,
+        tempsEstimeHeures: t.tempsEstimeHeures,
+        tempsReelHeures: t.tempsReelHeures,
+      },
       create: {
         id: t.id,
         projectId: project.id,
@@ -220,6 +225,8 @@ async function main() {
         echeance: t.echeance,
         responsablePrincipalId: users[t.assignee].id,
         createdById: users[RoleKey.CHEF_PROJET].id,
+        tempsEstimeHeures: t.tempsEstimeHeures,
+        tempsReelHeures: t.tempsReelHeures,
       },
     });
     tasks[t.id] = task;
@@ -285,7 +292,7 @@ async function main() {
 
   const decisionTask = await prisma.task.upsert({
     where: { id: "demo-task-from-decision" },
-    update: {},
+    update: { tempsEstimeHeures: 4 },
     create: {
       id: "demo-task-from-decision",
       projectId: project.id,
@@ -295,6 +302,7 @@ async function main() {
       echeance: daysFromNow(3),
       responsablePrincipalId: users[RoleKey.CHEF_PROJET].id,
       createdById: users[RoleKey.CHEF_PROJET].id,
+      tempsEstimeHeures: 4,
     },
   });
 

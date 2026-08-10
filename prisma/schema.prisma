@@ -4,9 +4,10 @@
 // dépendances), Réunions (ordre du jour, participants, compte rendu,
 // décisions → tâches auto-créées), Documents (dossiers, versions,
 // liaison tâche/réunion), Calendrier (congés, événements), Objectifs & KPI
-// (individuel/équipe/département, indicateurs mesurables), Audit.
-// Messagerie, Charge de travail, Automatisation : hors périmètre MVP,
-// volontairement non modélisés (voir plan).
+// (individuel/équipe/département, indicateurs mesurables), Charge de
+// travail (calculée depuis Task/Leave, pas de modèle dédié), Audit.
+// Messagerie, Automatisation : hors périmètre MVP, volontairement non
+// modélisés (voir plan).
 
 generator client {
   provider = "prisma-client"
@@ -128,18 +129,20 @@ enum ObjectiveStatus {
 }
 
 model User {
-  id           String      @id @default(cuid())
-  name         String
-  email        String      @unique
-  passwordHash String
-  image        String?
-  roleId       String
-  role         Role        @relation(fields: [roleId], references: [id])
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id                         String      @id @default(cuid())
+  name                       String
+  email                      String      @unique
+  passwordHash               String
+  image                      String?
+  roleId                     String
+  role                       Role        @relation(fields: [roleId], references: [id])
+  departmentId               String?
+  department                 Department? @relation(fields: [departmentId], references: [id])
+  isActive                   Boolean     @default(true)
+  // Base de calcul du taux d'occupation (cahier des charges §14).
+  capaciteHebdomadaireHeures Decimal     @default(35) @db.Decimal(5, 2)
+  createdAt                  DateTime    @default(now())
+  updatedAt                  DateTime    @updatedAt
 
   projectsOwned           Project[]            @relation("ProjectResponsable")
   projectsCreated         Project[]            @relation("ProjectCreatedBy")
