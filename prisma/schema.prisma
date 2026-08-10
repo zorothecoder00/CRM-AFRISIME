@@ -9,7 +9,8 @@
 // pas de modèle dédié), Messagerie (conversations, réactions, mentions),
 // Notifications (in-app ; email/push hors périmètre — nécessitent des
 // services externes non configurés), Automatisations (règles projet
-// déclencheur → action, sans développement), Audit.
+// déclencheur → action, sans développement), Tableaux de bord (widgets
+// configurables, calculés depuis les données existantes), Audit.
 
 generator client {
   provider = "prisma-client"
@@ -177,32 +178,33 @@ model User {
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
-  projectsOwned           Project[]                 @relation("ProjectResponsable")
-  projectsCreated         Project[]                 @relation("ProjectCreatedBy")
+  projectsOwned           Project[]                  @relation("ProjectResponsable")
+  projectsCreated         Project[]                  @relation("ProjectCreatedBy")
   projectMemberships      ProjectMember[]
-  tasksOwned              Task[]                    @relation("TaskResponsablePrincipal")
-  tasksCreated            Task[]                    @relation("TaskCreatedBy")
+  tasksOwned              Task[]                     @relation("TaskResponsablePrincipal")
+  tasksCreated            Task[]                     @relation("TaskCreatedBy")
   taskAssignments         TaskAssignee[]
   comments                TaskComment[]
   auditLogs               AuditLog[]
-  meetingsCreated         Meeting[]                 @relation("MeetingCreatedBy")
+  meetingsCreated         Meeting[]                  @relation("MeetingCreatedBy")
   meetingParticipations   MeetingParticipant[]
-  meetingDecisionsOwned   MeetingDecision[]         @relation("MeetingDecisionResponsable")
-  documentFoldersCreated  DocumentFolder[]          @relation("DocumentFolderCreatedBy")
-  documentsUploaded       Document[]                @relation("DocumentUploadedBy")
-  documentVersionsCreated DocumentVersion[]         @relation("DocumentVersionCreatedBy")
-  leaveRequests           Leave[]                   @relation("LeaveRequestedBy")
-  leaveDecisions          Leave[]                   @relation("LeaveDecidedBy")
-  eventsCreated           Event[]                   @relation("EventCreatedBy")
-  objectivesOwned         Objective[]               @relation("ObjectiveUser")
-  objectivesCreated       Objective[]               @relation("ObjectiveCreatedBy")
-  conversationsCreated    Conversation[]            @relation("ConversationCreatedBy")
+  meetingDecisionsOwned   MeetingDecision[]          @relation("MeetingDecisionResponsable")
+  documentFoldersCreated  DocumentFolder[]           @relation("DocumentFolderCreatedBy")
+  documentsUploaded       Document[]                 @relation("DocumentUploadedBy")
+  documentVersionsCreated DocumentVersion[]          @relation("DocumentVersionCreatedBy")
+  leaveRequests           Leave[]                    @relation("LeaveRequestedBy")
+  leaveDecisions          Leave[]                    @relation("LeaveDecidedBy")
+  eventsCreated           Event[]                    @relation("EventCreatedBy")
+  objectivesOwned         Objective[]                @relation("ObjectiveUser")
+  objectivesCreated       Objective[]                @relation("ObjectiveCreatedBy")
+  conversationsCreated    Conversation[]             @relation("ConversationCreatedBy")
   conversationMemberships ConversationParticipant[]
-  messagesSent            Message[]                 @relation("MessageAuthor")
+  messagesSent            Message[]                  @relation("MessageAuthor")
   reactions               Reaction[]
   notifications           Notification[]
-  automationRulesCreated  AutomationRule[]          @relation("AutomationRuleCreatedBy")
-  automationNextTaskFor   AutomationRule[]          @relation("AutomationNextTaskResponsable")
+  automationRulesCreated  AutomationRule[]           @relation("AutomationRuleCreatedBy")
+  automationNextTaskFor   AutomationRule[]           @relation("AutomationNextTaskResponsable")
+  dashboardPreference     DashboardWidgetPreference?
 
   @@index([departmentId])
   @@index([roleId])
@@ -336,6 +338,10 @@ model Task {
   statut                 TaskStatus      @default(A_FAIRE)
   avancement             Int             @default(0)
   echeance               DateTime?
+  // Renseigné/vidé à la transition vers/depuis TERMINEE — sert au calcul du
+  // respect des délais (cahier des charges §16), distinct de updatedAt qui
+  // change à chaque modification.
+  completedAt            DateTime?
   tempsEstimeHeures      Decimal?        @db.Decimal(6, 2)
   tempsReelHeures        Decimal?        @db.Decimal(6, 2)
   responsablePrincipalId String
@@ -755,4 +761,16 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+}
+
+// Préférences de widgets du tableau de bord (cahier des charges §16 :
+// « les widgets sont configurables »). `widgets` est un tableau JSON de clés
+// dans l'ordre d'affichage souhaité ; l'absence de ligne = tous les widgets,
+// dans l'ordre par défaut (voir src/lib/dashboard-widgets.ts).
+model DashboardWidgetPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  widgets   Json
+  updatedAt DateTime @updatedAt
 }

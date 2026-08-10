@@ -78,7 +78,11 @@ export async function updateTaskStatus(taskId: string, statut: string) {
 
   const task = await prisma.task.update({
     where: { id: data.taskId },
-    data: { statut: data.statut, avancement: data.statut === "TERMINEE" ? 100 : undefined },
+    data: {
+      statut: data.statut,
+      avancement: data.statut === "TERMINEE" ? 100 : undefined,
+      completedAt: data.statut === "TERMINEE" ? new Date() : null,
+    },
   });
 
   await prisma.auditLog.create({
@@ -140,7 +144,7 @@ export async function validateTask(taskId: string, approved: boolean) {
   if (approved) {
     const task = await prisma.task.update({
       where: { id: taskId },
-      data: { statut: "TERMINEE", avancement: 100 },
+      data: { statut: "TERMINEE", avancement: 100, completedAt: new Date() },
     });
     await recomputeProjectProgress(task.projectId);
     await runTaskCompletedRules({

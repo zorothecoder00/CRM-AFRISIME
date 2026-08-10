@@ -50,6 +50,8 @@ export const PERMISSIONS = {
   AUTOMATION_MANAGE: "automation.manage",
   AUTOMATION_READ: "automation.read",
 
+  DASHBOARD_READ: "dashboard.read",
+
   DEPARTMENT_MANAGE: "department.manage",
 
   ADMINISTRATION_ACCESS: "administration.access",
@@ -115,6 +117,8 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.AUTOMATION_MANAGE, label: "Créer et gérer les règles d'automatisation", category: "Automatisations" },
   { key: PERMISSIONS.AUTOMATION_READ, label: "Consulter les règles d'automatisation", category: "Automatisations" },
 
+  { key: PERMISSIONS.DASHBOARD_READ, label: "Consulter les tableaux de bord", category: "Tableaux de bord" },
+
   { key: PERMISSIONS.DEPARTMENT_MANAGE, label: "Gérer un département", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
@@ -167,6 +171,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
+    PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
   ],
@@ -208,6 +213,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
+    PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -246,6 +252,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
+    PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -281,6 +288,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
+    PERMISSIONS.DASHBOARD_READ,
   ],
 
   RESPONSABLE: [
@@ -308,6 +316,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_CREATE,
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_READ,
+    PERMISSIONS.DASHBOARD_READ,
   ],
 
   MANAGER: [
@@ -334,6 +343,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_CREATE,
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_READ,
+    PERMISSIONS.DASHBOARD_READ,
   ],
 
   COLLABORATEUR: [

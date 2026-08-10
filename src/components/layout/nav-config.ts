@@ -9,7 +9,7 @@ import {
   Target,
   Gauge,
   Zap,
-  BarChart3,
+  LayoutGrid,
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +32,6 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Charge de travail", href: "/charge-de-travail", icon: Gauge },
   { title: "Messagerie", href: "/messages", icon: MessageSquare },
   { title: "Automatisations", href: "/automatisations", icon: Zap },
-  { title: "Performance", href: "/performance", icon: BarChart3, disabled: true },
+  { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid },
   { title: "Administration", href: "/administration/utilisateurs", icon: ShieldCheck },
 ];

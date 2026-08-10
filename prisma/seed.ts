@@ -195,8 +195,8 @@ async function main() {
   const daysFromNow = (n: number) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000);
 
   const taskDefs = [
-    { id: "demo-task-1", titre: "Rédiger le cahier des charges", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-10), assignee: RoleKey.CHEF_PROJET, tempsEstimeHeures: 8, tempsReelHeures: 10 },
-    { id: "demo-task-2", titre: "Maquettes UI", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-3), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 12, tempsReelHeures: 14 },
+    { id: "demo-task-1", titre: "Rédiger le cahier des charges", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-10), completedAt: daysFromNow(-11), assignee: RoleKey.CHEF_PROJET, tempsEstimeHeures: 8, tempsReelHeures: 10 },
+    { id: "demo-task-2", titre: "Maquettes UI", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-3), completedAt: daysFromNow(-1), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 12, tempsReelHeures: 14 },
     { id: "demo-task-3", titre: "Intégration page d'accueil", sectionId: lotFrontend.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(0), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 20 },
     { id: "demo-task-4", titre: "Intégration espace client", sectionId: lotFrontend.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(2), assignee: RoleKey.COLLABORATEUR, tempsEstimeHeures: 16 },
     { id: "demo-task-5", titre: "API authentification", sectionId: phaseDeveloppement.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(-1), assignee: RoleKey.MANAGER, tempsEstimeHeures: 15 },
@@ -212,6 +212,7 @@ async function main() {
       update: {
         statut: t.statut,
         echeance: t.echeance,
+        completedAt: "completedAt" in t ? t.completedAt : undefined,
         tempsEstimeHeures: t.tempsEstimeHeures,
         tempsReelHeures: t.tempsReelHeures,
       },
@@ -223,6 +224,7 @@ async function main() {
         priorite: TaskPriority.HAUTE,
         statut: t.statut,
         echeance: t.echeance,
+        completedAt: "completedAt" in t ? t.completedAt : undefined,
         responsablePrincipalId: users[t.assignee].id,
         createdById: users[RoleKey.CHEF_PROJET].id,
         tempsEstimeHeures: t.tempsEstimeHeures,
