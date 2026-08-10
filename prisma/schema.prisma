@@ -3,9 +3,9 @@
 // Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
 // dépendances), Réunions (ordre du jour, participants, compte rendu,
 // décisions → tâches auto-créées), Documents (dossiers, versions,
-// liaison tâche/réunion), Audit.
-// Messagerie, Calendrier, KPI, Automatisation : hors périmètre MVP,
-// volontairement non modélisés (voir plan).
+// liaison tâche/réunion), Calendrier (congés, événements), Audit.
+// Messagerie, KPI, Automatisation : hors périmètre MVP, volontairement
+// non modélisés (voir plan).
 
 generator client {
   provider = "prisma-client"
@@ -92,6 +92,18 @@ enum MeetingStatus {
   ANNULEE
 }
 
+enum LeaveType {
+  CONGE_PAYE
+  MALADIE
+  AUTRE
+}
+
+enum LeaveStatus {
+  EN_ATTENTE
+  APPROUVE
+  REFUSE
+}
+
 model User {
   id           String      @id @default(cuid())
   name         String
@@ -120,6 +132,9 @@ model User {
   documentFoldersCreated  DocumentFolder[]     @relation("DocumentFolderCreatedBy")
   documentsUploaded       Document[]           @relation("DocumentUploadedBy")
   documentVersionsCreated DocumentVersion[]    @relation("DocumentVersionCreatedBy")
+  leaveRequests           Leave[]              @relation("LeaveRequestedBy")
+  leaveDecisions          Leave[]              @relation("LeaveDecidedBy")
+  eventsCreated           Event[]              @relation("EventCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -191,6 +206,7 @@ model Project {
   meetings        Meeting[]
   documentFolders DocumentFolder[]
   documents       Document[]
+  events          Event[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -436,6 +452,47 @@ model DocumentVersion {
   createdAt   DateTime @default(now())
 
   @@index([documentId])
+}
+
+// Congé (cahier des charges §12 : le calendrier consolide tâches, réunions,
+// congés et événements). Validation simple par une personne habilitée
+// (leave.manage), pas un circuit de validation à plusieurs étapes.
+model Leave {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation("LeaveRequestedBy", fields: [userId], references: [id])
+  type        LeaveType   @default(CONGE_PAYE)
+  dateDebut   DateTime
+  dateFin     DateTime
+  motif       String?
+  statut      LeaveStatus @default(EN_ATTENTE)
+  decidedById String?
+  decidedBy   User?       @relation("LeaveDecidedBy", fields: [decidedById], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([dateDebut])
+  @@index([dateFin])
+}
+
+// Événement générique du calendrier consolidé — sans projet, c'est un
+// événement d'entreprise ; avec projet, visible dans le calendrier de ce
+// projet uniquement.
+model Event {
+  id          String    @id @default(cuid())
+  titre       String
+  description String?
+  dateDebut   DateTime
+  dateFin     DateTime?
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  createdById String
+  createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([dateDebut])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.

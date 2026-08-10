@@ -32,6 +32,10 @@ export const PERMISSIONS = {
   DOCUMENT_DELETE: "document.delete",
   DOCUMENT_MANAGE_FOLDERS: "document.manage_folders",
 
+  LEAVE_CREATE: "leave.create",
+  LEAVE_MANAGE: "leave.manage",
+  EVENT_CREATE: "event.create",
+
   DEPARTMENT_MANAGE: "department.manage",
 
   ADMINISTRATION_ACCESS: "administration.access",
@@ -79,6 +83,10 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.DOCUMENT_DELETE, label: "Supprimer un document", category: "Documents" },
   { key: PERMISSIONS.DOCUMENT_MANAGE_FOLDERS, label: "Gérer les dossiers", category: "Documents" },
 
+  { key: PERMISSIONS.LEAVE_CREATE, label: "Demander un congé", category: "Calendrier" },
+  { key: PERMISSIONS.LEAVE_MANAGE, label: "Approuver/refuser les congés", category: "Calendrier" },
+  { key: PERMISSIONS.EVENT_CREATE, label: "Créer un événement", category: "Calendrier" },
+
   { key: PERMISSIONS.DEPARTMENT_MANAGE, label: "Gérer un département", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
@@ -119,6 +127,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.LEAVE_MANAGE,
+    PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
   ],
@@ -148,6 +159,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.LEAVE_MANAGE,
+    PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -174,6 +188,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.LEAVE_MANAGE,
+    PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -199,6 +216,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.EVENT_CREATE,
   ],
 
   RESPONSABLE: [
@@ -217,6 +236,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
+    PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.EVENT_CREATE,
   ],
 
   MANAGER: [
@@ -232,6 +253,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
+    PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.LEAVE_MANAGE,
+    PERMISSIONS.EVENT_CREATE,
   ],
 
   COLLABORATEUR: [
@@ -242,6 +266,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.LEAVE_CREATE,
   ],
 
   CONSULTANT_EXTERNE: [

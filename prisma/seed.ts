@@ -424,6 +424,61 @@ async function main() {
     },
   });
 
+  // Congés démo : une demande en attente, une déjà approuvée
+  await prisma.leave.upsert({
+    where: { id: "demo-leave-pending" },
+    update: {},
+    create: {
+      id: "demo-leave-pending",
+      userId: users[RoleKey.COLLABORATEUR].id,
+      type: "CONGE_PAYE",
+      dateDebut: daysFromNow(10),
+      dateFin: daysFromNow(14),
+      motif: "Congés familiaux",
+      statut: "EN_ATTENTE",
+    },
+  });
+
+  await prisma.leave.upsert({
+    where: { id: "demo-leave-approved" },
+    update: {},
+    create: {
+      id: "demo-leave-approved",
+      userId: users[RoleKey.MANAGER].id,
+      type: "MALADIE",
+      dateDebut: daysFromNow(-6),
+      dateFin: daysFromNow(-4),
+      statut: "APPROUVE",
+      decidedById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  // Événements démo : un événement d'entreprise, un événement de projet
+  await prisma.event.upsert({
+    where: { id: "demo-event-entreprise" },
+    update: {},
+    create: {
+      id: "demo-event-entreprise",
+      titre: "Journée portes ouvertes AfriSime",
+      description: "Événement d'entreprise, visible de tous.",
+      dateDebut: daysFromNow(8),
+      createdById: users[RoleKey.DIRECTEUR_GENERAL].id,
+    },
+  });
+
+  await prisma.event.upsert({
+    where: { id: "demo-event-projet" },
+    update: {},
+    create: {
+      id: "demo-event-projet",
+      titre: "Lancement officiel du site",
+      projectId: project.id,
+      dateDebut: daysFromNow(15),
+      dateFin: daysFromNow(16),
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {
