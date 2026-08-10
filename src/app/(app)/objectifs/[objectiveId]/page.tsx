@@ -1,0 +1,138 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { objectiveProgress } from "@/lib/objective-progress";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProgressBar } from "@/components/objectives/progress-bar";
+import { IndicatorList } from "@/components/objectives/indicator-list";
+import { AddIndicatorDialog } from "@/components/objectives/add-indicator-dialog";
+import { ObjectiveStatusSelect } from "@/components/objectives/objective-status-select";
+
+const PERIOD_LABELS: Record<string, string> = {
+  ANNUEL: "Annuel",
+  TRIMESTRIEL: "Trimestriel",
+  MENSUEL: "Mensuel",
+  HEBDOMADAIRE: "Hebdomadaire",
+};
+
+const SCOPE_LABELS: Record<string, string> = {
+  INDIVIDUEL: "Individuel",
+  EQUIPE: "Équipe",
+  DEPARTEMENT: "Département",
+};
+
+export default async function ObjectiveDetailPage({
+  params,
+}: {
+  params: Promise<{ objectiveId: string }>;
+}) {
+  const { objectiveId } = await params;
+
+  const objective = await prisma.objective.findUnique({
+    where: { id: objectiveId },
+    include: {
+      user: true,
+      project: true,
+      department: true,
+      createdBy: true,
+      indicators: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  if (!objective) {
+    notFound();
+  }
+
+  const progress = objectiveProgress(
+    objective.indicators.map((i) => ({
+      valeurActuelle: Number(i.valeurActuelle),
+      valeurCible: Number(i.valeurCible),
+    }))
+  );
+
+  const target =
+    objective.scope === "INDIVIDUEL"
+      ? objective.user?.name
+      : objective.scope === "EQUIPE"
+        ? objective.project?.nom
+        : objective.department?.name;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <div className="space-y-6 lg:col-span-2">
+        <div>
+          <h1 className="text-2xl font-semibold">{objective.titre}</h1>
+          {objective.description && (
+            <p className="mt-1 text-sm text-muted-foreground">{objective.description}</p>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{PERIOD_LABELS[objective.periode]}</Badge>
+            <Badge variant="outline">{SCOPE_LABELS[objective.scope]}</Badge>
+            {objective.scope === "EQUIPE" && objective.project && (
+              <Link href={`/projets/${objective.project.id}`} className="text-sm text-primary hover:underline">
+                {objective.project.nom}
+              </Link>
+            )}
+            {target && objective.scope !== "EQUIPE" && (
+              <span className="text-sm text-muted-foreground">{target}</span>
+            )}
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Indicateurs mesurables</CardTitle>
+            <AddIndicatorDialog objectiveId={objective.id} />
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="mb-1 flex items-center justify-between text-sm">
+                <span className="font-medium">Avancement global</span>
+                <span>{progress}%</span>
+              </div>
+              <ProgressBar value={progress} />
+            </div>
+            <IndicatorList
+              indicators={objective.indicators.map((i) => ({
+                id: i.id,
+                nom: i.nom,
+                unite: i.unite,
+                valeurCible: Number(i.valeurCible),
+                valeurActuelle: Number(i.valeurActuelle),
+              }))}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Détails</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div>
+              <div className="mb-1 text-xs text-muted-foreground">Statut</div>
+              <ObjectiveStatusSelect objectiveId={objective.id} initialStatut={objective.statut} />
+            </div>
+            <Info
+              label="Période"
+              value={`${new Date(objective.dateDebut).toLocaleDateString("fr-FR")} → ${new Date(objective.dateFin).toLocaleDateString("fr-FR")}`}
+            />
+            <Info label="Créé par" value={objective.createdBy.name} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="font-medium">{value}</div>
+    </div>
+  );
+}

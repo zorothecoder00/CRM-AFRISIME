@@ -1,0 +1,147 @@
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { objectiveProgress } from "@/lib/objective-progress";
+import type { ObjectivePeriod, ObjectiveScope } from "@/generated/prisma/enums";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
+import { ProgressBar } from "@/components/objectives/progress-bar";
+
+const PERIOD_LABELS: Record<string, string> = {
+  ANNUEL: "Annuel",
+  TRIMESTRIEL: "Trimestriel",
+  MENSUEL: "Mensuel",
+  HEBDOMADAIRE: "Hebdomadaire",
+};
+
+const SCOPE_LABELS: Record<string, string> = {
+  INDIVIDUEL: "Individuel",
+  EQUIPE: "Équipe",
+  DEPARTEMENT: "Département",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  EN_COURS: "En cours",
+  ATTEINT: "Atteint",
+  NON_ATTEINT: "Non atteint",
+  ANNULE: "Annulé",
+};
+
+export default async function ObjectifsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periode?: string; scope?: string }>;
+}) {
+  const { periode, scope } = await searchParams;
+  const session = await getServerSession(authOptions);
+
+  const [objectives, users, projects, departments] = await Promise.all([
+    prisma.objective.findMany({
+      where: {
+        periode: periode as ObjectivePeriod | undefined,
+        scope: scope as ObjectiveScope | undefined,
+      },
+      include: { user: true, project: true, department: true, indicators: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.project.findMany({ orderBy: { nom: "asc" } }),
+    prisma.department.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
+  const filterHref = (key: "periode" | "scope", value?: string) => {
+    const params = new URLSearchParams();
+    if (key === "periode" ? value : periode) params.set("periode", key === "periode" ? value! : periode!);
+    if (key === "scope" ? value : scope) params.set("scope", key === "scope" ? value! : scope!);
+    const qs = params.toString();
+    return `/objectifs${qs ? `?${qs}` : ""}`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Objectifs &amp; KPI</h1>
+          <p className="text-sm text-muted-foreground">{objectives.length} objectif(s)</p>
+        </div>
+        <ObjectiveFormDialog
+          users={users.map((u) => ({ id: u.id, label: u.name }))}
+          projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
+          departments={departments.map((d) => ({ id: d.id, label: d.name }))}
+          currentUserId={session!.user.id}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Link href={filterHref("periode", undefined)}>
+          <Button variant={!periode ? "default" : "outline"} size="sm">
+            Toutes périodes
+          </Button>
+        </Link>
+        {Object.entries(PERIOD_LABELS).map(([key, label]) => (
+          <Link key={key} href={filterHref("periode", key)}>
+            <Button variant={periode === key ? "default" : "outline"} size="sm">
+              {label}
+            </Button>
+          </Link>
+        ))}
+        <span className="mx-2 text-muted-foreground">·</span>
+        <Link href={filterHref("scope", undefined)}>
+          <Button variant={!scope ? "default" : "outline"} size="sm">
+            Toutes portées
+          </Button>
+        </Link>
+        {Object.entries(SCOPE_LABELS).map(([key, label]) => (
+          <Link key={key} href={filterHref("scope", key)}>
+            <Button variant={scope === key ? "default" : "outline"} size="sm">
+              {label}
+            </Button>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {objectives.map((objective) => {
+          const progress = objectiveProgress(
+            objective.indicators.map((i) => ({
+              valeurActuelle: Number(i.valeurActuelle),
+              valeurCible: Number(i.valeurCible),
+            }))
+          );
+          const target =
+            objective.scope === "INDIVIDUEL"
+              ? objective.user?.name
+              : objective.scope === "EQUIPE"
+                ? objective.project?.nom
+                : objective.department?.name;
+
+          return (
+            <Link key={objective.id} href={`/objectifs/${objective.id}`}>
+              <Card className="h-full transition-colors hover:bg-muted/50">
+                <CardHeader>
+                  <CardTitle className="text-base">{objective.titre}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{PERIOD_LABELS[objective.periode]}</Badge>
+                    <Badge variant="outline">{SCOPE_LABELS[objective.scope]}</Badge>
+                    <Badge variant="outline">{STATUS_LABELS[objective.statut]}</Badge>
+                  </div>
+                  {target && <p className="text-sm text-muted-foreground">{target}</p>}
+                  <ProgressBar value={progress} />
+                  <p className="text-xs text-muted-foreground">{progress}% · {objective.indicators.length} indicateur(s)</p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+        {objectives.length === 0 && (
+          <p className="text-sm text-muted-foreground">Aucun objectif pour le moment.</p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -36,6 +36,11 @@ export const PERMISSIONS = {
   LEAVE_MANAGE: "leave.manage",
   EVENT_CREATE: "event.create",
 
+  OBJECTIVE_CREATE: "objective.create",
+  OBJECTIVE_READ: "objective.read",
+  OBJECTIVE_UPDATE: "objective.update",
+  OBJECTIVE_DELETE: "objective.delete",
+
   DEPARTMENT_MANAGE: "department.manage",
 
   ADMINISTRATION_ACCESS: "administration.access",
@@ -87,6 +92,11 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.LEAVE_MANAGE, label: "Approuver/refuser les congés", category: "Calendrier" },
   { key: PERMISSIONS.EVENT_CREATE, label: "Créer un événement", category: "Calendrier" },
 
+  { key: PERMISSIONS.OBJECTIVE_CREATE, label: "Créer un objectif", category: "Objectifs & KPI" },
+  { key: PERMISSIONS.OBJECTIVE_READ, label: "Consulter les objectifs", category: "Objectifs & KPI" },
+  { key: PERMISSIONS.OBJECTIVE_UPDATE, label: "Modifier un objectif / mettre à jour un indicateur", category: "Objectifs & KPI" },
+  { key: PERMISSIONS.OBJECTIVE_DELETE, label: "Supprimer un objectif", category: "Objectifs & KPI" },
+
   { key: PERMISSIONS.DEPARTMENT_MANAGE, label: "Gérer un département", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
@@ -130,6 +140,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.LEAVE_CREATE,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
   ],
@@ -162,6 +175,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.LEAVE_CREATE,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -191,6 +207,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.LEAVE_CREATE,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -218,6 +237,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
     PERMISSIONS.LEAVE_CREATE,
     PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
   ],
 
   RESPONSABLE: [
@@ -238,6 +260,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.LEAVE_CREATE,
     PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
   ],
 
   MANAGER: [
@@ -256,6 +281,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.LEAVE_CREATE,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
   ],
 
   COLLABORATEUR: [
@@ -267,6 +295,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.OBJECTIVE_CREATE,
+    PERMISSIONS.OBJECTIVE_READ,
+    PERMISSIONS.OBJECTIVE_UPDATE,
   ],
 
   CONSULTANT_EXTERNE: [
@@ -275,6 +306,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.OBJECTIVE_READ,
   ],
 
   PRESTATAIRE: [
@@ -283,6 +315,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.OBJECTIVE_READ,
   ],
 
   INVITE: [
@@ -290,6 +323,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_READ,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.OBJECTIVE_READ,
   ],
 };
 

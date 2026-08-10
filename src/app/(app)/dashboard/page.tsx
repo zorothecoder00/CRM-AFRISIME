@@ -6,6 +6,8 @@ import { Prisma } from "@/generated/prisma/client";
 import { TaskStatus } from "@/generated/prisma/enums";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProgressBar } from "@/components/objectives/progress-bar";
+import { objectiveProgress } from "@/lib/objective-progress";
 
 function startOfDay(date: Date) {
   const d = new Date(date);
@@ -39,7 +41,7 @@ export default async function DashboardPage() {
     OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
   };
 
-  const [todayTasks, overdueTasks, weekTasks, myProjects] = await Promise.all([
+  const [todayTasks, overdueTasks, weekTasks, myProjects, myObjectives] = await Promise.all([
     prisma.task.findMany({
       where: {
         ...mineFilter,
@@ -72,6 +74,12 @@ export default async function DashboardPage() {
         OR: [{ responsableId: userId }, { members: { some: { userId } } }],
       },
       orderBy: { updatedAt: "desc" },
+      take: 5,
+    }),
+    prisma.objective.findMany({
+      where: { userId, statut: "EN_COURS" },
+      include: { indicators: true },
+      orderBy: { dateFin: "asc" },
       take: 5,
     }),
   ]);
@@ -116,6 +124,39 @@ export default async function DashboardPage() {
                   </Link>
                 </li>
               ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Mes objectifs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {myObjectives.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun objectif en cours.</p>
+          ) : (
+            <ul className="space-y-3">
+              {myObjectives.map((objective) => {
+                const progress = objectiveProgress(
+                  objective.indicators.map((i) => ({
+                    valeurActuelle: Number(i.valeurActuelle),
+                    valeurCible: Number(i.valeurCible),
+                  }))
+                );
+                return (
+                  <li key={objective.id}>
+                    <Link href={`/objectifs/${objective.id}`} className="block rounded-md border p-3 text-sm hover:bg-muted">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="font-medium">{objective.titre}</span>
+                        <span className="text-xs text-muted-foreground">{progress}%</span>
+                      </div>
+                      <ProgressBar value={progress} />
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

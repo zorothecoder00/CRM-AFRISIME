@@ -3,9 +3,10 @@
 // Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
 // dépendances), Réunions (ordre du jour, participants, compte rendu,
 // décisions → tâches auto-créées), Documents (dossiers, versions,
-// liaison tâche/réunion), Calendrier (congés, événements), Audit.
-// Messagerie, KPI, Automatisation : hors périmètre MVP, volontairement
-// non modélisés (voir plan).
+// liaison tâche/réunion), Calendrier (congés, événements), Objectifs & KPI
+// (individuel/équipe/département, indicateurs mesurables), Audit.
+// Messagerie, Charge de travail, Automatisation : hors périmètre MVP,
+// volontairement non modélisés (voir plan).
 
 generator client {
   provider = "prisma-client"
@@ -104,6 +105,28 @@ enum LeaveStatus {
   REFUSE
 }
 
+enum ObjectivePeriod {
+  ANNUEL
+  TRIMESTRIEL
+  MENSUEL
+  HEBDOMADAIRE
+}
+
+// « équipe » n'a pas de modèle dédié dans ce MVP — une équipe est
+// représentée par les membres d'un Projet (ProjectMember), déjà modélisé.
+enum ObjectiveScope {
+  INDIVIDUEL
+  EQUIPE
+  DEPARTEMENT
+}
+
+enum ObjectiveStatus {
+  EN_COURS
+  ATTEINT
+  NON_ATTEINT
+  ANNULE
+}
+
 model User {
   id           String      @id @default(cuid())
   name         String
@@ -135,6 +158,8 @@ model User {
   leaveRequests           Leave[]              @relation("LeaveRequestedBy")
   leaveDecisions          Leave[]              @relation("LeaveDecidedBy")
   eventsCreated           Event[]              @relation("EventCreatedBy")
+  objectivesOwned         Objective[]          @relation("ObjectiveUser")
+  objectivesCreated       Objective[]          @relation("ObjectiveCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -168,15 +193,16 @@ model RolePermission {
 }
 
 model Department {
-  id        String       @id @default(cuid())
-  name      String
-  code      String       @unique
-  parentId  String?
-  parent    Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
-  children  Department[] @relation("DeptHierarchy")
-  users     User[]
-  projects  Project[]
-  createdAt DateTime     @default(now())
+  id         String       @id @default(cuid())
+  name       String
+  code       String       @unique
+  parentId   String?
+  parent     Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children   Department[] @relation("DeptHierarchy")
+  users      User[]
+  projects   Project[]
+  objectives Objective[]
+  createdAt  DateTime     @default(now())
 }
 
 model Project {
@@ -207,6 +233,7 @@ model Project {
   documentFolders DocumentFolder[]
   documents       Document[]
   events          Event[]
+  objectives      Objective[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -493,6 +520,52 @@ model Event {
 
   @@index([projectId])
   @@index([dateDebut])
+}
+
+// Objectif (cahier des charges §13) — annuel/trimestriel/mensuel/hebdomadaire,
+// individuel/équipe (= membres d'un Projet)/département. Exactement un des
+// champs userId/projectId/departmentId est renseigné selon `scope`.
+model Objective {
+  id           String          @id @default(cuid())
+  titre        String
+  description  String?
+  periode      ObjectivePeriod
+  scope        ObjectiveScope
+  dateDebut    DateTime
+  dateFin      DateTime
+  statut       ObjectiveStatus @default(EN_COURS)
+  userId       String?
+  user         User?           @relation("ObjectiveUser", fields: [userId], references: [id])
+  projectId    String?
+  project      Project?        @relation(fields: [projectId], references: [id])
+  departmentId String?
+  department   Department?     @relation(fields: [departmentId], references: [id])
+  createdById  String
+  createdBy    User            @relation("ObjectiveCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  indicators Indicator[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([departmentId])
+  @@index([periode])
+}
+
+// Indicateur mesurable relié à un objectif (cahier des charges §13).
+model Indicator {
+  id             String    @id @default(cuid())
+  objectiveId    String
+  objective      Objective @relation(fields: [objectiveId], references: [id])
+  nom            String
+  unite          String?
+  valeurCible    Decimal   @db.Decimal(12, 2)
+  valeurActuelle Decimal   @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([objectiveId])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.

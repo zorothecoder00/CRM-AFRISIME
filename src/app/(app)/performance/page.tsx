@@ -9,8 +9,9 @@ export default function PerformancePage() {
         <CardTitle>Module Performance à venir</CardTitle>
       </CardHeader>
       <CardContent className="text-center text-sm text-muted-foreground">
-        Objectifs &amp; KPI, charge de travail et tableaux de bord personnalisables
-        arriveront dans une prochaine version d&apos;AfriFlow.
+        La charge de travail et les tableaux de bord personnalisables
+        arriveront dans une prochaine version d&apos;AfriFlow. Les objectifs
+        &amp; KPI sont déjà disponibles dans le menu.
       </CardContent>
     </Card>
   );

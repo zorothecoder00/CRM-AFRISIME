@@ -479,6 +479,104 @@ async function main() {
     },
   });
 
+  // Objectifs & KPI démo : individuel, équipe (projet), département
+  const objectiveIndividuel = await prisma.objective.upsert({
+    where: { id: "demo-objective-individuel" },
+    update: {},
+    create: {
+      id: "demo-objective-individuel",
+      titre: "Monter en compétence sur l'intégration frontend",
+      periode: "TRIMESTRIEL",
+      scope: "INDIVIDUEL",
+      userId: users[RoleKey.COLLABORATEUR].id,
+      dateDebut: daysFromNow(-30),
+      dateFin: daysFromNow(60),
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  await prisma.indicator.upsert({
+    where: { id: "demo-indicator-individuel-1" },
+    update: {},
+    create: {
+      id: "demo-indicator-individuel-1",
+      objectiveId: objectiveIndividuel.id,
+      nom: "Pages intégrées de manière autonome",
+      unite: "pages",
+      valeurCible: 10,
+      valeurActuelle: 4,
+    },
+  });
+
+  const objectiveEquipe = await prisma.objective.upsert({
+    where: { id: "demo-objective-equipe" },
+    update: {},
+    create: {
+      id: "demo-objective-equipe",
+      titre: "Livrer la refonte du site dans les délais",
+      periode: "TRIMESTRIEL",
+      scope: "EQUIPE",
+      projectId: project.id,
+      dateDebut: daysFromNow(-30),
+      dateFin: daysFromNow(60),
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  await prisma.indicator.upsert({
+    where: { id: "demo-indicator-equipe-1" },
+    update: {},
+    create: {
+      id: "demo-indicator-equipe-1",
+      objectiveId: objectiveEquipe.id,
+      nom: "Avancement du projet",
+      unite: "%",
+      valeurCible: 100,
+      valeurActuelle: 35,
+    },
+  });
+
+  await prisma.indicator.upsert({
+    where: { id: "demo-indicator-equipe-2" },
+    update: {},
+    create: {
+      id: "demo-indicator-equipe-2",
+      objectiveId: objectiveEquipe.id,
+      nom: "Tâches terminées",
+      unite: "tâches",
+      valeurCible: 8,
+      valeurActuelle: 2,
+    },
+  });
+
+  const objectiveDepartement = await prisma.objective.upsert({
+    where: { id: "demo-objective-departement" },
+    update: {},
+    create: {
+      id: "demo-objective-departement",
+      titre: "Réduire le taux de retard des projets IT",
+      periode: "ANNUEL",
+      scope: "DEPARTEMENT",
+      departmentId: departementIT.id,
+      dateDebut: daysFromNow(-90),
+      dateFin: daysFromNow(270),
+      createdById: users[RoleKey.DIRECTEUR_GENERAL].id,
+    },
+  });
+
+  await prisma.indicator.upsert({
+    where: { id: "demo-indicator-departement-1" },
+    update: {},
+    create: {
+      id: "demo-indicator-departement-1",
+      objectiveId: objectiveDepartement.id,
+      nom: "Taux de respect des délais",
+      unite: "%",
+      valeurCible: 90,
+      valeurActuelle: 62,
+    },
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {
