@@ -1,0 +1,330 @@
+// AfriFlow (AfriSime Work-Flow) — schéma MVP
+// Domaines couverts : Auth/Rôles/Permissions, Départements, Projets (hiérarchie
+// Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
+// pièces jointes en métadonnées, dépendances), Audit.
+// Réunions, Documents, Messagerie, Calendrier, KPI, Automatisation : hors
+// périmètre MVP, volontairement non modélisés (voir plan).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleKey {
+  SUPER_ADMIN
+  DIRECTEUR_GENERAL
+  DIRECTEUR
+  CHEF_DEPARTEMENT
+  CHEF_PROJET
+  RESPONSABLE
+  MANAGER
+  COLLABORATEUR
+  CONSULTANT_EXTERNE
+  PRESTATAIRE
+  INVITE
+}
+
+enum ProjectStatus {
+  PLANIFIE
+  EN_COURS
+  EN_PAUSE
+  TERMINE
+  ANNULE
+}
+
+enum ProjectPriority {
+  BASSE
+  MOYENNE
+  HAUTE
+  CRITIQUE
+}
+
+enum SectionType {
+  PHASE
+  SOUS_PHASE
+  LOT
+}
+
+enum SectionStatus {
+  A_VENIR
+  EN_COURS
+  TERMINE
+  EN_RETARD
+}
+
+enum TaskStatus {
+  A_FAIRE
+  EN_COURS
+  EN_REVISION
+  BLOQUEE
+  TERMINEE
+  ANNULEE
+}
+
+enum TaskPriority {
+  TRES_HAUTE
+  HAUTE
+  MOYENNE
+  BASSE
+}
+
+enum DependencyType {
+  BLOQUE
+  LIE_A
+}
+
+enum ProjectMemberRole {
+  CHEF_PROJET
+  MEMBRE
+  OBSERVATEUR
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  image        String?
+  roleId       String
+  role         Role        @relation(fields: [roleId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  projectsOwned       Project[]        @relation("ProjectResponsable")
+  projectsCreated     Project[]        @relation("ProjectCreatedBy")
+  projectMemberships  ProjectMember[]
+  tasksOwned          Task[]           @relation("TaskResponsablePrincipal")
+  tasksCreated        Task[]           @relation("TaskCreatedBy")
+  taskAssignments     TaskAssignee[]
+  comments            TaskComment[]
+  attachmentsUploaded TaskAttachment[]
+  auditLogs           AuditLog[]
+
+  @@index([departmentId])
+  @@index([roleId])
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         RoleKey          @unique
+  label       String
+  description String?
+  isSystem    Boolean          @default(true)
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id       String           @id @default(cuid())
+  key      String           @unique
+  label    String
+  category String
+  roles    RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model Department {
+  id        String       @id @default(cuid())
+  name      String
+  code      String       @unique
+  parentId  String?
+  parent    Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children  Department[] @relation("DeptHierarchy")
+  users     User[]
+  projects  Project[]
+  createdAt DateTime     @default(now())
+}
+
+model Project {
+  id            String          @id @default(cuid())
+  nom           String
+  description   String?
+  objectif      String?
+  responsableId String
+  responsable   User            @relation("ProjectResponsable", fields: [responsableId], references: [id])
+  departmentId  String
+  department    Department      @relation(fields: [departmentId], references: [id])
+  priorite      ProjectPriority @default(MOYENNE)
+  dateDebut     DateTime?
+  dateFin       DateTime?
+  budget        Decimal?        @db.Decimal(14, 2)
+  statut        ProjectStatus   @default(PLANIFIE)
+  avancement    Int             @default(0)
+  organisation  String?
+  createdById   String
+  createdBy     User            @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  members  ProjectMember[]
+  sections ProjectSection[]
+  tasks    Task[]
+
+  @@index([departmentId])
+  @@index([responsableId])
+  @@index([statut])
+}
+
+model ProjectMember {
+  id            String            @id @default(cuid())
+  projectId     String
+  userId        String
+  roleOnProject ProjectMemberRole @default(MEMBRE)
+  project       Project           @relation(fields: [projectId], references: [id])
+  user          User              @relation(fields: [userId], references: [id])
+  addedAt       DateTime          @default(now())
+
+  @@unique([projectId, userId])
+}
+
+// Phase / Sous-phase / Lot — un seul modèle auto-référencé, discriminé par `type`.
+model ProjectSection {
+  id            String           @id @default(cuid())
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id])
+  parentId      String?
+  parent        ProjectSection?  @relation("SectionHierarchy", fields: [parentId], references: [id])
+  children      ProjectSection[] @relation("SectionHierarchy")
+  type          SectionType
+  nom           String
+  description   String?
+  responsableId String?
+  dateDebut     DateTime?
+  dateFin       DateTime?
+  statut        SectionStatus    @default(A_VENIR)
+  ordre         Int              @default(0)
+  tasks         Task[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([projectId])
+  @@index([parentId])
+}
+
+// Tâche / Sous-tâche — un seul modèle auto-référencé (sous-tâche = parentTaskId non nul).
+model Task {
+  id                     String          @id @default(cuid())
+  projectId              String
+  project                Project         @relation(fields: [projectId], references: [id])
+  sectionId              String?
+  section                ProjectSection? @relation(fields: [sectionId], references: [id])
+  parentTaskId           String?
+  parentTask             Task?           @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subTasks               Task[]          @relation("TaskHierarchy")
+  titre                  String
+  description            String?
+  priorite               TaskPriority    @default(MOYENNE)
+  statut                 TaskStatus      @default(A_FAIRE)
+  avancement             Int             @default(0)
+  echeance               DateTime?
+  tempsEstimeHeures      Decimal?        @db.Decimal(6, 2)
+  tempsReelHeures        Decimal?        @db.Decimal(6, 2)
+  responsablePrincipalId String
+  responsablePrincipal   User            @relation("TaskResponsablePrincipal", fields: [responsablePrincipalId], references: [id])
+  createdById            String
+  createdBy              User            @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  ordre                  Int             @default(0)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  assignees      TaskAssignee[]
+  checklistItems ChecklistItem[]
+  comments       TaskComment[]
+  attachments    TaskAttachment[]
+  dependsOn      TaskDependency[] @relation("DependentTask")
+  blocking       TaskDependency[] @relation("PrerequisiteTask")
+
+  @@index([projectId])
+  @@index([sectionId])
+  @@index([parentTaskId])
+  @@index([responsablePrincipalId])
+  @@index([statut])
+  @@index([echeance])
+}
+
+model TaskAssignee {
+  taskId String
+  userId String
+  task   Task   @relation(fields: [taskId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([taskId, userId])
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  label     String
+  isDone    Boolean  @default(false)
+  ordre     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+}
+
+// Métadonnées uniquement — pas de stockage réel branché dans ce MVP.
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id])
+  fileName     String
+  url          String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model TaskDependency {
+  id              String         @id @default(cuid())
+  taskId          String
+  dependsOnTaskId String
+  type            DependencyType @default(BLOQUE)
+  task            Task           @relation("DependentTask", fields: [taskId], references: [id])
+  dependsOnTask   Task           @relation("PrerequisiteTask", fields: [dependsOnTaskId], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@unique([taskId, dependsOnTaskId])
+}
+
+// Générique — sert aussi d'historique des modifications de tâche/projet.
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  changes    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}

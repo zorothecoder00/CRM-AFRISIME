@@ -1,0 +1,275 @@
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
+import { PrismaClient } from "../src/generated/prisma/client";
+import {
+  RoleKey,
+  SectionType,
+  SectionStatus,
+  TaskStatus,
+  TaskPriority,
+} from "../src/generated/prisma/enums";
+import {
+  PERMISSION_CATALOG,
+  DEFAULT_ROLE_PERMISSIONS,
+} from "../src/lib/permissions";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: "Super Administrateur",
+  DIRECTEUR_GENERAL: "Directeur Général",
+  DIRECTEUR: "Directeur",
+  CHEF_DEPARTEMENT: "Chef de Département",
+  CHEF_PROJET: "Chef de Projet",
+  RESPONSABLE: "Responsable",
+  MANAGER: "Manager",
+  COLLABORATEUR: "Collaborateur",
+  CONSULTANT_EXTERNE: "Consultant externe",
+  PRESTATAIRE: "Prestataire",
+  INVITE: "Invité",
+};
+
+const DEMO_PASSWORD = "Password123!";
+
+async function main() {
+  console.log("Seed AfriFlow — démarrage...");
+
+  // Départements
+  const [directionGenerale, departementIT, departementCommercial] =
+    await Promise.all([
+      prisma.department.upsert({
+        where: { code: "DG" },
+        update: {},
+        create: { name: "Direction Générale", code: "DG" },
+      }),
+      prisma.department.upsert({
+        where: { code: "IT" },
+        update: {},
+        create: { name: "Département IT", code: "IT" },
+      }),
+      prisma.department.upsert({
+        where: { code: "COM" },
+        update: {},
+        create: { name: "Département Commercial", code: "COM" },
+      }),
+      prisma.department.upsert({
+        where: { code: "RH" },
+        update: {},
+        create: { name: "Département RH", code: "RH" },
+      }),
+    ]);
+
+  // Permissions
+  for (const perm of PERMISSION_CATALOG) {
+    await prisma.permission.upsert({
+      where: { key: perm.key },
+      update: { label: perm.label, category: perm.category },
+      create: { key: perm.key, label: perm.label, category: perm.category },
+    });
+  }
+
+  // Rôles + matrice de permissions
+  const roles: Record<string, { id: string }> = {};
+  for (const roleKey of Object.values(RoleKey)) {
+    const role = await prisma.role.upsert({
+      where: { key: roleKey },
+      update: { label: ROLE_LABELS[roleKey] },
+      create: { key: roleKey, label: ROLE_LABELS[roleKey] },
+    });
+    roles[roleKey] = role;
+
+    const permissionKeys = DEFAULT_ROLE_PERMISSIONS[roleKey] ?? [];
+    for (const permKey of permissionKeys) {
+      const permission = await prisma.permission.findUniqueOrThrow({
+        where: { key: permKey },
+      });
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
+        update: {},
+        create: { roleId: role.id, permissionId: permission.id },
+      });
+    }
+  }
+
+  // Utilisateurs démo
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  const demoUsers = [
+    { email: "admin@afriflow.local", name: "Aïcha Super Admin", roleKey: RoleKey.SUPER_ADMIN, departmentId: directionGenerale.id },
+    { email: "dg@afriflow.local", name: "Koffi DG", roleKey: RoleKey.DIRECTEUR_GENERAL, departmentId: directionGenerale.id },
+    { email: "chefprojet@afriflow.local", name: "Fatou Chef de Projet", roleKey: RoleKey.CHEF_PROJET, departmentId: departementIT.id },
+    { email: "manager@afriflow.local", name: "Yao Manager", roleKey: RoleKey.MANAGER, departmentId: departementIT.id },
+    { email: "collaborateur@afriflow.local", name: "Awa Collaboratrice", roleKey: RoleKey.COLLABORATEUR, departmentId: departementIT.id },
+    { email: "invite@afriflow.local", name: "Jean Invité", roleKey: RoleKey.INVITE, departmentId: departementCommercial.id },
+  ];
+
+  const users: Record<string, { id: string }> = {};
+  for (const u of demoUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        email: u.email,
+        name: u.name,
+        passwordHash,
+        roleId: roles[u.roleKey].id,
+        departmentId: u.departmentId,
+      },
+    });
+    users[u.roleKey] = user;
+  }
+
+  // Projet démo
+  const project = await prisma.project.upsert({
+    where: { id: "demo-project-refonte-site" },
+    update: {},
+    create: {
+      id: "demo-project-refonte-site",
+      nom: "Refonte Site Web AfriSime",
+      description: "Refonte complète du site institutionnel et de l'espace client.",
+      objectif: "Améliorer l'image de marque et le taux de conversion en ligne.",
+      responsableId: users[RoleKey.CHEF_PROJET].id,
+      departmentId: departementIT.id,
+      priorite: "HAUTE",
+      statut: "EN_COURS",
+      avancement: 35,
+      dateDebut: new Date(),
+      dateFin: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      createdById: users[RoleKey.CHEF_PROJET].id,
+      members: {
+        create: [
+          { userId: users[RoleKey.CHEF_PROJET].id, roleOnProject: "CHEF_PROJET" },
+          { userId: users[RoleKey.MANAGER].id, roleOnProject: "MEMBRE" },
+          { userId: users[RoleKey.COLLABORATEUR].id, roleOnProject: "MEMBRE" },
+        ],
+      },
+    },
+  });
+
+  const phaseConception = await prisma.projectSection.upsert({
+    where: { id: "demo-section-conception" },
+    update: {},
+    create: {
+      id: "demo-section-conception",
+      projectId: project.id,
+      type: SectionType.PHASE,
+      nom: "Conception",
+      statut: SectionStatus.TERMINE,
+      responsableId: users[RoleKey.CHEF_PROJET].id,
+      ordre: 1,
+    },
+  });
+
+  const phaseDeveloppement = await prisma.projectSection.upsert({
+    where: { id: "demo-section-developpement" },
+    update: {},
+    create: {
+      id: "demo-section-developpement",
+      projectId: project.id,
+      type: SectionType.PHASE,
+      nom: "Développement",
+      statut: SectionStatus.EN_COURS,
+      responsableId: users[RoleKey.MANAGER].id,
+      ordre: 2,
+    },
+  });
+
+  const lotFrontend = await prisma.projectSection.upsert({
+    where: { id: "demo-section-lot-frontend" },
+    update: {},
+    create: {
+      id: "demo-section-lot-frontend",
+      projectId: project.id,
+      parentId: phaseDeveloppement.id,
+      type: SectionType.LOT,
+      nom: "Lot Frontend",
+      statut: SectionStatus.EN_COURS,
+      responsableId: users[RoleKey.COLLABORATEUR].id,
+      ordre: 1,
+    },
+  });
+
+  const today = new Date();
+  const daysFromNow = (n: number) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000);
+
+  const taskDefs = [
+    { id: "demo-task-1", titre: "Rédiger le cahier des charges", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-10), assignee: RoleKey.CHEF_PROJET },
+    { id: "demo-task-2", titre: "Maquettes UI", sectionId: phaseConception.id, statut: TaskStatus.TERMINEE, echeance: daysFromNow(-3), assignee: RoleKey.COLLABORATEUR },
+    { id: "demo-task-3", titre: "Intégration page d'accueil", sectionId: lotFrontend.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(0), assignee: RoleKey.COLLABORATEUR },
+    { id: "demo-task-4", titre: "Intégration espace client", sectionId: lotFrontend.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(2), assignee: RoleKey.COLLABORATEUR },
+    { id: "demo-task-5", titre: "API authentification", sectionId: phaseDeveloppement.id, statut: TaskStatus.EN_COURS, echeance: daysFromNow(-1), assignee: RoleKey.MANAGER },
+    { id: "demo-task-6", titre: "Tests de charge", sectionId: phaseDeveloppement.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(5), assignee: RoleKey.MANAGER },
+    { id: "demo-task-7", titre: "Rédaction contenus", sectionId: phaseDeveloppement.id, statut: TaskStatus.BLOQUEE, echeance: daysFromNow(-5), assignee: RoleKey.COLLABORATEUR },
+    { id: "demo-task-8", titre: "Recette finale", sectionId: phaseDeveloppement.id, statut: TaskStatus.A_FAIRE, echeance: daysFromNow(6), assignee: RoleKey.CHEF_PROJET },
+  ];
+
+  const tasks: Record<string, { id: string }> = {};
+  for (const t of taskDefs) {
+    const task = await prisma.task.upsert({
+      where: { id: t.id },
+      update: {},
+      create: {
+        id: t.id,
+        projectId: project.id,
+        sectionId: t.sectionId,
+        titre: t.titre,
+        priorite: TaskPriority.HAUTE,
+        statut: t.statut,
+        echeance: t.echeance,
+        responsablePrincipalId: users[t.assignee].id,
+        createdById: users[RoleKey.CHEF_PROJET].id,
+      },
+    });
+    tasks[t.id] = task;
+  }
+
+  await prisma.checklistItem.createMany({
+    skipDuplicates: true,
+    data: [
+      { id: "demo-checklist-1", taskId: tasks["demo-task-3"].id, label: "Header responsive", isDone: true, ordre: 1 },
+      { id: "demo-checklist-2", taskId: tasks["demo-task-3"].id, label: "Section hero", isDone: false, ordre: 2 },
+    ],
+  });
+
+  await prisma.taskComment.upsert({
+    where: { id: "demo-comment-1" },
+    update: {},
+    create: {
+      id: "demo-comment-1",
+      taskId: tasks["demo-task-5"].id,
+      authorId: users[RoleKey.CHEF_PROJET].id,
+      content: "Merci de prioriser l'API d'authentification avant la fin de semaine.",
+    },
+  });
+
+  await prisma.taskDependency.upsert({
+    where: {
+      taskId_dependsOnTaskId: {
+        taskId: tasks["demo-task-4"].id,
+        dependsOnTaskId: tasks["demo-task-3"].id,
+      },
+    },
+    update: {},
+    create: {
+      taskId: tasks["demo-task-4"].id,
+      dependsOnTaskId: tasks["demo-task-3"].id,
+    },
+  });
+
+  console.log("\nSeed terminé avec succès.\n");
+  console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
+  for (const u of demoUsers) {
+    console.log(`  - ${u.email}  (${ROLE_LABELS[u.roleKey]})`);
+  }
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
