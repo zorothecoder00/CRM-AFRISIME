@@ -9,8 +9,8 @@ export default function CollaborationPage() {
         <CardTitle>Module Collaboration à venir</CardTitle>
       </CardHeader>
       <CardContent className="text-center text-sm text-muted-foreground">
-        Messagerie interne, mentions, réactions et gestion documentaire
-        arriveront dans une prochaine version d&apos;AfriFlow. Les réunions
+        Messagerie interne, mentions et réactions arriveront dans une
+        prochaine version d&apos;AfriFlow. Les réunions et les documents
         sont déjà disponibles dans le menu.
       </CardContent>
     </Card>

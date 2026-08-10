@@ -311,6 +311,119 @@ async function main() {
     },
   });
 
+  // Espace documentaire démo : un dossier avec sous-dossier, un document lié
+  // à une tâche, un document lié à la réunion, un document à la racine.
+  const folderContrats = await prisma.documentFolder.upsert({
+    where: { id: "demo-folder-contenus" },
+    update: {},
+    create: {
+      id: "demo-folder-contenus",
+      projectId: project.id,
+      nom: "Contenus & maquettes",
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  const folderMaquettes = await prisma.documentFolder.upsert({
+    where: { id: "demo-folder-maquettes-ui" },
+    update: {},
+    create: {
+      id: "demo-folder-maquettes-ui",
+      projectId: project.id,
+      parentId: folderContrats.id,
+      nom: "Maquettes UI",
+      createdById: users[RoleKey.COLLABORATEUR].id,
+    },
+  });
+
+  const docMaquette = await prisma.document.upsert({
+    where: { id: "demo-document-maquette" },
+    update: {},
+    create: {
+      id: "demo-document-maquette",
+      projectId: project.id,
+      folderId: folderMaquettes.id,
+      taskId: tasks["demo-task-2"].id,
+      nom: "Maquette page d'accueil v1",
+      description: "Export Figma de la maquette validée en phase de conception.",
+      url: "https://figma.com/file/demo-maquette-accueil",
+      mimeType: "application/figma",
+      uploadedById: users[RoleKey.COLLABORATEUR].id,
+      versions: {
+        create: [
+          {
+            url: "https://figma.com/file/demo-maquette-accueil",
+            mimeType: "application/figma",
+            createdById: users[RoleKey.COLLABORATEUR].id,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.documentVersion.upsert({
+    where: { id: "demo-version-maquette-2" },
+    update: {},
+    create: {
+      id: "demo-version-maquette-2",
+      documentId: docMaquette.id,
+      url: "https://figma.com/file/demo-maquette-accueil-v2",
+      note: "Ajout de la version mobile après retours du Chef de Projet.",
+      createdById: users[RoleKey.COLLABORATEUR].id,
+    },
+  });
+
+  await prisma.document.update({
+    where: { id: docMaquette.id },
+    data: { url: "https://figma.com/file/demo-maquette-accueil-v2" },
+  });
+
+  await prisma.document.upsert({
+    where: { id: "demo-document-compte-rendu" },
+    update: {},
+    create: {
+      id: "demo-document-compte-rendu",
+      projectId: project.id,
+      meetingId: meeting.id,
+      nom: "Support de présentation du point hebdo",
+      url: "https://docs.example.com/demo-support-reunion.pdf",
+      mimeType: "application/pdf",
+      uploadedById: users[RoleKey.CHEF_PROJET].id,
+      versions: {
+        create: [
+          {
+            url: "https://docs.example.com/demo-support-reunion.pdf",
+            mimeType: "application/pdf",
+            createdById: users[RoleKey.CHEF_PROJET].id,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.document.upsert({
+    where: { id: "demo-document-cahier-des-charges" },
+    update: {},
+    create: {
+      id: "demo-document-cahier-des-charges",
+      projectId: project.id,
+      nom: "Cahier des charges - Refonte site web",
+      description: "Document de référence du projet, à la racine de l'espace documentaire.",
+      url: "https://docs.example.com/demo-cahier-des-charges.pdf",
+      mimeType: "application/pdf",
+      uploadedById: users[RoleKey.CHEF_PROJET].id,
+      versions: {
+        create: [
+          {
+            url: "https://docs.example.com/demo-cahier-des-charges.pdf",
+            mimeType: "application/pdf",
+            createdById: users[RoleKey.CHEF_PROJET].id,
+          },
+        ],
+      },
+    },
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {

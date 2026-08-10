@@ -2,9 +2,14 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HierarchyTree, type SectionNode } from "@/components/projects/hierarchy-tree";
+import { FolderTree, type FolderNode } from "@/components/documents/folder-tree";
+import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
+import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
+import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -30,7 +35,7 @@ export default async function ProjectDetailPage({
 }) {
   const { projectId } = await params;
 
-  const [project, sections, tasks, users] = await Promise.all([
+  const [project, sections, tasks, users, folders, rootDocuments] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       include: { department: true, responsable: true },
@@ -48,6 +53,16 @@ export default async function ProjectDetailPage({
       orderBy: { createdAt: "asc" },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.documentFolder.findMany({
+      where: { projectId },
+      include: { _count: { select: { documents: true } } },
+      orderBy: { nom: "asc" },
+    }),
+    prisma.document.findMany({
+      where: { projectId, folderId: null },
+      include: { uploadedBy: true, task: true, meeting: true, _count: { select: { versions: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   if (!project) {
@@ -80,6 +95,34 @@ export default async function ProjectDetailPage({
 
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
+  const folderNodeById = new Map<string, FolderNode>();
+  for (const f of folders) {
+    folderNodeById.set(f.id, { id: f.id, nom: f.nom, documentCount: f._count.documents, children: [] });
+  }
+  const folderRoots: FolderNode[] = [];
+  for (const f of folders) {
+    const node = folderNodeById.get(f.id)!;
+    if (f.parentId && folderNodeById.has(f.parentId)) {
+      folderNodeById.get(f.parentId)!.children.push(node);
+    } else {
+      folderRoots.push(node);
+    }
+  }
+  const folderOptions = folders.map((f) => ({ id: f.id, label: f.nom }));
+
+  const documentRows: DocumentRow[] = rootDocuments.map((d) => ({
+    id: d.id,
+    nom: d.nom,
+    description: d.description,
+    uploadedByName: d.uploadedBy.name,
+    createdAt: d.createdAt.toISOString(),
+    versionCount: d._count.versions,
+    taskTitre: d.task?.titre ?? null,
+    taskId: d.taskId,
+    meetingTitre: d.meeting?.titre ?? null,
+    meetingId: d.meetingId,
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -97,6 +140,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="apercu" className="mt-4">
@@ -148,6 +192,43 @@ export default async function ProjectDetailPage({
               </Link>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Aperçu de la racine de l&apos;espace documentaire.
+            </p>
+            <div className="flex gap-2">
+              <FolderFormDialog projectId={project.id} triggerLabel="Nouveau dossier" />
+              <DocumentFormDialog projectId={project.id} folders={folderOptions} />
+              <Link href={`/documents?projetId=${project.id}`}>
+                <Button variant="outline" size="sm">
+                  Ouvrir l&apos;espace complet
+                </Button>
+              </Link>
+            </div>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Dossiers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FolderTree
+                nodes={folderRoots}
+                projectId={project.id}
+                buildHref={(id) => `/documents?projetId=${project.id}${id ? `&folderId=${id}` : ""}`}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Documents (racine)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DocumentList documents={documentRows} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

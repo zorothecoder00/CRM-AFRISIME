@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompteRenduForm } from "@/components/meetings/compte-rendu-form";
 import { DecisionsSection } from "@/components/meetings/decisions-section";
+import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
+import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -28,7 +30,7 @@ export default async function MeetingDetailPage({
         createdBy: true,
         participants: { include: { user: true } },
         decisions: { include: { responsable: true }, orderBy: { createdAt: "asc" } },
-        attachments: true,
+        documents: { include: { uploadedBy: true, task: true, _count: { select: { versions: true } } } },
       },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -37,6 +39,19 @@ export default async function MeetingDetailPage({
   if (!meeting) {
     notFound();
   }
+
+  const documentRows: DocumentRow[] = meeting.documents.map((d) => ({
+    id: d.id,
+    nom: d.nom,
+    description: d.description,
+    uploadedByName: d.uploadedBy.name,
+    createdAt: d.createdAt.toISOString(),
+    versionCount: d._count.versions,
+    taskTitre: d.task?.titre ?? null,
+    taskId: d.taskId,
+    meetingTitre: null,
+    meetingId: null,
+  }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -102,19 +117,16 @@ export default async function MeetingDetailPage({
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Pièces jointes</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Documents liés</CardTitle>
+            <DocumentFormDialog
+              projectId={meeting.projectId}
+              meetingId={meeting.id}
+              triggerLabel="Lier un document"
+            />
           </CardHeader>
           <CardContent>
-            {meeting.attachments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune pièce jointe.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {meeting.attachments.map((a) => (
-                  <li key={a.id}>{a.fileName}</li>
-                ))}
-              </ul>
-            )}
+            <DocumentList documents={documentRows} />
           </CardContent>
         </Card>
       </div>

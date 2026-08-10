@@ -1,10 +1,11 @@
 // AfriFlow (AfriSime Work-Flow) — schéma MVP
 // Domaines couverts : Auth/Rôles/Permissions, Départements, Projets (hiérarchie
 // Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
-// pièces jointes en métadonnées, dépendances), Réunions (ordre du jour,
-// participants, compte rendu, décisions → tâches auto-créées), Audit.
-// Documents, Messagerie, Calendrier, KPI, Automatisation : hors périmètre
-// MVP, volontairement non modélisés (voir plan).
+// dépendances), Réunions (ordre du jour, participants, compte rendu,
+// décisions → tâches auto-créées), Documents (dossiers, versions,
+// liaison tâche/réunion), Audit.
+// Messagerie, Calendrier, KPI, Automatisation : hors périmètre MVP,
+// volontairement non modélisés (voir plan).
 
 generator client {
   provider = "prisma-client"
@@ -105,19 +106,20 @@ model User {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  projectsOwned              Project[]            @relation("ProjectResponsable")
-  projectsCreated            Project[]            @relation("ProjectCreatedBy")
-  projectMemberships         ProjectMember[]
-  tasksOwned                 Task[]               @relation("TaskResponsablePrincipal")
-  tasksCreated               Task[]               @relation("TaskCreatedBy")
-  taskAssignments            TaskAssignee[]
-  comments                   TaskComment[]
-  attachmentsUploaded        TaskAttachment[]
-  auditLogs                  AuditLog[]
-  meetingsCreated            Meeting[]            @relation("MeetingCreatedBy")
-  meetingParticipations      MeetingParticipant[]
-  meetingDecisionsOwned      MeetingDecision[]    @relation("MeetingDecisionResponsable")
-  meetingAttachmentsUploaded MeetingAttachment[]  @relation("MeetingAttachmentUploadedBy")
+  projectsOwned           Project[]            @relation("ProjectResponsable")
+  projectsCreated         Project[]            @relation("ProjectCreatedBy")
+  projectMemberships      ProjectMember[]
+  tasksOwned              Task[]               @relation("TaskResponsablePrincipal")
+  tasksCreated            Task[]               @relation("TaskCreatedBy")
+  taskAssignments         TaskAssignee[]
+  comments                TaskComment[]
+  auditLogs               AuditLog[]
+  meetingsCreated         Meeting[]            @relation("MeetingCreatedBy")
+  meetingParticipations   MeetingParticipant[]
+  meetingDecisionsOwned   MeetingDecision[]    @relation("MeetingDecisionResponsable")
+  documentFoldersCreated  DocumentFolder[]     @relation("DocumentFolderCreatedBy")
+  documentsUploaded       Document[]           @relation("DocumentUploadedBy")
+  documentVersionsCreated DocumentVersion[]    @relation("DocumentVersionCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -183,10 +185,12 @@ model Project {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  members  ProjectMember[]
-  sections ProjectSection[]
-  tasks    Task[]
-  meetings Meeting[]
+  members         ProjectMember[]
+  sections        ProjectSection[]
+  tasks           Task[]
+  meetings        Meeting[]
+  documentFolders DocumentFolder[]
+  documents       Document[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -258,7 +262,7 @@ model Task {
   assignees       TaskAssignee[]
   checklistItems  ChecklistItem[]
   comments        TaskComment[]
-  attachments     TaskAttachment[]
+  documents       Document[]
   dependsOn       TaskDependency[] @relation("DependentTask")
   blocking        TaskDependency[] @relation("PrerequisiteTask")
   meetingDecision MeetingDecision?
@@ -303,20 +307,6 @@ model TaskComment {
   @@index([taskId])
 }
 
-// Métadonnées uniquement — pas de stockage réel branché dans ce MVP.
-model TaskAttachment {
-  id           String   @id @default(cuid())
-  taskId       String
-  task         Task     @relation(fields: [taskId], references: [id])
-  fileName     String
-  url          String
-  mimeType     String
-  sizeBytes    Int
-  uploadedById String
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
-  createdAt    DateTime @default(now())
-}
-
 model TaskDependency {
   id              String         @id @default(cuid())
   taskId          String
@@ -346,7 +336,7 @@ model Meeting {
 
   participants MeetingParticipant[]
   decisions    MeetingDecision[]
-  attachments  MeetingAttachment[]
+  documents    Document[]
 
   @@index([projectId])
   @@index([dateHeure])
@@ -378,18 +368,74 @@ model MeetingDecision {
   @@index([meetingId])
 }
 
-// Métadonnées uniquement — même approche que TaskAttachment.
-model MeetingAttachment {
-  id           String   @id @default(cuid())
-  meetingId    String
-  meeting      Meeting  @relation(fields: [meetingId], references: [id])
-  fileName     String
+// Dossier documentaire d'un projet — auto-référencé pour le classement en
+// sous-dossiers (cahier des charges §10 : « classement par dossiers »).
+model DocumentFolder {
+  id          String           @id @default(cuid())
+  projectId   String
+  project     Project          @relation(fields: [projectId], references: [id])
+  parentId    String?
+  parent      DocumentFolder?  @relation("DocumentFolderHierarchy", fields: [parentId], references: [id])
+  children    DocumentFolder[] @relation("DocumentFolderHierarchy")
+  nom         String
+  createdById String
+  createdBy   User             @relation("DocumentFolderCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  documents Document[]
+
+  @@index([projectId])
+  @@index([parentId])
+}
+
+// Un document appartient toujours à un projet ; il peut en plus être lié à
+// une tâche ou une réunion (cahier des charges §10 : « les documents
+// peuvent être liés à des tâches ou à des réunions »). Le contrôle d'accès
+// s'appuie sur les permissions document.* et l'appartenance au projet
+// (ProjectMember), pas sur une liste d'accès par document.
+model Document {
+  id           String          @id @default(cuid())
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id])
+  folderId     String?
+  folder       DocumentFolder? @relation(fields: [folderId], references: [id])
+  taskId       String?
+  task         Task?           @relation(fields: [taskId], references: [id])
+  meetingId    String?
+  meeting      Meeting?        @relation(fields: [meetingId], references: [id])
+  nom          String
+  description  String?
   url          String
-  mimeType     String
-  sizeBytes    Int
+  mimeType     String?
+  sizeBytes    Int?
   uploadedById String
-  uploadedBy   User     @relation("MeetingAttachmentUploadedBy", fields: [uploadedById], references: [id])
-  createdAt    DateTime @default(now())
+  uploadedBy   User            @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  versions DocumentVersion[]
+
+  @@index([projectId])
+  @@index([folderId])
+  @@index([taskId])
+  @@index([meetingId])
+}
+
+// Historique des modifications (cahier des charges §10) : chaque nouvelle
+// version crée une entrée ; `Document` reflète toujours la version courante.
+model DocumentVersion {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  url         String
+  mimeType    String?
+  sizeBytes   Int?
+  note        String?
+  createdById String
+  createdBy   User     @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.

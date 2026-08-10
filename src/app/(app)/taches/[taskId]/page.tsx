@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checklist } from "@/components/tasks/checklist";
 import { CommentSection } from "@/components/tasks/comment-section";
 import { DependencySection } from "@/components/tasks/dependency-section";
+import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
+import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -39,7 +41,7 @@ export default async function TaskDetailPage({
       assignees: { include: { user: true } },
       checklistItems: { orderBy: { ordre: "asc" } },
       comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
-      attachments: true,
+      documents: { include: { uploadedBy: true, meeting: true, _count: { select: { versions: true } } } },
       dependsOn: { include: { dependsOnTask: true } },
     },
   });
@@ -52,6 +54,19 @@ export default async function TaskDetailPage({
     where: { projectId: task.projectId, id: { not: task.id } },
     select: { id: true, titre: true },
   });
+
+  const documentRows: DocumentRow[] = task.documents.map((d) => ({
+    id: d.id,
+    nom: d.nom,
+    description: d.description,
+    uploadedByName: d.uploadedBy.name,
+    createdAt: d.createdAt.toISOString(),
+    versionCount: d._count.versions,
+    taskTitre: null,
+    taskId: null,
+    meetingTitre: d.meeting?.titre ?? null,
+    meetingId: d.meetingId,
+  }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -106,19 +121,12 @@ export default async function TaskDetailPage({
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Pièces jointes</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Documents liés</CardTitle>
+            <DocumentFormDialog projectId={task.projectId} taskId={task.id} triggerLabel="Lier un document" />
           </CardHeader>
           <CardContent>
-            {task.attachments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune pièce jointe.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {task.attachments.map((a) => (
-                  <li key={a.id}>{a.fileName}</li>
-                ))}
-              </ul>
-            )}
+            <DocumentList documents={documentRows} />
           </CardContent>
         </Card>
       </div>
