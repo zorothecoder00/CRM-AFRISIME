@@ -29,7 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Documents", href: "/documents", icon: FileText },
   { title: "Objectifs & KPI", href: "/objectifs", icon: Target },
   { title: "Charge de travail", href: "/charge-de-travail", icon: Gauge },
-  { title: "Collaboration", href: "/collaboration", icon: MessageSquare, disabled: true },
+  { title: "Messagerie", href: "/messages", icon: MessageSquare },
   { title: "Performance", href: "/performance", icon: BarChart3, disabled: true },
   { title: "Administration", href: "/administration/utilisateurs", icon: ShieldCheck },
 ];

@@ -5,6 +5,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { createNotification, notifyMany } from "@/lib/notify";
+import { parseMentions } from "@/lib/mentions";
 import {
   createTaskSchema,
   updateTaskStatusSchema,
@@ -50,6 +52,17 @@ export async function createTask(input: CreateTaskInput) {
     },
   });
 
+  if (task.responsablePrincipalId !== session.user.id) {
+    await createNotification({
+      userId: task.responsablePrincipalId,
+      type: "NOUVELLE_TACHE",
+      titre: `Nouvelle tâche assignée : ${task.titre}`,
+      lien: `/taches/${task.id}`,
+      entityType: "Task",
+      entityId: task.id,
+    });
+  }
+
   revalidatePath("/taches");
   revalidatePath(`/projets/${data.projectId}`);
   return task;
@@ -87,8 +100,40 @@ export async function addComment(taskId: string, content: string) {
 
   const data = addCommentSchema.parse({ taskId, content });
 
+  const task = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    include: {
+      responsablePrincipal: true,
+      assignees: { include: { user: true } },
+      project: { include: { members: { include: { user: true } } } },
+    },
+  });
+
   const comment = await prisma.taskComment.create({
     data: { taskId: data.taskId, content: data.content, authorId: session.user.id },
+  });
+
+  const participantIds = [task.responsablePrincipalId, ...task.assignees.map((a) => a.userId)];
+  await notifyMany(participantIds, session.user.id, {
+    type: "COMMENTAIRE",
+    titre: `Nouveau commentaire sur : ${task.titre}`,
+    lien: `/taches/${taskId}`,
+    entityType: "TaskComment",
+    entityId: comment.id,
+  });
+
+  const candidates = [
+    { id: task.responsablePrincipalId, name: task.responsablePrincipal.name },
+    ...task.assignees.map((a) => ({ id: a.userId, name: a.user.name })),
+    ...task.project.members.map((m) => ({ id: m.userId, name: m.user.name })),
+  ];
+  const mentionedIds = parseMentions(data.content, candidates);
+  await notifyMany(mentionedIds, session.user.id, {
+    type: "MENTION",
+    titre: `Vous avez été mentionné(e) dans un commentaire : ${task.titre}`,
+    lien: `/taches/${taskId}`,
+    entityType: "TaskComment",
+    entityId: comment.id,
   });
 
   revalidatePath(`/taches/${taskId}`);

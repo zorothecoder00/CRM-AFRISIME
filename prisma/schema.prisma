@@ -3,11 +3,14 @@
 // Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
 // dépendances), Réunions (ordre du jour, participants, compte rendu,
 // décisions → tâches auto-créées), Documents (dossiers, versions,
-// liaison tâche/réunion), Calendrier (congés, événements), Objectifs & KPI
-// (individuel/équipe/département, indicateurs mesurables), Charge de
-// travail (calculée depuis Task/Leave, pas de modèle dédié), Audit.
-// Messagerie, Automatisation : hors périmètre MVP, volontairement non
-// modélisés (voir plan).
+// liaison tâche/réunion/message), Calendrier (congés, événements),
+// Objectifs & KPI (individuel/équipe/département, indicateurs mesurables),
+// Charge de travail (calculée depuis Task/Leave, pas de modèle dédié),
+// Messagerie (conversations, réactions, mentions), Notifications
+// (in-app ; email/push hors périmètre — nécessitent des services externes
+// non configurés), Audit.
+// Automatisation : hors périmètre MVP, volontairement non modélisée
+// (voir plan).
 
 generator client {
   provider = "prisma-client"
@@ -128,6 +131,20 @@ enum ObjectiveStatus {
   ANNULE
 }
 
+// Cahier des charges §18 — MODIFICATION et VALIDATION restent dans le
+// catalogue pour une utilisation future (aucune source d'événement
+// générique de « modification », pas de circuit de validation multi-
+// étapes) ; VALIDATION est déjà déclenché par la décision de congé.
+enum NotificationType {
+  NOUVELLE_TACHE
+  MODIFICATION
+  COMMENTAIRE
+  VALIDATION
+  ECHEANCE_PROCHE
+  RETARD
+  MENTION
+}
+
 model User {
   id                         String      @id @default(cuid())
   name                       String
@@ -144,25 +161,30 @@ model User {
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
-  projectsOwned           Project[]            @relation("ProjectResponsable")
-  projectsCreated         Project[]            @relation("ProjectCreatedBy")
+  projectsOwned           Project[]                 @relation("ProjectResponsable")
+  projectsCreated         Project[]                 @relation("ProjectCreatedBy")
   projectMemberships      ProjectMember[]
-  tasksOwned              Task[]               @relation("TaskResponsablePrincipal")
-  tasksCreated            Task[]               @relation("TaskCreatedBy")
+  tasksOwned              Task[]                    @relation("TaskResponsablePrincipal")
+  tasksCreated            Task[]                    @relation("TaskCreatedBy")
   taskAssignments         TaskAssignee[]
   comments                TaskComment[]
   auditLogs               AuditLog[]
-  meetingsCreated         Meeting[]            @relation("MeetingCreatedBy")
+  meetingsCreated         Meeting[]                 @relation("MeetingCreatedBy")
   meetingParticipations   MeetingParticipant[]
-  meetingDecisionsOwned   MeetingDecision[]    @relation("MeetingDecisionResponsable")
-  documentFoldersCreated  DocumentFolder[]     @relation("DocumentFolderCreatedBy")
-  documentsUploaded       Document[]           @relation("DocumentUploadedBy")
-  documentVersionsCreated DocumentVersion[]    @relation("DocumentVersionCreatedBy")
-  leaveRequests           Leave[]              @relation("LeaveRequestedBy")
-  leaveDecisions          Leave[]              @relation("LeaveDecidedBy")
-  eventsCreated           Event[]              @relation("EventCreatedBy")
-  objectivesOwned         Objective[]          @relation("ObjectiveUser")
-  objectivesCreated       Objective[]          @relation("ObjectiveCreatedBy")
+  meetingDecisionsOwned   MeetingDecision[]         @relation("MeetingDecisionResponsable")
+  documentFoldersCreated  DocumentFolder[]          @relation("DocumentFolderCreatedBy")
+  documentsUploaded       Document[]                @relation("DocumentUploadedBy")
+  documentVersionsCreated DocumentVersion[]         @relation("DocumentVersionCreatedBy")
+  leaveRequests           Leave[]                   @relation("LeaveRequestedBy")
+  leaveDecisions          Leave[]                   @relation("LeaveDecidedBy")
+  eventsCreated           Event[]                   @relation("EventCreatedBy")
+  objectivesOwned         Objective[]               @relation("ObjectiveUser")
+  objectivesCreated       Objective[]               @relation("ObjectiveCreatedBy")
+  conversationsCreated    Conversation[]            @relation("ConversationCreatedBy")
+  conversationMemberships ConversationParticipant[]
+  messagesSent            Message[]                 @relation("MessageAuthor")
+  reactions               Reaction[]
+  notifications           Notification[]
 
   @@index([departmentId])
   @@index([roleId])
@@ -350,6 +372,8 @@ model TaskComment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  reactions Reaction[]
+
   @@index([taskId])
 }
 
@@ -449,6 +473,8 @@ model Document {
   task         Task?           @relation(fields: [taskId], references: [id])
   meetingId    String?
   meeting      Meeting?        @relation(fields: [meetingId], references: [id])
+  messageId    String?
+  message      Message?        @relation(fields: [messageId], references: [id])
   nom          String
   description  String?
   url          String
@@ -465,6 +491,7 @@ model Document {
   @@index([folderId])
   @@index([taskId])
   @@index([meetingId])
+  @@index([messageId])
 }
 
 // Historique des modifications (cahier des charges §10) : chaque nouvelle
@@ -569,6 +596,85 @@ model Indicator {
   updatedAt      DateTime  @updatedAt
 
   @@index([objectiveId])
+}
+
+// Messagerie interne (cahier des charges §11). Une conversation à deux
+// participants est une messagerie directe ; `isGroup` + `nom` distinguent
+// une discussion de groupe.
+model Conversation {
+  id          String   @id @default(cuid())
+  nom         String?
+  isGroup     Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation("ConversationCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  joinedAt       DateTime     @default(now())
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  authorId       String
+  author         User         @relation("MessageAuthor", fields: [authorId], references: [id])
+  content        String
+  createdAt      DateTime     @default(now())
+
+  reactions Reaction[]
+  documents Document[]
+
+  @@index([conversationId])
+}
+
+// Réaction à un message ou à un commentaire de tâche — exactement un des
+// deux champs taskCommentId/messageId est renseigné. Une contrainte unique
+// par cible empêche la même personne de poser deux fois le même emoji (les
+// valeurs NULL de l'autre cible ne bloquent rien, Postgres les traite comme
+// distinctes).
+model Reaction {
+  id            String       @id @default(cuid())
+  emoji         String
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  taskCommentId String?
+  taskComment   TaskComment? @relation(fields: [taskCommentId], references: [id])
+  messageId     String?
+  message       Message?     @relation(fields: [messageId], references: [id])
+  createdAt     DateTime     @default(now())
+
+  @@unique([userId, taskCommentId, emoji])
+  @@unique([userId, messageId, emoji])
+}
+
+// Notifications in-app (cahier des charges §18). `entityType`/`entityId`
+// permettent de dédupliquer les notifications générées à la volée
+// (échéance proche / retard) plutôt que de les régénérer à chaque visite.
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id])
+  type       NotificationType
+  titre      String
+  lien       String?
+  entityType String?
+  entityId   String?
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  @@unique([userId, type, entityType, entityId])
+  @@index([userId, isRead])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.

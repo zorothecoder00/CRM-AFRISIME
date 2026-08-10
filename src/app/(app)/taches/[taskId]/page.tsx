@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +34,7 @@ export default async function TaskDetailPage({
   params: Promise<{ taskId: string }>;
 }) {
   const { taskId } = await params;
+  const session = await getServerSession(authOptions);
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -41,7 +44,10 @@ export default async function TaskDetailPage({
       responsablePrincipal: true,
       assignees: { include: { user: true } },
       checklistItems: { orderBy: { ordre: "asc" } },
-      comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
+      comments: {
+        include: { author: true, reactions: { include: { user: true } } },
+        orderBy: { createdAt: "asc" },
+      },
       documents: { include: { uploadedBy: true, meeting: true, _count: { select: { versions: true } } } },
       dependsOn: { include: { dependsOnTask: true } },
     },
@@ -111,11 +117,17 @@ export default async function TaskDetailPage({
           <CardContent>
             <CommentSection
               taskId={task.id}
+              currentUserId={session!.user.id}
               comments={task.comments.map((c) => ({
                 id: c.id,
                 content: c.content,
                 authorName: c.author.name,
                 createdAt: c.createdAt.toISOString(),
+                reactions: c.reactions.map((r) => ({
+                  emoji: r.emoji,
+                  userId: r.userId,
+                  userName: r.user.name,
+                })),
               }))}
             />
           </CardContent>

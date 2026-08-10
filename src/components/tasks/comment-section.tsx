@@ -5,15 +5,26 @@ import { toast } from "sonner";
 import { addComment } from "@/actions/task.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ReactionPicker, type ReactionData } from "@/components/shared/reaction-picker";
+import { splitMentionSegments } from "@/lib/mentions";
 
 export type CommentData = {
   id: string;
   content: string;
   authorName: string;
   createdAt: string;
+  reactions: ReactionData[];
 };
 
-export function CommentSection({ taskId, comments }: { taskId: string; comments: CommentData[] }) {
+export function CommentSection({
+  taskId,
+  comments,
+  currentUserId,
+}: {
+  taskId: string;
+  comments: CommentData[];
+  currentUserId: string;
+}) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,7 +49,24 @@ export function CommentSection({ taskId, comments }: { taskId: string; comments:
             <span className="font-medium">{comment.authorName}</span>
             <span>{new Date(comment.createdAt).toLocaleString("fr-FR")}</span>
           </div>
-          <p className="mt-1 text-sm">{comment.content}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm">
+            {splitMentionSegments(comment.content).map((seg, i) =>
+              seg.isMention ? (
+                <span key={i} className="rounded bg-primary/10 px-1 font-medium text-primary">
+                  {seg.text}
+                </span>
+              ) : (
+                <span key={i}>{seg.text}</span>
+              )
+            )}
+          </p>
+          <div className="mt-2">
+            <ReactionPicker
+              taskCommentId={comment.id}
+              reactions={comment.reactions}
+              currentUserId={currentUserId}
+            />
+          </div>
         </div>
       ))}
       {comments.length === 0 && (

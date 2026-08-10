@@ -585,6 +585,78 @@ async function main() {
     },
   });
 
+  // Messagerie démo : une conversation directe et un message avec mention
+  const conversation = await prisma.conversation.upsert({
+    where: { id: "demo-conversation-1" },
+    update: {},
+    create: {
+      id: "demo-conversation-1",
+      isGroup: false,
+      createdById: users[RoleKey.CHEF_PROJET].id,
+      participants: {
+        create: [
+          { userId: users[RoleKey.CHEF_PROJET].id },
+          { userId: users[RoleKey.COLLABORATEUR].id },
+        ],
+      },
+    },
+  });
+
+  const demoMessage = await prisma.message.upsert({
+    where: { id: "demo-message-1" },
+    update: {},
+    create: {
+      id: "demo-message-1",
+      conversationId: conversation.id,
+      authorId: users[RoleKey.CHEF_PROJET].id,
+      content: "Bonjour @Awa, peux-tu avancer sur l'intégration de la page d'accueil ?",
+    },
+  });
+
+  await prisma.reaction.upsert({
+    where: { id: "demo-reaction-1" },
+    update: {},
+    create: {
+      id: "demo-reaction-1",
+      emoji: "👍",
+      userId: users[RoleKey.COLLABORATEUR].id,
+      messageId: demoMessage.id,
+    },
+  });
+
+  await prisma.reaction.upsert({
+    where: { id: "demo-reaction-2" },
+    update: {},
+    create: {
+      id: "demo-reaction-2",
+      emoji: "🎉",
+      userId: users[RoleKey.CHEF_PROJET].id,
+      taskCommentId: "demo-comment-1",
+    },
+  });
+
+  // Notifications démo (au-delà de celles générées automatiquement par les
+  // actions ci-dessus : mention dans le message, tâches assignées...)
+  await prisma.notification.upsert({
+    where: {
+      userId_type_entityType_entityId: {
+        userId: users[RoleKey.COLLABORATEUR].id,
+        type: "MENTION",
+        entityType: "Message",
+        entityId: demoMessage.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: users[RoleKey.COLLABORATEUR].id,
+      type: "MENTION",
+      titre: "Vous avez été mentionné(e) dans un message.",
+      lien: `/messages/${conversation.id}`,
+      entityType: "Message",
+      entityId: demoMessage.id,
+    },
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { createNotification } from "@/lib/notify";
 import {
   createLeaveSchema,
   decideLeaveSchema,
@@ -53,6 +54,18 @@ export async function decideLeave(input: DecideLeaveInput) {
   const leave = await prisma.leave.update({
     where: { id: data.leaveId },
     data: { statut: data.statut, decidedById: session.user.id },
+  });
+
+  await createNotification({
+    userId: leave.userId,
+    type: "VALIDATION",
+    titre:
+      data.statut === "APPROUVE"
+        ? "Votre demande de congé a été approuvée."
+        : "Votre demande de congé a été refusée.",
+    lien: "/calendrier",
+    entityType: "Leave",
+    entityId: leave.id,
   });
 
   revalidatePath("/calendrier");

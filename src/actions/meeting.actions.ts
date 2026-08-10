@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { createNotification } from "@/lib/notify";
 import {
   createMeetingSchema,
   updateCompteRenduSchema,
@@ -115,6 +116,17 @@ export async function addDecision(input: AddDecisionInput) {
         changes: { meetingId: data.meetingId },
       },
     });
+
+    if (data.responsableId !== session.user.id) {
+      await createNotification({
+        userId: data.responsableId,
+        type: "NOUVELLE_TACHE",
+        titre: `Nouvelle tâche assignée : ${task.titre}`,
+        lien: `/taches/${task.id}`,
+        entityType: "Task",
+        entityId: task.id,
+      });
+    }
   }
 
   const decision = await prisma.meetingDecision.create({
