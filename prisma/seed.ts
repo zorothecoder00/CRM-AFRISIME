@@ -258,6 +258,59 @@ async function main() {
     },
   });
 
+  // Réunion démo avec une décision qui génère automatiquement une tâche
+  const meeting = await prisma.meeting.upsert({
+    where: { id: "demo-meeting-1" },
+    update: {},
+    create: {
+      id: "demo-meeting-1",
+      projectId: project.id,
+      titre: "Point d'avancement hebdomadaire",
+      dateHeure: daysFromNow(-2),
+      lieu: "Salle de réunion A / Teams",
+      ordreDuJour: "1. Avancement du frontend\n2. Blocages contenus\n3. Prochaines échéances",
+      compteRendu:
+        "L'intégration de la page d'accueil avance bien. La rédaction des contenus est bloquée en attente de validation marketing.",
+      statut: "TERMINEE",
+      createdById: users[RoleKey.CHEF_PROJET].id,
+      participants: {
+        create: [
+          { userId: users[RoleKey.CHEF_PROJET].id },
+          { userId: users[RoleKey.MANAGER].id },
+          { userId: users[RoleKey.COLLABORATEUR].id },
+        ],
+      },
+    },
+  });
+
+  const decisionTask = await prisma.task.upsert({
+    where: { id: "demo-task-from-decision" },
+    update: {},
+    create: {
+      id: "demo-task-from-decision",
+      projectId: project.id,
+      titre: "Débloquer la validation marketing des contenus",
+      statut: TaskStatus.A_FAIRE,
+      priorite: TaskPriority.HAUTE,
+      echeance: daysFromNow(3),
+      responsablePrincipalId: users[RoleKey.CHEF_PROJET].id,
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  await prisma.meetingDecision.upsert({
+    where: { id: "demo-decision-1" },
+    update: {},
+    create: {
+      id: "demo-decision-1",
+      meetingId: meeting.id,
+      description: "Débloquer la validation marketing des contenus",
+      responsableId: users[RoleKey.CHEF_PROJET].id,
+      echeance: daysFromNow(3),
+      taskId: decisionTask.id,
+    },
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {
