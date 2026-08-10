@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
+import { authenticator } from "otplib";
 import { PrismaClient } from "../src/generated/prisma/client";
 import {
   RoleKey,
@@ -32,6 +33,9 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const DEMO_PASSWORD = "Password123!";
+// Secret TOTP fixe (démo uniquement) — permet de calculer un code valide à la
+// volée avec otplib pour vérifier le flux MFA sans application mobile réelle.
+const DEMO_MFA_SECRET = "JBSWY3DPEHPK3PXP";
 
 async function main() {
   console.log("Seed AfriFlow — démarrage...");
@@ -695,11 +699,60 @@ async function main() {
     data: { statut: TaskStatus.EN_REVISION },
   });
 
+  // MFA démo : active la double authentification sur le compte Manager avec
+  // un secret fixe, pour pouvoir vérifier le flux de connexion à deux étapes
+  // sans application mobile (code recalculable via otplib.authenticator.generate).
+  await prisma.user.update({
+    where: { email: "manager@afriflow.local" },
+    data: { mfaEnabled: true, mfaSecret: DEMO_MFA_SECRET },
+  });
+
+  // Intégration démo (cadre générique §21) + événements de webhook simulés.
+  const demoIntegration = await prisma.integration.upsert({
+    where: { id: "demo-integration-afriges" },
+    update: {},
+    create: {
+      id: "demo-integration-afriges",
+      nom: "AfriGes — synchronisation projets",
+      type: "AFRIGES",
+      statut: "CONNECTE",
+      apiKey: "demo-shared-secret-afriges",
+      description: "Connexion de démonstration (cadre générique, aucun appel réel vers AfriGes).",
+      lastSyncAt: daysFromNow(-1),
+      createdById: users[RoleKey.SUPER_ADMIN].id,
+    },
+  });
+
+  await prisma.integrationEvent.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        id: "demo-integration-event-1",
+        integrationId: demoIntegration.id,
+        eventType: "project.synced",
+        payload: { projectId: project.id, statut: "EN_COURS" },
+        receivedAt: daysFromNow(-1),
+      },
+      {
+        id: "demo-integration-event-2",
+        integrationId: demoIntegration.id,
+        eventType: "invoice.created",
+        payload: { montant: 1500000, devise: "XOF" },
+        receivedAt: daysFromNow(-3),
+      },
+    ],
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {
     console.log(`  - ${u.email}  (${ROLE_LABELS[u.roleKey]})`);
   }
+  console.log(
+    `\nMFA activée sur manager@afriflow.local — code TOTP actuel : ${authenticator.generate(
+      DEMO_MFA_SECRET
+    )}`
+  );
 }
 
 main()

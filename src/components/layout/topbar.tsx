@@ -11,8 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
+import { SearchInput } from "@/components/search/search-input";
 
 export function Topbar({
   userName,
@@ -34,10 +36,11 @@ export function Topbar({
 
   return (
     <header className="flex h-14 items-center justify-between border-b px-4">
-      <div className="text-sm text-muted-foreground">
+      <div className="hidden text-sm text-muted-foreground lg:block">
         Planifier · Collaborer · Exécuter · Contrôler
       </div>
       <div className="flex items-center gap-2">
+        <SearchInput compact />
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -53,6 +56,13 @@ export function Topbar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{userName}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/parametres/securite">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Sécurité du compte
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
               <LogOut className="mr-2 h-4 w-4" />

@@ -15,6 +15,8 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totp, setTotp] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,11 +28,20 @@ function LoginForm() {
     const result = await signIn("credentials", {
       email,
       password,
+      totp: mfaRequired ? totp : undefined,
       redirect: false,
     });
 
     setIsSubmitting(false);
 
+    if (result?.error === "MFA_REQUIRED") {
+      setMfaRequired(true);
+      return;
+    }
+    if (result?.error === "MFA_INVALID") {
+      setError("Code de vérification invalide.");
+      return;
+    }
     if (result?.error) {
       setError("Email ou mot de passe incorrect.");
       return;
@@ -69,12 +80,28 @@ function LoginForm() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={mfaRequired}
               required
             />
           </div>
+          {mfaRequired && (
+            <div className="space-y-2">
+              <Label htmlFor="totp">Code de vérification (application d&apos;authentification)</Label>
+              <Input
+                id="totp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={totp}
+                onChange={(e) => setTotp(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Connexion..." : "Se connecter"}
+            {isSubmitting ? "Connexion..." : mfaRequired ? "Vérifier le code" : "Se connecter"}
           </Button>
         </form>
       </CardContent>

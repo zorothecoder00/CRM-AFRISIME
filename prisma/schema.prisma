@@ -162,6 +162,23 @@ enum AutomationActionType {
   NOTIFY_STAKEHOLDERS
 }
 
+// Cahier des charges §21 — cadre générique de connexion à des systèmes
+// externes (AfriGes, M365, WhatsApp...). Sans identifiants réels disponibles,
+// ce MVP fournit l'enregistrement des connexions et un webhook entrant
+// générique validé par clé partagée, mais n'appelle aucun service tiers.
+enum IntegrationType {
+  AFRIGES
+  M365
+  WHATSAPP
+  AUTRE
+}
+
+enum IntegrationStatus {
+  CONNECTE
+  DECONNECTE
+  ERREUR
+}
+
 model User {
   id                         String      @id @default(cuid())
   name                       String
@@ -175,6 +192,12 @@ model User {
   isActive                   Boolean     @default(true)
   // Base de calcul du taux d'occupation (cahier des charges §14).
   capaciteHebdomadaireHeures Decimal     @default(35) @db.Decimal(5, 2)
+  // Authentification à deux facteurs (cahier des charges §22). mfaSecret
+  // n'est renseigné qu'après confirmation (voir src/actions/security.actions.ts) ;
+  // mfaBackupCodes stocke des codes de secours hashés (bcrypt), à usage unique.
+  mfaEnabled                 Boolean     @default(false)
+  mfaSecret                  String?
+  mfaBackupCodes             Json?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
@@ -205,6 +228,7 @@ model User {
   automationRulesCreated  AutomationRule[]           @relation("AutomationRuleCreatedBy")
   automationNextTaskFor   AutomationRule[]           @relation("AutomationNextTaskResponsable")
   dashboardPreference     DashboardWidgetPreference?
+  integrationsCreated     Integration[]              @relation("IntegrationCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -761,6 +785,39 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+}
+
+// Connexion à un système externe (cahier des charges §21). `apiKey` est le
+// secret partagé attendu sur les webhooks entrants (en-tête `x-api-key`) —
+// masqué à l'affichage, jamais exposé après création. Aucun appel sortant
+// réel n'est effectué dans ce MVP (pas d'identifiants tiers disponibles).
+model Integration {
+  id           String            @id @default(cuid())
+  nom          String
+  type         IntegrationType
+  statut       IntegrationStatus @default(DECONNECTE)
+  apiKey       String?
+  webhookUrl   String?
+  description  String?
+  lastSyncAt   DateTime?
+  createdById  String
+  createdBy    User              @relation("IntegrationCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  events IntegrationEvent[]
+}
+
+// Journal des webhooks entrants reçus pour une intégration.
+model IntegrationEvent {
+  id            String      @id @default(cuid())
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  eventType     String
+  payload       Json
+  receivedAt    DateTime    @default(now())
+
+  @@index([integrationId])
 }
 
 // Préférences de widgets du tableau de bord (cahier des charges §16 :

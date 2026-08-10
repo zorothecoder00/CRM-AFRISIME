@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserFormDialog } from "@/components/administration/user-form-dialog";
+import { AdminTabs } from "@/components/administration/admin-tabs";
 
 export default async function UtilisateursPage() {
   const [users, roles, departments] = await Promise.all([
@@ -22,6 +23,7 @@ export default async function UtilisateursPage() {
 
   return (
     <div className="space-y-6">
+      <AdminTabs />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Utilisateurs</h1>

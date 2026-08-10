@@ -52,6 +52,12 @@ export const PERMISSIONS = {
 
   DASHBOARD_READ: "dashboard.read",
 
+  REPORT_EXPORT: "report.export",
+
+  SECURITY_AUDIT_READ: "security.audit.read",
+
+  INTEGRATION_MANAGE: "integration.manage",
+
   DEPARTMENT_MANAGE: "department.manage",
 
   ADMINISTRATION_ACCESS: "administration.access",
@@ -119,6 +125,12 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.DASHBOARD_READ, label: "Consulter les tableaux de bord", category: "Tableaux de bord" },
 
+  { key: PERMISSIONS.REPORT_EXPORT, label: "Exporter des rapports (PDF/Excel/Word)", category: "Rapports" },
+
+  { key: PERMISSIONS.SECURITY_AUDIT_READ, label: "Consulter le journal d'audit et l'état MFA", category: "Sécurité" },
+
+  { key: PERMISSIONS.INTEGRATION_MANAGE, label: "Gérer les intégrations externes", category: "Intégrations" },
+
   { key: PERMISSIONS.DEPARTMENT_MANAGE, label: "Gérer un département", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
@@ -172,8 +184,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
+    PERMISSIONS.SECURITY_AUDIT_READ,
+    PERMISSIONS.INTEGRATION_MANAGE,
   ],
 
   DIRECTEUR: [
@@ -214,6 +229,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -253,6 +269,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
   ],
 
@@ -289,6 +306,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_MANAGE,
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.REPORT_EXPORT,
   ],
 
   RESPONSABLE: [
@@ -317,6 +335,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.REPORT_EXPORT,
   ],
 
   MANAGER: [
@@ -344,6 +363,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MESSAGE_READ,
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.REPORT_EXPORT,
   ],
 
   COLLABORATEUR: [

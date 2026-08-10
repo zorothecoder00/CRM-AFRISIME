@@ -11,6 +11,7 @@ import {
   Zap,
   LayoutGrid,
   ShieldCheck,
+  FileBarChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,5 +34,6 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Messagerie", href: "/messages", icon: MessageSquare },
   { title: "Automatisations", href: "/automatisations", icon: Zap },
   { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid },
+  { title: "Rapports", href: "/rapports", icon: FileBarChart },
   { title: "Administration", href: "/administration/utilisateurs", icon: ShieldCheck },
 ];

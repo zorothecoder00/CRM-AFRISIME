@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
 import { PERMISSION_CATALOG } from "@/lib/permissions";
+import { AdminTabs } from "@/components/administration/admin-tabs";
 import { Check } from "lucide-react";
 import {
   Table,
@@ -21,6 +22,7 @@ export default async function RolesPage() {
 
   return (
     <div className="space-y-6">
+      <AdminTabs />
       <div>
         <h1 className="text-2xl font-semibold">Rôles &amp; permissions</h1>
         <p className="text-sm text-muted-foreground">
