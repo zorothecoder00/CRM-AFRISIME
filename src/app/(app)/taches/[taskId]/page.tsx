@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checklist } from "@/components/tasks/checklist";
@@ -11,6 +12,7 @@ import { DependencySection } from "@/components/tasks/dependency-section";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { ActualTimeForm } from "@/components/tasks/actual-time-form";
+import { ValidationActions } from "@/components/tasks/validation-actions";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -171,6 +173,20 @@ export default async function TaskDetailPage({
               />
             </div>
             <Info label="Avancement" value={`${task.avancement}%`} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Validation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ValidationActions
+              taskId={task.id}
+              statut={task.statut}
+              isResponsable={task.responsablePrincipalId === session!.user.id}
+              canValidate={session!.user.permissions.includes(PERMISSIONS.TASK_VALIDATE)}
+            />
           </CardContent>
         </Card>
 

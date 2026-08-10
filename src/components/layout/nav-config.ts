@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Target,
   Gauge,
+  Zap,
   BarChart3,
   ShieldCheck,
   type LucideIcon,
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { title: "Objectifs & KPI", href: "/objectifs", icon: Target },
   { title: "Charge de travail", href: "/charge-de-travail", icon: Gauge },
   { title: "Messagerie", href: "/messages", icon: MessageSquare },
+  { title: "Automatisations", href: "/automatisations", icon: Zap },
   { title: "Performance", href: "/performance", icon: BarChart3, disabled: true },
   { title: "Administration", href: "/administration/utilisateurs", icon: ShieldCheck },
 ];

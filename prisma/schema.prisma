@@ -1,16 +1,15 @@
 // AfriFlow (AfriSime Work-Flow) — schéma MVP
 // Domaines couverts : Auth/Rôles/Permissions, Départements, Projets (hiérarchie
 // Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
-// dépendances), Réunions (ordre du jour, participants, compte rendu,
-// décisions → tâches auto-créées), Documents (dossiers, versions,
-// liaison tâche/réunion/message), Calendrier (congés, événements),
-// Objectifs & KPI (individuel/équipe/département, indicateurs mesurables),
-// Charge de travail (calculée depuis Task/Leave, pas de modèle dédié),
-// Messagerie (conversations, réactions, mentions), Notifications
-// (in-app ; email/push hors périmètre — nécessitent des services externes
-// non configurés), Audit.
-// Automatisation : hors périmètre MVP, volontairement non modélisée
-// (voir plan).
+// dépendances, validation via le statut EN_REVISION), Réunions (ordre du
+// jour, participants, compte rendu, décisions → tâches auto-créées),
+// Documents (dossiers, versions, liaison tâche/réunion/message), Calendrier
+// (congés, événements), Objectifs & KPI (individuel/équipe/département,
+// indicateurs mesurables), Charge de travail (calculée depuis Task/Leave,
+// pas de modèle dédié), Messagerie (conversations, réactions, mentions),
+// Notifications (in-app ; email/push hors périmètre — nécessitent des
+// services externes non configurés), Automatisations (règles projet
+// déclencheur → action, sans développement), Audit.
 
 generator client {
   provider = "prisma-client"
@@ -145,6 +144,23 @@ enum NotificationType {
   MENTION
 }
 
+// Cahier des charges §15 — moteur générique déclencheur → action, sans
+// développement. N'importe quel déclencheur peut être associé à n'importe
+// quelle action (comme Zapier/IFTTT) ; seuls les champs de config
+// pertinents pour l'action choisie sont utilisés à l'exécution.
+enum AutomationTrigger {
+  TASK_COMPLETED
+  TASK_VALIDATION_REJECTED
+  DEADLINE_APPROACHING
+  PROJECT_COMPLETED
+}
+
+enum AutomationActionType {
+  CREATE_NEXT_TASK
+  SEND_REMINDER
+  NOTIFY_STAKEHOLDERS
+}
+
 model User {
   id                         String      @id @default(cuid())
   name                       String
@@ -185,6 +201,8 @@ model User {
   messagesSent            Message[]                 @relation("MessageAuthor")
   reactions               Reaction[]
   notifications           Notification[]
+  automationRulesCreated  AutomationRule[]          @relation("AutomationRuleCreatedBy")
+  automationNextTaskFor   AutomationRule[]          @relation("AutomationNextTaskResponsable")
 
   @@index([departmentId])
   @@index([roleId])
@@ -259,6 +277,7 @@ model Project {
   documents       Document[]
   events          Event[]
   objectives      Objective[]
+  automationRules AutomationRule[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -675,6 +694,53 @@ model Notification {
 
   @@unique([userId, type, entityType, entityId])
   @@index([userId, isRead])
+}
+
+// Règle d'automatisation (cahier des charges §15) — rattachée à un projet.
+// Les champs de configuration sont tous optionnels au niveau du modèle ;
+// seuls ceux pertinents pour `action` sont utilisés à l'exécution
+// (voir src/lib/automation.ts).
+model AutomationRule {
+  id        String               @id @default(cuid())
+  projectId String
+  project   Project              @relation(fields: [projectId], references: [id])
+  nom       String
+  trigger   AutomationTrigger
+  action    AutomationActionType
+  isActive  Boolean              @default(true)
+
+  // Config action CREATE_NEXT_TASK
+  nextTaskTitre         String?
+  nextTaskResponsableId String?
+  nextTaskResponsable   User?   @relation("AutomationNextTaskResponsable", fields: [nextTaskResponsableId], references: [id])
+  nextTaskDelaiJours    Int?
+
+  // Config action SEND_REMINDER / déclencheur DEADLINE_APPROACHING
+  reminderDelaiJours Int?
+
+  createdById String
+  createdBy   User     @relation("AutomationRuleCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  executions AutomationExecution[]
+
+  @@index([projectId])
+  @@index([trigger])
+}
+
+// Journal d'exécution — rend le moteur transparent (pas une boîte noire) :
+// on peut voir quand une règle s'est déclenchée et ce qu'elle a produit.
+model AutomationExecution {
+  id         String         @id @default(cuid())
+  ruleId     String
+  rule       AutomationRule @relation(fields: [ruleId], references: [id])
+  entityType String
+  entityId   String
+  resultat   String
+  executedAt DateTime       @default(now())
+
+  @@index([ruleId])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.

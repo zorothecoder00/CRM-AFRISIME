@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateDeadlineNotifications } from "@/lib/notify";
+import { runDeadlineApproachingRules } from "@/lib/automation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
@@ -23,6 +24,7 @@ export default async function NotificationsPage() {
   const userId = session!.user.id;
 
   await generateDeadlineNotifications(userId);
+  await runDeadlineApproachingRules(userId);
 
   const notifications = await prisma.notification.findMany({
     where: { userId },

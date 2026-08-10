@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification, notifyMany } from "@/lib/notify";
 import { parseMentions } from "@/lib/mentions";
+import { recomputeProjectProgress } from "@/lib/project-progress";
+import { runTaskCompletedRules, runValidationRejectedRules } from "@/lib/automation";
 import {
   createTaskSchema,
   updateTaskStatusSchema,
@@ -89,7 +91,92 @@ export async function updateTaskStatus(taskId: string, statut: string) {
     },
   });
 
+  await recomputeProjectProgress(task.projectId);
+
+  if (data.statut === "TERMINEE") {
+    await runTaskCompletedRules({
+      id: task.id,
+      titre: task.titre,
+      projectId: task.projectId,
+      responsablePrincipalId: task.responsablePrincipalId,
+    });
+  }
+
   revalidatePath("/taches");
+  revalidatePath(`/taches/${taskId}`);
+  revalidatePath(`/projets/${task.projectId}`);
+  return task;
+}
+
+/** Le responsable soumet son travail pour validation (cahier des charges §15/§9 minimal). */
+export async function submitForValidation(taskId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+
+  const task = await prisma.task.update({
+    where: { id: taskId },
+    data: { statut: "EN_REVISION" },
+  });
+
+  revalidatePath(`/taches/${taskId}`);
+  return task;
+}
+
+/**
+ * Approuve ou refuse une tâche en révision. Le refus renvoie la tâche à son
+ * créateur (cahier des charges §15 : « si une validation est refusée,
+ * renvoyer la tâche au créateur ») et déclenche les règles
+ * TASK_VALIDATION_REJECTED du projet.
+ */
+export async function validateTask(taskId: string, approved: boolean) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_VALIDATE);
+
+  const existing = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+  if (existing.statut !== "EN_REVISION") {
+    throw new Error("Cette tâche n'est pas en attente de validation.");
+  }
+
+  if (approved) {
+    const task = await prisma.task.update({
+      where: { id: taskId },
+      data: { statut: "TERMINEE", avancement: 100 },
+    });
+    await recomputeProjectProgress(task.projectId);
+    await runTaskCompletedRules({
+      id: task.id,
+      titre: task.titre,
+      projectId: task.projectId,
+      responsablePrincipalId: task.responsablePrincipalId,
+    });
+    revalidatePath(`/taches/${taskId}`);
+    revalidatePath(`/projets/${task.projectId}`);
+    return task;
+  }
+
+  const task = await prisma.task.update({
+    where: { id: taskId },
+    data: { statut: "A_FAIRE", responsablePrincipalId: existing.createdById },
+  });
+
+  if (task.createdById !== session.user.id) {
+    await createNotification({
+      userId: task.createdById,
+      type: "VALIDATION",
+      titre: `Votre tâche a été refusée et vous a été renvoyée : ${task.titre}`,
+      lien: `/taches/${taskId}`,
+      entityType: "Task",
+      entityId: task.id,
+    });
+  }
+
+  await runValidationRejectedRules({
+    id: task.id,
+    titre: task.titre,
+    projectId: task.projectId,
+    responsablePrincipalId: task.responsablePrincipalId,
+  });
+
   revalidatePath(`/taches/${taskId}`);
   return task;
 }

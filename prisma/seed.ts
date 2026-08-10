@@ -657,6 +657,42 @@ async function main() {
     },
   });
 
+  // Automatisations démo : une règle "tâche terminée → créer la suivante"
+  await prisma.automationRule.upsert({
+    where: { id: "demo-rule-1" },
+    update: {},
+    create: {
+      id: "demo-rule-1",
+      projectId: project.id,
+      nom: "Recette après chaque tâche terminée",
+      trigger: "TASK_COMPLETED",
+      action: "CREATE_NEXT_TASK",
+      nextTaskTitre: "Vérifier la recette",
+      nextTaskResponsableId: users[RoleKey.CHEF_PROJET].id,
+      nextTaskDelaiJours: 2,
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  await prisma.automationRule.upsert({
+    where: { id: "demo-rule-2" },
+    update: {},
+    create: {
+      id: "demo-rule-2",
+      projectId: project.id,
+      nom: "Notifier l'équipe à 100 %",
+      trigger: "PROJECT_COMPLETED",
+      action: "NOTIFY_STAKEHOLDERS",
+      createdById: users[RoleKey.CHEF_PROJET].id,
+    },
+  });
+
+  // Tâche en attente de validation, pour démontrer le flux d'approbation
+  await prisma.task.update({
+    where: { id: "demo-task-8" },
+    data: { statut: TaskStatus.EN_REVISION },
+  });
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {

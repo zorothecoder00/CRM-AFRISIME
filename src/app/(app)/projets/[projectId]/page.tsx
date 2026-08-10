@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +13,8 @@ import { FolderTree, type FolderNode } from "@/components/documents/folder-tree"
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
+import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
+import { RuleList, type RuleData } from "@/components/automation/rule-list";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -34,8 +39,10 @@ export default async function ProjectDetailPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
+  const session = await getServerSession(authOptions);
+  const canManageAutomation = session!.user.permissions.includes(PERMISSIONS.AUTOMATION_MANAGE);
 
-  const [project, sections, tasks, users, folders, rootDocuments] = await Promise.all([
+  const [project, sections, tasks, users, folders, rootDocuments, rules] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       include: { department: true, responsable: true },
@@ -61,6 +68,11 @@ export default async function ProjectDetailPage({
     prisma.document.findMany({
       where: { projectId, folderId: null },
       include: { uploadedBy: true, task: true, meeting: true, _count: { select: { versions: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.automationRule.findMany({
+      where: { projectId },
+      include: { executions: { orderBy: { executedAt: "desc" }, take: 5 } },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -123,6 +135,20 @@ export default async function ProjectDetailPage({
     meetingId: d.meetingId,
   }));
 
+  const ruleData: RuleData[] = rules.map((r) => ({
+    id: r.id,
+    nom: r.nom,
+    trigger: r.trigger,
+    action: r.action,
+    isActive: r.isActive,
+    nextTaskTitre: r.nextTaskTitre,
+    executions: r.executions.map((e) => ({
+      id: e.id,
+      resultat: e.resultat,
+      executedAt: e.executedAt.toISOString(),
+    })),
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -141,6 +167,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="automatisations">Automatisations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="apercu" className="mt-4">
@@ -229,6 +256,18 @@ export default async function ProjectDetailPage({
               <DocumentList documents={documentRows} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="automatisations" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Règles « si... alors... » déclenchées automatiquement pour ce projet.
+            </p>
+            {canManageAutomation && (
+              <RuleFormDialog projectId={project.id} users={userOptions} />
+            )}
+          </div>
+          <RuleList rules={ruleData} canManage={canManageAutomation} />
         </TabsContent>
       </Tabs>
     </div>
