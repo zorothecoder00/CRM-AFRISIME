@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   ShieldCheck,
   FileBarChart,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +35,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "Espace personnel", href: "/dashboard", icon: LayoutDashboard },
       { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid },
+      { title: "Recherche", href: "/recherche", icon: Search },
     ],
   },
   {

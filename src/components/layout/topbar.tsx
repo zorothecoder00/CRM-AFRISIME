@@ -14,7 +14,6 @@ import {
 import { LogOut, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
-import { SearchInput } from "@/components/search/search-input";
 
 export function Topbar({
   userName,
@@ -42,7 +41,6 @@ export function Topbar({
         Planifier · Collaborer · Exécuter · Contrôler
       </div>
       <div className="flex items-center gap-2">
-        <SearchInput compact />
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
