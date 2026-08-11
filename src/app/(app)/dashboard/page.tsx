@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
@@ -213,7 +214,7 @@ export default async function DashboardPage() {
       : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div>
         <h1 className="text-2xl font-semibold">Tableau de bord</h1>
         <p className="text-sm text-muted-foreground">
@@ -221,275 +222,299 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <TaskWidget title="Mes tâches du jour" tasks={todayTasks} emptyLabel="Aucune tâche aujourd'hui." />
-        <TaskWidget
-          title="Mes tâches en retard"
-          tasks={overdueTasks}
-          emptyLabel="Aucune tâche en retard."
-          highlight
-        />
-        <TaskWidget title="Mes tâches de la semaine" tasks={weekTasks} emptyLabel="Aucune tâche cette semaine." />
-      </div>
+      <DashboardSection title="Aujourd'hui">
+        <div className="grid gap-4 md:grid-cols-3">
+          <TaskWidget title="Mes tâches du jour" tasks={todayTasks} emptyLabel="Aucune tâche aujourd'hui." />
+          <TaskWidget
+            title="Mes tâches en retard"
+            tasks={overdueTasks}
+            emptyLabel="Aucune tâche en retard."
+            highlight
+          />
+          <TaskWidget title="Mes tâches de la semaine" tasks={weekTasks} emptyLabel="Aucune tâche cette semaine." />
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <KpiCard
+            label="Mon taux d'occupation"
+            value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
+            className={myWorkload?.enSurcharge ? "border-destructive" : undefined}
+          />
+          <KpiCard
+            label="Ma disponibilité restante"
+            value={myWorkload ? `${myWorkload.disponibiliteHeures} h` : "—"}
+          />
+          <KpiCard
+            label="Temps moyen de réalisation"
+            value={myWorkload?.tempsMoyenRealisationHeures != null ? `${myWorkload.tempsMoyenRealisationHeures} h` : "—"}
+          />
+        </div>
+      </DashboardSection>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <KpiCard
-          label="Mon taux d'occupation"
-          value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
-          className={myWorkload?.enSurcharge ? "border-destructive" : undefined}
-        />
-        <KpiCard
-          label="Ma disponibilité restante"
-          value={myWorkload ? `${myWorkload.disponibiliteHeures} h` : "—"}
-        />
-        <KpiCard
-          label="Temps moyen de réalisation"
-          value={myWorkload?.tempsMoyenRealisationHeures != null ? `${myWorkload.tempsMoyenRealisationHeures} h` : "—"}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Mes validations en attente</CardTitle>
-            {myPendingApprovals.length > 0 && <Badge variant="destructive">{myPendingApprovals.length}</Badge>}
-          </CardHeader>
-          <CardContent>
-            {myPendingApprovals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Rien à valider.</p>
-            ) : (
-              <ul className="space-y-2">
-                {myPendingApprovals.map((a) => (
-                  <li key={a.id}>
-                    <Link
-                      href={`/taches/${a.run.taskId}`}
-                      className="block rounded-md border p-2 text-sm hover:bg-muted"
-                    >
-                      {a.run.task.titre}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mes réunions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {myMeetings.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune réunion à venir.</p>
-            ) : (
-              <ul className="space-y-2">
-                {myMeetings.map((m) => (
-                  <li key={m.id}>
-                    <Link href={`/reunions/${m.id}`} className="flex justify-between rounded-md border p-2 text-sm hover:bg-muted">
-                      <span className="font-medium">{m.titre}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {m.dateHeure.toLocaleDateString("fr-FR")}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mon calendrier (14 jours)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {myEvents.length === 0 && myLeaves.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Rien de prévu.</p>
-            ) : (
-              <ul className="space-y-2">
-                {myEvents.map((e) => (
-                  <li key={e.id} className="flex justify-between rounded-md border p-2 text-sm">
-                    <span>{e.titre}</span>
-                    <span className="text-xs text-muted-foreground">{e.dateDebut.toLocaleDateString("fr-FR")}</span>
-                  </li>
-                ))}
-                {myLeaves.map((l) => (
-                  <li key={l.id} className="flex justify-between rounded-md border p-2 text-sm">
-                    <span>Congé</span>
-                    <span className="text-xs text-muted-foreground">{l.dateDebut.toLocaleDateString("fr-FR")}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link href="/calendrier" className="mt-2 block text-xs text-primary hover:underline">
-              Voir le calendrier complet
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Mes notifications</CardTitle>
-            {myNotifications.some((n) => !n.isRead) && <Badge>Nouveau</Badge>}
-          </CardHeader>
-          <CardContent>
-            {myNotifications.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune notification.</p>
-            ) : (
-              <ul className="space-y-2">
-                {myNotifications.map((n) => (
-                  <li key={n.id}>
-                    <Link
-                      href={n.lien ?? "/notifications"}
-                      className={`block rounded-md border p-2 text-sm hover:bg-muted ${!n.isRead ? "font-medium" : "text-muted-foreground"}`}
-                    >
-                      {n.titre}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mes messages</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {myConversations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune conversation.</p>
-            ) : (
-              <ul className="space-y-2">
-                {myConversations.map((c) => {
-                  const other = c.participants.find((p) => p.userId !== userId)?.user.name;
-                  const lastMessage = c.messages[0];
-                  return (
-                    <li key={c.id}>
+      <DashboardSection title="À traiter">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Mes validations en attente</CardTitle>
+              {myPendingApprovals.length > 0 && <Badge variant="destructive">{myPendingApprovals.length}</Badge>}
+            </CardHeader>
+            <CardContent>
+              {myPendingApprovals.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Rien à valider.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myPendingApprovals.map((a) => (
+                    <li key={a.id}>
                       <Link
-                        href={`/messages/${c.id}`}
+                        href={`/taches/${a.run.taskId}`}
                         className="block rounded-md border p-2 text-sm hover:bg-muted"
                       >
-                        <div className="font-medium">{c.nom || other || "Conversation"}</div>
-                        {lastMessage && (
-                          <div className="truncate text-xs text-muted-foreground">
-                            {lastMessage.author.name}: {lastMessage.content || "Pièce jointe"}
-                          </div>
-                        )}
+                        {a.run.task.titre}
                       </Link>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mes documents récents</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {myDocuments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun document ajouté récemment.</p>
-            ) : (
-              <ul className="space-y-2">
-                {myDocuments.map((d) => (
-                  <li key={d.id}>
-                    <Link href={`/documents/${d.id}`} className="block rounded-md border p-2 text-sm hover:bg-muted">
-                      {d.nom}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Mes notifications</CardTitle>
+              {myNotifications.some((n) => !n.isRead) && <Badge>Nouveau</Badge>}
+            </CardHeader>
+            <CardContent>
+              {myNotifications.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune notification.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myNotifications.map((n) => (
+                    <li key={n.id}>
+                      <Link
+                        href={n.lien ?? "/notifications"}
+                        className={`block rounded-md border p-2 text-sm hover:bg-muted ${!n.isRead ? "font-medium" : "text-muted-foreground"}`}
+                      >
+                        {n.titre}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mes projets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {myProjects.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
-          ) : (
-            <ul className="space-y-2">
-              {myProjects.map((project) => (
-                <li key={project.id}>
-                  <Link
-                    href={`/projets/${project.id}`}
-                    className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted"
-                  >
-                    <span className="font-medium">{project.nom}</span>
-                    <Badge variant="outline">{project.avancement}%</Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <DashboardSection title="Cette semaine">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes réunions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myMeetings.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune réunion à venir.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myMeetings.map((m) => (
+                    <li key={m.id}>
+                      <Link href={`/reunions/${m.id}`} className="flex justify-between rounded-md border p-2 text-sm hover:bg-muted">
+                        <span className="font-medium">{m.titre}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {m.dateHeure.toLocaleDateString("fr-FR")}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mes objectifs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {myObjectives.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun objectif en cours.</p>
-          ) : (
-            <ul className="space-y-3">
-              {myObjectives.map((objective) => {
-                const progress = objectiveProgress(
-                  objective.indicators.map((i) => ({
-                    valeurActuelle: Number(i.valeurActuelle),
-                    valeurCible: Number(i.valeurCible),
-                  }))
-                );
-                return (
-                  <li key={objective.id}>
-                    <Link href={`/objectifs/${objective.id}`} className="block rounded-md border p-3 text-sm hover:bg-muted">
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="font-medium">{objective.titre}</span>
-                        <span className="text-xs text-muted-foreground">{progress}%</span>
-                      </div>
-                      <ProgressBar value={progress} />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mon calendrier (14 jours)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myEvents.length === 0 && myLeaves.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Rien de prévu.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myEvents.map((e) => (
+                    <li key={e.id} className="flex justify-between rounded-md border p-2 text-sm">
+                      <span>{e.titre}</span>
+                      <span className="text-xs text-muted-foreground">{e.dateDebut.toLocaleDateString("fr-FR")}</span>
+                    </li>
+                  ))}
+                  {myLeaves.map((l) => (
+                    <li key={l.id} className="flex justify-between rounded-md border p-2 text-sm">
+                      <span>Congé</span>
+                      <span className="text-xs text-muted-foreground">{l.dateDebut.toLocaleDateString("fr-FR")}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/calendrier" className="mt-2 block text-xs text-primary hover:underline">
+                Voir le calendrier complet
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Activités récentes de l&apos;équipe</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {teamActivity.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune activité récente sur vos projets.</p>
-          ) : (
-            <ul className="space-y-2">
-              {teamActivity.map((entry) => (
-                <li key={entry.id} className="flex items-baseline justify-between text-sm">
-                  <span>
-                    <span className="font-medium">{entry.user?.name ?? "Quelqu'un"}</span>{" "}
-                    {ACTION_LABELS[entry.action] ?? entry.action}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {entry.createdAt.toLocaleDateString("fr-FR")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <DashboardSection title="Équipe & collaboration">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes messages</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myConversations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune conversation.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myConversations.map((c) => {
+                    const other = c.participants.find((p) => p.userId !== userId)?.user.name;
+                    const lastMessage = c.messages[0];
+                    return (
+                      <li key={c.id}>
+                        <Link
+                          href={`/messages/${c.id}`}
+                          className="block rounded-md border p-2 text-sm hover:bg-muted"
+                        >
+                          <div className="font-medium">{c.nom || other || "Conversation"}</div>
+                          {lastMessage && (
+                            <div className="truncate text-xs text-muted-foreground">
+                              {lastMessage.author.name}: {lastMessage.content || "Pièce jointe"}
+                            </div>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes documents récents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myDocuments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun document ajouté récemment.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myDocuments.map((d) => (
+                    <li key={d.id}>
+                      <Link href={`/documents/${d.id}`} className="block rounded-md border p-2 text-sm hover:bg-muted">
+                        {d.nom}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardSection>
+
+      <DashboardSection title="Mes projets & objectifs">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes projets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myProjects.map((project) => (
+                    <li key={project.id}>
+                      <Link
+                        href={`/projets/${project.id}`}
+                        className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted"
+                      >
+                        <span className="font-medium">{project.nom}</span>
+                        <Badge variant="outline">{project.avancement}%</Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes objectifs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myObjectives.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun objectif en cours.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {myObjectives.map((objective) => {
+                    const progress = objectiveProgress(
+                      objective.indicators.map((i) => ({
+                        valeurActuelle: Number(i.valeurActuelle),
+                        valeurCible: Number(i.valeurCible),
+                      }))
+                    );
+                    return (
+                      <li key={objective.id}>
+                        <Link href={`/objectifs/${objective.id}`} className="block rounded-md border p-3 text-sm hover:bg-muted">
+                          <div className="mb-1 flex items-center justify-between">
+                            <span className="font-medium">{objective.titre}</span>
+                            <span className="text-xs text-muted-foreground">{progress}%</span>
+                          </div>
+                          <ProgressBar value={progress} />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Activités récentes de l&apos;équipe</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {teamActivity.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune activité récente sur vos projets.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {teamActivity.map((entry) => (
+                    <li key={entry.id} className="flex items-baseline justify-between text-sm">
+                      <span>
+                        <span className="font-medium">{entry.user?.name ?? "Quelqu'un"}</span>{" "}
+                        {ACTION_LABELS[entry.action] ?? entry.action}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {entry.createdAt.toLocaleDateString("fr-FR")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardSection>
     </div>
+  );
+}
+
+function DashboardSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase">{title}</h2>
+      {children}
+    </section>
   );
 }
 
