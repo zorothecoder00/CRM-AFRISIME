@@ -1,9 +1,29 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddVersionForm } from "@/components/documents/add-version-form";
+import { DocumentAccessManager } from "@/components/documents/document-access-manager";
+
+function DocumentPreview({ url, mimeType, nom }: { url: string; mimeType: string | null; nom: string }) {
+  if (mimeType === "application/pdf") {
+    return <iframe src={url} title={nom} className="h-[70vh] w-full rounded-md border" />;
+  }
+  if (mimeType?.startsWith("image/")) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt={nom} className="max-h-[70vh] w-full rounded-md border object-contain" />;
+  }
+  return (
+    <p className="text-sm text-muted-foreground">
+      Aperçu en ligne non disponible pour ce type de fichier — utilisez le lien ci-dessous pour le
+      télécharger.
+    </p>
+  );
+}
 
 export default async function DocumentDetailPage({
   params,
@@ -11,6 +31,7 @@ export default async function DocumentDetailPage({
   params: Promise<{ documentId: string }>;
 }) {
   const { documentId } = await params;
+  const session = await getServerSession(authOptions);
 
   const document = await prisma.document.findUnique({
     where: { id: documentId },
@@ -21,12 +42,28 @@ export default async function DocumentDetailPage({
       meeting: true,
       uploadedBy: true,
       versions: { include: { createdBy: true }, orderBy: { createdAt: "desc" } },
+      accessGrants: { include: { user: true } },
     },
   });
 
   if (!document) {
     notFound();
   }
+
+  // Controle d'acces par document (cahier des charges §10).
+  const isRestricted = document.accessGrants.length > 0;
+  const canAccess =
+    !isRestricted ||
+    document.uploadedById === session!.user.id ||
+    document.accessGrants.some((g) => g.userId === session!.user.id);
+  if (!canAccess) {
+    notFound();
+  }
+
+  const canManageAccess = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_UPDATE);
+  const allUsers = canManageAccess
+    ? await prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
+    : [];
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -54,9 +91,10 @@ export default async function DocumentDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Version actuelle</CardTitle>
+            <CardTitle className="text-base">Aperçu</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <DocumentPreview url={document.url} mimeType={document.mimeType} nom={document.nom} />
             <a
               href={document.url}
               target="_blank"
@@ -122,6 +160,21 @@ export default async function DocumentDetailPage({
             )}
           </CardContent>
         </Card>
+
+        {canManageAccess && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Contrôle d&apos;accès</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DocumentAccessManager
+                documentId={document.id}
+                users={allUsers.map((u) => ({ id: u.id, label: u.name }))}
+                grantedUsers={document.accessGrants.map((g) => ({ id: g.user.id, label: g.user.name }))}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

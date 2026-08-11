@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,25 @@ import { FolderTree, type FolderNode } from "@/components/documents/folder-tree"
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
+
+const MIME_GROUPS: Record<string, string[]> = {
+  pdf: ["application/pdf"],
+  image: ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"],
+  word: [
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ],
+  excel: [
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ],
+};
+const MIME_GROUP_LABELS: Record<string, string> = {
+  pdf: "PDF",
+  image: "Image",
+  word: "Word",
+  excel: "Excel",
+};
 
 function buildFolderTree(
   folders: { id: string; nom: string; parentId: string | null; _count: { documents: number } }[]
@@ -30,19 +50,42 @@ function buildFolderTree(
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ projetId?: string; folderId?: string; q?: string }>;
+  searchParams: Promise<{
+    projetId?: string;
+    folderId?: string;
+    q?: string;
+    uploadedById?: string;
+    type?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>;
 }) {
-  const { projetId, folderId, q } = await searchParams;
+  const { projetId, folderId, q, uploadedById, type, dateFrom, dateTo } = await searchParams;
 
-  const projects = await prisma.project.findMany({ orderBy: { nom: "asc" } });
+  const [projects, users] = await Promise.all([
+    prisma.project.findMany({ orderBy: { nom: "asc" } }),
+    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+  ]);
+
+  const hasAdvancedFilters = !!uploadedById || !!type || !!dateFrom || !!dateTo;
 
   // Recherche globale : ignore le dossier courant, peut être limitée à un projet
-  if (q) {
+  if (q || hasAdvancedFilters) {
+    const where: Prisma.DocumentWhereInput = {
+      projectId: projetId || undefined,
+      uploadedById: uploadedById || undefined,
+      mimeType: type && MIME_GROUPS[type] ? { in: MIME_GROUPS[type] } : undefined,
+    };
+    if (q) where.nom = { contains: q, mode: "insensitive" };
+    if (dateFrom || dateTo) {
+      where.createdAt = {
+        gte: dateFrom ? new Date(dateFrom) : undefined,
+        lte: dateTo ? new Date(dateTo) : undefined,
+      };
+    }
+
     const documents = await prisma.document.findMany({
-      where: {
-        nom: { contains: q, mode: "insensitive" },
-        projectId: projetId || undefined,
-      },
+      where,
       include: {
         project: true,
         uploadedBy: true,
@@ -69,10 +112,17 @@ export default async function DocumentsPage({
 
     return (
       <div className="space-y-6">
-        <DocumentsHeader projects={projects} activeProjectId={projetId} query={q} />
-        <p className="text-sm text-muted-foreground">
-          {rows.length} résultat(s) pour « {q} »
-        </p>
+        <DocumentsHeader
+          projects={projects}
+          users={users}
+          activeProjectId={projetId}
+          query={q}
+          uploadedById={uploadedById}
+          type={type}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
+        <p className="text-sm text-muted-foreground">{rows.length} résultat(s)</p>
         <DocumentList documents={rows} />
       </div>
     );
@@ -81,7 +131,7 @@ export default async function DocumentsPage({
   if (!projetId) {
     return (
       <div className="space-y-6">
-        <DocumentsHeader projects={projects} query={q} />
+        <DocumentsHeader projects={projects} users={users} query={q} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link key={p.id} href={`/documents?projetId=${p.id}`}>
@@ -131,7 +181,7 @@ export default async function DocumentsPage({
 
   return (
     <div className="space-y-6">
-      <DocumentsHeader projects={projects} activeProjectId={projetId} query={q} />
+      <DocumentsHeader projects={projects} users={users} activeProjectId={projetId} query={q} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -171,13 +221,26 @@ export default async function DocumentsPage({
 
 function DocumentsHeader({
   projects,
+  users,
   activeProjectId,
   query,
+  uploadedById,
+  type,
+  dateFrom,
+  dateTo,
 }: {
   projects: { id: string; nom: string }[];
+  users: { id: string; name: string }[];
   activeProjectId?: string;
   query?: string;
+  uploadedById?: string;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }) {
+  const hasFilters = activeProjectId || query || uploadedById || type || dateFrom || dateTo;
+  const selectClass = "h-9 rounded-md border border-input bg-transparent px-2 text-sm";
+
   return (
     <div className="space-y-3">
       <div>
@@ -186,7 +249,7 @@ function DocumentsHeader({
           Espace documentaire par projet : classement par dossiers, recherche, historique des versions.
         </p>
       </div>
-      <form className="flex flex-wrap gap-2" action="/documents">
+      <form className="flex flex-wrap items-center gap-2" action="/documents">
         {activeProjectId && <input type="hidden" name="projetId" value={activeProjectId} />}
         <Input
           name="q"
@@ -194,10 +257,28 @@ function DocumentsHeader({
           defaultValue={query}
           className="max-w-sm"
         />
+        <select name="type" defaultValue={type ?? ""} className={selectClass}>
+          <option value="">Tous types</option>
+          {Object.entries(MIME_GROUP_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select name="uploadedById" defaultValue={uploadedById ?? ""} className={selectClass}>
+          <option value="">Tout le monde</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+        <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
+        <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
         <Button type="submit" variant="outline">
           Rechercher
         </Button>
-        {(activeProjectId || query) && (
+        {hasFilters && (
           <Link href="/documents">
             <Button type="button" variant="ghost">
               Réinitialiser

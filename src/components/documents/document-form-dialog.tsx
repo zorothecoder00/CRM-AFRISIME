@@ -33,6 +33,7 @@ export function DocumentFormDialog({
   projectId,
   folders,
   currentFolderId,
+  sectionId,
   taskId,
   meetingId,
   triggerLabel = "Nouveau document",
@@ -40,6 +41,7 @@ export function DocumentFormDialog({
   projectId: string;
   folders?: Option[];
   currentFolderId?: string;
+  sectionId?: string;
   taskId?: string;
   meetingId?: string;
   triggerLabel?: string;
@@ -55,12 +57,12 @@ export function DocumentFormDialog({
     formState: { errors, isSubmitting },
   } = useForm<CreateDocumentInput>({
     resolver: zodResolver(createDocumentSchema),
-    defaultValues: { projectId, folderId: currentFolderId, taskId, meetingId },
+    defaultValues: { projectId, folderId: currentFolderId, sectionId, taskId, meetingId },
   });
 
   async function onSubmit(data: CreateDocumentInput) {
     try {
-      await createDocument({ ...data, projectId, taskId, meetingId });
+      await createDocument({ ...data, projectId, sectionId, taskId, meetingId });
       toast.success("Document ajouté.");
       reset();
       setUploadedFileName(null);

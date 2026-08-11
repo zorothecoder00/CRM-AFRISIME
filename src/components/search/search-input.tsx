@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
@@ -13,12 +13,18 @@ export function SearchInput({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [value, setValue] = useState(defaultValue);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (value.trim().length < 2) return;
-    router.push(`/recherche?q=${encodeURIComponent(value.trim())}`);
+    // Preserve les filtres avances actifs (§17) quand la recherche est
+    // soumise depuis la page /recherche elle-meme, pas depuis la barre
+    // compacte de la topbar qui n'a pas ce contexte.
+    const params = compact ? new URLSearchParams() : new URLSearchParams(searchParams.toString());
+    params.set("q", value.trim());
+    router.push(`/recherche?${params.toString()}`);
   }
 
   return (

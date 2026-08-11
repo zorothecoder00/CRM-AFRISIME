@@ -11,6 +11,7 @@ export type CreateFolderInput = z.infer<typeof createFolderSchema>;
 export const createDocumentSchema = z.object({
   projectId: z.string().min(1, "Un projet est requis."),
   folderId: z.string().optional(),
+  sectionId: z.string().optional(),
   taskId: z.string().optional(),
   meetingId: z.string().optional(),
   nom: z.string().min(2, "Le nom est requis."),

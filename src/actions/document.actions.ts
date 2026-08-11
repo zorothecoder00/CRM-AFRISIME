@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 import {
   createFolderSchema,
   createDocumentSchema,
@@ -35,6 +36,14 @@ export async function createFolder(input: CreateFolderInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "document_folder.created",
+    entityType: "DocumentFolder",
+    entityId: folder.id,
+    changes: { nom: folder.nom, projectId: data.projectId },
+  });
+
   revalidatePath("/documents");
   revalidatePath(`/projets/${data.projectId}`);
   return folder;
@@ -50,6 +59,7 @@ export async function createDocument(input: CreateDocumentInput) {
     data: {
       projectId: data.projectId,
       folderId: data.folderId || undefined,
+      sectionId: data.sectionId || undefined,
       taskId: data.taskId || undefined,
       meetingId: data.meetingId || undefined,
       nom: data.nom,
@@ -71,8 +81,17 @@ export async function createDocument(input: CreateDocumentInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "document.created",
+    entityType: "Document",
+    entityId: document.id,
+    changes: { nom: document.nom, projectId: data.projectId },
+  });
+
   revalidatePath("/documents");
   revalidatePath(`/projets/${data.projectId}`);
+  if (data.sectionId) revalidatePath(`/projets/${data.projectId}/sections/${data.sectionId}`);
   if (data.taskId) revalidatePath(`/taches/${data.taskId}`);
   if (data.meetingId) revalidatePath(`/reunions/${data.meetingId}`);
   return document;
@@ -100,9 +119,71 @@ export async function addDocumentVersion(input: AddDocumentVersionInput) {
     data: { url: data.url, mimeType: data.mimeType, sizeBytes: data.sizeBytes },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "document.version_added",
+    entityType: "Document",
+    entityId: data.documentId,
+    changes: { note: data.note },
+  });
+
   revalidatePath(`/documents/${data.documentId}`);
   revalidatePath("/documents");
   if (document.taskId) revalidatePath(`/taches/${document.taskId}`);
   if (document.meetingId) revalidatePath(`/reunions/${document.meetingId}`);
   return version;
+}
+
+/**
+ * Verifie l'acces a un document (cahier des charges §10). Sans ligne
+ * DocumentAccess pour ce document, tout titulaire de document.read y a
+ * acces (comportement historique). Des qu'une ligne existe, seuls
+ * l'uploader et les utilisateurs listes peuvent le consulter.
+ */
+export async function canAccessDocument(documentId: string, userId: string): Promise<boolean> {
+  const document = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: { uploadedById: true, accessGrants: { select: { userId: true } } },
+  });
+  if (!document) return false;
+  if (document.accessGrants.length === 0) return true;
+  return document.uploadedById === userId || document.accessGrants.some((g) => g.userId === userId);
+}
+
+export async function grantDocumentAccess(documentId: string, userId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  await prisma.documentAccess.upsert({
+    where: { documentId_userId: { documentId, userId } },
+    update: {},
+    create: { documentId, userId },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document.access_granted",
+    entityType: "Document",
+    entityId: documentId,
+    changes: { grantedTo: userId },
+  });
+
+  revalidatePath(`/documents/${documentId}`);
+}
+
+export async function revokeDocumentAccess(documentId: string, userId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  await prisma.documentAccess.deleteMany({ where: { documentId, userId } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document.access_revoked",
+    entityType: "Document",
+    entityId: documentId,
+    changes: { revokedFrom: userId },
+  });
+
+  revalidatePath(`/documents/${documentId}`);
 }

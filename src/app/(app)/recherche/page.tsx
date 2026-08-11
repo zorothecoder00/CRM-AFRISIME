@@ -1,23 +1,46 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { globalSearch, type SearchResult, type SearchResultType } from "@/lib/search";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/search/search-input";
+import { SearchFilters } from "@/components/search/search-filters";
 
-const TYPE_ORDER: SearchResultType[] = ["Projet", "Tâche", "Réunion", "Document", "Utilisateur"];
+const TYPE_ORDER: SearchResultType[] = ["Projet", "Tâche", "Commentaire", "Réunion", "Document", "Utilisateur"];
 
 export default async function RecherchePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    responsableId?: string;
+    statut?: string;
+    priorite?: string;
+    departmentId?: string;
+  }>;
 }) {
-  const { q } = await searchParams;
+  const params = await searchParams;
   const session = await getServerSession(authOptions);
-  const query = q?.trim() ?? "";
+  const query = params.q?.trim() ?? "";
 
-  const results = query.length >= 2 ? await globalSearch(query, session!.user.permissions) : [];
+  const [results, users, departments] = await Promise.all([
+    query.length >= 2
+      ? globalSearch(query, session!.user.permissions, {
+          dateFrom: params.dateFrom,
+          dateTo: params.dateTo,
+          responsableId: params.responsableId,
+          statut: params.statut,
+          priorite: params.priorite,
+          departmentId: params.departmentId,
+        })
+      : Promise.resolve([]),
+    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   const grouped = TYPE_ORDER.map((type) => ({
     type,
@@ -33,7 +56,15 @@ export default async function RecherchePage({
         </p>
       </div>
 
-      <SearchInput defaultValue={query} />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex-1">
+          <SearchInput defaultValue={query} />
+        </div>
+        <SearchFilters
+          users={users.map((u) => ({ id: u.id, label: u.name }))}
+          departments={departments.map((d) => ({ id: d.id, label: d.name }))}
+        />
+      </div>
 
       {query.length > 0 && query.length < 2 && (
         <p className="text-sm text-muted-foreground">Saisissez au moins 2 caractères.</p>
