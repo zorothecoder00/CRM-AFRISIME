@@ -14,6 +14,7 @@ import {
 import { LogOut, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
+import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 
 export function Topbar({
   userName,
@@ -21,12 +22,14 @@ export function Topbar({
   roleLabel,
   notifications,
   unreadCount,
+  canAccessAdministration,
 }: {
   userName: string;
   userImage?: string | null;
   roleLabel: string;
   notifications: NotificationPreview[];
   unreadCount: number;
+  canAccessAdministration: boolean;
 }) {
   const initials = userName
     .split(" ")
@@ -36,9 +39,12 @@ export function Topbar({
     .toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
-      <div className="show-from-lg text-sm text-muted-foreground">
-        Planifier · Collaborer · Exécuter · Contrôler
+    <header className="flex h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
+      <div className="flex items-center gap-2">
+        <MobileSidebar canAccessAdministration={canAccessAdministration} />
+        <div className="show-from-lg text-sm text-muted-foreground">
+          Planifier · Collaborer · Exécuter · Contrôler
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />

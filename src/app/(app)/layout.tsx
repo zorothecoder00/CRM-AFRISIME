@@ -34,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           userName={session.user.name ?? session.user.email ?? ""}
           userImage={session.user.image}
           roleLabel={session.user.roleLabel}
+          canAccessAdministration={canAccessAdministration}
           notifications={recentNotifications.map((n) => ({
             id: n.id,
             titre: n.titre,
@@ -43,7 +44,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }))}
           unreadCount={unreadCount}
         />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        </main>
       </div>
     </div>
   );
