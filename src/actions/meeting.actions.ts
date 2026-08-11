@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
+import { logAudit } from "@/lib/audit";
 import {
   createMeetingSchema,
   updateCompteRenduSchema,
@@ -83,59 +84,50 @@ export async function addDecision(input: AddDecisionInput) {
 
   const data = addDecisionSchema.parse(input);
 
-  if (data.createTask && !data.responsableId) {
-    throw new Error("Un responsable est requis pour créer automatiquement une tâche.");
-  }
-
   const meeting = await prisma.meeting.findUniqueOrThrow({
     where: { id: data.meetingId },
   });
 
-  let taskId: string | undefined;
+  // Cahier des charges §8 : « les actions décidées deviennent automatiquement
+  // des tâches » — sans condition, pas une option togglable côté client.
+  const task = await prisma.task.create({
+    data: {
+      projectId: meeting.projectId,
+      titre: data.description,
+      statut: "A_FAIRE",
+      priorite: "MOYENNE",
+      echeance: data.echeance ? new Date(data.echeance) : undefined,
+      responsablePrincipalId: data.responsableId,
+      createdById: session.user.id,
+    },
+  });
 
-  if (data.createTask && data.responsableId) {
-    const task = await prisma.task.create({
-      data: {
-        projectId: meeting.projectId,
-        titre: data.description,
-        statut: "A_FAIRE",
-        priorite: "MOYENNE",
-        echeance: data.echeance ? new Date(data.echeance) : undefined,
-        responsablePrincipalId: data.responsableId,
-        createdById: session.user.id,
-      },
+  await logAudit({
+    userId: session.user.id,
+    action: "task.created_from_meeting_decision",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { meetingId: data.meetingId },
+  });
+
+  if (data.responsableId !== session.user.id) {
+    await createNotification({
+      userId: data.responsableId,
+      type: "NOUVELLE_TACHE",
+      titre: `Nouvelle tâche assignée : ${task.titre}`,
+      lien: `/taches/${task.id}`,
+      entityType: "Task",
+      entityId: task.id,
     });
-    taskId = task.id;
-
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: "task.created_from_meeting_decision",
-        entityType: "Task",
-        entityId: task.id,
-        changes: { meetingId: data.meetingId },
-      },
-    });
-
-    if (data.responsableId !== session.user.id) {
-      await createNotification({
-        userId: data.responsableId,
-        type: "NOUVELLE_TACHE",
-        titre: `Nouvelle tâche assignée : ${task.titre}`,
-        lien: `/taches/${task.id}`,
-        entityType: "Task",
-        entityId: task.id,
-      });
-    }
   }
 
   const decision = await prisma.meetingDecision.create({
     data: {
       meetingId: data.meetingId,
       description: data.description,
-      responsableId: data.responsableId || undefined,
+      responsableId: data.responsableId,
       echeance: data.echeance ? new Date(data.echeance) : undefined,
-      taskId,
+      taskId: task.id,
     },
   });
 

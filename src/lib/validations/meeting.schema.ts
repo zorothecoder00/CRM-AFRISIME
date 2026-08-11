@@ -19,12 +19,13 @@ export const updateCompteRenduSchema = z.object({
 
 export type UpdateCompteRenduInput = z.infer<typeof updateCompteRenduSchema>;
 
+// responsableId est obligatoire : chaque decision cree automatiquement une
+// tache (cahier des charges §8), qui a toujours besoin d'un responsable.
 export const addDecisionSchema = z.object({
   meetingId: z.string().min(1),
   description: z.string().min(2, "La description est requise."),
-  responsableId: z.string().optional(),
+  responsableId: z.string().min(1, "Un responsable est requis."),
   echeance: z.string().optional(),
-  createTask: z.boolean().default(false),
 });
 
 export type AddDecisionInput = z.infer<typeof addDecisionSchema>;

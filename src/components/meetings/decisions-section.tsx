@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { addDecision } from "@/actions/meeting.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -38,11 +37,10 @@ export function DecisionsSection({
   const [description, setDescription] = useState("");
   const [responsableId, setResponsableId] = useState<string | undefined>();
   const [echeance, setEcheance] = useState("");
-  const [createTask, setCreateTask] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleAdd() {
-    if (!description.trim()) return;
+    if (!description.trim() || !responsableId) return;
     setIsSubmitting(true);
     try {
       await addDecision({
@@ -50,12 +48,11 @@ export function DecisionsSection({
         description: description.trim(),
         responsableId,
         echeance: echeance || undefined,
-        createTask,
       });
       setDescription("");
       setResponsableId(undefined);
       setEcheance("");
-      toast.success("Décision ajoutée." + (createTask ? " Tâche créée." : ""));
+      toast.success("Décision ajoutée, tâche créée automatiquement.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur.");
     } finally {
@@ -92,7 +89,7 @@ export function DecisionsSection({
         <div className="grid grid-cols-2 gap-2">
           <Select value={responsableId} onValueChange={setResponsableId}>
             <SelectTrigger>
-              <SelectValue placeholder="Responsable" />
+              <SelectValue placeholder="Responsable (requis)" />
             </SelectTrigger>
             <SelectContent>
               {users.map((u) => (
@@ -104,11 +101,10 @@ export function DecisionsSection({
           </Select>
           <Input type="date" value={echeance} onChange={(e) => setEcheance(e.target.value)} />
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={createTask} onCheckedChange={(c) => setCreateTask(c === true)} />
-          Créer automatiquement une tâche (nécessite un responsable)
-        </label>
-        <Button size="sm" onClick={handleAdd} disabled={isSubmitting}>
+        <p className="text-xs text-muted-foreground">
+          Une tâche est automatiquement créée et assignée au responsable choisi.
+        </p>
+        <Button size="sm" onClick={handleAdd} disabled={isSubmitting || !description.trim() || !responsableId}>
           {isSubmitting ? "Ajout..." : "Ajouter la décision"}
         </Button>
       </div>
