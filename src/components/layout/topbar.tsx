@@ -37,8 +37,8 @@ export function Topbar({
     .toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-between border-b px-4">
-      <div className="hidden text-sm text-muted-foreground lg:block">
+    <header className="flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
+      <div className="show-from-lg text-sm text-muted-foreground">
         Planifier · Collaborer · Exécuter · Contrôler
       </div>
       <div className="flex items-center gap-2">
@@ -47,11 +47,11 @@ export function Topbar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                 {userImage && <AvatarImage src={userImage} alt={userName} />}
-                <AvatarFallback>{initials}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
               </Avatar>
-              <div className="hidden text-left sm:block">
+              <div className="show-from-sm text-left">
                 <div className="text-sm font-medium leading-none">{userName}</div>
                 <div className="text-xs text-muted-foreground">{roleLabel}</div>
               </div>
