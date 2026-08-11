@@ -17,6 +17,7 @@ export const createDocumentSchema = z.object({
   description: z.string().optional(),
   url: z.string().min(1, "Un lien ou chemin de fichier est requis."),
   mimeType: z.string().optional(),
+  sizeBytes: z.number().int().positive().optional(),
 });
 
 export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
@@ -24,6 +25,8 @@ export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
 export const addDocumentVersionSchema = z.object({
   documentId: z.string().min(1),
   url: z.string().min(1, "Un lien ou chemin de fichier est requis."),
+  mimeType: z.string().optional(),
+  sizeBytes: z.number().int().positive().optional(),
   note: z.string().optional(),
 });
 

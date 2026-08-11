@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, FileCheck2 } from "lucide-react";
+import { UploadButton } from "@/lib/uploadthing";
 
 type Option = { id: string; label: string };
 
@@ -44,10 +45,12 @@ export function DocumentFormDialog({
   triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateDocumentInput>({
@@ -60,6 +63,7 @@ export function DocumentFormDialog({
       await createDocument({ ...data, projectId, taskId, meetingId });
       toast.success("Document ajouté.");
       reset();
+      setUploadedFileName(null);
       setOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de l'ajout.");
@@ -86,8 +90,31 @@ export function DocumentFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="url">Lien / chemin du fichier</Label>
-            <Input id="url" placeholder="https://..." {...register("url")} />
+            <Label>Fichier</Label>
+            <input type="hidden" {...register("url")} />
+            <UploadButton
+              endpoint="documentUploader"
+              onClientUploadComplete={(res) => {
+                const file = res[0];
+                if (!file) return;
+                setValue("url", file.ufsUrl, { shouldValidate: true });
+                setValue("mimeType", file.type);
+                setValue("sizeBytes", file.size);
+                if (!getValues("nom")) {
+                  setValue("nom", file.name, { shouldValidate: true });
+                }
+                setUploadedFileName(file.name);
+                toast.success("Fichier téléversé.");
+              }}
+              onUploadError={(error) => {
+                toast.error(`Échec du téléversement : ${error.message}`);
+              }}
+            />
+            {uploadedFileName && (
+              <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                <FileCheck2 className="h-4 w-4" /> {uploadedFileName}
+              </p>
+            )}
             {errors.url && <p className="text-sm text-destructive">{errors.url.message}</p>}
           </div>
 

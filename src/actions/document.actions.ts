@@ -56,9 +56,17 @@ export async function createDocument(input: CreateDocumentInput) {
       description: data.description,
       url: data.url,
       mimeType: data.mimeType,
+      sizeBytes: data.sizeBytes,
       uploadedById: session.user.id,
       versions: {
-        create: [{ url: data.url, mimeType: data.mimeType, createdById: session.user.id }],
+        create: [
+          {
+            url: data.url,
+            mimeType: data.mimeType,
+            sizeBytes: data.sizeBytes,
+            createdById: session.user.id,
+          },
+        ],
       },
     },
   });
@@ -80,6 +88,8 @@ export async function addDocumentVersion(input: AddDocumentVersionInput) {
     data: {
       documentId: data.documentId,
       url: data.url,
+      mimeType: data.mimeType,
+      sizeBytes: data.sizeBytes,
       note: data.note,
       createdById: session.user.id,
     },
@@ -87,7 +97,7 @@ export async function addDocumentVersion(input: AddDocumentVersionInput) {
 
   const document = await prisma.document.update({
     where: { id: data.documentId },
-    data: { url: data.url },
+    data: { url: data.url, mimeType: data.mimeType, sizeBytes: data.sizeBytes },
   });
 
   revalidatePath(`/documents/${data.documentId}`);
