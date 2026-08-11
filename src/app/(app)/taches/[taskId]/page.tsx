@@ -13,6 +13,7 @@ import { DocumentFormDialog } from "@/components/documents/document-form-dialog"
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { ActualTimeForm } from "@/components/tasks/actual-time-form";
 import { ValidationActions } from "@/components/tasks/validation-actions";
+import { TaskHistory } from "@/components/tasks/task-history";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -52,6 +53,12 @@ export default async function TaskDetailPage({
       },
       documents: { include: { uploadedBy: true, meeting: true, _count: { select: { versions: true } } } },
       dependsOn: { include: { dependsOnTask: true } },
+      validationRun: {
+        include: {
+          workflow: { include: { steps: { orderBy: { ordre: "asc" } } } },
+          approvals: { include: { approver: true, step: true } },
+        },
+      },
     },
   });
 
@@ -59,10 +66,18 @@ export default async function TaskDetailPage({
     notFound();
   }
 
-  const otherTasks = await prisma.task.findMany({
-    where: { projectId: task.projectId, id: { not: task.id } },
-    select: { id: true, titre: true },
-  });
+  const [otherTasks, historyEntries] = await Promise.all([
+    prisma.task.findMany({
+      where: { projectId: task.projectId, id: { not: task.id } },
+      select: { id: true, titre: true },
+    }),
+    prisma.auditLog.findMany({
+      where: { entityType: "Task", entityId: task.id },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+  ]);
 
   const documentRows: DocumentRow[] = task.documents.map((d) => ({
     id: d.id,
@@ -144,6 +159,23 @@ export default async function TaskDetailPage({
             <DocumentList documents={documentRows} />
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Historique des modifications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TaskHistory
+              entries={historyEntries.map((h) => ({
+                id: h.id,
+                action: h.action,
+                authorName: h.user?.name ?? null,
+                createdAt: h.createdAt.toISOString(),
+                changes: h.changes,
+              }))}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-6">
@@ -185,7 +217,25 @@ export default async function TaskDetailPage({
               taskId={task.id}
               statut={task.statut}
               isResponsable={task.responsablePrincipalId === session!.user.id}
-              canValidate={session!.user.permissions.includes(PERMISSIONS.TASK_VALIDATE)}
+              hasValidatePermission={session!.user.permissions.includes(PERMISSIONS.TASK_VALIDATE)}
+              isCurrentApprover={
+                task.validationRun?.statut === "EN_COURS" &&
+                task.validationRun.workflow.steps.find(
+                  (s) => s.ordre === task.validationRun!.currentOrdre
+                )?.approverRole === session!.user.roleKey
+              }
+              steps={
+                task.validationRun?.workflow.steps.map((step) => {
+                  const approval = task.validationRun!.approvals.find((a) => a.stepId === step.id);
+                  return {
+                    ordre: step.ordre,
+                    label: step.label ?? step.approverRole,
+                    statut: approval?.statut ?? "EN_ATTENTE",
+                    approverName: approval?.approver?.name ?? null,
+                    isCurrent: step.ordre === task.validationRun!.currentOrdre,
+                  };
+                }) ?? []
+              }
             />
           </CardContent>
         </Card>

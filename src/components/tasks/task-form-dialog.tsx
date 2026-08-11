@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function TaskFormDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
 
   const {
     register,
@@ -57,14 +59,19 @@ export function TaskFormDialog({
 
   async function onSubmit(data: CreateTaskInput) {
     try {
-      await createTask(data);
+      await createTask({ ...data, assigneeIds });
       toast.success("Tâche créée.");
       reset();
       setSelectedProjectId(undefined);
+      setAssigneeIds([]);
       setOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
+  }
+
+  function toggleAssignee(userId: string, checked: boolean) {
+    setAssigneeIds((prev) => (checked ? [...prev, userId] : prev.filter((id) => id !== userId)));
   }
 
   return (
@@ -170,6 +177,21 @@ export function TaskFormDialog({
                   <SelectItem value="BASSE">Basse</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Co-responsables</Label>
+            <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
+              {users.map((u) => (
+                <label key={u.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={assigneeIds.includes(u.id)}
+                    onCheckedChange={(c) => toggleAssignee(u.id, c === true)}
+                  />
+                  {u.label}
+                </label>
+              ))}
             </div>
           </div>
 

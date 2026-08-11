@@ -1,8 +1,10 @@
 import { Fragment } from "react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PERMISSION_CATALOG } from "@/lib/permissions";
+import { PERMISSIONS, PERMISSION_CATALOG } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
-import { Check } from "lucide-react";
+import { RolePermissionCheckbox } from "@/components/administration/role-permission-checkbox";
 import {
   Table,
   TableBody,
@@ -13,6 +15,9 @@ import {
 } from "@/components/ui/table";
 
 export default async function RolesPage() {
+  const session = await getServerSession(authOptions);
+  const canManage = session!.user.permissions.includes(PERMISSIONS.ADMINISTRATION_ROLES_MANAGE);
+
   const roles = await prisma.role.findMany({
     include: { permissions: { include: { permission: true } } },
     orderBy: { label: "asc" },
@@ -26,7 +31,10 @@ export default async function RolesPage() {
       <div>
         <h1 className="text-2xl font-semibold">Rôles &amp; permissions</h1>
         <p className="text-sm text-muted-foreground">
-          Matrice en lecture — {roles.length} rôle(s), {PERMISSION_CATALOG.length} permission(s).
+          {canManage
+            ? "Cochez/décochez pour personnaliser les droits de chaque rôle."
+            : "Matrice en lecture."}{" "}
+          {roles.length} rôle(s), {PERMISSION_CATALOG.length} permission(s).
         </p>
       </div>
 
@@ -57,7 +65,16 @@ export default async function RolesPage() {
                       const has = role.permissions.some((rp) => rp.permission.key === perm.key);
                       return (
                         <TableCell key={role.id} className="text-center">
-                          {has && <Check className="mx-auto h-4 w-4 text-primary" />}
+                          {canManage ? (
+                            <RolePermissionCheckbox
+                              roleId={role.id}
+                              permissionKey={perm.key}
+                              initialChecked={has}
+                              disabled={role.key === "SUPER_ADMIN"}
+                            />
+                          ) : (
+                            has && <span className="text-primary">✓</span>
+                          )}
                         </TableCell>
                       );
                     })}

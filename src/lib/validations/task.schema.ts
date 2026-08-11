@@ -7,6 +7,7 @@ export const createTaskSchema = z.object({
   description: z.string().optional(),
   priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]),
   responsablePrincipalId: z.string().min(1, "Un responsable est requis."),
+  assigneeIds: z.array(z.string()).optional().default([]),
   echeance: z.string().optional(),
   tempsEstimeHeures: z.string().optional(),
 });

@@ -20,6 +20,8 @@ export const PERMISSIONS = {
   TASK_COMMENT: "task.comment",
   TASK_EXPORT: "task.export",
 
+  WORKFLOW_MANAGE: "workflow.manage",
+
   MEETING_CREATE: "meeting.create",
   MEETING_READ: "meeting.read",
   MEETING_UPDATE: "meeting.update",
@@ -92,6 +94,7 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.TASK_VALIDATE, label: "Valider une tâche", category: "Tâches" },
   { key: PERMISSIONS.TASK_COMMENT, label: "Commenter une tâche", category: "Tâches" },
   { key: PERMISSIONS.TASK_EXPORT, label: "Exporter les tâches", category: "Tâches" },
+  { key: PERMISSIONS.WORKFLOW_MANAGE, label: "Configurer les circuits de validation", category: "Tâches" },
 
   { key: PERMISSIONS.MEETING_CREATE, label: "Créer une réunion", category: "Réunions" },
   { key: PERMISSIONS.MEETING_READ, label: "Consulter les réunions", category: "Réunions" },
@@ -163,6 +166,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_VALIDATE,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.TASK_EXPORT,
+    PERMISSIONS.WORKFLOW_MANAGE,
     PERMISSIONS.MEETING_CREATE,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.MEETING_UPDATE,
@@ -427,6 +431,56 @@ export function requirePermission(
   key: PermissionKey
 ): void {
   if (!hasPermission(permissions, key)) {
+    throw new Error(`Permission refusée: ${key}`);
+  }
+}
+
+/**
+ * Portée département/projet (cahier des charges §19 : droits définissables
+ * « par rôle, département, projet ou équipe »). N'interroge la base que si
+ * un scope est fourni — n'affecte pas hasPermission/requirePermission
+ * ci-dessus, utilisées telles quelles par les 38 sites d'appel existants.
+ * Une dérogation DENY l'emporte toujours ; une dérogation GRANT complète un
+ * rôle qui n'accorde pas le droit nativement.
+ */
+export async function hasScopedPermission(
+  permissions: string[] | undefined,
+  key: PermissionKey,
+  userId: string,
+  scope?: { departmentId?: string; projectId?: string }
+): Promise<boolean> {
+  const roleGrants = hasPermission(permissions, key);
+  if (!scope?.departmentId && !scope?.projectId) {
+    return roleGrants;
+  }
+
+  // Import différé : évite d'alourdir le bundle client des consommateurs de
+  // PERMISSIONS/hasPermission qui n'utilisent jamais ce chemin scopé.
+  const { prisma } = await import("@/lib/prisma");
+  const overrides = await prisma.permissionOverride.findMany({
+    where: {
+      userId,
+      permissionKey: key,
+      OR: [
+        scope.departmentId ? { departmentId: scope.departmentId } : undefined,
+        scope.projectId ? { projectId: scope.projectId } : undefined,
+      ].filter((clause): clause is NonNullable<typeof clause> => Boolean(clause)),
+    },
+  });
+
+  if (overrides.some((o) => o.effect === "DENY")) return false;
+  if (overrides.some((o) => o.effect === "GRANT")) return true;
+  return roleGrants;
+}
+
+export async function requireScopedPermission(
+  permissions: string[] | undefined,
+  key: PermissionKey,
+  userId: string,
+  scope?: { departmentId?: string; projectId?: string }
+): Promise<void> {
+  const allowed = await hasScopedPermission(permissions, key, userId, scope);
+  if (!allowed) {
     throw new Error(`Permission refusée: ${key}`);
   }
 }

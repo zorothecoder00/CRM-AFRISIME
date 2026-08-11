@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { PERMISSIONS, requirePermission, requireScopedPermission } from "@/lib/permissions";
 import { createNotification, notifyMany } from "@/lib/notify";
 import { parseMentions } from "@/lib/mentions";
+import { logAudit } from "@/lib/audit";
 import { recomputeProjectProgress } from "@/lib/project-progress";
 import { runTaskCompletedRules, runValidationRejectedRules } from "@/lib/automation";
+import { startValidationRun, decideCurrentStep } from "@/lib/validation-workflow";
 import {
   createTaskSchema,
   updateTaskStatusSchema,
@@ -27,9 +29,19 @@ async function requireSession() {
 
 export async function createTask(input: CreateTaskInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.TASK_CREATE);
-
   const data = createTaskSchema.parse(input);
+  // Portee par projet (cahier des charges §19) : une derogation
+  // PermissionOverride pour ce projet peut accorder ou retirer le droit
+  // meme si le role de l'utilisateur en decide autrement.
+  await requireScopedPermission(session.user.permissions, PERMISSIONS.TASK_CREATE, session.user.id, {
+    projectId: data.projectId,
+  });
+
+  // Co-responsables (cahier des charges §6) : distincts du responsable
+  // principal, dedupliques pour eviter une contrainte unique violee.
+  const assigneeIds = Array.from(
+    new Set(data.assigneeIds.filter((id) => id !== data.responsablePrincipalId))
+  );
 
   const task = await prisma.task.create({
     data: {
@@ -42,28 +54,28 @@ export async function createTask(input: CreateTaskInput) {
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : undefined,
       createdById: session.user.id,
+      assignees: {
+        create: assigneeIds.map((userId) => ({ userId })),
+      },
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: session.user.id,
-      action: "task.created",
-      entityType: "Task",
-      entityId: task.id,
-    },
+  await logAudit({
+    userId: session.user.id,
+    action: "task.created",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { titre: task.titre },
   });
 
-  if (task.responsablePrincipalId !== session.user.id) {
-    await createNotification({
-      userId: task.responsablePrincipalId,
-      type: "NOUVELLE_TACHE",
-      titre: `Nouvelle tâche assignée : ${task.titre}`,
-      lien: `/taches/${task.id}`,
-      entityType: "Task",
-      entityId: task.id,
-    });
-  }
+  const notifyIds = Array.from(new Set([task.responsablePrincipalId, ...assigneeIds]));
+  await notifyMany(notifyIds, session.user.id, {
+    type: "NOUVELLE_TACHE",
+    titre: `Nouvelle tâche assignée : ${task.titre}`,
+    lien: `/taches/${task.id}`,
+    entityType: "Task",
+    entityId: task.id,
+  });
 
   revalidatePath("/taches");
   revalidatePath(`/projets/${data.projectId}`);
@@ -85,14 +97,12 @@ export async function updateTaskStatus(taskId: string, statut: string) {
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: session.user.id,
-      action: "task.status_changed",
-      entityType: "Task",
-      entityId: task.id,
-      changes: { statut: data.statut },
-    },
+  await logAudit({
+    userId: session.user.id,
+    action: "task.status_changed",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { statut: data.statut },
   });
 
   await recomputeProjectProgress(task.projectId);
@@ -112,7 +122,11 @@ export async function updateTaskStatus(taskId: string, statut: string) {
   return task;
 }
 
-/** Le responsable soumet son travail pour validation (cahier des charges §15/§9 minimal). */
+/**
+ * Le responsable soumet son travail pour validation (cahier des charges §9) :
+ * démarre une instance du circuit de validation actif (Administration >
+ * Circuits de validation) et notifie l'approbateur de la première étape.
+ */
 export async function submitForValidation(taskId: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
@@ -122,17 +136,24 @@ export async function submitForValidation(taskId: string) {
     data: { statut: "EN_REVISION" },
   });
 
+  await startValidationRun({
+    taskId: task.id,
+    taskTitre: task.titre,
+    submittedById: session.user.id,
+  });
+
   revalidatePath(`/taches/${taskId}`);
   return task;
 }
 
 /**
- * Approuve ou refuse une tâche en révision. Le refus renvoie la tâche à son
- * créateur (cahier des charges §15 : « si une validation est refusée,
- * renvoyer la tâche au créateur ») et déclenche les règles
- * TASK_VALIDATION_REJECTED du projet.
+ * Décide l'étape courante du circuit de validation d'une tâche (cahier des
+ * charges §9). Un refus renvoie immédiatement la tâche à son créateur et
+ * déclenche les règles TASK_VALIDATION_REJECTED ; une approbation avance à
+ * l'étape suivante si le circuit en compte d'autres, sinon termine la tâche
+ * et notifie le créateur (symétrique au refus, corrige l'ancienne asymétrie).
  */
-export async function validateTask(taskId: string, approved: boolean) {
+export async function validateTask(taskId: string, approved: boolean, commentaire?: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.TASK_VALIDATE);
 
@@ -141,7 +162,21 @@ export async function validateTask(taskId: string, approved: boolean) {
     throw new Error("Cette tâche n'est pas en attente de validation.");
   }
 
-  if (approved) {
+  const { finalStatus } = await decideCurrentStep({
+    taskId,
+    approverId: session.user.id,
+    approverRoleKey: session.user.roleKey,
+    approved,
+    commentaire,
+  });
+
+  if (finalStatus === "EN_COURS") {
+    // Étape franchie, encore d'autres approbateurs à venir : la tâche reste en révision.
+    revalidatePath(`/taches/${taskId}`);
+    return existing;
+  }
+
+  if (finalStatus === "APPROUVE") {
     const task = await prisma.task.update({
       where: { id: taskId },
       data: { statut: "TERMINEE", avancement: 100, completedAt: new Date() },
@@ -153,11 +188,22 @@ export async function validateTask(taskId: string, approved: boolean) {
       projectId: task.projectId,
       responsablePrincipalId: task.responsablePrincipalId,
     });
+    if (task.createdById !== session.user.id) {
+      await createNotification({
+        userId: task.createdById,
+        type: "VALIDATION",
+        titre: `Votre tâche a été validée : ${task.titre}`,
+        lien: `/taches/${taskId}`,
+        entityType: "Task",
+        entityId: task.id,
+      });
+    }
     revalidatePath(`/taches/${taskId}`);
     revalidatePath(`/projets/${task.projectId}`);
     return task;
   }
 
+  // REJETE
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { statut: "A_FAIRE", responsablePrincipalId: existing.createdById },
@@ -204,6 +250,14 @@ export async function addComment(taskId: string, content: string) {
     data: { taskId: data.taskId, content: data.content, authorId: session.user.id },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "task.comment_added",
+    entityType: "Task",
+    entityId: data.taskId,
+    changes: { commentId: comment.id },
+  });
+
   const participantIds = [task.responsablePrincipalId, ...task.assignees.map((a) => a.userId)];
   await notifyMany(participantIds, session.user.id, {
     type: "COMMENTAIRE",
@@ -241,16 +295,32 @@ export async function addChecklistItem(taskId: string, label: string) {
     data: { taskId: data.taskId, label: data.label },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "task.checklist_item_added",
+    entityType: "Task",
+    entityId: data.taskId,
+    changes: { label: item.label },
+  });
+
   revalidatePath(`/taches/${taskId}`);
   return item;
 }
 
 export async function toggleChecklistItem(itemId: string, isDone: boolean) {
-  await requireSession();
+  const session = await requireSession();
 
   const item = await prisma.checklistItem.update({
     where: { id: itemId },
     data: { isDone },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.checklist_item_toggled",
+    entityType: "Task",
+    entityId: item.taskId,
+    changes: { itemId: item.id, isDone },
   });
 
   revalidatePath(`/taches/${item.taskId}`);
@@ -271,6 +341,14 @@ export async function addDependency(taskId: string, dependsOnTaskId: string) {
     data: { taskId: data.taskId, dependsOnTaskId: data.dependsOnTaskId },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "task.dependency_added",
+    entityType: "Task",
+    entityId: taskId,
+    changes: { dependsOnTaskId },
+  });
+
   revalidatePath(`/taches/${taskId}`);
   return dependency;
 }
@@ -284,6 +362,14 @@ export async function updateActualTime(taskId: string, tempsReelHeures: string) 
   const task = await prisma.task.update({
     where: { id: data.taskId },
     data: { tempsReelHeures: Number(data.tempsReelHeures) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.actual_time_updated",
+    entityType: "Task",
+    entityId: data.taskId,
+    changes: { tempsReelHeures: data.tempsReelHeures },
   });
 
   revalidatePath(`/taches/${taskId}`);
