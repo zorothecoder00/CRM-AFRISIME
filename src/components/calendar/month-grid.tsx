@@ -54,7 +54,7 @@ export function MonthGrid({
               key={key}
               href={dayHref(key)}
               className={cn(
-                "flex min-h-24 flex-col gap-1 border-b border-r p-1.5 text-left align-top hover:bg-muted/50",
+                "flex min-h-24 min-w-0 flex-col gap-1 border-b border-r p-1.5 text-left align-top hover:bg-muted/50",
                 !inMonth && "bg-muted/20 text-muted-foreground",
                 selectedDateKey === key && "ring-2 ring-primary ring-inset"
               )}

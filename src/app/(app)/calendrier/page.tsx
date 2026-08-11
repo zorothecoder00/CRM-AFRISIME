@@ -139,14 +139,14 @@ export default async function CalendrierPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">Calendrier</h1>
             <p className="text-sm text-muted-foreground">
               Vue consolidée de mes tâches, réunions, congés et événements.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <LeaveFormDialog />
             <EventFormDialog projects={projects.map((p) => ({ id: p.id, label: p.nom }))} />
           </div>
