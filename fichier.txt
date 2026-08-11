@@ -1,0 +1,244 @@
+ Pour tester : npm run dev, connexion collaborateur@afriflow.local /
+  Password123! 
+
+
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ AfriFlow (AfriSime Work-Flow) — Plan MVP Next.js
+
+ Contexte
+
+ AfriSime souhaite une plateforme collaborative de gestion des projets, tâches
+ et performance ("AfriFlow"), inspirée d'Asana/ClickUp/Monday.com/Notion/Trello
+ mais adaptée à ses méthodes de travail. Le cahier des charges fourni couvre
+ 24 modules (projets, tâches, réunions, validations, documents, messagerie,
+ calendrier, KPI, charge de travail, automatisation, tableaux de bord,
+ recherche, notifications, droits, mobile, intégrations ERP/M365/Google,
+ rapports, sécurité, évolutions IA futures).
+
+ Le dépôt CRM-AFRISIME est actuellement vide (LICENSE + README seulement). Vu
+ l'ampleur du cahier des charges, on ne construit pas les 24 modules d'un coup
+ : on pose un socle solide et on livre un MVP fonctionnel couvrant le cœur
+ (auth + rôles, Projets, Tâches), avec une architecture pensée pour absorber
+ les modules restants sans refonte.
+
+ Décisions déjà validées avec l'utilisateur :
+ - Next.js (App Router, TypeScript) + PostgreSQL/Prisma + Tailwind/shadcn-ui +
+ Auth.js (NextAuth v5, credentials, pas de SaaS auth)
+ - Périmètre MVP : Socle + Auth (10 rôles) + Module Projets (hiérarchie
+ complète en DB) + Module Tâches (vue Liste + Kanban)
+ - PostgreSQL déjà installé localement (psql 18.0 détecté) — pas de Docker
+ - UI hiérarchie Phase→Sous-phase→Lot : arbre minimal (voir/ajouter), pas
+ d'édition avancée
+
+ 1. Scaffold
+
+ npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir
+ --import-alias "@/*" --use-npm
+
+ Structure sous src/ en groupes de routes reflétant les 6 domaines (Espace
+ Personnel, Projets, Tâches, Collaboration, Performance, Administration) :
+
+ src/
+   app/
+     (public)/login/page.tsx
+     (public)/layout.tsx
+     (app)/layout.tsx                     # garde de session + Sidebar/Topbar
+       (espace-personnel)/dashboard/page.tsx
+       (projets)/projets/page.tsx
+       (projets)/projets/[projectId]/page.tsx
+       (taches)/taches/page.tsx           # ?vue=liste|kanban
+       (taches)/taches/[taskId]/page.tsx
+       (administration)/administration/utilisateurs/page.tsx
+       (administration)/administration/roles/page.tsx
+       (collaboration)/collaboration/page.tsx   # placeholder "à venir"
+       (performance)/performance/page.tsx       # placeholder "à venir"
+     api/auth/[...nextauth]/route.ts
+     layout.tsx
+     page.tsx                             # redirect → /dashboard ou /login
+   components/{ui,layout,projects,tasks,shared}/
+   lib/{prisma.ts, permissions.ts, utils.ts, validations/}
+   actions/{project.actions.ts, task.actions.ts, user.actions.ts}
+   auth.config.ts                         # edge-safe (middleware)
+   auth.ts                                # Credentials + PrismaAdapter (JWT
+ sessions)
+ middleware.ts
+ prisma/{schema.prisma, seed.ts, migrations/}
+ .env / .env.example
+ components.json
+
+ auth.config.ts (edge-safe, sans Prisma/bcrypt) est consommé par middleware.ts
+ ; auth.ts (complet, Credentials + PrismaAdapter) est consommé côté serveur.
+ Nécessaire car le middleware Next.js tourne en Edge runtime, incompatible avec
+ Prisma/bcryptjs.
+
+ .env : DATABASE_URL (Postgres local), AUTH_SECRET (via npx auth secret),
+ AUTH_URL=http://localhost:3000. .env.example committé avec valeurs
+ placeholder.
+
+ 2. Schéma Prisma
+
+ Décision de modélisation clé : hybride, pas une table polymorphe unique ni 6
+ tables séparées.
+
+ ┌──────────────┬───────────────────────┬──────────────────────────────────┐
+ │    Groupe    │        Modèle         │              Raison              │
+ ├──────────────┼───────────────────────┼──────────────────────────────────┤
+ │ Phase,       │ ProjectSection        │ Même forme aux 3 niveaux — évite │
+ │ Sous-phase,  │ (auto-référencée,     │  3 tables quasi-identiques       │
+ │ Lot          │ type: SectionType)    │                                  │
+ ├──────────────┼───────────────────────┼──────────────────────────────────┤
+ │              │                       │ Une sous-tâche a besoin des      │
+ │ Tâche,       │ Task (auto-référencée │ mêmes champs qu'une tâche        │
+ │ Sous-tâche   │  via parentTaskId)    │ (priorité, dépendances,          │
+ │              │                       │ commentaires...)                 │
+ ├──────────────┼───────────────────────┼──────────────────────────────────┤
+ │ Checklist    │ ChecklistItem (enfant │ Forme différente (pas de         │
+ │              │  direct de Task)      │ dates/priorité/assigné)          │
+ └──────────────┴───────────────────────┴──────────────────────────────────┘
+
+ Enums : RoleKey (10 rôles), ProjectStatus, ProjectPriority, SectionType,
+ SectionStatus, TaskStatus, TaskPriority, DependencyType, ProjectMemberRole.
+
+ Modèles principaux : User, Role, Permission, RolePermission (table de
+ jointure), Department (auto-hiérarchique), Project, ProjectMember,
+ ProjectSection, Task, TaskAssignee (co-responsables), ChecklistItem,
+ TaskComment, TaskAttachment (métadonnées seulement, pas de stockage réel),
+ TaskDependency, AuditLog (générique, sert aussi d'historique de tâche).
+
+ Champs Project : nom, description, objectif, responsableId, departmentId,
+ priorite, dateDebut/dateFin, budget (Decimal), statut, avancement (0-100),
+ organisation (texte libre — sémantique ambiguë dans le cahier des charges, à
+ clarifier plus tard), createdById.
+
+ Champs Task : titre, description, priorite, statut, avancement, echeance,
+ tempsEstimeHeures, tempsReelHeures, responsablePrincipalId (FK directe),
+ sectionId (nullable), parentTaskId (nullable pour sous-tâche).
+
+ Points d'extension volontairement non modélisés maintenant (juste des formes
+ prévues) : Réunions, Documents (polymorphe documentableType/Id), Messagerie,
+ Calendrier, KPI/Objectifs, Automatisation — placeholders de navigation
+ uniquement dans ce MVP.
+
+ 3. Auth & permissions
+
+ - Auth.js v5, CredentialsProvider (email + bcryptjs), session strategy jwt
+ (obligatoire avec Credentials — pas de session DB).
+ - PrismaAdapter branché dès maintenant pour préparer le SSO Microsoft
+ 365/Google Workspace (évolution future du cahier des charges).
+ - Catalogue de clés de permission (project.create, task.validate, etc.) codé
+ en dur dans src/lib/permissions.ts — contrat de code, typé, sans faute de
+ frappe possible.
+ - Attribution rôle → permissions stockée en DB (RolePermission), seedée depuis
+ une matrice par défaut — c'est ce qui rend les droits réellement
+ "personnalisables" (cahier des charges §19) sans redéploiement.
+ - Au login, le callback jwt charge une fois Role.permissions et embarque {
+ roleKey, permissions[], departmentId } dans le token — pas d'appel Prisma à
+ chaque requête. Limite connue : un changement de permission nécessite une
+ reconnexion (acceptable en MVP).
+ - Deux couches de contrôle : middleware (grossier, par groupe de routes/rôle,
+ edge-safe) + vérifications fines dans les server actions (ex. appartenance à
+ un projet via ProjectMember).
+
+ 4. Pages MVP
+
+ ┌──────────────────────────────┬───────────────────────────────────────────┐
+ │            Route             │                  Contenu                  │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │ /login                       │ Formulaire credentials                    │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │                              │ Tâches du jour/retard/semaine, mes        │
+ │ /dashboard                   │ projets — requêtes Prisma directes en RSC │
+ │                              │  filtrées par session.user.id             │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │ /projets                     │ Liste/grille + filtres (statut, priorité, │
+ │                              │  département) + création                  │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │                              │ Infos générales + arbre minimal           │
+ │ /projets/[projectId]         │ Phase/Sous-phase/Lot + liste des tâches   │
+ │                              │ du projet                                 │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │ /taches                      │ Toggle Liste (@tanstack/react-table) ↔    │
+ │                              │ Kanban (@dnd-kit), ?vue=                  │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │                              │ Détail complet : champs, co-responsables, │
+ │ /taches/[taskId]             │  checklist, commentaires, pièces jointes  │
+ │                              │ (métadonnées), dépendances, historique    │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │ /administration/utilisateurs │ Liste + création/édition (rôle,           │
+ │                              │ département)                              │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │ /administration/roles        │ Vue lecture de la matrice des 10 rôles ×  │
+ │                              │ permissions                               │
+ ├──────────────────────────────┼───────────────────────────────────────────┤
+ │ /collaboration, /performance │ Placeholders "Module à venir", entrées de │
+ │                              │  navigation seulement                     │
+ └──────────────────────────────┴───────────────────────────────────────────┘
+
+ 5. Seed
+
+ prisma/seed.ts (via npx prisma db seed) :
+ - 4 départements (Direction Générale, IT, Commercial, RH)
+ - Catalogue de permissions importé de lib/permissions.ts
+ - 10 rôles avec matrice de permissions par défaut
+ - 6 utilisateurs démo (un par persona clé : Super Admin, DG, Chef de Projet,
+ Manager, Collaborateur, Invité), mot de passe Password123!
+ - 1 projet démo "Refonte Site Web AfriSime" avec 2 phases, 1 lot imbriqué, 6-8
+ tâches (statuts variés, échéances passées/aujourd'hui/cette semaine pour
+ peupler le dashboard), quelques checklists/commentaires/dépendances
+ - Log des identifiants seedés en fin de script
+
+ 6. Dépendances clés (au-delà du socle create-next-app)
+
+ prisma, @prisma/client, next-auth@beta, @auth/prisma-adapter, bcryptjs, zod,
+ react-hook-form, @hookform/resolvers, date-fns, @dnd-kit/core + sortable +
+ utilities (Kanban), @tanstack/react-table (vue Liste), composants shadcn
+ (button, input, select, card, table, dialog, tabs, form, badge, avatar,
+ sonner...), tsx (exécution du seed).
+
+ Explicitement hors périmètre MVP : SDK de stockage fichiers (S3/Blob), libs
+ d'export PDF/Excel, libs de graphiques — modules Documents/Rapports/KPI non
+ construits maintenant.
+
+ 7. Ordre de construction
+
+ 1. Scaffold create-next-app en place, commit
+ 2. Installer toutes les dépendances (§6) en une passe
+ 3. npx shadcn@latest init + composants de base
+ 4. Config Tailwind/theme (couleurs placeholder)
+ 5. .env/.env.example, créer la base Postgres locale (createdb afriflow),
+ AUTH_SECRET via npx auth secret
+ 6. Écrire src/lib/permissions.ts (catalogue de clés) — source de vérité avant
+ le schéma
+ 7. Écrire prisma/schema.prisma (§2)
+ 8. npx prisma migrate dev --name init
+ 9. Écrire et exécuter prisma/seed.ts
+ 10. src/lib/prisma.ts (singleton client)
+ 11. auth.config.ts + auth.ts + route handler NextAuth
+ 12. middleware.ts
+ 13. Layout racine, (public)/login, shell (app) (Sidebar 6 domaines, Topbar,
+ déconnexion)
+ 14. /dashboard
+ 15. Module Projets (liste, détail + arbre minimal, actions create/update)
+ 16. Module Tâches (Liste, Kanban, détail, actions
+ create/update/comment/checklist/dépendance)
+ 17. Module Administration (utilisateurs, rôles lecture)
+ 18. Placeholders Collaboration/Performance
+ 19. Vérification manuelle : npm run dev, connexion avec chaque persona,
+ dashboard peuplé, arbre hiérarchique, drag&drop Kanban persistant, blocage
+ Collaborateur sur /administration
+ 20. npm run build pour valider le build de production, commit
+
+ Vérification finale
+
+ - npm run dev démarre sans erreur, connexion possible avec les 6 comptes
+ seedés
+ - Dashboard affiche des tâches réelles (aujourd'hui/retard/semaine) issues du
+ projet démo
+ - Création d'un projet + ajout d'une phase/sous-phase/lot via l'arbre minimal
+ fonctionne
+ - Création d'une tâche, passage Liste↔Kanban, drag&drop mettant à jour le
+ statut en DB
+ - Un utilisateur "Collaborateur" ne peut pas accéder à /administration
+ (redirection ou 403)
+ - npm run build passe sans erreur TypeScript/ESLint bloquante
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
