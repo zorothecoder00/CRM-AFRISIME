@@ -12,9 +12,9 @@ export function ProjectProgressWidget({ data }: { data: DashboardData["projectPr
       <CardContent className="space-y-3">
         {data.length === 0 && <p className="text-sm text-muted-foreground">Aucun projet.</p>}
         {data.map((p) => (
-          <Link key={p.id} href={`/projets/${p.id}`} className="block">
+          <Link key={p.id} href={`/projets/${p.id}`} className="block rounded-md p-1.5 -m-1.5 hover:bg-muted">
             <div className="mb-1 flex items-center justify-between text-sm">
-              <span className="font-medium hover:underline">{p.nom}</span>
+              <span className="font-medium">{p.nom}</span>
               <span className="text-muted-foreground">{p.avancement}%</span>
             </div>
             <ProgressBar value={p.avancement} />
