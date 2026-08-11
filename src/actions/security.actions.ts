@@ -10,6 +10,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { confirmMfaSchema, disableMfaSchema } from "@/lib/validations/security.schema";
+import { encryptSecret } from "@/lib/crypto";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
@@ -42,7 +43,11 @@ export async function confirmMfaSetup(input: { secret: string; code: string }) {
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { mfaEnabled: true, mfaSecret: data.secret, mfaBackupCodes: hashedBackupCodes },
+    data: {
+      mfaEnabled: true,
+      mfaSecret: encryptSecret(data.secret),
+      mfaBackupCodes: hashedBackupCodes,
+    },
   });
 
   await prisma.auditLog.create({

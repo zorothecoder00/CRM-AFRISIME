@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 import {
   createObjectiveSchema,
   updateObjectiveStatusSchema,
@@ -42,6 +43,14 @@ export async function createObjective(input: CreateObjectiveInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "objective.created",
+    entityType: "Objective",
+    entityId: objective.id,
+    changes: { titre: objective.titre, periode: data.periode, scope: data.scope },
+  });
+
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
   return objective;
@@ -56,6 +65,14 @@ export async function updateObjectiveStatus(objectiveId: string, statut: string)
   const objective = await prisma.objective.update({
     where: { id: data.objectiveId },
     data: { statut: data.statut },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "objective.status_updated",
+    entityType: "Objective",
+    entityId: objective.id,
+    changes: { statut: data.statut },
   });
 
   revalidatePath(`/objectifs/${objectiveId}`);
@@ -78,6 +95,14 @@ export async function addIndicator(input: AddIndicatorInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "indicator.created",
+    entityType: "Objective",
+    entityId: data.objectiveId,
+    changes: { nom: indicator.nom },
+  });
+
   revalidatePath(`/objectifs/${data.objectiveId}`);
   return indicator;
 }
@@ -91,6 +116,14 @@ export async function updateIndicatorValue(input: UpdateIndicatorValueInput) {
   const indicator = await prisma.indicator.update({
     where: { id: data.indicatorId },
     data: { valeurActuelle: Number(data.valeurActuelle) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "indicator.value_updated",
+    entityType: "Objective",
+    entityId: indicator.objectiveId,
+    changes: { indicatorId: indicator.id, valeurActuelle: data.valeurActuelle },
   });
 
   revalidatePath(`/objectifs/${indicator.objectiveId}`);

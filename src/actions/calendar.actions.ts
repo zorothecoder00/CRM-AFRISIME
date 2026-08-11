@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
+import { logAudit } from "@/lib/audit";
 import {
   createLeaveSchema,
   decideLeaveSchema,
@@ -41,6 +42,14 @@ export async function createLeave(input: CreateLeaveInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "leave.created",
+    entityType: "Leave",
+    entityId: leave.id,
+    changes: { type: leave.type, dateDebut: data.dateDebut, dateFin: data.dateFin },
+  });
+
   revalidatePath("/calendrier");
   return leave;
 }
@@ -54,6 +63,14 @@ export async function decideLeave(input: DecideLeaveInput) {
   const leave = await prisma.leave.update({
     where: { id: data.leaveId },
     data: { statut: data.statut, decidedById: session.user.id },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "leave.decided",
+    entityType: "Leave",
+    entityId: leave.id,
+    changes: { statut: data.statut },
   });
 
   await createNotification({
@@ -87,6 +104,14 @@ export async function createEvent(input: CreateEventInput) {
       projectId: data.projectId || undefined,
       createdById: session.user.id,
     },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "event.created",
+    entityType: "Event",
+    entityId: event.id,
+    changes: { titre: event.titre },
   });
 
   revalidatePath("/calendrier");

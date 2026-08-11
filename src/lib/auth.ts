@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
 import { prisma } from "@/lib/prisma";
+import { decryptSecret } from "@/lib/crypto";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -53,7 +54,10 @@ export const authOptions: NextAuthOptions = {
           if (!totp) {
             throw new Error("MFA_REQUIRED");
           }
-          const isValidTotp = authenticator.verify({ token: totp, secret: user.mfaSecret! });
+          const isValidTotp = authenticator.verify({
+            token: totp,
+            secret: decryptSecret(user.mfaSecret!),
+          });
           if (!isValidTotp) {
             throw new Error("MFA_INVALID");
           }

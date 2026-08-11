@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 import {
   updateCapacitySchema,
   type UpdateCapacityInput,
@@ -20,6 +21,14 @@ export async function updateCapacity(input: UpdateCapacityInput) {
   const user = await prisma.user.update({
     where: { id: data.userId },
     data: { capaciteHebdomadaireHeures: Number(data.capaciteHebdomadaireHeures) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "workload.capacity_updated",
+    entityType: "User",
+    entityId: data.userId,
+    changes: { capaciteHebdomadaireHeures: data.capaciteHebdomadaireHeures },
   });
 
   revalidatePath("/charge-de-travail");

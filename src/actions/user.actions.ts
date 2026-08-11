@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 import { createUserSchema, type CreateUserInput } from "@/lib/validations/user.schema";
 
 export async function createUser(input: CreateUserInput) {
@@ -26,6 +27,14 @@ export async function createUser(input: CreateUserInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "user.created",
+    entityType: "User",
+    entityId: user.id,
+    changes: { email: user.email, roleId: data.roleId },
+  });
+
   revalidatePath("/administration/utilisateurs");
   return user;
 }
@@ -36,6 +45,14 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   requirePermission(session.user.permissions, PERMISSIONS.ADMINISTRATION_USERS_MANAGE);
 
   const user = await prisma.user.update({ where: { id: userId }, data: { isActive } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: isActive ? "user.activated" : "user.deactivated",
+    entityType: "User",
+    entityId: user.id,
+  });
+
   revalidatePath("/administration/utilisateurs");
   return user;
 }

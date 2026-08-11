@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 import { createRuleSchema, type CreateRuleInput } from "@/lib/validations/automation.schema";
 
 async function requireSession() {
@@ -33,6 +34,14 @@ export async function createRule(input: CreateRuleInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "automation_rule.created",
+    entityType: "AutomationRule",
+    entityId: rule.id,
+    changes: { nom: rule.nom, trigger: data.trigger, action: data.action },
+  });
+
   revalidatePath("/automatisations");
   revalidatePath(`/projets/${data.projectId}`);
   return rule;
@@ -45,6 +54,13 @@ export async function toggleRuleActive(ruleId: string, isActive: boolean) {
   const rule = await prisma.automationRule.update({
     where: { id: ruleId },
     data: { isActive },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: isActive ? "automation_rule.activated" : "automation_rule.deactivated",
+    entityType: "AutomationRule",
+    entityId: rule.id,
   });
 
   revalidatePath("/automatisations");

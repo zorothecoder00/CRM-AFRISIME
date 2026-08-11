@@ -14,6 +14,7 @@ import {
   PERMISSION_CATALOG,
   DEFAULT_ROLE_PERMISSIONS,
 } from "../src/lib/permissions";
+import { encryptSecret } from "../src/lib/crypto";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -693,10 +694,45 @@ async function main() {
     },
   });
 
-  // Tâche en attente de validation, pour démontrer le flux d'approbation
+  // Circuit de validation démo (cahier des charges §9) : Chef de Projet puis
+  // DG, les deux seuls rôles de « leadership » présents dans ce jeu de
+  // données démo (Responsable/Directeur n'ont pas de compte démo dédié).
+  const demoWorkflow = await prisma.validationWorkflow.upsert({
+    where: { id: "demo-workflow-task" },
+    update: {},
+    create: {
+      id: "demo-workflow-task",
+      nom: "Circuit standard",
+      entityType: "TASK",
+      isActive: true,
+      createdById: users[RoleKey.SUPER_ADMIN].id,
+      steps: {
+        create: [
+          { ordre: 1, approverRole: RoleKey.CHEF_PROJET, label: "Chef de projet" },
+          { ordre: 2, approverRole: RoleKey.DIRECTEUR_GENERAL, label: "Directeur général" },
+        ],
+      },
+    },
+    include: { steps: { orderBy: { ordre: "asc" } } },
+  });
+
+  // Tâche en attente de validation (étape 1/2), pour démontrer le flux d'approbation.
   await prisma.task.update({
     where: { id: "demo-task-8" },
     data: { statut: TaskStatus.EN_REVISION },
+  });
+  await prisma.taskValidationRun.upsert({
+    where: { taskId: "demo-task-8" },
+    update: {},
+    create: {
+      taskId: "demo-task-8",
+      workflowId: demoWorkflow.id,
+      submittedById: users[RoleKey.CHEF_PROJET].id,
+      currentOrdre: 1,
+      approvals: {
+        create: demoWorkflow.steps.map((step) => ({ stepId: step.id })),
+      },
+    },
   });
 
   // MFA démo : active la double authentification sur le compte Manager avec
@@ -704,7 +740,7 @@ async function main() {
   // sans application mobile (code recalculable via otplib.authenticator.generate).
   await prisma.user.update({
     where: { email: "manager@afriflow.local" },
-    data: { mfaEnabled: true, mfaSecret: DEMO_MFA_SECRET },
+    data: { mfaEnabled: true, mfaSecret: encryptSecret(DEMO_MFA_SECRET) },
   });
 
   // Intégration démo (cadre générique §21) + événements de webhook simulés.
