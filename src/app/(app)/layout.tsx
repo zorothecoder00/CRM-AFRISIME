@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar
           userName={session.user.name ?? session.user.email ?? ""}
+          userImage={session.user.image}
           roleLabel={session.user.roleLabel}
           notifications={recentNotifications.map((n) => ({
             id: n.id,

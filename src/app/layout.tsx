@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
-import { SessionProvider } from "@/components/providers/session-provider";
+import ToastProvider from "@/components/ToastProvider";
+import { SessionWrapper } from "@/components/SessionWrapper";
+import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
 import "./globals.css";
 import "@uploadthing/react/styles.css";
 
@@ -24,11 +25,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="fr"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SessionProvider>{children}</SessionProvider>
-        <Toaster />
+        <AppSettingsProvider>
+          <SessionWrapper>{children}</SessionWrapper>
+          <ToastProvider />
+        </AppSettingsProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,18 +11,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { SearchInput } from "@/components/search/search-input";
 
 export function Topbar({
   userName,
+  userImage,
   roleLabel,
   notifications,
   unreadCount,
 }: {
   userName: string;
+  userImage?: string | null;
   roleLabel: string;
   notifications: NotificationPreview[];
   unreadCount: number;
@@ -46,6 +48,7 @@ export function Topbar({
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-2">
               <Avatar className="h-8 w-8">
+                {userImage && <AvatarImage src={userImage} alt={userName} />}
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
               <div className="hidden text-left sm:block">
@@ -57,6 +60,12 @@ export function Topbar({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{userName}</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/parametres/profil">
+                <UserRound className="mr-2 h-4 w-4" />
+                Mon profil
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/parametres/securite">
                 <ShieldCheck className="mr-2 h-4 w-4" />

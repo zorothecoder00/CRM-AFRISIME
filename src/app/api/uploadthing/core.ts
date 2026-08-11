@@ -2,6 +2,7 @@ import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 const f = createUploadthing();
 
@@ -36,6 +37,24 @@ export const ourFileRouter = {
         mimeType: file.type,
         sizeBytes: file.size,
       };
+    }),
+
+  avatarUploader: f({
+    image: { maxFileSize: "2MB", maxFileCount: 1 },
+  })
+    .middleware(async () => {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        throw new UploadThingError("Non authentifié");
+      }
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      await prisma.user.update({
+        where: { id: metadata.userId },
+        data: { image: file.ufsUrl },
+      });
+      return { url: file.ufsUrl };
     }),
 } satisfies FileRouter;
 

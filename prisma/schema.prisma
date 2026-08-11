@@ -229,9 +229,25 @@ model User {
   automationNextTaskFor   AutomationRule[]           @relation("AutomationNextTaskResponsable")
   dashboardPreference     DashboardWidgetPreference?
   integrationsCreated     Integration[]              @relation("IntegrationCreatedBy")
+  passwordResetTokens     PasswordResetToken[]
 
   @@index([departmentId])
   @@index([roleId])
+}
+
+// Reinitialisation de mot de passe (cf. /api/auth/forgot-password et
+// /api/auth/reset-password). tokenHash stocke le hash SHA-256 du token
+// envoye par email : seul le hash est persiste, jamais le token en clair.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Role {

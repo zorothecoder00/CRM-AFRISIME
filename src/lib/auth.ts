@@ -77,13 +77,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.roleKey = user.roleKey;
         token.roleLabel = user.roleLabel;
         token.departmentId = user.departmentId;
         token.permissions = user.permissions;
+      }
+      // Permet a useSession().update(...) (voir ProfileForm) de rafraichir
+      // immediatement le JWT apres une modification du profil, sans quoi la
+      // session JWT resterait figee sur les valeurs de la connexion initiale.
+      if (trigger === "update" && session) {
+        if (session.name) token.name = session.name;
+        if (session.email) token.email = session.email;
+        if (session.image) token.picture = session.image;
       }
       return token;
     },
