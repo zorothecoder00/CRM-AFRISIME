@@ -9,6 +9,7 @@
     "lint": "eslint",
     "check": "npm run lint && tsc --noEmit && next build",
     "db:seed": "prisma db seed",
+    "create-admin": "tsx scripts/create-admin.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
