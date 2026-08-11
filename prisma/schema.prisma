@@ -1,16 +1,18 @@
-// AfriFlow (AfriSime Work-Flow) — schéma MVP
-// Domaines couverts : Auth/Rôles/Permissions, Départements, Projets (hiérarchie
-// Phase/Sous-phase/Lot), Tâches (+ sous-tâches, checklist, commentaires,
-// dépendances, validation via le statut EN_REVISION), Réunions (ordre du
-// jour, participants, compte rendu, décisions → tâches auto-créées),
-// Documents (dossiers, versions, liaison tâche/réunion/message), Calendrier
-// (congés, événements), Objectifs & KPI (individuel/équipe/département,
-// indicateurs mesurables), Charge de travail (calculée depuis Task/Leave,
-// pas de modèle dédié), Messagerie (conversations, réactions, mentions),
-// Notifications (in-app ; email/push hors périmètre — nécessitent des
-// services externes non configurés), Automatisations (règles projet
-// déclencheur → action, sans développement), Tableaux de bord (widgets
-// configurables, calculés depuis les données existantes), Audit.
+// AfriFlow (AfriSime Work-Flow) — schéma
+// Domaines couverts : Auth/Rôles/Permissions (+ dérogations scopées
+// département/projet via PermissionOverride), Départements, Projets
+// (hiérarchie Phase/Sous-phase/Lot, chaque niveau avec responsable/
+// documents/commentaires), Tâches (+ sous-tâches, checklist, commentaires,
+// dépendances, circuit de validation multi-étapes configurable via
+// ValidationWorkflow), Réunions (ordre du jour, participants, compte rendu,
+// décisions → tâches auto-créées), Documents (dossiers, versions, liaison
+// tâche/réunion/section), Calendrier (congés, événements), Objectifs & KPI
+// (individuel/équipe/département, indicateurs mesurables), Charge de travail
+// (calculée depuis Task/Leave, pas de modèle dédié), Messagerie
+// (conversations, réactions, mentions, pièces jointes), Notifications
+// (in-app ; email/push hors périmètre — nécessitent des services externes
+// non configurés), Automatisations (règles projet déclencheur → action,
+// sans développement), Tableaux de bord (widgets configurables), Audit.
 
 generator client {
   provider = "prisma-client"
@@ -131,10 +133,9 @@ enum ObjectiveStatus {
   ANNULE
 }
 
-// Cahier des charges §18 — MODIFICATION et VALIDATION restent dans le
-// catalogue pour une utilisation future (aucune source d'événement
-// générique de « modification », pas de circuit de validation multi-
-// étapes) ; VALIDATION est déjà déclenché par la décision de congé.
+// Cahier des charges §18. VALIDATION couvre a la fois la decision de conge
+// et chaque etape d'un circuit de validation de tache (§9) ; SURCHARGE est
+// emise par le cron de charge de travail (§14).
 enum NotificationType {
   NOUVELLE_TACHE
   MODIFICATION
@@ -143,6 +144,35 @@ enum NotificationType {
   ECHEANCE_PROCHE
   RETARD
   MENTION
+  SURCHARGE
+}
+
+// Cahier des charges §9 — circuit de validation configurable : une chaine
+// ordonnee d'etapes, chacune assignee a un role approbateur. `ValidationRun`
+// est l'instance en cours (ou terminee) pour une tache precise ; `Approval`
+// est la decision prise a une etape donnee de cette instance.
+enum ValidationEntityType {
+  TASK
+}
+
+enum ValidationStepStatus {
+  EN_ATTENTE
+  APPROUVE
+  REJETE
+}
+
+enum ValidationRunStatus {
+  EN_COURS
+  APPROUVE
+  REJETE
+}
+
+// Cahier des charges §19 — derogation de permission scopee par departement
+// et/ou projet, en plus du role. GRANT ajoute un droit, DENY le retire
+// meme si le role l'accorde normalement.
+enum PermissionEffect {
+  GRANT
+  DENY
 }
 
 // Cahier des charges §15 — moteur générique déclencheur → action, sans
@@ -201,35 +231,44 @@ model User {
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
-  projectsOwned           Project[]                  @relation("ProjectResponsable")
-  projectsCreated         Project[]                  @relation("ProjectCreatedBy")
-  projectMemberships      ProjectMember[]
-  tasksOwned              Task[]                     @relation("TaskResponsablePrincipal")
-  tasksCreated            Task[]                     @relation("TaskCreatedBy")
-  taskAssignments         TaskAssignee[]
-  comments                TaskComment[]
-  auditLogs               AuditLog[]
-  meetingsCreated         Meeting[]                  @relation("MeetingCreatedBy")
-  meetingParticipations   MeetingParticipant[]
-  meetingDecisionsOwned   MeetingDecision[]          @relation("MeetingDecisionResponsable")
-  documentFoldersCreated  DocumentFolder[]           @relation("DocumentFolderCreatedBy")
-  documentsUploaded       Document[]                 @relation("DocumentUploadedBy")
-  documentVersionsCreated DocumentVersion[]          @relation("DocumentVersionCreatedBy")
-  leaveRequests           Leave[]                    @relation("LeaveRequestedBy")
-  leaveDecisions          Leave[]                    @relation("LeaveDecidedBy")
-  eventsCreated           Event[]                    @relation("EventCreatedBy")
-  objectivesOwned         Objective[]                @relation("ObjectiveUser")
-  objectivesCreated       Objective[]                @relation("ObjectiveCreatedBy")
-  conversationsCreated    Conversation[]             @relation("ConversationCreatedBy")
-  conversationMemberships ConversationParticipant[]
-  messagesSent            Message[]                  @relation("MessageAuthor")
-  reactions               Reaction[]
-  notifications           Notification[]
-  automationRulesCreated  AutomationRule[]           @relation("AutomationRuleCreatedBy")
-  automationNextTaskFor   AutomationRule[]           @relation("AutomationNextTaskResponsable")
-  dashboardPreference     DashboardWidgetPreference?
-  integrationsCreated     Integration[]              @relation("IntegrationCreatedBy")
-  passwordResetTokens     PasswordResetToken[]
+  projectsOwned              Project[]                  @relation("ProjectResponsable")
+  projectsCreated            Project[]                  @relation("ProjectCreatedBy")
+  projectMemberships         ProjectMember[]
+  tasksOwned                 Task[]                     @relation("TaskResponsablePrincipal")
+  tasksCreated               Task[]                     @relation("TaskCreatedBy")
+  taskAssignments            TaskAssignee[]
+  comments                   TaskComment[]
+  auditLogs                  AuditLog[]
+  meetingsCreated            Meeting[]                  @relation("MeetingCreatedBy")
+  meetingParticipations      MeetingParticipant[]
+  meetingDecisionsOwned      MeetingDecision[]          @relation("MeetingDecisionResponsable")
+  documentFoldersCreated     DocumentFolder[]           @relation("DocumentFolderCreatedBy")
+  documentsUploaded          Document[]                 @relation("DocumentUploadedBy")
+  documentVersionsCreated    DocumentVersion[]          @relation("DocumentVersionCreatedBy")
+  leaveRequests              Leave[]                    @relation("LeaveRequestedBy")
+  leaveDecisions             Leave[]                    @relation("LeaveDecidedBy")
+  eventsCreated              Event[]                    @relation("EventCreatedBy")
+  objectivesOwned            Objective[]                @relation("ObjectiveUser")
+  objectivesCreated          Objective[]                @relation("ObjectiveCreatedBy")
+  conversationsCreated       Conversation[]             @relation("ConversationCreatedBy")
+  conversationMemberships    ConversationParticipant[]
+  messagesSent               Message[]                  @relation("MessageAuthor")
+  reactions                  Reaction[]
+  notifications              Notification[]
+  automationRulesCreated     AutomationRule[]           @relation("AutomationRuleCreatedBy")
+  automationNextTaskFor      AutomationRule[]           @relation("AutomationNextTaskResponsable")
+  dashboardPreference        DashboardWidgetPreference?
+  integrationsCreated        Integration[]              @relation("IntegrationCreatedBy")
+  passwordResetTokens        PasswordResetToken[]
+  validationWorkflowsCreated ValidationWorkflow[]       @relation("ValidationWorkflowCreatedBy")
+  taskValidationsSubmitted   TaskValidationRun[]        @relation("TaskValidationSubmittedBy")
+  taskApprovalsDecided       TaskApproval[]             @relation("TaskApprovalApprover")
+  permissionOverrides        PermissionOverride[]       @relation("PermissionOverrideTarget")
+  permissionOverridesCreated PermissionOverride[]       @relation("PermissionOverrideCreatedBy")
+  sectionsResponsable        ProjectSection[]           @relation("SectionResponsable")
+  sectionComments            SectionComment[]           @relation("SectionCommentAuthor")
+  whiteboardsUpdated         Whiteboard[]               @relation("WhiteboardUpdatedBy")
+  documentAccessGrants       DocumentAccess[]           @relation("DocumentAccessGrantee")
 
   @@index([departmentId])
   @@index([roleId])
@@ -277,17 +316,43 @@ model RolePermission {
   @@id([roleId, permissionId])
 }
 
+// Dérogation de permission scopée par département et/ou projet (cahier des
+// charges §19 : droits définissables « par rôle, département, projet ou
+// équipe » — équipe = membres d'un Projet, cf. ProjectMember). Consultée
+// uniquement quand un scope est explicitement passé à
+// hasPermission/requirePermission (src/lib/permissions.ts) ; les appels
+// existants sans scope ne sont pas affectés.
+model PermissionOverride {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation("PermissionOverrideTarget", fields: [userId], references: [id], onDelete: Cascade)
+  permissionKey String
+  departmentId  String?
+  department    Department?      @relation(fields: [departmentId], references: [id])
+  projectId     String?
+  project       Project?         @relation(fields: [projectId], references: [id])
+  effect        PermissionEffect @default(GRANT)
+  createdById   String
+  createdBy     User             @relation("PermissionOverrideCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime         @default(now())
+
+  @@index([userId, permissionKey])
+  @@index([departmentId])
+  @@index([projectId])
+}
+
 model Department {
-  id         String       @id @default(cuid())
-  name       String
-  code       String       @unique
-  parentId   String?
-  parent     Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
-  children   Department[] @relation("DeptHierarchy")
-  users      User[]
-  projects   Project[]
-  objectives Objective[]
-  createdAt  DateTime     @default(now())
+  id                  String               @id @default(cuid())
+  name                String
+  code                String               @unique
+  parentId            String?
+  parent              Department?          @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children            Department[]         @relation("DeptHierarchy")
+  users               User[]
+  projects            Project[]
+  objectives          Objective[]
+  permissionOverrides PermissionOverride[]
+  createdAt           DateTime             @default(now())
 }
 
 model Project {
@@ -311,19 +376,36 @@ model Project {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  members         ProjectMember[]
-  sections        ProjectSection[]
-  tasks           Task[]
-  meetings        Meeting[]
-  documentFolders DocumentFolder[]
-  documents       Document[]
-  events          Event[]
-  objectives      Objective[]
-  automationRules AutomationRule[]
+  members             ProjectMember[]
+  sections            ProjectSection[]
+  tasks               Task[]
+  meetings            Meeting[]
+  documentFolders     DocumentFolder[]
+  documents           Document[]
+  events              Event[]
+  objectives          Objective[]
+  automationRules     AutomationRule[]
+  permissionOverrides PermissionOverride[]
+  whiteboard          Whiteboard?
 
   @@index([departmentId])
   @@index([responsableId])
   @@index([statut])
+}
+
+// Tableau blanc collaboratif (cahier des charges §7) — un canevas par projet,
+// formes/notes persistees en JSON (remplacement complet a chaque sauvegarde).
+// Pas de synchronisation temps reel multi-utilisateurs dans cette version
+// (necessiterait une infra WebSocket hors perimetre actuel) : chaque
+// sauvegarde ecrase la precedente, comme un document partage classique.
+model Whiteboard {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  project     Project  @relation(fields: [projectId], references: [id])
+  content     Json
+  updatedById String
+  updatedBy   User     @relation("WhiteboardUpdatedBy", fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
 }
 
 model ProjectMember {
@@ -338,7 +420,9 @@ model ProjectMember {
   @@unique([projectId, userId])
 }
 
-// Phase / Sous-phase / Lot — un seul modèle auto-référencé, discriminé par `type`.
+// Phase / Sous-phase / Lot — un seul modèle auto-référencé, discriminé par
+// `type`. Chaque niveau a son responsable, ses échéances (dateDebut/dateFin),
+// ses documents et ses commentaires (cahier des charges §5).
 model ProjectSection {
   id            String           @id @default(cuid())
   projectId     String
@@ -350,16 +434,34 @@ model ProjectSection {
   nom           String
   description   String?
   responsableId String?
+  responsable   User?            @relation("SectionResponsable", fields: [responsableId], references: [id])
   dateDebut     DateTime?
   dateFin       DateTime?
   statut        SectionStatus    @default(A_VENIR)
   ordre         Int              @default(0)
   tasks         Task[]
+  documents     Document[]
+  comments      SectionComment[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   @@index([projectId])
   @@index([parentId])
+  @@index([responsableId])
+}
+
+// Commentaire sur une section (Phase/Sous-phase/Lot) — miroir de TaskComment
+// pour que ce niveau ait aussi un fil de discussion (cahier des charges §5).
+model SectionComment {
+  id        String         @id @default(cuid())
+  sectionId String
+  section   ProjectSection @relation(fields: [sectionId], references: [id])
+  authorId  String
+  author    User           @relation("SectionCommentAuthor", fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime       @default(now())
+
+  @@index([sectionId])
 }
 
 // Tâche / Sous-tâche — un seul modèle auto-référencé (sous-tâche = parentTaskId non nul).
@@ -377,6 +479,10 @@ model Task {
   priorite               TaskPriority    @default(MOYENNE)
   statut                 TaskStatus      @default(A_FAIRE)
   avancement             Int             @default(0)
+  // Utilise par la vue Gantt (cahier des charges §7) ; distinct de createdAt
+  // qui est la date de creation de l'enregistrement, pas la date de debut
+  // prevue du travail.
+  dateDebut              DateTime?
   echeance               DateTime?
   // Renseigné/vidé à la transition vers/depuis TERMINEE — sert au calcul du
   // respect des délais (cahier des charges §16), distinct de updatedAt qui
@@ -396,9 +502,10 @@ model Task {
   checklistItems  ChecklistItem[]
   comments        TaskComment[]
   documents       Document[]
-  dependsOn       TaskDependency[] @relation("DependentTask")
-  blocking        TaskDependency[] @relation("PrerequisiteTask")
+  dependsOn       TaskDependency[]   @relation("DependentTask")
+  blocking        TaskDependency[]   @relation("PrerequisiteTask")
   meetingDecision MeetingDecision?
+  validationRun   TaskValidationRun?
 
   @@index([projectId])
   @@index([sectionId])
@@ -452,6 +559,81 @@ model TaskDependency {
   createdAt       DateTime       @default(now())
 
   @@unique([taskId, dependsOnTaskId])
+}
+
+// Circuit de validation configurable (cahier des charges §9, ex: Demande →
+// Responsable → Directeur → DG). Défini une fois par un admin, réutilisé
+// pour chaque tâche soumise à validation de ce type d'entité.
+model ValidationWorkflow {
+  id          String               @id @default(cuid())
+  nom         String
+  entityType  ValidationEntityType
+  isActive    Boolean              @default(true)
+  createdById String
+  createdBy   User                 @relation("ValidationWorkflowCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  steps ValidationWorkflowStep[]
+  runs  TaskValidationRun[]
+
+  @@index([entityType, isActive])
+}
+
+// Une étape du circuit, dans l'ordre `ordre` — l'approbateur est désigné par
+// rôle (ex: RESPONSABLE puis DIRECTEUR puis DIRECTEUR_GENERAL).
+model ValidationWorkflowStep {
+  id           String             @id @default(cuid())
+  workflowId   String
+  workflow     ValidationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  ordre        Int
+  approverRole RoleKey
+  label        String?
+
+  approvals TaskApproval[]
+
+  @@unique([workflowId, ordre])
+}
+
+// Instance en cours (ou terminée) d'un circuit pour une tâche précise.
+// `currentOrdre` pointe l'étape active ; historisée et notifiée à chaque
+// transition (voir src/actions/task.actions.ts).
+model TaskValidationRun {
+  id            String              @id @default(cuid())
+  taskId        String              @unique
+  task          Task                @relation(fields: [taskId], references: [id])
+  workflowId    String
+  workflow      ValidationWorkflow  @relation(fields: [workflowId], references: [id])
+  statut        ValidationRunStatus @default(EN_COURS)
+  currentOrdre  Int                 @default(1)
+  submittedById String
+  submittedBy   User                @relation("TaskValidationSubmittedBy", fields: [submittedById], references: [id])
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  approvals TaskApproval[]
+
+  @@index([taskId])
+}
+
+// Décision (approuvé/rejeté) prise à une étape précise d'une instance de
+// circuit — une ligne par étape, créée EN_ATTENTE dès la soumission.
+model TaskApproval {
+  id          String                 @id @default(cuid())
+  runId       String
+  run         TaskValidationRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stepId      String
+  step        ValidationWorkflowStep @relation(fields: [stepId], references: [id])
+  statut      ValidationStepStatus   @default(EN_ATTENTE)
+  approverId  String?
+  approver    User?                  @relation("TaskApprovalApprover", fields: [approverId], references: [id])
+  commentaire String?
+  decidedAt   DateTime?
+  createdAt   DateTime               @default(now())
+
+  @@unique([runId, stepId])
+  @@index([runId])
+  @@index([approverId])
 }
 
 model Meeting {
@@ -534,6 +716,8 @@ model Document {
   project      Project         @relation(fields: [projectId], references: [id])
   folderId     String?
   folder       DocumentFolder? @relation(fields: [folderId], references: [id])
+  sectionId    String?
+  section      ProjectSection? @relation(fields: [sectionId], references: [id])
   taskId       String?
   task         Task?           @relation(fields: [taskId], references: [id])
   meetingId    String?
@@ -550,13 +734,33 @@ model Document {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
-  versions DocumentVersion[]
+  versions     DocumentVersion[]
+  accessGrants DocumentAccess[]
 
   @@index([projectId])
   @@index([folderId])
+  @@index([sectionId])
   @@index([taskId])
   @@index([meetingId])
   @@index([messageId])
+}
+
+// Controle d'acces par document (cahier des charges §10). Sans ligne pour un
+// document : acces regi par les permissions document.* + appartenance au
+// projet, comme avant (comportement par defaut inchange). Des qu'au moins
+// une ligne existe, le document devient "prive" : seuls l'uploader et les
+// utilisateurs listes ici peuvent le consulter, meme s'ils ont acces au
+// projet.
+model DocumentAccess {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation("DocumentAccessGrantee", fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([documentId, userId])
+  @@index([documentId])
 }
 
 // Historique des modifications (cahier des charges §10) : chaque nouvelle
@@ -688,14 +892,23 @@ model ConversationParticipant {
   @@id([conversationId, userId])
 }
 
+// Piece jointe (cahier des charges §11 : « partage de fichiers ») portee
+// directement par le message plutot que par un Document : une conversation
+// n'a pas de projectId (contrairement a Document.projectId, obligatoire),
+// donc un fichier partage en messagerie ne peut pas legitimement devenir un
+// Document du modele documentaire de projet.
 model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  authorId       String
-  author         User         @relation("MessageAuthor", fields: [authorId], references: [id])
-  content        String
-  createdAt      DateTime     @default(now())
+  id                  String       @id @default(cuid())
+  conversationId      String
+  conversation        Conversation @relation(fields: [conversationId], references: [id])
+  authorId            String
+  author              User         @relation("MessageAuthor", fields: [authorId], references: [id])
+  content             String
+  attachmentUrl       String?
+  attachmentNom       String?
+  attachmentMimeType  String?
+  attachmentSizeBytes Int?
+  createdAt           DateTime     @default(now())
 
   reactions Reaction[]
   documents Document[]
@@ -808,18 +1021,18 @@ model AuditLog {
 // masqué à l'affichage, jamais exposé après création. Aucun appel sortant
 // réel n'est effectué dans ce MVP (pas d'identifiants tiers disponibles).
 model Integration {
-  id           String            @id @default(cuid())
-  nom          String
-  type         IntegrationType
-  statut       IntegrationStatus @default(DECONNECTE)
-  apiKey       String?
-  webhookUrl   String?
-  description  String?
-  lastSyncAt   DateTime?
-  createdById  String
-  createdBy    User              @relation("IntegrationCreatedBy", fields: [createdById], references: [id])
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  nom         String
+  type        IntegrationType
+  statut      IntegrationStatus @default(DECONNECTE)
+  apiKey      String?
+  webhookUrl  String?
+  description String?
+  lastSyncAt  DateTime?
+  createdById String
+  createdBy   User              @relation("IntegrationCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   events IntegrationEvent[]
 }
