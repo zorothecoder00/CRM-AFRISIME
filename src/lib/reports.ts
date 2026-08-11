@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 
-export const REPORT_TYPES = ["PROJETS", "TACHES", "CHARGE_TRAVAIL", "OBJECTIFS"] as const;
+export const REPORT_TYPES = [
+  "PROJETS",
+  "TACHES",
+  "CHARGE_TRAVAIL",
+  "OBJECTIFS",
+  "PRODUCTIVITE",
+  "ACTIVITE",
+  "PERFORMANCE",
+  "HEURES_PASSEES",
+] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
 export const REPORT_LABELS: Record<ReportType, string> = {
@@ -9,6 +18,10 @@ export const REPORT_LABELS: Record<ReportType, string> = {
   TACHES: "Rapport des tâches",
   CHARGE_TRAVAIL: "Rapport de charge de travail",
   OBJECTIFS: "Rapport des objectifs & KPI",
+  PRODUCTIVITE: "Rapport de productivité",
+  ACTIVITE: "Rapport d'activité",
+  PERFORMANCE: "Rapport de performance",
+  HEURES_PASSEES: "Rapport d'heures passées",
 };
 
 export type ReportTable = {
@@ -129,40 +142,186 @@ export async function getReportData(type: ReportType): Promise<ReportTable> {
     };
   }
 
-  const objectives = await prisma.objective.findMany({
-    include: { indicators: true, user: true, project: true, department: true },
-    orderBy: { dateDebut: "desc" },
+  if (type === "OBJECTIFS") {
+    const objectives = await prisma.objective.findMany({
+      include: { indicators: true, user: true, project: true, department: true },
+      orderBy: { dateDebut: "desc" },
+    });
+    return {
+      title: REPORT_LABELS.OBJECTIFS,
+      generatedAt,
+      columns: [
+        { key: "titre", label: "Objectif" },
+        { key: "portee", label: "Portée" },
+        { key: "periode", label: "Période" },
+        { key: "statut", label: "Statut" },
+        { key: "progression", label: "Progression indicateurs" },
+      ],
+      rows: objectives.map((o) => {
+        const portee = o.user?.name ?? o.project?.nom ?? o.department?.name ?? "—";
+        const progression =
+          o.indicators.length > 0
+            ? `${Math.round(
+                (o.indicators.reduce(
+                  (sum, i) => sum + Math.min(1, Number(i.valeurActuelle) / Number(i.valeurCible)),
+                  0
+                ) /
+                  o.indicators.length) *
+                  100
+              )}%`
+            : "—";
+        return { titre: o.titre, portee, periode: o.periode, statut: o.statut, progression };
+      }),
+    };
+  }
+
+  if (type === "HEURES_PASSEES") {
+    const tasks = await prisma.task.findMany({
+      where: { tempsReelHeures: { not: null } },
+      include: { responsablePrincipal: { include: { role: true } }, project: true },
+      orderBy: { responsablePrincipalId: "asc" },
+    });
+    const byUser = new Map<string, { name: string; roleLabel: string; heures: number; taches: number }>();
+    for (const t of tasks) {
+      const entry = byUser.get(t.responsablePrincipalId) ?? {
+        name: t.responsablePrincipal.name,
+        roleLabel: t.responsablePrincipal.role.label,
+        heures: 0,
+        taches: 0,
+      };
+      entry.heures += Number(t.tempsReelHeures);
+      entry.taches += 1;
+      byUser.set(t.responsablePrincipalId, entry);
+    }
+    const rows = Array.from(byUser.values()).sort((a, b) => b.heures - a.heures);
+    return {
+      title: REPORT_LABELS.HEURES_PASSEES,
+      generatedAt,
+      columns: [
+        { key: "name", label: "Collaborateur" },
+        { key: "roleLabel", label: "Rôle" },
+        { key: "taches", label: "Tâches avec temps saisi" },
+        { key: "heures", label: "Heures passées" },
+      ],
+      rows: rows.map((r) => ({
+        name: r.name,
+        roleLabel: r.roleLabel,
+        taches: String(r.taches),
+        heures: r.heures.toFixed(1),
+      })),
+    };
+  }
+
+  if (type === "PRODUCTIVITE") {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const tasks = await prisma.task.findMany({
+      where: { statut: "TERMINEE", completedAt: { gte: thirtyDaysAgo } },
+      include: { responsablePrincipal: { include: { role: true } } },
+    });
+    const byUser = new Map<
+      string,
+      { name: string; roleLabel: string; termines: number; aTemps: number; avecEcheance: number }
+    >();
+    for (const t of tasks) {
+      const entry = byUser.get(t.responsablePrincipalId) ?? {
+        name: t.responsablePrincipal.name,
+        roleLabel: t.responsablePrincipal.role.label,
+        termines: 0,
+        aTemps: 0,
+        avecEcheance: 0,
+      };
+      entry.termines += 1;
+      if (t.echeance) {
+        entry.avecEcheance += 1;
+        if (t.completedAt! <= t.echeance) entry.aTemps += 1;
+      }
+      byUser.set(t.responsablePrincipalId, entry);
+    }
+    const rows = Array.from(byUser.values()).sort((a, b) => b.termines - a.termines);
+    return {
+      title: REPORT_LABELS.PRODUCTIVITE,
+      generatedAt,
+      columns: [
+        { key: "name", label: "Collaborateur" },
+        { key: "roleLabel", label: "Rôle" },
+        { key: "termines", label: "Tâches terminées (30j)" },
+        { key: "respectDelais", label: "Respect des délais" },
+      ],
+      rows: rows.map((r) => ({
+        name: r.name,
+        roleLabel: r.roleLabel,
+        termines: String(r.termines),
+        respectDelais: r.avecEcheance > 0 ? `${Math.round((r.aTemps / r.avecEcheance) * 100)}%` : "—",
+      })),
+    };
+  }
+
+  if (type === "PERFORMANCE") {
+    const [departments, objectives] = await Promise.all([
+      prisma.department.findMany({ include: { projects: true }, orderBy: { name: "asc" } }),
+      prisma.objective.findMany({ include: { indicators: true, department: true } }),
+    ]);
+    const objectiveProgressByDept = new Map<string, number[]>();
+    for (const o of objectives) {
+      if (!o.departmentId || o.indicators.length === 0) continue;
+      const progress =
+        o.indicators.reduce((sum, i) => sum + Math.min(1, Number(i.valeurActuelle) / Number(i.valeurCible)), 0) /
+        o.indicators.length;
+      const list = objectiveProgressByDept.get(o.departmentId) ?? [];
+      list.push(progress);
+      objectiveProgressByDept.set(o.departmentId, list);
+    }
+    return {
+      title: REPORT_LABELS.PERFORMANCE,
+      generatedAt,
+      columns: [
+        { key: "departement", label: "Département" },
+        { key: "projets", label: "Projets" },
+        { key: "avancementMoyen", label: "Avancement moyen projets" },
+        { key: "objectifsMoyen", label: "Progression moyenne objectifs" },
+      ],
+      rows: departments.map((d) => {
+        const avgAvancement =
+          d.projects.length > 0
+            ? Math.round(d.projects.reduce((sum, p) => sum + p.avancement, 0) / d.projects.length)
+            : 0;
+        const objProgress = objectiveProgressByDept.get(d.id) ?? [];
+        const avgObjectif =
+          objProgress.length > 0
+            ? Math.round((objProgress.reduce((sum, p) => sum + p, 0) / objProgress.length) * 100)
+            : null;
+        return {
+          departement: d.name,
+          projets: String(d.projects.length),
+          avancementMoyen: `${avgAvancement}%`,
+          objectifsMoyen: avgObjectif !== null ? `${avgObjectif}%` : "—",
+        };
+      }),
+    };
+  }
+
+  // ACTIVITE
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const entries = await prisma.auditLog.findMany({
+    where: { createdAt: { gte: thirtyDaysAgo } },
+    include: { user: true },
+    orderBy: { createdAt: "desc" },
+    take: 200,
   });
   return {
-    title: REPORT_LABELS.OBJECTIFS,
+    title: REPORT_LABELS.ACTIVITE,
     generatedAt,
     columns: [
-      { key: "titre", label: "Objectif" },
-      { key: "portee", label: "Portée" },
-      { key: "periode", label: "Période" },
-      { key: "statut", label: "Statut" },
-      { key: "progression", label: "Progression indicateurs" },
+      { key: "date", label: "Date" },
+      { key: "utilisateur", label: "Utilisateur" },
+      { key: "action", label: "Action" },
+      { key: "entite", label: "Entité" },
     ],
-    rows: objectives.map((o) => {
-      const portee = o.user?.name ?? o.project?.nom ?? o.department?.name ?? "—";
-      const progression =
-        o.indicators.length > 0
-          ? `${Math.round(
-              (o.indicators.reduce(
-                (sum, i) => sum + Math.min(1, Number(i.valeurActuelle) / Number(i.valeurCible)),
-                0
-              ) /
-                o.indicators.length) *
-                100
-            )}%`
-          : "—";
-      return {
-        titre: o.titre,
-        portee,
-        periode: o.periode,
-        statut: o.statut,
-        progression,
-      };
-    }),
+    rows: entries.map((e) => ({
+      date: e.createdAt.toLocaleString("fr-FR"),
+      utilisateur: e.user?.name ?? "Système",
+      action: e.action,
+      entite: e.entityType,
+    })),
   };
 }

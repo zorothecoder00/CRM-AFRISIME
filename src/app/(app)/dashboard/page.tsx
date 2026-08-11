@@ -8,6 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/objectives/progress-bar";
 import { objectiveProgress } from "@/lib/objective-progress";
+import { KpiCard } from "@/components/ui/kpi-card";
+import { computeWorkload } from "@/lib/workload";
+
+const ACTION_LABELS: Record<string, string> = {
+  "task.created": "a créé une tâche",
+  "task.status_changed": "a changé le statut d'une tâche",
+  "task.comment_added": "a commenté une tâche",
+  "task.validation_submitted": "a soumis une tâche pour validation",
+  "task.validation_step_approved": "a approuvé une étape de validation",
+  "task.validation_step_rejected": "a refusé une étape de validation",
+  "project.created": "a créé un projet",
+  "section.created": "a créé une phase/lot",
+  "document.created": "a ajouté un document",
+};
 
 function startOfDay(date: Date) {
   const d = new Date(date);
@@ -41,7 +55,26 @@ export default async function DashboardPage() {
     OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
   };
 
-  const [todayTasks, overdueTasks, weekTasks, myProjects, myObjectives] = await Promise.all([
+  const twoWeeksEnd = endOfDay(new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000));
+
+  const [
+    todayTasks,
+    overdueTasks,
+    weekTasks,
+    myProjects,
+    myObjectives,
+    myMeetings,
+    myEvents,
+    myLeaves,
+    myNotifications,
+    myConversations,
+    myDocuments,
+    pendingApprovals,
+    workloadUsers,
+    workloadTasks,
+    workloadLeaves,
+    myProjectMemberships,
+  ] = await Promise.all([
     prisma.task.findMany({
       where: {
         ...mineFilter,
@@ -82,7 +115,102 @@ export default async function DashboardPage() {
       orderBy: { dateFin: "asc" },
       take: 5,
     }),
+    prisma.meeting.findMany({
+      where: {
+        OR: [{ createdById: userId }, { participants: { some: { userId } } }],
+        dateHeure: { gte: now },
+      },
+      orderBy: { dateHeure: "asc" },
+      take: 5,
+    }),
+    prisma.event.findMany({
+      where: { dateDebut: { gte: now, lte: twoWeeksEnd } },
+      orderBy: { dateDebut: "asc" },
+      take: 5,
+    }),
+    prisma.leave.findMany({
+      where: { userId, statut: "APPROUVE", dateDebut: { gte: now, lte: twoWeeksEnd } },
+      orderBy: { dateDebut: "asc" },
+      take: 5,
+    }),
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.conversation
+      .findMany({
+        where: { participants: { some: { userId } } },
+        include: {
+          messages: { orderBy: { createdAt: "desc" }, take: 1, include: { author: true } },
+          participants: { include: { user: true } },
+        },
+      })
+      .then((rows) =>
+        rows
+          .filter((c) => c.messages.length > 0)
+          .sort((a, b) => b.messages[0].createdAt.getTime() - a.messages[0].createdAt.getTime())
+          .slice(0, 5)
+      ),
+    prisma.document.findMany({
+      where: { uploadedById: userId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.taskApproval.findMany({
+      where: { statut: "EN_ATTENTE", step: { approverRole: session!.user.roleKey as never }, run: { statut: "EN_COURS" } },
+      include: { run: { include: { task: true } }, step: true },
+    }),
+    prisma.user.findMany({ where: { isActive: true }, include: { role: true } }),
+    prisma.task.findMany({ include: { assignees: { select: { userId: true } } } }),
+    prisma.leave.findMany({ where: { statut: "APPROUVE" } }),
+    prisma.projectMember.findMany({ where: { userId }, select: { projectId: true } }),
   ]);
+
+  const myPendingApprovals = pendingApprovals.filter((a) => a.step.ordre === a.run.currentOrdre);
+
+  const myWorkload = computeWorkload(
+    workloadUsers.map((u) => ({
+      id: u.id,
+      name: u.name,
+      roleLabel: u.role.label,
+      capaciteHebdomadaireHeures: Number(u.capaciteHebdomadaireHeures),
+    })),
+    workloadTasks.map((t) => ({
+      statut: t.statut,
+      tempsEstimeHeures: t.tempsEstimeHeures !== null ? Number(t.tempsEstimeHeures) : null,
+      tempsReelHeures: t.tempsReelHeures !== null ? Number(t.tempsReelHeures) : null,
+      responsablePrincipalId: t.responsablePrincipalId,
+      assigneeIds: t.assignees.map((a) => a.userId),
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    })),
+    workloadLeaves.map((l) => ({
+      userId: l.userId,
+      dateDebut: l.dateDebut,
+      dateFin: l.dateFin,
+      statut: l.statut,
+    }))
+  ).find((w) => w.userId === userId);
+
+  const myProjectIds = myProjectMemberships.map((m) => m.projectId);
+  const myTaskIdsForActivity =
+    myProjectIds.length > 0
+      ? await prisma.task.findMany({ where: { projectId: { in: myProjectIds } }, select: { id: true } })
+      : [];
+  const teamActivity =
+    myTaskIdsForActivity.length > 0
+      ? await prisma.auditLog.findMany({
+          where: {
+            entityType: "Task",
+            entityId: { in: myTaskIdsForActivity.map((t) => t.id) },
+            NOT: { userId },
+          },
+          include: { user: true },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
 
   return (
     <div className="space-y-6">
@@ -102,6 +230,181 @@ export default async function DashboardPage() {
           highlight
         />
         <TaskWidget title="Mes tâches de la semaine" tasks={weekTasks} emptyLabel="Aucune tâche cette semaine." />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <KpiCard
+          label="Mon taux d'occupation"
+          value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
+          className={myWorkload?.enSurcharge ? "border-destructive" : undefined}
+        />
+        <KpiCard
+          label="Ma disponibilité restante"
+          value={myWorkload ? `${myWorkload.disponibiliteHeures} h` : "—"}
+        />
+        <KpiCard
+          label="Temps moyen de réalisation"
+          value={myWorkload?.tempsMoyenRealisationHeures != null ? `${myWorkload.tempsMoyenRealisationHeures} h` : "—"}
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Mes validations en attente</CardTitle>
+            {myPendingApprovals.length > 0 && <Badge variant="destructive">{myPendingApprovals.length}</Badge>}
+          </CardHeader>
+          <CardContent>
+            {myPendingApprovals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Rien à valider.</p>
+            ) : (
+              <ul className="space-y-2">
+                {myPendingApprovals.map((a) => (
+                  <li key={a.id}>
+                    <Link
+                      href={`/taches/${a.run.taskId}`}
+                      className="block rounded-md border p-2 text-sm hover:bg-muted"
+                    >
+                      {a.run.task.titre}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mes réunions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {myMeetings.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune réunion à venir.</p>
+            ) : (
+              <ul className="space-y-2">
+                {myMeetings.map((m) => (
+                  <li key={m.id}>
+                    <Link href={`/reunions/${m.id}`} className="flex justify-between rounded-md border p-2 text-sm hover:bg-muted">
+                      <span className="font-medium">{m.titre}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {m.dateHeure.toLocaleDateString("fr-FR")}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mon calendrier (14 jours)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {myEvents.length === 0 && myLeaves.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Rien de prévu.</p>
+            ) : (
+              <ul className="space-y-2">
+                {myEvents.map((e) => (
+                  <li key={e.id} className="flex justify-between rounded-md border p-2 text-sm">
+                    <span>{e.titre}</span>
+                    <span className="text-xs text-muted-foreground">{e.dateDebut.toLocaleDateString("fr-FR")}</span>
+                  </li>
+                ))}
+                {myLeaves.map((l) => (
+                  <li key={l.id} className="flex justify-between rounded-md border p-2 text-sm">
+                    <span>Congé</span>
+                    <span className="text-xs text-muted-foreground">{l.dateDebut.toLocaleDateString("fr-FR")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/calendrier" className="mt-2 block text-xs text-primary hover:underline">
+              Voir le calendrier complet
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Mes notifications</CardTitle>
+            {myNotifications.some((n) => !n.isRead) && <Badge>Nouveau</Badge>}
+          </CardHeader>
+          <CardContent>
+            {myNotifications.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune notification.</p>
+            ) : (
+              <ul className="space-y-2">
+                {myNotifications.map((n) => (
+                  <li key={n.id}>
+                    <Link
+                      href={n.lien ?? "/notifications"}
+                      className={`block rounded-md border p-2 text-sm hover:bg-muted ${!n.isRead ? "font-medium" : "text-muted-foreground"}`}
+                    >
+                      {n.titre}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mes messages</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {myConversations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune conversation.</p>
+            ) : (
+              <ul className="space-y-2">
+                {myConversations.map((c) => {
+                  const other = c.participants.find((p) => p.userId !== userId)?.user.name;
+                  const lastMessage = c.messages[0];
+                  return (
+                    <li key={c.id}>
+                      <Link
+                        href={`/messages/${c.id}`}
+                        className="block rounded-md border p-2 text-sm hover:bg-muted"
+                      >
+                        <div className="font-medium">{c.nom || other || "Conversation"}</div>
+                        {lastMessage && (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {lastMessage.author.name}: {lastMessage.content || "Pièce jointe"}
+                          </div>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mes documents récents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {myDocuments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun document ajouté récemment.</p>
+            ) : (
+              <ul className="space-y-2">
+                {myDocuments.map((d) => (
+                  <li key={d.id}>
+                    <Link href={`/documents/${d.id}`} className="block rounded-md border p-2 text-sm hover:bg-muted">
+                      {d.nom}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -157,6 +460,31 @@ export default async function DashboardPage() {
                   </li>
                 );
               })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Activités récentes de l&apos;équipe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {teamActivity.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune activité récente sur vos projets.</p>
+          ) : (
+            <ul className="space-y-2">
+              {teamActivity.map((entry) => (
+                <li key={entry.id} className="flex items-baseline justify-between text-sm">
+                  <span>
+                    <span className="font-medium">{entry.user?.name ?? "Quelqu'un"}</span>{" "}
+                    {ACTION_LABELS[entry.action] ?? entry.action}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {entry.createdAt.toLocaleDateString("fr-FR")}
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </CardContent>

@@ -18,6 +18,10 @@ const DESCRIPTIONS: Record<ReportType, string> = {
   TACHES: "Liste des tâches avec projet, responsable, statut, priorité et échéance.",
   CHARGE_TRAVAIL: "Charge de travail par collaborateur : tâches actives, occupation, disponibilité.",
   OBJECTIFS: "Objectifs et progression de leurs indicateurs.",
+  PRODUCTIVITE: "Tâches terminées sur 30 jours et respect des délais, par collaborateur.",
+  ACTIVITE: "Journal des actions récentes (30 jours) à travers l'application.",
+  PERFORMANCE: "Avancement moyen des projets et progression des objectifs, par département.",
+  HEURES_PASSEES: "Total des heures réellement passées par collaborateur.",
 };
 
 export default async function RapportsPage() {
