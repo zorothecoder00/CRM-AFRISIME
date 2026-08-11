@@ -49,13 +49,20 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Meme canevas que la page de login : legerement gris plutot que blanc
+     pur, pour que les cartes (blanches) se detachent visuellement — en
+     blanc-sur-blanc, seul un ring a 10% d'opacite les separait du fond. */
+  --background: #f4f6fb;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* Palette reprise de la page de login (validee CVD-safe par la skill
+     dataviz, deja utilisee dans StatCard/KpiCard) : un seul changement de
+     token ici recolore boutons primaires, liens, anneaux de focus et l'etat
+     actif de la sidebar dans toute l'app. */
+  --primary: #2a78d6;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -66,8 +73,8 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
+  --ring: #2a78d6;
+  --chart-1: #2a78d6;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
@@ -75,12 +82,12 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: #2a78d6;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: #2a78d6;
 }
 
 .dark {
@@ -90,8 +97,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: #3987e5;
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -101,20 +108,20 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
+  --ring: #3987e5;
+  --chart-1: #3987e5;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: #3987e5;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: #3987e5;
 }
 
 @layer base {
@@ -126,5 +133,67 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/*
+ * shadcn/tailwind.css embarque du CSS deja compile pour ses composants
+ * Radix (overlays, icones...), qui atterrit HORS des @layer de Tailwind
+ * dans le bundle final. Les cascade layers CSS font qu'un style hors-layer
+ * bat TOUJOURS un style dans un layer, quel que soit l'ordre ou la
+ * specificite : ca inclut une seconde definition non-layered de .hidden/
+ * .flex/.block, qui empeche `hidden` + `md:flex`/`lg:flex`/`lg:hidden`
+ * (utilitaires Tailwind) de jamais basculer correctement, peu importe la
+ * largeur d'ecran (ex: la sidebar restait invisible en desktop).
+ * Tenter de re-layerer l'import (`@import ... layer(utilities)`) echoue
+ * car ce fichier contient des `@custom-variant` top-level qui ne peuvent
+ * pas etre imbriques dans un @layer. Ces deux classes maison, non generees
+ * par Tailwind, contournent le probleme : aucun risque de collision avec
+ * un utilitaire Tailwind puisque ce ne sont pas des noms Tailwind.
+ */
+.show-desktop {
+  display: none;
+}
+.show-mobile {
+  display: flex;
+}
+@media (min-width: 768px) {
+  .show-desktop {
+    display: flex;
+  }
+  .show-mobile {
+    display: none;
+  }
+}
+.show-from-sm {
+  display: none;
+}
+@media (min-width: 640px) {
+  .show-from-sm {
+    display: block;
+  }
+}
+.show-from-lg {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .show-from-lg {
+    display: block;
+  }
+}
+/* Variante lg (au lieu de md) pour AuthShell : le panneau de marque a
+   besoin de plus de largeur que la sidebar avant de basculer. */
+.show-desktop-lg {
+  display: none;
+}
+.show-mobile-lg {
+  display: flex;
+}
+@media (min-width: 1024px) {
+  .show-desktop-lg {
+    display: flex;
+  }
+  .show-mobile-lg {
+    display: none;
   }
 }
