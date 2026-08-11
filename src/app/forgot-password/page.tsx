@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/auth-shell";
+
+const ACCENT = "#2a78d6";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -35,8 +38,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
+    <AuthShell>
+      <Card className="rounded-2xl border-none py-7 shadow-xl shadow-black/5 dark:shadow-black/20">
         <CardHeader>
           <CardTitle className="text-2xl">Mot de passe oublié</CardTitle>
           <CardDescription>
@@ -49,7 +52,7 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-muted-foreground">
                 Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.
               </p>
-              <Button asChild variant="outline" className="w-full">
+              <Button asChild variant="outline" className="h-11 w-full rounded-xl">
                 <Link href="/login">Retour à la connexion</Link>
               </Button>
             </div>
@@ -63,19 +66,25 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 rounded-xl focus-visible:border-[#2a78d6] focus-visible:ring-[#2a78d6]/25"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="h-11 w-full rounded-xl text-white shadow-md shadow-[#2a78d6]/25 transition-transform hover:opacity-90 active:scale-[0.99]"
+                style={{ backgroundColor: ACCENT }}
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? "Envoi..." : "Envoyer le lien"}
               </Button>
-              <Button asChild variant="ghost" className="w-full">
+              <Button asChild variant="ghost" className="h-11 w-full rounded-xl">
                 <Link href="/login">Retour à la connexion</Link>
               </Button>
             </form>
           )}
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }
