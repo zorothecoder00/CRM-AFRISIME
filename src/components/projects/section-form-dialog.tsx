@@ -116,6 +116,17 @@ export function SectionFormDialog({
             </Select>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dateDebut">Début</Label>
+              <Input id="dateDebut" type="date" {...register("dateDebut")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dateFin">Échéance</Label>
+              <Input id="dateFin" type="date" {...register("dateFin")} />
+            </div>
+          </div>
+
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Création..." : "Créer"}
           </Button>

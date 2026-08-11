@@ -7,10 +7,18 @@ export const createConversationSchema = z.object({
 
 export type CreateConversationInput = z.infer<typeof createConversationSchema>;
 
-export const sendMessageSchema = z.object({
-  conversationId: z.string().min(1),
-  content: z.string().min(1, "Le message ne peut pas être vide."),
-});
+export const sendMessageSchema = z
+  .object({
+    conversationId: z.string().min(1),
+    content: z.string().optional(),
+    attachmentUrl: z.string().optional(),
+    attachmentNom: z.string().optional(),
+    attachmentMimeType: z.string().optional(),
+    attachmentSizeBytes: z.number().int().positive().optional(),
+  })
+  .refine((data) => !!data.content?.trim() || !!data.attachmentUrl, {
+    message: "Un message ou une pièce jointe est requise.",
+  });
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 

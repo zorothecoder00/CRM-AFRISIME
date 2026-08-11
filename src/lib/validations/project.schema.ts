@@ -20,6 +20,15 @@ export const createSectionSchema = z.object({
   type: z.enum(["PHASE", "SOUS_PHASE", "LOT"]),
   nom: z.string().min(2, "Le nom est requis."),
   responsableId: z.string().optional(),
+  dateDebut: z.string().optional(),
+  dateFin: z.string().optional(),
 });
 
 export type CreateSectionInput = z.infer<typeof createSectionSchema>;
+
+export const addSectionCommentSchema = z.object({
+  sectionId: z.string().min(1),
+  content: z.string().min(1, "Le commentaire ne peut pas être vide."),
+});
+
+export type AddSectionCommentInput = z.infer<typeof addSectionCommentSchema>;

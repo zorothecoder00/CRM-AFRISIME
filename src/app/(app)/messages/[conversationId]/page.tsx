@@ -41,6 +41,8 @@ export default async function ConversationPage({
     authorName: m.author.name,
     createdAt: m.createdAt.toISOString(),
     reactions: m.reactions.map((r) => ({ emoji: r.emoji, userId: r.userId, userName: r.user.name })),
+    attachmentUrl: m.attachmentUrl,
+    attachmentNom: m.attachmentNom,
   }));
 
   return (

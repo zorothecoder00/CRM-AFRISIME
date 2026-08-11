@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { notifyMany } from "@/lib/notify";
 import { parseMentions } from "@/lib/mentions";
+import { logAudit } from "@/lib/audit";
 import {
   createConversationSchema,
   sendMessageSchema,
@@ -41,6 +42,14 @@ export async function createConversation(input: CreateConversationInput) {
     },
   });
 
+  await logAudit({
+    userId: session.user.id,
+    action: "conversation.created",
+    entityType: "Conversation",
+    entityId: conversation.id,
+    changes: { isGroup, participantCount: allParticipantIds.length },
+  });
+
   revalidatePath("/messages");
   return conversation;
 }
@@ -65,12 +74,16 @@ export async function sendMessage(input: SendMessageInput) {
     data: {
       conversationId: data.conversationId,
       authorId: session.user.id,
-      content: data.content,
+      content: data.content?.trim() || "",
+      attachmentUrl: data.attachmentUrl,
+      attachmentNom: data.attachmentNom,
+      attachmentMimeType: data.attachmentMimeType,
+      attachmentSizeBytes: data.attachmentSizeBytes,
     },
   });
 
   const mentionedIds = parseMentions(
-    data.content,
+    data.content ?? "",
     conversation.participants.map((p) => ({ id: p.userId, name: p.user.name }))
   );
   await notifyMany(mentionedIds, session.user.id, {
@@ -79,6 +92,14 @@ export async function sendMessage(input: SendMessageInput) {
     lien: `/messages/${data.conversationId}`,
     entityType: "Message",
     entityId: message.id,
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "message.sent",
+    entityType: "Conversation",
+    entityId: data.conversationId,
+    changes: { messageId: message.id },
   });
 
   revalidatePath(`/messages/${data.conversationId}`);

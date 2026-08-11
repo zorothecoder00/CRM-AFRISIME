@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { SectionFormDialog } from "@/components/projects/section-form-dialog";
 
@@ -55,7 +56,12 @@ export function HierarchyTree({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Badge variant="outline">{TYPE_LABELS[node.type]}</Badge>
-              <span className="font-medium">{node.nom}</span>
+              <Link
+                href={`/projets/${projectId}/sections/${node.id}`}
+                className="font-medium hover:underline"
+              >
+                {node.nom}
+              </Link>
               <Badge variant="secondary">{STATUS_LABELS[node.statut]}</Badge>
               {node.responsableName && (
                 <span className="text-xs text-muted-foreground">
