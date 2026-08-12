@@ -55,7 +55,7 @@ export function PortalAccessCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <KeyRound className="h-4 w-4" />
-          Portail client
+          Accès portail
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -63,7 +63,7 @@ export function PortalAccessCard({
           contactEmail ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Ce contact n&apos;a pas encore d&apos;accès au portail client.
+                Ce contact n&apos;a pas encore d&apos;accès au portail externe.
               </p>
               <Button size="sm" onClick={handleCreate} disabled={isPending}>
                 Créer un accès portail

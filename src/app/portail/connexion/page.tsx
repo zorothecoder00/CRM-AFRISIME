@@ -45,8 +45,8 @@ export default function PortalLoginPage() {
     <AuthShell>
       <Card className="rounded-2xl border-none py-7 shadow-xl shadow-black/5 dark:shadow-black/20">
         <CardHeader>
-          <CardTitle className="text-2xl">Portail client</CardTitle>
-          <CardDescription>Connectez-vous pour suivre vos opportunités.</CardDescription>
+          <CardTitle className="text-2xl">Portail AfriSime</CardTitle>
+          <CardDescription>Connectez-vous pour suivre votre relation avec AfriSime.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

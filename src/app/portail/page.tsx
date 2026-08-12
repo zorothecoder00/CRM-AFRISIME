@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForOpportunityStatus, accentForOpportunityStatus } from "@/lib/status-tone";
 import { PortalHeader } from "@/components/portal/portal-header";
+import { portalLabelForContactType } from "@/lib/contact-portal-label";
 
 const STATUS_LABELS: Record<string, string> = {
   NOUVEAU: "Nouveau",
@@ -44,12 +45,16 @@ export default async function PortalDashboardPage() {
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <PortalHeader name={`${contact.prenom} ${contact.nom}`} email={session.email} />
+      <PortalHeader
+        name={`${contact.prenom} ${contact.nom}`}
+        email={session.email}
+        label={portalLabelForContactType(contact.type)}
+      />
       <main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
         <div>
           <h1 className="text-2xl font-semibold">Bonjour {contact.prenom}</h1>
           <p className="text-sm text-muted-foreground">
-            {contact.organization ? contact.organization.nom : "Suivi de vos opportunités avec AfriSime."}
+            {contact.organization ? contact.organization.nom : "Suivi de votre relation avec AfriSime."}
           </p>
         </div>
 

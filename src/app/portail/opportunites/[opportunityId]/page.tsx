@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForOpportunityStatus, accentForOpportunityStatus } from "@/lib/status-tone";
 import { PortalHeader } from "@/components/portal/portal-header";
+import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { Mail, Phone, MessageCircle, CalendarClock, MapPin, type LucideIcon } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -72,7 +73,11 @@ export default async function PortalOpportunityDetailPage({
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <PortalHeader name={`${contact.prenom} ${contact.nom}`} email={session.email} />
+      <PortalHeader
+        name={`${contact.prenom} ${contact.nom}`}
+        email={session.email}
+        label={portalLabelForContactType(contact.type)}
+      />
       <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{opportunity.nom}</h1>

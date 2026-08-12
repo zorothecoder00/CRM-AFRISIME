@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { Workflow, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function PortalHeader({ name, email }: { name: string; email: string }) {
+export function PortalHeader({
+  name,
+  email,
+  label = "Portail",
+}: {
+  name: string;
+  email: string;
+  label?: string;
+}) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -23,7 +31,7 @@ export function PortalHeader({ name, email }: { name: string; email: string }) {
         >
           <Workflow className="h-4 w-4" />
         </div>
-        Portail client — AfriSime
+        {label} — AfriSime
       </Link>
       <div className="flex items-center gap-3">
         <div className="hidden text-right text-sm sm:block">
