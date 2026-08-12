@@ -1317,6 +1317,11 @@ model Objective {
   department   Department?     @relation(fields: [departmentId], references: [id])
   planId       String?
   plan         Plan?           @relation(fields: [planId], references: [id])
+  // Cahier des charges §III — cascade d'objectifs (entreprise -> direction
+  // -> equipe -> individuel), independante du rattachement a un Plan.
+  parentId     String?
+  parent       Objective?      @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
+  children     Objective[]     @relation("ObjectiveHierarchy")
   createdById  String
   createdBy    User            @relation("ObjectiveCreatedBy", fields: [createdById], references: [id])
   createdAt    DateTime        @default(now())
@@ -1328,6 +1333,7 @@ model Objective {
   @@index([projectId])
   @@index([departmentId])
   @@index([planId])
+  @@index([parentId])
   @@index([periode])
 }
 

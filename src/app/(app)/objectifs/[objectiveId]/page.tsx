@@ -8,7 +8,8 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import { IndicatorList } from "@/components/objectives/indicator-list";
 import { AddIndicatorDialog } from "@/components/objectives/add-indicator-dialog";
 import { ObjectiveStatusSelect } from "@/components/objectives/objective-status-select";
-import { accentForStatus } from "@/lib/status-tone";
+import { LinkParentObjectiveForm } from "@/components/objectives/link-parent-objective-form";
+import { accentForStatus, toneForStatus } from "@/lib/status-tone";
 
 const PERIOD_LABELS: Record<string, string> = {
   ANNUEL: "Annuel",
@@ -23,6 +24,13 @@ const SCOPE_LABELS: Record<string, string> = {
   DEPARTEMENT: "Département",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  EN_COURS: "En cours",
+  ATTEINT: "Atteint",
+  NON_ATTEINT: "Non atteint",
+  ANNULE: "Annulé",
+};
+
 export default async function ObjectiveDetailPage({
   params,
 }: {
@@ -30,16 +38,25 @@ export default async function ObjectiveDetailPage({
 }) {
   const { objectiveId } = await params;
 
-  const objective = await prisma.objective.findUnique({
-    where: { id: objectiveId },
-    include: {
-      user: true,
-      project: true,
-      department: true,
-      createdBy: true,
-      indicators: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  const [objective, candidateObjectives] = await Promise.all([
+    prisma.objective.findUnique({
+      where: { id: objectiveId },
+      include: {
+        user: true,
+        project: true,
+        department: true,
+        createdBy: true,
+        indicators: { orderBy: { createdAt: "asc" } },
+        parent: true,
+        children: true,
+      },
+    }),
+    prisma.objective.findMany({
+      where: { id: { not: objectiveId } },
+      orderBy: { titre: "asc" },
+      select: { id: true, titre: true },
+    }),
+  ]);
 
   if (!objective) {
     notFound();
@@ -122,6 +139,51 @@ export default async function ObjectiveDetailPage({
               value={`${new Date(objective.dateDebut).toLocaleDateString("fr-FR")} → ${new Date(objective.dateFin).toLocaleDateString("fr-FR")}`}
             />
             <Info label="Créé par" value={objective.createdBy.name} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cascade d&apos;objectifs</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {objective.parent ? (
+              <div>
+                <div className="mb-1 text-xs text-muted-foreground">Objectif parent</div>
+                <Link href={`/objectifs/${objective.parent.id}`} className="text-primary hover:underline">
+                  {objective.parent.titre}
+                </Link>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Objectif de premier niveau (pas de parent).</p>
+            )}
+            <LinkParentObjectiveForm
+              objectiveId={objective.id}
+              candidates={candidateObjectives.map((o) => ({ id: o.id, label: o.titre }))}
+              hasParent={!!objective.parent}
+            />
+            {objective.children.length > 0 && (
+              <div>
+                <div className="mb-1 mt-2 text-xs text-muted-foreground">
+                  Objectifs enfants ({objective.children.length})
+                </div>
+                <ul className="space-y-1.5">
+                  {objective.children.map((child) => (
+                    <li key={child.id}>
+                      <Link
+                        href={`/objectifs/${child.id}`}
+                        className="flex items-center justify-between gap-2 rounded-md border p-1.5 text-xs hover:bg-muted"
+                      >
+                        <span className="truncate">{child.titre}</span>
+                        <Badge variant={toneForStatus(child.statut)} className="shrink-0">
+                          {STATUS_LABELS[child.statut]}
+                        </Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -32,12 +32,17 @@ export function ObjectiveFormDialog({
   users,
   projects,
   departments,
+  objectives,
   currentUserId,
+  defaultParentId,
 }: {
   users: Option[];
   projects: Option[];
   departments: Option[];
+  /** Objectifs existants éligibles comme objectif parent (cascade §III). */
+  objectives?: Option[];
   currentUserId: string;
+  defaultParentId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<CreateObjectiveInput["scope"]>("INDIVIDUEL");
@@ -49,7 +54,12 @@ export function ObjectiveFormDialog({
     formState: { errors },
   } = useForm<CreateObjectiveInput>({
     resolver: zodResolver(createObjectiveSchema),
-    defaultValues: { periode: "MENSUEL", scope: "INDIVIDUEL", userId: currentUserId },
+    defaultValues: {
+      periode: "MENSUEL",
+      scope: "INDIVIDUEL",
+      userId: currentUserId,
+      parentId: defaultParentId,
+    },
   });
   const { run: submit, isPending } = useAction(createObjective, { successMessage: "Objectif créé." });
 
@@ -185,6 +195,27 @@ export function ObjectiveFormDialog({
               {errors.departmentId && (
                 <p className="text-sm text-destructive">{errors.departmentId.message}</p>
               )}
+            </div>
+          )}
+
+          {objectives && objectives.length > 0 && (
+            <div className="space-y-2">
+              <Label>Objectif parent (optionnel)</Label>
+              <Select
+                defaultValue={defaultParentId}
+                onValueChange={(v) => setValue("parentId", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun (objectif de premier niveau)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {objectives.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 

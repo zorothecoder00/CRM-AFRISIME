@@ -11,15 +11,38 @@ import {
   updateObjectiveStatusSchema,
   addIndicatorSchema,
   updateIndicatorValueSchema,
+  linkObjectiveParentSchema,
   type CreateObjectiveInput,
   type AddIndicatorInput,
   type UpdateIndicatorValueInput,
+  type LinkObjectiveParentInput,
 } from "@/lib/validations/objective.schema";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
   return session;
+}
+
+/** Meme principe que assertNoCycle pour Department/Plan/KnowledgeCategory. */
+async function assertNoCycle(objectiveId: string, parentId: string) {
+  if (parentId === objectiveId) {
+    throw new Error("Un objectif ne peut pas être son propre objectif parent.");
+  }
+  let currentId: string | null = parentId;
+  const visited = new Set<string>();
+  while (currentId) {
+    if (currentId === objectiveId) {
+      throw new Error("Ce rattachement créerait une boucle dans la cascade d'objectifs.");
+    }
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+    const current: { parentId: string | null } | null = await prisma.objective.findUnique({
+      where: { id: currentId },
+      select: { parentId: true },
+    });
+    currentId = current?.parentId ?? null;
+  }
 }
 
 export async function createObjective(input: CreateObjectiveInput) {
@@ -39,6 +62,7 @@ export async function createObjective(input: CreateObjectiveInput) {
       userId: data.scope === "INDIVIDUEL" ? data.userId : undefined,
       projectId: data.scope === "EQUIPE" ? data.projectId : undefined,
       departmentId: data.scope === "DEPARTEMENT" ? data.departmentId : undefined,
+      parentId: data.parentId || undefined,
       createdById: session.user.id,
     },
   });
@@ -130,4 +154,32 @@ export async function updateIndicatorValue(input: UpdateIndicatorValueInput) {
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
   return indicator;
+}
+
+/** Rattache (ou detache si parentId absent) un objectif a son objectif parent (cahier des charges §III). */
+export async function linkObjectiveParent(input: LinkObjectiveParentInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.OBJECTIVE_UPDATE);
+  const data = linkObjectiveParentSchema.parse(input);
+
+  if (data.parentId) {
+    await assertNoCycle(data.objectiveId, data.parentId);
+  }
+
+  const objective = await prisma.objective.update({
+    where: { id: data.objectiveId },
+    data: { parentId: data.parentId || null },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: data.parentId ? "objective.parent_linked" : "objective.parent_unlinked",
+    entityType: "Objective",
+    entityId: objective.id,
+    changes: { parentId: data.parentId ?? null },
+  });
+
+  revalidatePath(`/objectifs/${data.objectiveId}`);
+  revalidatePath("/objectifs");
+  return objective;
 }

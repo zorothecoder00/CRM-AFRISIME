@@ -11,6 +11,7 @@ export const createObjectiveSchema = z
     userId: z.string().optional(),
     projectId: z.string().optional(),
     departmentId: z.string().optional(),
+    parentId: z.string().optional(),
   })
   .refine((data) => data.scope !== "INDIVIDUEL" || !!data.userId, {
     message: "Un utilisateur est requis pour un objectif individuel.",
@@ -47,3 +48,10 @@ export const updateIndicatorValueSchema = z.object({
 });
 
 export type UpdateIndicatorValueInput = z.infer<typeof updateIndicatorValueSchema>;
+
+export const linkObjectiveParentSchema = z.object({
+  objectiveId: z.string().min(1),
+  parentId: z.string().optional(),
+});
+
+export type LinkObjectiveParentInput = z.infer<typeof linkObjectiveParentSchema>;
