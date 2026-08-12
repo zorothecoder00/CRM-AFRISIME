@@ -16,6 +16,8 @@ import { DocumentFormDialog } from "@/components/documents/document-form-dialog"
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
 import { RuleList, type RuleData } from "@/components/automation/rule-list";
+import { computeWorkload } from "@/lib/workload";
+import { WorkloadTable } from "@/components/workload/workload-table";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -42,8 +44,10 @@ export default async function ProjectDetailPage({
   const { projectId } = await params;
   const session = await getServerSession(authOptions);
   const canManageAutomation = session!.user.permissions.includes(PERMISSIONS.AUTOMATION_MANAGE);
+  const canReadWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
+  const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
 
-  const [project, sections, tasks, users, folders, rootDocuments, rules] = await Promise.all([
+  const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       include: { department: true, responsable: true, programme: true },
@@ -57,7 +61,7 @@ export default async function ProjectDetailPage({
     }),
     prisma.task.findMany({
       where: { projectId },
-      include: { responsablePrincipal: true },
+      include: { responsablePrincipal: true, assignees: { select: { userId: true } } },
       orderBy: { createdAt: "asc" },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -76,11 +80,43 @@ export default async function ProjectDetailPage({
       include: { executions: { orderBy: { executedAt: "desc" }, take: 5 } },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.projectMember.findMany({
+      where: { projectId },
+      include: { user: { include: { role: true } } },
+    }),
+    prisma.leave.findMany({ where: { statut: "APPROUVE" } }),
   ]);
 
   if (!project) {
     notFound();
   }
+
+  // Charge de travail restreinte a l'equipe du projet et a ses taches
+  // (cahier des charges §VI — vue "Workload" par projet, distincte de la
+  // charge globale de /charge-de-travail).
+  const projectWorkload = computeWorkload(
+    members.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      roleLabel: m.user.role.label,
+      capaciteHebdomadaireHeures: Number(m.user.capaciteHebdomadaireHeures),
+    })),
+    tasks.map((t) => ({
+      statut: t.statut,
+      tempsEstimeHeures: t.tempsEstimeHeures !== null ? Number(t.tempsEstimeHeures) : null,
+      tempsReelHeures: t.tempsReelHeures !== null ? Number(t.tempsReelHeures) : null,
+      responsablePrincipalId: t.responsablePrincipalId,
+      assigneeIds: t.assignees.map((a) => a.userId),
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    })),
+    leaves.map((l) => ({
+      userId: l.userId,
+      dateDebut: l.dateDebut,
+      dateFin: l.dateFin,
+      statut: l.statut,
+    }))
+  );
 
   const responsableById = new Map(users.map((u) => [u.id, u.name]));
 
@@ -167,6 +203,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
+          {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="automatisations">Automatisations</TabsTrigger>
         </TabsList>
@@ -222,6 +259,19 @@ export default async function ProjectDetailPage({
             ))}
           </div>
         </TabsContent>
+
+        {canReadWorkload && (
+          <TabsContent value="charge" className="mt-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Charge de l&apos;équipe du projet, calculée à partir des tâches actives de ce projet uniquement.
+            </p>
+            {members.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun membre rattaché à ce projet.</p>
+            ) : (
+              <WorkloadTable rows={projectWorkload} canManage={canManageWorkload} />
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="documents" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
