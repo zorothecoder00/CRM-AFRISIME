@@ -133,3 +133,19 @@ export function toneForArticleStatus(status: string): BadgeTone {
 export function accentForArticleStatus(status: string): CardAccent {
   return toCardAccent(toneForArticleStatus(status) as StatusTone);
 }
+
+/** Statut d'un courrier (A_TRAITER/EN_COURS/TRAITE/ARCHIVE). */
+const COURRIER_TONES: Record<string, StatusTone> = {
+  A_TRAITER: "warning",
+  EN_COURS: "info",
+  TRAITE: "success",
+  ARCHIVE: "secondary",
+};
+
+export function toneForCourrierStatus(status: string): BadgeTone {
+  return COURRIER_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+export function accentForCourrierStatus(status: string): CardAccent {
+  return toCardAccent(toneForCourrierStatus(status) as StatusTone);
+}

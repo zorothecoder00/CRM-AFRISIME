@@ -22,6 +22,7 @@ import {
   ClipboardCheck,
   Milestone,
   BookOpen,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -84,6 +85,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Pilotage",
     items: [
+      { title: "Courrier", href: "/courrier", icon: Mail, permission: PERMISSIONS.COURRIER_READ },
       { title: "Demandes", href: "/demandes", icon: ClipboardList, permission: PERMISSIONS.ADMIN_REQUEST_READ },
       { title: "Automatisations", href: "/automatisations", icon: Zap, permission: PERMISSIONS.AUTOMATION_READ },
       { title: "Rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },

@@ -311,6 +311,8 @@ model User {
   knowledgeCategoriesCreated        KnowledgeCategory[]         @relation("KnowledgeCategoryCreatedBy")
   knowledgeArticlesAuthored         KnowledgeArticle[]          @relation("KnowledgeArticleAuthor")
   portalAccountsInvited             PortalAccount[]             @relation("PortalAccountInvitedBy")
+  courriersResponsable              Courrier[]                  @relation("CourrierResponsable")
+  courriersCreated                  Courrier[]                  @relation("CourrierCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -397,6 +399,7 @@ model Department {
   adminRequests       AdminRequest[]
   plans               Plan[]
   evaluations         Evaluation[]
+  courriers           Courrier[]
   createdAt           DateTime             @default(now())
 }
 
@@ -812,6 +815,7 @@ model Task {
   blocking        TaskDependency[]   @relation("PrerequisiteTask")
   meetingDecision MeetingDecision?
   validationRun   TaskValidationRun?
+  courrier        Courrier?
 
   @@index([projectId])
   @@index([sectionId])
@@ -1009,6 +1013,57 @@ model AdminRequestApproval {
   @@unique([runId, stepId])
   @@index([runId])
   @@index([approverId])
+}
+
+// Registre de courrier (cahier des charges §VII) — entrant/sortant/interne,
+// avec cycle de vie a traiter -> en cours -> traite -> archive. Distinct des
+// Demandes administratives (pas de circuit de validation ici, juste un
+// registre suivi par un responsable) et de Document (le fichier joint est
+// une simple URL, pas de versioning).
+enum CourrierType {
+  ENTRANT
+  SORTANT
+  INTERNE
+}
+
+enum CourrierStatus {
+  A_TRAITER
+  EN_COURS
+  TRAITE
+  ARCHIVE
+}
+
+model Courrier {
+  id            String         @id @default(cuid())
+  // Genere a la creation, format CRR-{annee}-{sequence}, ex. CRR-2026-0001.
+  reference     String         @unique
+  objet         String
+  type          CourrierType
+  statut        CourrierStatus @default(A_TRAITER)
+  confidentiel  Boolean        @default(false)
+  dateCourrier  DateTime
+  // Texte libre : l'expediteur/destinataire n'est pas toujours un contact
+  // CRM ou un utilisateur interne (ex. administration publique, particulier).
+  expediteur    String?
+  destinataire  String?
+  departmentId  String?
+  department    Department?    @relation(fields: [departmentId], references: [id])
+  responsableId String?
+  responsable   User?          @relation("CourrierResponsable", fields: [responsableId], references: [id])
+  documentUrl   String?
+  documentNom   String?
+  notes         String?
+  taskId        String?        @unique
+  task          Task?          @relation(fields: [taskId], references: [id])
+  createdById   String
+  createdBy     User           @relation("CourrierCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([departmentId])
+  @@index([responsableId])
+  @@index([statut])
+  @@index([type])
 }
 
 model Meeting {

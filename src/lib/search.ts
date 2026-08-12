@@ -8,6 +8,7 @@ export type SearchResultType =
   | "Réunion"
   | "Document"
   | "Article"
+  | "Courrier"
   | "Commentaire"
   | "Utilisateur"
   | "Contact CRM"
@@ -180,6 +181,32 @@ export async function globalSearch(
             title: a.titre,
             subtitle: a.category?.nom ?? null,
             href: `/base-de-connaissances/${a.id}`,
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.COURRIER_READ)) {
+    searches.push(
+      prisma.courrier
+        .findMany({
+          where: {
+            confidentiel: false,
+            OR: [
+              { objet: { contains: q, mode: "insensitive" } },
+              { reference: { contains: q, mode: "insensitive" } },
+            ],
+          },
+          take: 8,
+          select: { id: true, objet: true, reference: true },
+        })
+        .then((rows) =>
+          rows.map((c) => ({
+            type: "Courrier" as const,
+            id: c.id,
+            title: c.objet,
+            subtitle: c.reference,
+            href: `/courrier/${c.id}`,
           }))
         )
     );
