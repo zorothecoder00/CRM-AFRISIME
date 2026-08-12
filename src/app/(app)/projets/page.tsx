@@ -78,6 +78,9 @@ export default async function ProjetsPage() {
                   <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
                   <Badge variant={toneForPriority(project.priorite)}>{PRIORITY_LABELS[project.priorite]}</Badge>
                   <Badge variant="outline">{project.department.name}</Badge>
+                  {project.budget && project.coutReel && Number(project.coutReel) > Number(project.budget) && (
+                    <Badge variant="destructive">Budget dépassé</Badge>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Responsable : {project.responsable.name}

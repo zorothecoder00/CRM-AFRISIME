@@ -7,6 +7,12 @@ https://claude.ai/code/artifact/20ca1b19-67a0-4258-b1fe-3d30a605ad99?via=auto_pr
 
 
 
+■ Budget depasse: schema + action + alerte + UI
+□ Missions prestataire: schema + assignation + portail
+□ Vue Roadmap multi-projets
+
+
+     CAHIER DES CHARGES AFRIFLOW
 AfriSime Work-Flow
 Planifier • Collaborer • Exécuter • Contrôler
 1. Le positionnement que je recommande

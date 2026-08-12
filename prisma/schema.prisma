@@ -146,6 +146,7 @@ enum NotificationType {
   MENTION
   SURCHARGE
   CLIENT_SANS_SUIVI
+  BUDGET_DEPASSE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -493,6 +494,10 @@ model Project {
   dateDebut     DateTime?
   dateFin       DateTime?
   budget        Decimal?        @db.Decimal(14, 2)
+  // Cout reel a date (cahier des charges §14 — alerte "Budget depasse").
+  // Suivi manuel, meme principe que Task.tempsReelHeures : pas de module de
+  // depenses detaille, juste un montant que le responsable met a jour.
+  coutReel      Decimal?        @db.Decimal(14, 2)
   statut        ProjectStatus   @default(PLANIFIE)
   avancement    Int             @default(0)
   organisation  String?
@@ -639,6 +644,7 @@ model CrmContact {
   opportunities CrmOpportunity[]
   interactions  CrmInteraction[]
   portalAccount PortalAccount?
+  missions      Task[]
 
   @@index([organizationId])
   @@index([ownerId])
@@ -802,6 +808,12 @@ model Task {
   tempsReelHeures        Decimal?        @db.Decimal(6, 2)
   responsablePrincipalId String
   responsablePrincipal   User            @relation("TaskResponsablePrincipal", fields: [responsablePrincipalId], references: [id])
+  // Mission deleguee a un prestataire/partenaire externe (cahier des
+  // charges §XXI — "portail prestataire, avec missions et livrables").
+  // Le contact CRM externe voit alors cette tache dans son portail ; ses
+  // documents lies (deja existants) en tiennent lieu de livrables.
+  externalContactId      String?
+  externalContact        CrmContact?     @relation(fields: [externalContactId], references: [id])
   createdById            String
   createdBy              User            @relation("TaskCreatedBy", fields: [createdById], references: [id])
   ordre                  Int             @default(0)
@@ -822,6 +834,7 @@ model Task {
   @@index([sectionId])
   @@index([parentTaskId])
   @@index([responsablePrincipalId])
+  @@index([externalContactId])
   @@index([statut])
   @@index([echeance])
 }

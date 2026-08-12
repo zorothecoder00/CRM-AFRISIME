@@ -10,9 +10,11 @@ import {
   createProjectSchema,
   createSectionSchema,
   addSectionCommentSchema,
+  updateProjectCoutReelSchema,
   type CreateProjectInput,
   type CreateSectionInput,
   type AddSectionCommentInput,
+  type UpdateProjectCoutReelInput,
 } from "@/lib/validations/project.schema";
 
 export async function createProject(input: CreateProjectInput) {
@@ -110,4 +112,28 @@ export async function addSectionComment(input: AddSectionCommentInput) {
 
   revalidatePath(`/projets/${section.projectId}/sections/${data.sectionId}`);
   return comment;
+}
+
+export async function updateProjectCoutReel(input: UpdateProjectCoutReelInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectCoutReelSchema.parse(input);
+
+  const project = await prisma.project.update({
+    where: { id: data.projectId },
+    data: { coutReel: Number(data.coutReel) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.cout_reel_updated",
+    entityType: "Project",
+    entityId: project.id,
+    changes: { coutReel: data.coutReel },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return project;
 }

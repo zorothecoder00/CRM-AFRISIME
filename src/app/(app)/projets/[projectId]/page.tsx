@@ -18,6 +18,7 @@ import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
 import { RuleList, type RuleData } from "@/components/automation/rule-list";
 import { computeWorkload } from "@/lib/workload";
 import { WorkloadTable } from "@/components/workload/workload-table";
+import { ProjectCoutReelForm } from "@/components/projects/project-cout-reel-form";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -46,6 +47,7 @@ export default async function ProjectDetailPage({
   const canManageAutomation = session!.user.permissions.includes(PERMISSIONS.AUTOMATION_MANAGE);
   const canReadWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
+  const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
   const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves] = await Promise.all([
     prisma.project.findUnique({
@@ -229,6 +231,25 @@ export default async function ProjectDetailPage({
               />
               <Info label="Budget" value={project.budget ? `${project.budget} FCFA` : "—"} />
               <Info label="Avancement" value={`${project.avancement}%`} />
+            </CardContent>
+            <CardContent className="pt-0">
+              <div className="mb-1 text-xs text-muted-foreground">Coût réel</div>
+              {canUpdateProject ? (
+                <ProjectCoutReelForm
+                  projectId={project.id}
+                  budget={project.budget ? Number(project.budget) : null}
+                  initialValue={project.coutReel ? Number(project.coutReel) : null}
+                />
+              ) : (
+                <p className="text-sm font-medium">
+                  {project.coutReel ? `${project.coutReel} FCFA` : "—"}
+                  {project.budget && project.coutReel && Number(project.coutReel) > Number(project.budget) && (
+                    <Badge variant="destructive" className="ml-2">
+                      Budget dépassé
+                    </Badge>
+                  )}
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

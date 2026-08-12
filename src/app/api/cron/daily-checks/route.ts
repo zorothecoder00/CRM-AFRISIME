@@ -21,15 +21,9 @@ const CLIENT_STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
 /**
  * Ordonnanceur quotidien (cahier des charges §15 : rappels d'échéance
  * proactifs, plutôt que calculés à la visite de page ; §14 : alertes de
- * surcharge, objectif en retard, validation bloquée, client sans suivi).
- * Déclenché par Vercel Cron (voir vercel.json), protégé par CRON_SECRET
- * pour empêcher un appel public.
- *
- * "Budget dépassé" (également citée au §14) n'est volontairement pas
- * implémentée ici : Project.budget n'a aucune contrepartie "coût réel"
- * dans le schéma actuel (pas de suivi de dépenses), donc rien de fiable
- * à comparer — ajouter cette alerte nécessiterait d'abord un module de
- * suivi des dépenses, pas juste une requête de plus dans ce cron.
+ * surcharge, objectif en retard, validation bloquée, client sans suivi,
+ * budget dépassé). Déclenché par Vercel Cron (voir vercel.json), protégé
+ * par CRON_SECRET pour empêcher un appel public.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -186,11 +180,33 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // Budget dépassé (§14) : coût réel saisi manuellement au-delà du budget.
+  const overBudgetProjects = await prisma.project.findMany({
+    where: { budget: { not: null }, coutReel: { not: null } },
+    select: { id: true, nom: true, budget: true, coutReel: true, responsableId: true },
+  });
+  const overBudget = overBudgetProjects.filter(
+    (p) => p.coutReel !== null && p.budget !== null && Number(p.coutReel) > Number(p.budget)
+  );
+  await Promise.all(
+    overBudget.map((p) =>
+      createNotification({
+        userId: p.responsableId,
+        type: "BUDGET_DEPASSE",
+        titre: `Budget dépassé : ${p.nom}`,
+        lien: `/projets/${p.id}`,
+        entityType: "Project",
+        entityId: p.id,
+      })
+    )
+  );
+
   return NextResponse.json({
     usersChecked: users.length,
     overloadedCount: overloaded.length,
     lateObjectivesCount: lateObjectives.length,
     blockedValidationsCount: blockedTaskRuns.length + blockedAdminRequestRuns.length,
     staleClientsCount: staleClients.length,
+    overBudgetCount: overBudget.length,
   });
 }

@@ -32,3 +32,10 @@ export const addSectionCommentSchema = z.object({
 });
 
 export type AddSectionCommentInput = z.infer<typeof addSectionCommentSchema>;
+
+export const updateProjectCoutReelSchema = z.object({
+  projectId: z.string().min(1),
+  coutReel: z.string().min(1, "Un montant est requis."),
+});
+
+export type UpdateProjectCoutReelInput = z.infer<typeof updateProjectCoutReelSchema>;
