@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompteRenduForm } from "@/components/meetings/compte-rendu-form";
 import { DecisionsSection } from "@/components/meetings/decisions-section";
@@ -59,7 +60,7 @@ export default async function MeetingDetailPage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{meeting.titre}</h1>
-            <Badge variant="secondary">{STATUS_LABELS[meeting.statut]}</Badge>
+            <Badge variant={toneForStatus(meeting.statut)}>{STATUS_LABELS[meeting.statut]}</Badge>
           </div>
           <Link href={`/projets/${meeting.projectId}`} className="text-sm text-muted-foreground hover:underline">
             {meeting.project.nom}

@@ -16,6 +16,7 @@ const ROLE_KEYS = [
 
 export const createValidationWorkflowSchema = z.object({
   nom: z.string().min(2, "Le nom est requis."),
+  entityType: z.enum(["TASK", "ADMIN_REQUEST"]),
   steps: z
     .array(
       z.object({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateActualTime } from "@/actions/task.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,19 +14,11 @@ export function ActualTimeForm({
   initialValue: number | null;
 }) {
   const [value, setValue] = useState(initialValue !== null ? String(initialValue) : "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(updateActualTime, { successMessage: "Temps réel enregistré." });
 
   async function handleSave() {
     if (!value.trim()) return;
-    setIsSubmitting(true);
-    try {
-      await updateActualTime(taskId, value.trim());
-      toast.success("Temps réel enregistré.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await run(taskId, value.trim());
   }
 
   return (
@@ -40,7 +32,7 @@ export function ActualTimeForm({
         className="h-8 w-24"
       />
       <span className="text-xs text-muted-foreground">h</span>
-      <Button size="sm" variant="outline" onClick={handleSave} disabled={isSubmitting}>
+      <Button size="sm" variant="outline" onClick={handleSave} disabled={isPending}>
         Enregistrer
       </Button>
     </div>

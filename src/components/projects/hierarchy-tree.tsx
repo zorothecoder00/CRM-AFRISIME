@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus } from "@/lib/status-tone";
 import { SectionFormDialog } from "@/components/projects/section-form-dialog";
 
 export type SectionNode = {
@@ -62,7 +63,7 @@ export function HierarchyTree({
               >
                 {node.nom}
               </Link>
-              <Badge variant="secondary">{STATUS_LABELS[node.statut]}</Badge>
+              <Badge variant={toneForStatus(node.statut)}>{STATUS_LABELS[node.statut]}</Badge>
               {node.responsableName && (
                 <span className="text-xs text-muted-foreground">
                   Responsable : {node.responsableName}

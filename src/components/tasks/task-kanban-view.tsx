@@ -8,10 +8,11 @@ import {
   useDroppable,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateTaskStatus } from "@/actions/task.actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { toneForPriority, toneForStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
 import type { TaskRow } from "@/components/tasks/task-list-view";
 
 const COLUMNS: { key: string; label: string }[] = [
@@ -21,6 +22,21 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: "BLOQUEE", label: "Bloquée" },
   { key: "TERMINEE", label: "Terminée" },
 ];
+
+// Barre d'accent en tete de colonne : reprend la teinte de statut pour que
+// chaque etape du kanban se distingue au premier coup d'oeil (au lieu de
+// colonnes toutes identiques en gris).
+const COLUMN_ACCENT: Record<BadgeTone, string> = {
+  default: "border-t-border",
+  secondary: "border-t-border",
+  destructive: "border-t-destructive",
+  success: "border-t-success",
+  warning: "border-t-warning",
+  info: "border-t-info",
+  outline: "border-t-border",
+  ghost: "border-t-border",
+  link: "border-t-border",
+};
 
 const PRIORITY_LABELS: Record<string, string> = {
   TRES_HAUTE: "Très haute",
@@ -40,13 +56,16 @@ function TaskCard({ task }: { task: TaskRow }) {
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <Card className={`mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}>
+      <Card
+        accent={accentForPriority(task.priorite)}
+        className={`mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}
+      >
         <Link href={`/taches/${task.id}`} className="text-sm font-medium hover:underline">
           {task.titre}
         </Link>
         <div className="mt-1 text-xs text-muted-foreground">{task.projectNom}</div>
         <div className="mt-2 flex items-center justify-between">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant={toneForPriority(task.priorite)} className="text-xs">
             {PRIORITY_LABELS[task.priorite]}
           </Badge>
           <span className="text-xs text-muted-foreground">{task.responsableNom}</span>
@@ -58,11 +77,12 @@ function TaskCard({ task }: { task: TaskRow }) {
 
 function KanbanColumn({ columnKey, label, tasks }: { columnKey: string; label: string; tasks: TaskRow[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
+  const accent = COLUMN_ACCENT[toneForStatus(columnKey)];
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border bg-muted/20 p-2 ${
+      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border border-t-2 bg-muted/20 p-2 ${accent} ${
         isOver ? "bg-muted/50" : ""
       }`}
     >
@@ -79,6 +99,7 @@ function KanbanColumn({ columnKey, label, tasks }: { columnKey: string; label: s
 
 export function TaskKanbanView({ tasks: initialTasks }: { tasks: TaskRow[] }) {
   const [tasks, setTasks] = useState(initialTasks);
+  const { run } = useAction(updateTaskStatus);
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -91,11 +112,9 @@ export function TaskKanbanView({ tasks: initialTasks }: { tasks: TaskRow[] }) {
 
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, statut: newStatus } : t)));
 
-    try {
-      await updateTaskStatus(taskId, newStatus);
-    } catch (err) {
+    const result = await run(taskId, newStatus);
+    if (!result.ok) {
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, statut: task.statut } : t)));
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la mise à jour.");
     }
   }
 

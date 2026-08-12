@@ -11,6 +11,27 @@ import {
 import { UserFormDialog } from "@/components/administration/user-form-dialog";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 
+/** Options de departement indentees par profondeur, meme logique que la page Departements. */
+function buildDepartmentOptions(
+  departments: { id: string; name: string; parentId: string | null }[]
+): { id: string; label: string }[] {
+  const childrenByParent = new Map<string | null, typeof departments>();
+  for (const d of departments) {
+    const list = childrenByParent.get(d.parentId) ?? [];
+    list.push(d);
+    childrenByParent.set(d.parentId, list);
+  }
+  const options: { id: string; label: string }[] = [];
+  function walk(parentId: string | null, depth: number) {
+    for (const d of childrenByParent.get(parentId) ?? []) {
+      options.push({ id: d.id, label: `${"—".repeat(depth)} ${d.name}`.trim() });
+      walk(d.id, depth + 1);
+    }
+  }
+  walk(null, 0);
+  return options;
+}
+
 export default async function UtilisateursPage() {
   const [users, roles, departments] = await Promise.all([
     prisma.user.findMany({
@@ -20,6 +41,8 @@ export default async function UtilisateursPage() {
     prisma.role.findMany({ orderBy: { label: "asc" } }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
   ]);
+
+  const departmentOptions = buildDepartmentOptions(departments);
 
   return (
     <div className="space-y-6">
@@ -31,7 +54,7 @@ export default async function UtilisateursPage() {
         </div>
         <UserFormDialog
           roles={roles.map((r) => ({ id: r.id, label: r.label }))}
-          departments={departments.map((d) => ({ id: d.id, label: d.name }))}
+          departments={departmentOptions}
         />
       </div>
 
@@ -41,6 +64,7 @@ export default async function UtilisateursPage() {
             <TableRow>
               <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Poste</TableHead>
               <TableHead>Rôle</TableHead>
               <TableHead>Département</TableHead>
               <TableHead>Statut</TableHead>
@@ -51,6 +75,7 @@ export default async function UtilisateursPage() {
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell className="text-muted-foreground">{user.poste ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{user.role.label}</Badge>
                 </TableCell>

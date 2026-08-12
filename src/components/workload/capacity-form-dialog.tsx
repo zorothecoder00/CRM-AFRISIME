@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateCapacity } from "@/actions/workload.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,19 +23,11 @@ export function CapacityFormDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(String(currentCapacity));
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run: submit, isPending } = useAction(updateCapacity, { successMessage: "Capacité mise à jour." });
 
   async function handleSubmit() {
-    setIsSubmitting(true);
-    try {
-      await updateCapacity({ userId, capaciteHebdomadaireHeures: value });
-      toast.success("Capacité mise à jour.");
-      setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await submit({ userId, capaciteHebdomadaireHeures: value });
+    if (result.ok) setOpen(false);
   }
 
   return (
@@ -56,8 +48,8 @@ export function CapacityFormDialog({
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />
-          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+          <Button className="w-full" onClick={handleSubmit} disabled={isPending}>
+            {isPending ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </div>
       </DialogContent>

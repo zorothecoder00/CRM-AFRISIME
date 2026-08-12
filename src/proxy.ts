@@ -12,6 +12,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Le portail client (session separee, cookie portal-session-token, cf.
+  // src/lib/portal-auth.ts) n'a pas de compte User interne — il n'a donc
+  // jamais le token verifie ci-dessous. Chaque page /portail/* verifie sa
+  // propre session portail elle-meme ; on bypass entierement la garde
+  // interne ici plutot que de la faire echouer systematiquement.
+  if (pathname.startsWith("/portail")) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
   if (!token) {

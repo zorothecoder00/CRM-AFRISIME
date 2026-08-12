@@ -17,7 +17,7 @@ async function requireSession() {
   return session;
 }
 
-/** Un seul circuit actif à la fois pour les tâches : créer un nouveau désactive l'ancien. */
+/** Un seul circuit actif a la fois par type d'entite : creer un nouveau desactive l'ancien du meme type. */
 export async function createValidationWorkflow(input: CreateValidationWorkflowInput) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.WORKFLOW_MANAGE);
@@ -26,14 +26,14 @@ export async function createValidationWorkflow(input: CreateValidationWorkflowIn
 
   const workflow = await prisma.$transaction(async (tx) => {
     await tx.validationWorkflow.updateMany({
-      where: { entityType: "TASK", isActive: true },
+      where: { entityType: data.entityType, isActive: true },
       data: { isActive: false },
     });
 
     return tx.validationWorkflow.create({
       data: {
         nom: data.nom,
-        entityType: "TASK",
+        entityType: data.entityType,
         createdById: session.user.id,
         steps: {
           create: data.steps.map((step, index) => ({

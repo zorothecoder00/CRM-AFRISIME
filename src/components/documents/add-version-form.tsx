@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addDocumentVersion } from "@/actions/document.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,29 +15,25 @@ export function AddVersionForm({ documentId }: { documentId: string }) {
   const [sizeBytes, setSizeBytes] = useState<number | undefined>(undefined);
   const [fileName, setFileName] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(addDocumentVersion, {
+    successMessage: "Nouvelle version enregistrée.",
+  });
 
   async function handleSubmit() {
     if (!url.trim()) return;
-    setIsSubmitting(true);
-    try {
-      await addDocumentVersion({
-        documentId,
-        url: url.trim(),
-        mimeType,
-        sizeBytes,
-        note: note.trim() || undefined,
-      });
+    const result = await run({
+      documentId,
+      url: url.trim(),
+      mimeType,
+      sizeBytes,
+      note: note.trim() || undefined,
+    });
+    if (result.ok) {
       setUrl("");
       setMimeType(undefined);
       setSizeBytes(undefined);
       setFileName(null);
       setNote("");
-      toast.success("Nouvelle version enregistrée.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -67,8 +64,8 @@ export function AddVersionForm({ documentId }: { documentId: string }) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
-      <Button size="sm" onClick={handleSubmit} disabled={isSubmitting || !url.trim()}>
-        {isSubmitting ? "Enregistrement..." : "Ajouter une nouvelle version"}
+      <Button size="sm" onClick={handleSubmit} disabled={isPending || !url.trim()}>
+        {isPending ? "Enregistrement..." : "Ajouter une nouvelle version"}
       </Button>
     </div>
   );

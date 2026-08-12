@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addChecklistItem, toggleChecklistItem } from "@/actions/task.actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -12,27 +12,17 @@ export type ChecklistItemData = { id: string; label: string; isDone: boolean };
 
 export function Checklist({ taskId, items }: { taskId: string; items: ChecklistItemData[] }) {
   const [newLabel, setNewLabel] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run: add, isPending } = useAction(addChecklistItem);
+  const { run: toggle } = useAction(toggleChecklistItem);
 
   async function handleAdd() {
     if (!newLabel.trim()) return;
-    setIsSubmitting(true);
-    try {
-      await addChecklistItem(taskId, newLabel.trim());
-      setNewLabel("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await add(taskId, newLabel.trim());
+    if (result.ok) setNewLabel("");
   }
 
   async function handleToggle(itemId: string, isDone: boolean) {
-    try {
-      await toggleChecklistItem(itemId, isDone);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    }
+    await toggle(itemId, isDone);
   }
 
   return (
@@ -55,7 +45,7 @@ export function Checklist({ taskId, items }: { taskId: string; items: ChecklistI
           onChange={(e) => setNewLabel(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
         />
-        <Button size="sm" variant="outline" onClick={handleAdd} disabled={isSubmitting}>
+        <Button size="sm" variant="outline" onClick={handleAdd} disabled={isPending}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>

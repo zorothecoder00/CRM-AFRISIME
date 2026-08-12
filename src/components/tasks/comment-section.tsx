@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addComment } from "@/actions/task.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -26,19 +26,12 @@ export function CommentSection({
   currentUserId: string;
 }) {
   const [content, setContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(addComment);
 
   async function handleSubmit() {
     if (!content.trim()) return;
-    setIsSubmitting(true);
-    try {
-      await addComment(taskId, content.trim());
-      setContent("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run(taskId, content.trim());
+    if (result.ok) setContent("");
   }
 
   return (
@@ -78,8 +71,8 @@ export function CommentSection({
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
-        <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? "Envoi..." : "Commenter"}
+        <Button size="sm" onClick={handleSubmit} disabled={isPending}>
+          {isPending ? "Envoi..." : "Commenter"}
         </Button>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createLeave } from "@/actions/calendar.actions";
 import { createLeaveSchema, type CreateLeaveInput } from "@/lib/validations/calendar.schema";
 import { Button } from "@/components/ui/button";
@@ -32,20 +32,18 @@ export function LeaveFormDialog() {
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateLeaveInput>({
     resolver: zodResolver(createLeaveSchema),
     defaultValues: { type: "CONGE_PAYE" },
   });
+  const { run: submit, isPending } = useAction(createLeave, { successMessage: "Demande de congé envoyée." });
 
   async function onSubmit(data: CreateLeaveInput) {
-    try {
-      await createLeave(data);
-      toast.success("Demande de congé envoyée.");
+    const result = await submit(data);
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la demande.");
     }
   }
 
@@ -98,8 +96,8 @@ export function LeaveFormDialog() {
             <Label htmlFor="motif">Motif (optionnel)</Label>
             <Input id="motif" {...register("motif")} />
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Envoi..." : "Envoyer la demande"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Envoi..." : "Envoyer la demande"}
           </Button>
         </form>
       </DialogContent>

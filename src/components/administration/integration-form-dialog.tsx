@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createIntegration } from "@/actions/integration.actions";
 import { createIntegrationSchema, type CreateIntegrationInput } from "@/lib/validations/integration.schema";
 import { Button } from "@/components/ui/button";
@@ -39,17 +39,15 @@ export function IntegrationFormDialog() {
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateIntegrationInput>({ resolver: zodResolver(createIntegrationSchema) });
+  const { run: submit, isPending } = useAction(createIntegration, { successMessage: "Intégration créée." });
 
   async function onSubmit(data: CreateIntegrationInput) {
-    try {
-      await createIntegration(data);
-      toast.success("Intégration créée.");
+    const result = await submit(data);
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -99,8 +97,8 @@ export function IntegrationFormDialog() {
             <Label htmlFor="description">Description</Label>
             <Input id="description" {...register("description")} />
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer"}
           </Button>
         </form>
       </DialogContent>

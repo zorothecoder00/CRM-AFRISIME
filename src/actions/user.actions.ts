@@ -24,6 +24,7 @@ export async function createUser(input: CreateUserInput) {
       passwordHash,
       roleId: data.roleId,
       departmentId: data.departmentId || undefined,
+      poste: data.poste || undefined,
     },
   });
 

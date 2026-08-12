@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addSectionComment } from "@/actions/project.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -21,19 +21,12 @@ export function SectionCommentSection({
   comments: SectionCommentData[];
 }) {
   const [content, setContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(addSectionComment);
 
   async function handleSubmit() {
     if (!content.trim()) return;
-    setIsSubmitting(true);
-    try {
-      await addSectionComment({ sectionId, content: content.trim() });
-      setContent("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run({ sectionId, content: content.trim() });
+    if (result.ok) setContent("");
   }
 
   return (
@@ -55,8 +48,8 @@ export function SectionCommentSection({
           onChange={(e) => setContent(e.target.value)}
           rows={2}
         />
-        <Button size="sm" onClick={handleSubmit} disabled={isSubmitting || !content.trim()}>
-          {isSubmitting ? "Envoi..." : "Commenter"}
+        <Button size="sm" onClick={handleSubmit} disabled={isPending || !content.trim()}>
+          {isPending ? "Envoi..." : "Commenter"}
         </Button>
       </div>
     </div>

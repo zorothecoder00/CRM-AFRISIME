@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createRule } from "@/actions/automation.actions";
 import { createRuleSchema, type CreateRuleInput } from "@/lib/validations/automation.schema";
 import { Button } from "@/components/ui/button";
@@ -48,21 +48,19 @@ export function RuleFormDialog({ projectId, users }: { projectId: string; users:
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateRuleInput>({
     resolver: zodResolver(createRuleSchema),
     defaultValues: { projectId, trigger: "TASK_COMPLETED", action: "NOTIFY_STAKEHOLDERS" },
   });
+  const { run: submit, isPending } = useAction(createRule, { successMessage: "Règle créée." });
 
   async function onSubmit(data: CreateRuleInput) {
-    try {
-      await createRule({ ...data, projectId });
-      toast.success("Règle créée.");
+    const result = await submit({ ...data, projectId });
+    if (result.ok) {
       reset();
       setAction("NOTIFY_STAKEHOLDERS");
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -170,8 +168,8 @@ export function RuleFormDialog({ projectId, users }: { projectId: string; users:
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer la règle"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer la règle"}
           </Button>
         </form>
       </DialogContent>

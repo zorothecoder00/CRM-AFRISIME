@@ -1,26 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { toggleRuleActive } from "@/actions/automation.actions";
 import { Switch } from "@/components/ui/switch";
 
 export function ToggleRuleButton({ ruleId, isActive }: { ruleId: string; isActive: boolean }) {
   const [checked, setChecked] = useState(isActive);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(toggleRuleActive);
 
   async function handleChange(next: boolean) {
     setChecked(next);
-    setIsSubmitting(true);
-    try {
-      await toggleRuleActive(ruleId, next);
-    } catch (err) {
-      setChecked(!next);
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run(ruleId, next);
+    if (!result.ok) setChecked(!next);
   }
 
-  return <Switch checked={checked} onCheckedChange={handleChange} disabled={isSubmitting} />;
+  return <Switch checked={checked} onCheckedChange={handleChange} disabled={isPending} />;
 }

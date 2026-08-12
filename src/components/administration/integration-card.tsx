@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateIntegrationStatus, deleteIntegration } from "@/actions/integration.actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, type CardAccent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,40 +28,33 @@ const STATUS_LABELS: Record<string, string> = {
   ERREUR: "Erreur",
 };
 
-const STATUS_VARIANT: Record<string, "default" | "outline" | "destructive"> = {
-  CONNECTE: "default",
-  DECONNECTE: "outline",
+const STATUS_VARIANT: Record<string, "success" | "secondary" | "destructive"> = {
+  CONNECTE: "success",
+  DECONNECTE: "secondary",
+  ERREUR: "destructive",
+};
+
+const STATUS_ACCENT: Record<string, CardAccent> = {
+  CONNECTE: "success",
+  DECONNECTE: "none",
   ERREUR: "destructive",
 };
 
 export function IntegrationCard({ integration }: { integration: IntegrationRow }) {
-  const [isPending, setIsPending] = useState(false);
+  const statusAction = useAction(updateIntegrationStatus);
+  const deleteAction = useAction(deleteIntegration, { successMessage: "Intégration supprimée." });
+  const isPending = statusAction.isPending || deleteAction.isPending;
 
   async function handleStatusChange(statut: string) {
-    setIsPending(true);
-    try {
-      await updateIntegrationStatus(integration.id, statut);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsPending(false);
-    }
+    await statusAction.run(integration.id, statut);
   }
 
   async function handleDelete() {
-    setIsPending(true);
-    try {
-      await deleteIntegration(integration.id);
-      toast.success("Intégration supprimée.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsPending(false);
-    }
+    await deleteAction.run(integration.id);
   }
 
   return (
-    <Card>
+    <Card accent={STATUS_ACCENT[integration.statut]}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">{integration.nom}</CardTitle>
         <Badge variant={STATUS_VARIANT[integration.statut]}>{STATUS_LABELS[integration.statut]}</Badge>

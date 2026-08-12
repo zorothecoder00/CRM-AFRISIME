@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateObjectiveStatus } from "@/actions/objective.actions";
 import {
   Select,
@@ -26,16 +26,12 @@ export function ObjectiveStatusSelect({
   initialStatut: string;
 }) {
   const [statut, setStatut] = useState(initialStatut);
+  const { run } = useAction(updateObjectiveStatus, { successMessage: "Statut mis à jour." });
 
   async function handleChange(next: string) {
     setStatut(next);
-    try {
-      await updateObjectiveStatus(objectiveId, next);
-      toast.success("Statut mis à jour.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-      setStatut(initialStatut);
-    }
+    const result = await run(objectiveId, next);
+    if (!result.ok) setStatut(initialStatut);
   }
 
   return (

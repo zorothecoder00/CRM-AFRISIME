@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PERMISSIONS } from "@/lib/permissions";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
@@ -12,10 +11,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) {
     redirect("/login");
   }
-
-  const canAccessAdministration = session.user.permissions.includes(
-    PERMISSIONS.ADMINISTRATION_ACCESS
-  );
 
   const [recentNotifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
@@ -28,13 +23,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen">
-      <Sidebar canAccessAdministration={canAccessAdministration} />
+      <Sidebar permissions={session.user.permissions} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar
           userName={session.user.name ?? session.user.email ?? ""}
           userImage={session.user.image}
           roleLabel={session.user.roleLabel}
-          canAccessAdministration={canAccessAdministration}
+          permissions={session.user.permissions}
           notifications={recentNotifications.map((n) => ({
             id: n.id,
             titre: n.titre,

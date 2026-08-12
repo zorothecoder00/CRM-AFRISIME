@@ -33,7 +33,7 @@ export function RuleList({ rules, canManage }: { rules: RuleData[]; canManage: b
   return (
     <div className="space-y-3">
       {rules.map((rule) => (
-        <Card key={rule.id}>
+        <Card key={rule.id} accent={rule.isActive ? "success" : "none"}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">{rule.nom}</CardTitle>
             {canManage && <ToggleRuleButton ruleId={rule.id} isActive={rule.isActive} />}

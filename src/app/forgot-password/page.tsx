@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,30 +11,27 @@ import { AuthShell } from "@/components/auth/auth-shell";
 
 const ACCENT = "#2a78d6";
 
+async function requestPasswordReset(email: string) {
+  const res = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error ?? "Une erreur est survenue.");
+  }
+}
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { run, isPending } = useAction(requestPasswordReset);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Une erreur est survenue.");
-      }
-      setSubmitted(true);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Une erreur est survenue.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run(email);
+    if (result.ok) setSubmitted(true);
   }
 
   return (
@@ -74,9 +71,9 @@ export default function ForgotPasswordPage() {
                 type="submit"
                 className="h-11 w-full rounded-xl text-white shadow-md shadow-[#2a78d6]/25 transition-transform hover:opacity-90 active:scale-[0.99]"
                 style={{ backgroundColor: ACCENT }}
-                disabled={isSubmitting}
+                disabled={isPending}
               >
-                {isSubmitting ? "Envoi..." : "Envoyer le lien"}
+                {isPending ? "Envoi..." : "Envoyer le lien"}
               </Button>
               <Button asChild variant="ghost" className="h-11 w-full rounded-xl">
                 <Link href="/login">Retour à la connexion</Link>

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checklist } from "@/components/tasks/checklist";
 import { CommentSection } from "@/components/tasks/comment-section";
@@ -98,8 +99,8 @@ export default async function TaskDetailPage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{task.titre}</h1>
-            <Badge variant="secondary">{STATUS_LABELS[task.statut]}</Badge>
-            <Badge variant="outline">{PRIORITY_LABELS[task.priorite]}</Badge>
+            <Badge variant={toneForStatus(task.statut)}>{STATUS_LABELS[task.statut]}</Badge>
+            <Badge variant={toneForPriority(task.priorite)}>{PRIORITY_LABELS[task.priorite]}</Badge>
           </div>
           <Link href={`/projets/${task.projectId}`} className="text-sm text-muted-foreground hover:underline">
             {task.project.nom}
@@ -179,7 +180,7 @@ export default async function TaskDetailPage({
       </div>
 
       <div className="space-y-6">
-        <Card>
+        <Card accent={accentForStatus(task.statut)}>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>

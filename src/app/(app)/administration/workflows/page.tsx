@@ -15,9 +15,14 @@ export default async function WorkflowsPage() {
     redirect("/dashboard");
   }
 
-  const [workflows, roles] = await Promise.all([
+  const [taskWorkflows, adminRequestWorkflows, roles] = await Promise.all([
     prisma.validationWorkflow.findMany({
       where: { entityType: "TASK" },
+      include: { steps: { orderBy: { ordre: "asc" } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.validationWorkflow.findMany({
+      where: { entityType: "ADMIN_REQUEST" },
       include: { steps: { orderBy: { ordre: "asc" } } },
       orderBy: { createdAt: "desc" },
     }),
@@ -31,13 +36,30 @@ export default async function WorkflowsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Circuits de validation</h1>
           <p className="text-sm text-muted-foreground">
-            Chaîne d&apos;approbateurs configurable pour la validation des tâches (cahier des
-            charges §9). Un seul circuit actif à la fois.
+            Chaîne d&apos;approbateurs configurable pour les tâches (cahier des charges §9) et
+            les demandes administratives (§VII/§VIII). Un seul circuit actif à la fois, par type.
           </p>
         </div>
         <WorkflowFormDialog roles={roles} />
       </div>
 
+      <WorkflowSection title="Tâches" workflows={taskWorkflows} />
+      <WorkflowSection title="Demandes administratives" workflows={adminRequestWorkflows} />
+    </div>
+  );
+}
+
+type WorkflowRow = {
+  id: string;
+  nom: string;
+  isActive: boolean;
+  steps: { id: string; ordre: number; approverRole: string; label: string | null }[];
+};
+
+function WorkflowSection({ title, workflows }: { title: string; workflows: WorkflowRow[] }) {
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h2>
       {workflows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Aucun circuit configuré.</p>
       ) : (

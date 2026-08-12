@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions";
+import { projectVisibilityWhere, taskVisibilityWhere } from "@/lib/portal-scope";
 import { Button } from "@/components/ui/button";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { TaskListView, type TaskRow } from "@/components/tasks/task-list-view";
@@ -27,18 +31,25 @@ export default async function TachesPage({
   searchParams: Promise<{ vue?: string; projetId?: string }>;
 }) {
   const { vue = "liste", projetId } = await searchParams;
+  const session = await getServerSession(authOptions);
+  const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
+  const taskScope = taskVisibilityWhere(session!.user.roleKey, session!.user.id);
+  const projectScope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
 
   const [tasks, projects, users, whiteboard] = await Promise.all([
     prisma.task.findMany({
-      where: projetId ? { projectId: projetId } : undefined,
+      where: { projectId: projetId || undefined, ...taskScope },
       include: { project: true, responsablePrincipal: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.project.findMany({
+      where: projectScope,
       include: { sections: { select: { id: true, nom: true } } },
       orderBy: { nom: "asc" },
     }),
-    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    canCreate
+      ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
     vue === "blanc" && projetId
       ? prisma.whiteboard.findUnique({ where: { projectId: projetId } })
       : Promise.resolve(null),
@@ -110,7 +121,7 @@ export default async function TachesPage({
               </Button>
             </Link>
           </div>
-          <TaskFormDialog projects={projectOptions} users={userOptions} />
+          {canCreate && <TaskFormDialog projects={projectOptions} users={userOptions} />}
         </div>
       </div>
 

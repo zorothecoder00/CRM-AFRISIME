@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { decideLeave } from "@/actions/calendar.actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,21 +24,18 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function PendingLeavesSection({ leaves }: { leaves: PendingLeave[] }) {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const approveAction = useAction(decideLeave, { successMessage: "Congé approuvé." });
+  const rejectAction = useAction(decideLeave, { successMessage: "Congé refusé." });
 
   async function handleDecide(leaveId: string, statut: "APPROUVE" | "REFUSE") {
     setPendingIds((prev) => new Set(prev).add(leaveId));
-    try {
-      await decideLeave({ leaveId, statut });
-      toast.success(statut === "APPROUVE" ? "Congé approuvé." : "Congé refusé.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setPendingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(leaveId);
-        return next;
-      });
-    }
+    const action = statut === "APPROUVE" ? approveAction : rejectAction;
+    await action.run({ leaveId, statut });
+    setPendingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(leaveId);
+      return next;
+    });
   }
 
   if (leaves.length === 0) {

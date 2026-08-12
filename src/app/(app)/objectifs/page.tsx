@@ -7,6 +7,7 @@ import type { ObjectivePeriod, ObjectiveScope } from "@/generated/prisma/enums";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
 import { ProgressBar } from "@/components/objectives/progress-bar";
 
@@ -120,7 +121,10 @@ export default async function ObjectifsPage({
 
           return (
             <Link key={objective.id} href={`/objectifs/${objective.id}`}>
-              <Card className="h-full transition-colors hover:bg-muted/50">
+              <Card
+                accent={accentForStatus(objective.statut)}
+                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              >
                 <CardHeader>
                   <CardTitle className="text-base">{objective.titre}</CardTitle>
                 </CardHeader>
@@ -128,7 +132,7 @@ export default async function ObjectifsPage({
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary">{PERIOD_LABELS[objective.periode]}</Badge>
                     <Badge variant="outline">{SCOPE_LABELS[objective.scope]}</Badge>
-                    <Badge variant="outline">{STATUS_LABELS[objective.statut]}</Badge>
+                    <Badge variant={toneForStatus(objective.statut)}>{STATUS_LABELS[objective.statut]}</Badge>
                   </div>
                   {target && <p className="text-sm text-muted-foreground">{target}</p>}
                   <ProgressBar value={progress} />

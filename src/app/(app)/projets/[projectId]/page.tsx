@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,7 +46,7 @@ export default async function ProjectDetailPage({
   const [project, sections, tasks, users, folders, rootDocuments, rules] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
-      include: { department: true, responsable: true },
+      include: { department: true, responsable: true, programme: true },
     }),
     prisma.projectSection.findMany({
       where: { projectId },
@@ -154,7 +155,7 @@ export default async function ProjectDetailPage({
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{project.nom}</h1>
-          <Badge variant="secondary">{STATUS_LABELS[project.statut]}</Badge>
+          <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {project.description || "Pas de description."}
@@ -171,12 +172,13 @@ export default async function ProjectDetailPage({
         </TabsList>
 
         <TabsContent value="apercu" className="mt-4">
-          <Card>
+          <Card accent={accentForStatus(project.statut)}>
             <CardHeader>
               <CardTitle className="text-base">Informations générales</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm md:grid-cols-2">
               <Info label="Objectif" value={project.objectif || "—"} />
+              <Info label="Programme" value={project.programme?.nom || "—"} />
               <Info label="Responsable" value={project.responsable.name} />
               <Info label="Département" value={project.department.name} />
               <Info label="Priorité" value={project.priorite} />
@@ -214,7 +216,7 @@ export default async function ProjectDetailPage({
                   <span className="text-xs text-muted-foreground">
                     {task.responsablePrincipal.name}
                   </span>
-                  <Badge variant="outline">{TASK_STATUS_LABELS[task.statut]}</Badge>
+                  <Badge variant={toneForStatus(task.statut)}>{TASK_STATUS_LABELS[task.statut]}</Badge>
                 </div>
               </Link>
             ))}

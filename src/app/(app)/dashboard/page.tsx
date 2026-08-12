@@ -11,6 +11,18 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import { objectiveProgress } from "@/lib/objective-progress";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { computeWorkload } from "@/lib/workload";
+import { cn } from "@/lib/utils";
+
+// Ligne cliquable des widgets du dashboard : fond legerement teinte (au lieu
+// de blanc sur blanc) + effet de survol anime (leger soulevement, halo
+// colore). `block` par defaut pour ne pas casser les listes dont le contenu
+// s'empile (titre + apercu sur plusieurs lignes) ; combiner avec "flex ..."
+// pour les lignes sur une seule ligne (titre + meta a droite).
+const ROW_LINK =
+  "block rounded-lg border border-transparent bg-muted/40 px-3 py-2.5 text-sm ring-1 ring-transparent transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5 hover:shadow-sm hover:ring-primary/10";
+
+// Meme traitement de surface, sans interaction (evenements/conges : pas de lien).
+const STATIC_ROW = "flex justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm";
 
 const ACTION_LABELS: Record<string, string> = {
   "task.created": "a créé une tâche",
@@ -237,7 +249,7 @@ export default async function DashboardPage() {
           <KpiCard
             label="Mon taux d'occupation"
             value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
-            className={myWorkload?.enSurcharge ? "border-destructive" : undefined}
+            accent={myWorkload?.enSurcharge ? "destructive" : undefined}
           />
           <KpiCard
             label="Ma disponibilité restante"
@@ -252,7 +264,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="À traiter">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+          <Card accent={myPendingApprovals.length > 0 ? "warning" : "none"}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes validations en attente</CardTitle>
               {myPendingApprovals.length > 0 && <Badge variant="destructive">{myPendingApprovals.length}</Badge>}
@@ -264,10 +276,7 @@ export default async function DashboardPage() {
                 <ul className="space-y-2">
                   {myPendingApprovals.map((a) => (
                     <li key={a.id}>
-                      <Link
-                        href={`/taches/${a.run.taskId}`}
-                        className="block rounded-md border p-2 text-sm hover:bg-muted"
-                      >
+                      <Link href={`/taches/${a.run.taskId}`} className={ROW_LINK}>
                         {a.run.task.titre}
                       </Link>
                     </li>
@@ -277,7 +286,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card accent={myNotifications.some((n) => !n.isRead) ? "info" : "none"}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes notifications</CardTitle>
               {myNotifications.some((n) => !n.isRead) && <Badge>Nouveau</Badge>}
@@ -291,7 +300,7 @@ export default async function DashboardPage() {
                     <li key={n.id}>
                       <Link
                         href={n.lien ?? "/notifications"}
-                        className={`block rounded-md border p-2 text-sm hover:bg-muted ${!n.isRead ? "font-medium" : "text-muted-foreground"}`}
+                        className={cn(ROW_LINK, !n.isRead ? "font-medium" : "text-muted-foreground")}
                       >
                         {n.titre}
                       </Link>
@@ -317,7 +326,7 @@ export default async function DashboardPage() {
                 <ul className="space-y-2">
                   {myMeetings.map((m) => (
                     <li key={m.id}>
-                      <Link href={`/reunions/${m.id}`} className="flex justify-between rounded-md border p-2 text-sm hover:bg-muted">
+                      <Link href={`/reunions/${m.id}`} className={cn(ROW_LINK, "flex items-center justify-between")}>
                         <span className="font-medium">{m.titre}</span>
                         <span className="text-xs text-muted-foreground">
                           {m.dateHeure.toLocaleDateString("fr-FR")}
@@ -340,13 +349,13 @@ export default async function DashboardPage() {
               ) : (
                 <ul className="space-y-2">
                   {myEvents.map((e) => (
-                    <li key={e.id} className="flex justify-between rounded-md border p-2 text-sm">
+                    <li key={e.id} className={STATIC_ROW}>
                       <span>{e.titre}</span>
                       <span className="text-xs text-muted-foreground">{e.dateDebut.toLocaleDateString("fr-FR")}</span>
                     </li>
                   ))}
                   {myLeaves.map((l) => (
-                    <li key={l.id} className="flex justify-between rounded-md border p-2 text-sm">
+                    <li key={l.id} className={STATIC_ROW}>
                       <span>Congé</span>
                       <span className="text-xs text-muted-foreground">{l.dateDebut.toLocaleDateString("fr-FR")}</span>
                     </li>
@@ -377,10 +386,7 @@ export default async function DashboardPage() {
                     const lastMessage = c.messages[0];
                     return (
                       <li key={c.id}>
-                        <Link
-                          href={`/messages/${c.id}`}
-                          className="block rounded-md border p-2 text-sm hover:bg-muted"
-                        >
+                        <Link href={`/messages/${c.id}`} className={ROW_LINK}>
                           <div className="font-medium">{c.nom || other || "Conversation"}</div>
                           {lastMessage && (
                             <div className="truncate text-xs text-muted-foreground">
@@ -407,7 +413,7 @@ export default async function DashboardPage() {
                 <ul className="space-y-2">
                   {myDocuments.map((d) => (
                     <li key={d.id}>
-                      <Link href={`/documents/${d.id}`} className="block rounded-md border p-2 text-sm hover:bg-muted">
+                      <Link href={`/documents/${d.id}`} className={ROW_LINK}>
                         {d.nom}
                       </Link>
                     </li>
@@ -434,7 +440,7 @@ export default async function DashboardPage() {
                     <li key={project.id}>
                       <Link
                         href={`/projets/${project.id}`}
-                        className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted"
+                        className={cn(ROW_LINK, "flex items-center justify-between")}
                       >
                         <span className="font-medium">{project.nom}</span>
                         <Badge variant="outline">{project.avancement}%</Badge>
@@ -464,7 +470,7 @@ export default async function DashboardPage() {
                     );
                     return (
                       <li key={objective.id}>
-                        <Link href={`/objectifs/${objective.id}`} className="block rounded-md border p-3 text-sm hover:bg-muted">
+                        <Link href={`/objectifs/${objective.id}`} className={ROW_LINK}>
                           <div className="mb-1 flex items-center justify-between">
                             <span className="font-medium">{objective.titre}</span>
                             <span className="text-xs text-muted-foreground">{progress}%</span>
@@ -537,7 +543,7 @@ function TaskWidget({
   highlight?: boolean;
 }) {
   return (
-    <Card>
+    <Card accent={highlight ? "destructive" : "info"}>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
@@ -548,10 +554,7 @@ function TaskWidget({
           <ul className="space-y-2">
             {tasks.map((task) => (
               <li key={task.id}>
-                <Link
-                  href={`/taches/${task.id}`}
-                  className="flex flex-col rounded-md border p-2 text-sm hover:bg-muted"
-                >
+                <Link href={`/taches/${task.id}`} className={cn(ROW_LINK, "flex flex-col")}>
                   <span className={highlight ? "font-medium text-destructive" : "font-medium"}>
                     {task.titre}
                   </span>

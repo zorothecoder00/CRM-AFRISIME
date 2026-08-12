@@ -8,6 +8,7 @@ import { FolderTree, type FolderNode } from "@/components/documents/folder-tree"
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
+import { accentForStatus } from "@/lib/status-tone";
 
 const MIME_GROUPS: Record<string, string[]> = {
   pdf: ["application/pdf"],
@@ -135,7 +136,10 @@ export default async function DocumentsPage({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link key={p.id} href={`/documents?projetId=${p.id}`}>
-              <Card className="h-full transition-colors hover:bg-muted/50">
+              <Card
+                accent={accentForStatus(p.statut)}
+                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              >
                 <CardHeader>
                   <CardTitle className="text-base">{p.nom}</CardTitle>
                 </CardHeader>

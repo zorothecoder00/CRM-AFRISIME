@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addIndicator } from "@/actions/objective.actions";
 import { addIndicatorSchema, type AddIndicatorInput } from "@/lib/validations/objective.schema";
 import { Button } from "@/components/ui/button";
@@ -24,20 +24,18 @@ export function AddIndicatorDialog({ objectiveId }: { objectiveId: string }) {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<AddIndicatorInput>({
     resolver: zodResolver(addIndicatorSchema),
     defaultValues: { objectiveId },
   });
+  const { run: submit, isPending } = useAction(addIndicator, { successMessage: "Indicateur ajouté." });
 
   async function onSubmit(data: AddIndicatorInput) {
-    try {
-      await addIndicator({ ...data, objectiveId });
-      toast.success("Indicateur ajouté.");
+    const result = await submit({ ...data, objectiveId });
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'ajout.");
     }
   }
 
@@ -72,8 +70,8 @@ export function AddIndicatorDialog({ objectiveId }: { objectiveId: string }) {
               <Input id="unite" placeholder="%, €, tâches..." {...register("unite")} />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Ajout..." : "Ajouter"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Ajout..." : "Ajouter"}
           </Button>
         </form>
       </DialogContent>

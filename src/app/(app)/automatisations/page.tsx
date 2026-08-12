@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
 import { RuleList, type RuleData } from "@/components/automation/rule-list";
+import { accentForStatus } from "@/lib/status-tone";
 
 export default async function AutomatisationsPage({
   searchParams,
@@ -25,7 +26,10 @@ export default async function AutomatisationsPage({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link key={p.id} href={`/automatisations?projetId=${p.id}`}>
-              <Card className="h-full transition-colors hover:bg-muted/50">
+              <Card
+                accent={accentForStatus(p.statut)}
+                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              >
                 <CardHeader>
                   <CardTitle className="text-base">{p.nom}</CardTitle>
                 </CardHeader>

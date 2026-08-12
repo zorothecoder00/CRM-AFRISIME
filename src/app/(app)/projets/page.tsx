@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions";
+import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -20,13 +25,22 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 export default async function ProjetsPage() {
+  const session = await getServerSession(authOptions);
+  const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
+  const where = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
+
   const [projects, departments, users] = await Promise.all([
     prisma.project.findMany({
+      where,
       include: { department: true, responsable: true },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.department.findMany({ orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    canCreate
+      ? prisma.department.findMany({ orderBy: { name: "asc" } })
+      : Promise.resolve([]),
+    canCreate
+      ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -38,16 +52,21 @@ export default async function ProjetsPage() {
             {projects.length} projet(s)
           </p>
         </div>
-        <ProjectFormDialog
-          departments={departments.map((d) => ({ id: d.id, label: d.name }))}
-          users={users.map((u) => ({ id: u.id, label: u.name }))}
-        />
+        {canCreate && (
+          <ProjectFormDialog
+            departments={departments.map((d) => ({ id: d.id, label: d.name }))}
+            users={users.map((u) => ({ id: u.id, label: u.name }))}
+          />
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
           <Link key={project.id} href={`/projets/${project.id}`}>
-            <Card className="h-full transition-colors hover:bg-muted/50">
+            <Card
+              accent={accentForStatus(project.statut)}
+              className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+            >
               <CardHeader>
                 <CardTitle className="text-base">{project.nom}</CardTitle>
               </CardHeader>
@@ -56,8 +75,8 @@ export default async function ProjetsPage() {
                   {project.description || "Pas de description."}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">{STATUS_LABELS[project.statut]}</Badge>
-                  <Badge variant="outline">{PRIORITY_LABELS[project.priorite]}</Badge>
+                  <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
+                  <Badge variant={toneForPriority(project.priorite)}>{PRIORITY_LABELS[project.priorite]}</Badge>
                   <Badge variant="outline">{project.department.name}</Badge>
                 </div>
                 <div className="text-xs text-muted-foreground">

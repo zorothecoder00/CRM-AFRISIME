@@ -107,6 +107,18 @@ export async function sendMessage(input: SendMessageInput) {
   return message;
 }
 
+/** Marque une conversation comme lue par l'utilisateur courant (appele a l'ouverture du fil). */
+export async function markConversationRead(conversationId: string) {
+  const session = await requireSession();
+
+  await prisma.conversationParticipant.update({
+    where: { conversationId_userId: { conversationId, userId: session.user.id } },
+    data: { lastReadAt: new Date() },
+  });
+
+  revalidatePath("/messages");
+}
+
 export async function toggleReaction(input: AddReactionInput) {
   const session = await requireSession();
 

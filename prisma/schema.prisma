@@ -153,6 +153,25 @@ enum NotificationType {
 // est la decision prise a une etape donnee de cette instance.
 enum ValidationEntityType {
   TASK
+  ADMIN_REQUEST
+}
+
+// Demandes administratives generiques (cahier des charges §VII/§VIII) : tout
+// sauf les conges, qui restent geres par le modele Leave dedie existant.
+enum AdminRequestType {
+  ACHAT
+  MISSION
+  DECAISSEMENT
+  MATERIEL
+  AUTORISATION
+  RECRUTEMENT
+  AUTRE
+}
+
+enum AdminRequestStatus {
+  EN_ATTENTE
+  APPROUVEE
+  REJETEE
 }
 
 enum ValidationStepStatus {
@@ -219,6 +238,9 @@ model User {
   role                       Role        @relation(fields: [roleId], references: [id])
   departmentId               String?
   department                 Department? @relation(fields: [departmentId], references: [id])
+  // Poste / fonction (cahier des charges §I, "Postes / Fonctions") — libelle
+  // libre, distinct du Role qui porte les permissions.
+  poste                      String?
   isActive                   Boolean     @default(true)
   // Base de calcul du taux d'occupation (cahier des charges §14).
   capaciteHebdomadaireHeures Decimal     @default(35) @db.Decimal(5, 2)
@@ -231,44 +253,64 @@ model User {
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
-  projectsOwned              Project[]                  @relation("ProjectResponsable")
-  projectsCreated            Project[]                  @relation("ProjectCreatedBy")
-  projectMemberships         ProjectMember[]
-  tasksOwned                 Task[]                     @relation("TaskResponsablePrincipal")
-  tasksCreated               Task[]                     @relation("TaskCreatedBy")
-  taskAssignments            TaskAssignee[]
-  comments                   TaskComment[]
-  auditLogs                  AuditLog[]
-  meetingsCreated            Meeting[]                  @relation("MeetingCreatedBy")
-  meetingParticipations      MeetingParticipant[]
-  meetingDecisionsOwned      MeetingDecision[]          @relation("MeetingDecisionResponsable")
-  documentFoldersCreated     DocumentFolder[]           @relation("DocumentFolderCreatedBy")
-  documentsUploaded          Document[]                 @relation("DocumentUploadedBy")
-  documentVersionsCreated    DocumentVersion[]          @relation("DocumentVersionCreatedBy")
-  leaveRequests              Leave[]                    @relation("LeaveRequestedBy")
-  leaveDecisions             Leave[]                    @relation("LeaveDecidedBy")
-  eventsCreated              Event[]                    @relation("EventCreatedBy")
-  objectivesOwned            Objective[]                @relation("ObjectiveUser")
-  objectivesCreated          Objective[]                @relation("ObjectiveCreatedBy")
-  conversationsCreated       Conversation[]             @relation("ConversationCreatedBy")
-  conversationMemberships    ConversationParticipant[]
-  messagesSent               Message[]                  @relation("MessageAuthor")
-  reactions                  Reaction[]
-  notifications              Notification[]
-  automationRulesCreated     AutomationRule[]           @relation("AutomationRuleCreatedBy")
-  automationNextTaskFor      AutomationRule[]           @relation("AutomationNextTaskResponsable")
-  dashboardPreference        DashboardWidgetPreference?
-  integrationsCreated        Integration[]              @relation("IntegrationCreatedBy")
-  passwordResetTokens        PasswordResetToken[]
-  validationWorkflowsCreated ValidationWorkflow[]       @relation("ValidationWorkflowCreatedBy")
-  taskValidationsSubmitted   TaskValidationRun[]        @relation("TaskValidationSubmittedBy")
-  taskApprovalsDecided       TaskApproval[]             @relation("TaskApprovalApprover")
-  permissionOverrides        PermissionOverride[]       @relation("PermissionOverrideTarget")
-  permissionOverridesCreated PermissionOverride[]       @relation("PermissionOverrideCreatedBy")
-  sectionsResponsable        ProjectSection[]           @relation("SectionResponsable")
-  sectionComments            SectionComment[]           @relation("SectionCommentAuthor")
-  whiteboardsUpdated         Whiteboard[]               @relation("WhiteboardUpdatedBy")
-  documentAccessGrants       DocumentAccess[]           @relation("DocumentAccessGrantee")
+  projectsOwned                    Project[]                   @relation("ProjectResponsable")
+  projectsCreated                  Project[]                   @relation("ProjectCreatedBy")
+  projectMemberships               ProjectMember[]
+  tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
+  tasksCreated                     Task[]                      @relation("TaskCreatedBy")
+  taskAssignments                  TaskAssignee[]
+  comments                         TaskComment[]
+  auditLogs                        AuditLog[]
+  meetingsCreated                  Meeting[]                   @relation("MeetingCreatedBy")
+  meetingParticipations            MeetingParticipant[]
+  meetingDecisionsOwned            MeetingDecision[]           @relation("MeetingDecisionResponsable")
+  documentFoldersCreated           DocumentFolder[]            @relation("DocumentFolderCreatedBy")
+  documentsUploaded                Document[]                  @relation("DocumentUploadedBy")
+  documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
+  leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
+  leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
+  eventsCreated                    Event[]                     @relation("EventCreatedBy")
+  objectivesOwned                  Objective[]                 @relation("ObjectiveUser")
+  objectivesCreated                Objective[]                 @relation("ObjectiveCreatedBy")
+  conversationsCreated             Conversation[]              @relation("ConversationCreatedBy")
+  conversationMemberships          ConversationParticipant[]
+  messagesSent                     Message[]                   @relation("MessageAuthor")
+  reactions                        Reaction[]
+  notifications                    Notification[]
+  automationRulesCreated           AutomationRule[]            @relation("AutomationRuleCreatedBy")
+  automationNextTaskFor            AutomationRule[]            @relation("AutomationNextTaskResponsable")
+  dashboardPreference              DashboardWidgetPreference?
+  integrationsCreated              Integration[]               @relation("IntegrationCreatedBy")
+  passwordResetTokens              PasswordResetToken[]
+  validationWorkflowsCreated       ValidationWorkflow[]        @relation("ValidationWorkflowCreatedBy")
+  taskValidationsSubmitted         TaskValidationRun[]         @relation("TaskValidationSubmittedBy")
+  taskApprovalsDecided             TaskApproval[]              @relation("TaskApprovalApprover")
+  permissionOverrides              PermissionOverride[]        @relation("PermissionOverrideTarget")
+  permissionOverridesCreated       PermissionOverride[]        @relation("PermissionOverrideCreatedBy")
+  sectionsResponsable              ProjectSection[]            @relation("SectionResponsable")
+  sectionComments                  SectionComment[]            @relation("SectionCommentAuthor")
+  whiteboardsUpdated               Whiteboard[]                @relation("WhiteboardUpdatedBy")
+  documentAccessGrants             DocumentAccess[]            @relation("DocumentAccessGrantee")
+  crmOrganizationsOwned            CrmOrganization[]           @relation("CrmOrganizationOwner")
+  crmOrganizationsCreated          CrmOrganization[]           @relation("CrmOrganizationCreatedBy")
+  crmContactsOwned                 CrmContact[]                @relation("CrmContactOwner")
+  crmContactsCreated               CrmContact[]                @relation("CrmContactCreatedBy")
+  crmOpportunitiesOwned            CrmOpportunity[]            @relation("CrmOpportunityOwner")
+  crmOpportunitiesCreated          CrmOpportunity[]            @relation("CrmOpportunityCreatedBy")
+  crmInteractionsAuthored          CrmInteraction[]            @relation("CrmInteractionAuthor")
+  programmesOwned                  Programme[]                 @relation("ProgrammeResponsable")
+  programmesCreated                Programme[]                 @relation("ProgrammeCreatedBy")
+  adminRequestsCreated             AdminRequest[]              @relation("AdminRequestDemandeur")
+  adminRequestValidationsSubmitted AdminRequestValidationRun[] @relation("AdminRequestValidationSubmittedBy")
+  adminRequestApprovalsDecided     AdminRequestApproval[]      @relation("AdminRequestApprovalApprover")
+  plansOwned                       Plan[]                      @relation("PlanOwner")
+  plansCreated                     Plan[]                      @relation("PlanCreatedBy")
+  evaluationsRecues                Evaluation[]                @relation("EvaluationEvalue")
+  evaluationsMenees                Evaluation[]                @relation("EvaluationEvaluateur")
+  evaluationsCreees                Evaluation[]                @relation("EvaluationCreatedBy")
+  knowledgeCategoriesCreated        KnowledgeCategory[]         @relation("KnowledgeCategoryCreatedBy")
+  knowledgeArticlesAuthored         KnowledgeArticle[]          @relation("KnowledgeArticleAuthor")
+  portalAccountsInvited             PortalAccount[]             @relation("PortalAccountInvitedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -352,7 +394,84 @@ model Department {
   projects            Project[]
   objectives          Objective[]
   permissionOverrides PermissionOverride[]
+  adminRequests       AdminRequest[]
+  plans               Plan[]
+  evaluations         Evaluation[]
   createdAt           DateTime             @default(now())
+}
+
+// Cahier des charges §IV — planification multi-niveaux. STRATEGIQUE/ANNUEL
+// se placent au niveau organisation (departmentId nul) ou d'une direction ;
+// TRIMESTRIEL/MENSUEL sont plus souvent departementaux. `parentId` porte la
+// cascade (ex: un plan trimestriel rattache a son plan annuel).
+enum PlanNiveau {
+  STRATEGIQUE
+  ANNUEL
+  TRIMESTRIEL
+  MENSUEL
+}
+
+// Conteneur de planification (periode + budget indicatif + priorites), sous
+// lequel des Objectifs et des Programmes peuvent etre rattaches pour rendre
+// visible la cascade strategie -> objectifs -> travail. Reutilise
+// ProjectStatus pour le cycle de vie, comme Programme.
+model Plan {
+  id              String        @id @default(cuid())
+  nom             String
+  niveau          PlanNiveau
+  description     String?
+  dateDebut       DateTime
+  dateFin         DateTime
+  budgetIndicatif Decimal?      @db.Decimal(14, 2)
+  priorites       String?
+  statut          ProjectStatus @default(PLANIFIE)
+  // Nul = plan a l'echelle de toute l'organisation.
+  departmentId    String?
+  department      Department?   @relation(fields: [departmentId], references: [id])
+  parentId        String?
+  parent          Plan?         @relation("PlanHierarchy", fields: [parentId], references: [id])
+  children        Plan[]        @relation("PlanHierarchy")
+  ownerId         String
+  owner           User          @relation("PlanOwner", fields: [ownerId], references: [id])
+  createdById     String
+  createdBy       User          @relation("PlanCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  objectives Objective[]
+  programmes Programme[]
+
+  @@index([departmentId])
+  @@index([parentId])
+  @@index([niveau])
+}
+
+// Regroupe plusieurs projets sous une meme initiative strategique (cahier
+// des charges §V, ex: Programme "Expansion regionale" -> projets Benin,
+// Ghana, Cote d'Ivoire, Burkina Faso). Reutilise ProjectStatus (meme cycle
+// de vie planifie/en cours/en pause/termine/annule qu'un projet) plutot que
+// d'introduire un enum dedie.
+model Programme {
+  id            String        @id @default(cuid())
+  nom           String
+  description   String?
+  objectif      String?
+  responsableId String
+  responsable   User          @relation("ProgrammeResponsable", fields: [responsableId], references: [id])
+  statut        ProjectStatus @default(PLANIFIE)
+  budget        Decimal?      @db.Decimal(14, 2)
+  dateDebut     DateTime?
+  dateFin       DateTime?
+  planId        String?
+  plan          Plan?         @relation(fields: [planId], references: [id])
+  createdById   String
+  createdBy     User          @relation("ProgrammeCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  projects Project[]
+
+  @@index([responsableId])
 }
 
 model Project {
@@ -364,6 +483,8 @@ model Project {
   responsable   User            @relation("ProjectResponsable", fields: [responsableId], references: [id])
   departmentId  String
   department    Department      @relation(fields: [departmentId], references: [id])
+  programmeId   String?
+  programme     Programme?      @relation(fields: [programmeId], references: [id])
   priorite      ProjectPriority @default(MOYENNE)
   dateDebut     DateTime?
   dateFin       DateTime?
@@ -418,6 +539,191 @@ model ProjectMember {
   addedAt       DateTime          @default(now())
 
   @@unique([projectId, userId])
+}
+
+// ─── CRM relationnel ──────────────────────────────────────────────────────
+// Premier lot du module CRM (cahier des charges "AfriSime Work-Flow" §II) :
+// referentiel contacts/organisations + pipeline d'opportunites + historique
+// d'interactions. Volontairement pas encore relie a Project/Task (le champ
+// libre Project.organisation n'est pas transforme en relation ici) — prevu
+// comme lot separe une fois ce referentiel en place. Pas de suppression
+// (hard delete) : comme Project/Task, seuls des changements de statut.
+
+enum CrmOrganizationType {
+  ENTREPRISE
+  INSTITUTION
+  PARTENAIRE
+  FOURNISSEUR
+  INVESTISSEUR
+  AUTRE
+}
+
+enum CrmContactType {
+  CLIENT
+  PROSPECT
+  PARTENAIRE
+  FOURNISSEUR
+  CONSULTANT
+  PRESTATAIRE
+  CANDIDAT
+  MEMBRE
+  AUTRE
+}
+
+enum CrmOpportunityStatus {
+  NOUVEAU
+  QUALIFICATION
+  PROPOSITION
+  NEGOCIATION
+  GAGNEE
+  PERDUE
+}
+
+enum CrmInteractionType {
+  EMAIL
+  APPEL
+  WHATSAPP
+  REUNION
+  VISITE
+  NOTE
+}
+
+model CrmOrganization {
+  id          String              @id @default(cuid())
+  nom         String
+  type        CrmOrganizationType @default(ENTREPRISE)
+  secteur     String?
+  siteWeb     String?
+  telephone   String?
+  email       String?
+  adresse     String?
+  notes       String?
+  ownerId     String?
+  owner       User?               @relation("CrmOrganizationOwner", fields: [ownerId], references: [id])
+  createdById String
+  createdBy   User                @relation("CrmOrganizationCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  contacts      CrmContact[]
+  opportunities CrmOpportunity[]
+  interactions  CrmInteraction[]
+
+  @@index([ownerId])
+  @@index([nom])
+}
+
+model CrmContact {
+  id             String           @id @default(cuid())
+  prenom         String
+  nom            String
+  email          String?
+  telephone      String?
+  fonction       String?
+  type           CrmContactType   @default(PROSPECT)
+  source         String?
+  organizationId String?
+  organization   CrmOrganization? @relation(fields: [organizationId], references: [id])
+  notes          String?
+  ownerId        String?
+  owner          User?            @relation("CrmContactOwner", fields: [ownerId], references: [id])
+  createdById    String
+  createdBy      User             @relation("CrmContactCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  opportunities CrmOpportunity[]
+  interactions  CrmInteraction[]
+  portalAccount PortalAccount?
+
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([nom])
+}
+
+// Portail client (cahier des charges §II) — un contact CRM externe (un
+// client, sans compte User interne) obtient sa propre connexion pour suivre
+// ses opportunites et son historique d'echanges. Session separee du
+// systeme d'auth interne (cookie et JWT distincts, cf. src/lib/portal-auth.ts) :
+// ce n'est pas un User, pas de role/permissions, juste un acces en lecture
+// scope a son propre contact/organisation.
+model PortalAccount {
+  id           String    @id @default(cuid())
+  contactId    String    @unique
+  contact      CrmContact @relation(fields: [contactId], references: [id])
+  email        String    @unique
+  passwordHash String?
+  isActive     Boolean   @default(true)
+  invitedById  String
+  invitedBy    User      @relation("PortalAccountInvitedBy", fields: [invitedById], references: [id])
+  activatedAt  DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  inviteTokens PortalInviteToken[]
+}
+
+// Meme patron que PasswordResetToken : token a usage unique, seul le hash
+// est persiste.
+model PortalInviteToken {
+  id              String        @id @default(cuid())
+  portalAccountId String
+  portalAccount   PortalAccount @relation(fields: [portalAccountId], references: [id], onDelete: Cascade)
+  tokenHash       String        @unique
+  expiresAt       DateTime
+  usedAt          DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([portalAccountId])
+}
+
+model CrmOpportunity {
+  id                 String               @id @default(cuid())
+  nom                String
+  contactId          String?
+  contact            CrmContact?          @relation(fields: [contactId], references: [id])
+  organizationId     String?
+  organization       CrmOrganization?     @relation(fields: [organizationId], references: [id])
+  statut             CrmOpportunityStatus @default(NOUVEAU)
+  montantEstime      Decimal?             @db.Decimal(14, 2)
+  probabilite        Int?
+  source             String?
+  dateClotureEstimee DateTime?
+  raisonPerte        String?
+  notes              String?
+  ownerId            String
+  owner              User                 @relation("CrmOpportunityOwner", fields: [ownerId], references: [id])
+  createdById        String
+  createdBy          User                 @relation("CrmOpportunityCreatedBy", fields: [createdById], references: [id])
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  interactions CrmInteraction[]
+
+  @@index([contactId])
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([statut])
+}
+
+model CrmInteraction {
+  id              String             @id @default(cuid())
+  type            CrmInteractionType
+  contenu         String
+  dateInteraction DateTime           @default(now())
+  contactId       String?
+  contact         CrmContact?        @relation(fields: [contactId], references: [id])
+  organizationId  String?
+  organization    CrmOrganization?   @relation(fields: [organizationId], references: [id])
+  opportunityId   String?
+  opportunity     CrmOpportunity?    @relation(fields: [opportunityId], references: [id])
+  authorId        String
+  author          User               @relation("CrmInteractionAuthor", fields: [authorId], references: [id])
+  createdAt       DateTime           @default(now())
+
+  @@index([contactId])
+  @@index([organizationId])
+  @@index([opportunityId])
 }
 
 // Phase / Sous-phase / Lot — un seul modèle auto-référencé, discriminé par
@@ -574,8 +880,12 @@ model ValidationWorkflow {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
-  steps ValidationWorkflowStep[]
-  runs  TaskValidationRun[]
+  steps            ValidationWorkflowStep[]
+  runs             TaskValidationRun[]
+  // Meme catalogue de circuits que les taches, mais instances separees
+  // (voir AdminRequestValidationRun) : pas de relation polymorphe cote
+  // Prisma, donc deux relations plutot qu'une seule generique.
+  adminRequestRuns AdminRequestValidationRun[]
 
   @@index([entityType, isActive])
 }
@@ -590,7 +900,8 @@ model ValidationWorkflowStep {
   approverRole RoleKey
   label        String?
 
-  approvals TaskApproval[]
+  approvals             TaskApproval[]
+  adminRequestApprovals AdminRequestApproval[]
 
   @@unique([workflowId, ordre])
 }
@@ -630,6 +941,70 @@ model TaskApproval {
   commentaire String?
   decidedAt   DateTime?
   createdAt   DateTime               @default(now())
+
+  @@unique([runId, stepId])
+  @@index([runId])
+  @@index([approverId])
+}
+
+// Demande administrative generique (achat, mission, decaissement, materiel,
+// autorisation, recrutement...) soumise immediatement au circuit de
+// validation actif de type ADMIN_REQUEST des sa creation (pas d'etat
+// brouillon, comme Leave). Les conges restent geres par Leave, pas ici.
+model AdminRequest {
+  id           String             @id @default(cuid())
+  type         AdminRequestType
+  titre        String
+  description  String?
+  montant      Decimal?           @db.Decimal(14, 2)
+  dateDebut    DateTime?
+  dateFin      DateTime?
+  demandeurId  String
+  demandeur    User               @relation("AdminRequestDemandeur", fields: [demandeurId], references: [id])
+  departmentId String?
+  department   Department?        @relation(fields: [departmentId], references: [id])
+  statut       AdminRequestStatus @default(EN_ATTENTE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  validationRun AdminRequestValidationRun?
+
+  @@index([demandeurId])
+  @@index([statut])
+}
+
+// Miroir exact de TaskValidationRun, pour AdminRequest.
+model AdminRequestValidationRun {
+  id             String              @id @default(cuid())
+  adminRequestId String              @unique
+  adminRequest   AdminRequest        @relation(fields: [adminRequestId], references: [id])
+  workflowId     String
+  workflow       ValidationWorkflow  @relation(fields: [workflowId], references: [id])
+  statut         ValidationRunStatus @default(EN_COURS)
+  currentOrdre   Int                 @default(1)
+  submittedById  String
+  submittedBy    User                @relation("AdminRequestValidationSubmittedBy", fields: [submittedById], references: [id])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  approvals AdminRequestApproval[]
+
+  @@index([adminRequestId])
+}
+
+// Miroir exact de TaskApproval, pour AdminRequestValidationRun.
+model AdminRequestApproval {
+  id          String                    @id @default(cuid())
+  runId       String
+  run         AdminRequestValidationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stepId      String
+  step        ValidationWorkflowStep    @relation(fields: [stepId], references: [id])
+  statut      ValidationStepStatus      @default(EN_ATTENTE)
+  approverId  String?
+  approver    User?                     @relation("AdminRequestApprovalApprover", fields: [approverId], references: [id])
+  commentaire String?
+  decidedAt   DateTime?
+  createdAt   DateTime                  @default(now())
 
   @@unique([runId, stepId])
   @@index([runId])
@@ -780,6 +1155,52 @@ model DocumentVersion {
   @@index([documentId])
 }
 
+// Base de connaissances (cahier des charges §13) — wiki d'entreprise,
+// distinct des Document (fichiers uploadés, toujours rattachés a un projet) :
+// un article est du contenu texte libre, rattache a l'organisation entiere
+// via un arbre de categories (meme principe self-referential que
+// DocumentFolder/Department), pas a un projet. Pas d'historique de versions
+// separe (contrairement a DocumentVersion) : editer un article le modifie
+// en place, updatedAt suffit pour un wiki interne.
+enum KnowledgeArticleStatus {
+  BROUILLON
+  PUBLIE
+}
+
+model KnowledgeCategory {
+  id          String              @id @default(cuid())
+  nom         String
+  parentId    String?
+  parent      KnowledgeCategory?  @relation("KnowledgeCategoryHierarchy", fields: [parentId], references: [id])
+  children    KnowledgeCategory[] @relation("KnowledgeCategoryHierarchy")
+  createdById String
+  createdBy   User                @relation("KnowledgeCategoryCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime            @default(now())
+
+  articles KnowledgeArticle[]
+
+  @@index([parentId])
+}
+
+model KnowledgeArticle {
+  id          String                 @id @default(cuid())
+  titre       String
+  content     String
+  tags        String?
+  statut      KnowledgeArticleStatus @default(BROUILLON)
+  categoryId  String?
+  category    KnowledgeCategory?     @relation(fields: [categoryId], references: [id])
+  authorId    String
+  author      User                   @relation("KnowledgeArticleAuthor", fields: [authorId], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([statut])
+}
+
 // Congé (cahier des charges §12 : le calendrier consolide tâches, réunions,
 // congés et événements). Validation simple par une personne habilitée
 // (leave.manage), pas un circuit de validation à plusieurs étapes.
@@ -839,6 +1260,8 @@ model Objective {
   project      Project?        @relation(fields: [projectId], references: [id])
   departmentId String?
   department   Department?     @relation(fields: [departmentId], references: [id])
+  planId       String?
+  plan         Plan?           @relation(fields: [planId], references: [id])
   createdById  String
   createdBy    User            @relation("ObjectiveCreatedBy", fields: [createdById], references: [id])
   createdAt    DateTime        @default(now())
@@ -849,6 +1272,7 @@ model Objective {
   @@index([userId])
   @@index([projectId])
   @@index([departmentId])
+  @@index([planId])
   @@index([periode])
 }
 
@@ -865,6 +1289,70 @@ model Indicator {
   updatedAt      DateTime  @updatedAt
 
   @@index([objectiveId])
+}
+
+// Cahier des charges §14 — évaluation de performance périodique. Flux à
+// deux parties (évaluateur note, évalué accuse réception) sur le modèle de
+// Leave plutôt que le circuit ValidationWorkflow multi-étapes : pas besoin
+// d'une chaîne de rôles configurable ici, juste un aller-retour.
+enum EvaluationPeriode {
+  ANNUELLE
+  SEMESTRIELLE
+  TRIMESTRIELLE
+}
+
+enum EvaluationStatus {
+  BROUILLON
+  SOUMISE
+  ACCUSE_RECEPTION
+}
+
+model Evaluation {
+  id                    String            @id @default(cuid())
+  periode               EvaluationPeriode
+  dateDebut             DateTime
+  dateFin               DateTime
+  evalueId              String
+  evalue                User              @relation("EvaluationEvalue", fields: [evalueId], references: [id])
+  evaluateurId          String
+  evaluateur            User              @relation("EvaluationEvaluateur", fields: [evaluateurId], references: [id])
+  // Departement de l'evalue au moment de la creation — fige pour les
+  // rapports meme si l'evalue change ensuite de departement.
+  departmentId          String?
+  department            Department?       @relation(fields: [departmentId], references: [id])
+  pointsForts           String?
+  axesAmelioration      String?
+  commentaireEvaluateur String?
+  commentaireEvalue     String?
+  scoreGlobal           Decimal?          @db.Decimal(3, 2)
+  statut                EvaluationStatus  @default(BROUILLON)
+  dateSoumission        DateTime?
+  dateAccuseReception   DateTime?
+  createdById           String
+  createdBy             User              @relation("EvaluationCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  criteres EvaluationCritere[]
+
+  @@index([evalueId])
+  @@index([evaluateurId])
+  @@index([departmentId])
+  @@index([dateDebut])
+}
+
+// Critère individuel noté (ex : "Qualité du travail", "Ponctualité") —
+// même principe qu'Indicator, mais pour une évaluation.
+model EvaluationCritere {
+  id           String     @id @default(cuid())
+  evaluationId String
+  evaluation   Evaluation @relation(fields: [evaluationId], references: [id])
+  libelle      String
+  note         Decimal    @db.Decimal(3, 2)
+  commentaire  String?
+  createdAt    DateTime   @default(now())
+
+  @@index([evaluationId])
 }
 
 // Messagerie interne (cahier des charges §11). Une conversation à deux
@@ -888,6 +1376,11 @@ model ConversationParticipant {
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   user           User         @relation(fields: [userId], references: [id])
   joinedAt       DateTime     @default(now())
+  // Horodatage de la derniere ouverture de la conversation par ce
+  // participant (mis a jour par markConversationRead). Les messages des
+  // autres posterieurs a cette date sont "non lus". Null tant que la
+  // conversation n'a jamais ete ouverte.
+  lastReadAt     DateTime?
 
   @@id([conversationId, userId])
 }

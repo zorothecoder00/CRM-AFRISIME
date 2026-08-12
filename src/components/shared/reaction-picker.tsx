@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { toggleReaction } from "@/actions/message.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ export function ReactionPicker({
   currentUserId: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { run } = useAction(toggleReaction);
 
   const grouped = new Map<string, ReactionData[]>();
   for (const r of reactions) {
@@ -35,11 +36,7 @@ export function ReactionPicker({
 
   async function handleToggle(emoji: string) {
     setOpen(false);
-    try {
-      await toggleReaction({ emoji, taskCommentId, messageId });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    }
+    await run({ emoji, taskCommentId, messageId });
   }
 
   return (

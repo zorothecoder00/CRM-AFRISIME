@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { grantDocumentAccess, revokeDocumentAccess } from "@/actions/document.actions";
 import { X } from "lucide-react";
 import {
@@ -24,28 +23,16 @@ export function DocumentAccessManager({
   users: Option[];
   grantedUsers: Option[];
 }) {
-  const [pending, setPending] = useState(false);
+  const grantAction = useAction(grantDocumentAccess);
+  const revokeAction = useAction(revokeDocumentAccess);
+  const pending = grantAction.isPending || revokeAction.isPending;
 
   async function handleAdd(userId: string) {
-    setPending(true);
-    try {
-      await grantDocumentAccess(documentId, userId);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setPending(false);
-    }
+    await grantAction.run(documentId, userId);
   }
 
   async function handleRemove(userId: string) {
-    setPending(true);
-    try {
-      await revokeDocumentAccess(documentId, userId);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setPending(false);
-    }
+    await revokeAction.run(documentId, userId);
   }
 
   const remainingUsers = users.filter((u) => !grantedUsers.some((g) => g.id === u.id));

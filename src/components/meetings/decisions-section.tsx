@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addDecision } from "@/actions/meeting.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,26 +37,22 @@ export function DecisionsSection({
   const [description, setDescription] = useState("");
   const [responsableId, setResponsableId] = useState<string | undefined>();
   const [echeance, setEcheance] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(addDecision, {
+    successMessage: "Décision ajoutée, tâche créée automatiquement.",
+  });
 
   async function handleAdd() {
     if (!description.trim() || !responsableId) return;
-    setIsSubmitting(true);
-    try {
-      await addDecision({
-        meetingId,
-        description: description.trim(),
-        responsableId,
-        echeance: echeance || undefined,
-      });
+    const result = await run({
+      meetingId,
+      description: description.trim(),
+      responsableId,
+      echeance: echeance || undefined,
+    });
+    if (result.ok) {
       setDescription("");
       setResponsableId(undefined);
       setEcheance("");
-      toast.success("Décision ajoutée, tâche créée automatiquement.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -104,8 +100,8 @@ export function DecisionsSection({
         <p className="text-xs text-muted-foreground">
           Une tâche est automatiquement créée et assignée au responsable choisi.
         </p>
-        <Button size="sm" onClick={handleAdd} disabled={isSubmitting || !description.trim() || !responsableId}>
-          {isSubmitting ? "Ajout..." : "Ajouter la décision"}
+        <Button size="sm" onClick={handleAdd} disabled={isPending || !description.trim() || !responsableId}>
+          {isPending ? "Ajout..." : "Ajouter la décision"}
         </Button>
       </div>
     </div>

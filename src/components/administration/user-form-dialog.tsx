@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createUser } from "@/actions/user.actions";
 import { createUserSchema, type CreateUserInput } from "@/lib/validations/user.schema";
 import { Button } from "@/components/ui/button";
@@ -40,17 +40,15 @@ export function UserFormDialog({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateUserInput>({ resolver: zodResolver(createUserSchema) });
+  const { run: submit, isPending } = useAction(createUser, { successMessage: "Utilisateur créé." });
 
   async function onSubmit(data: CreateUserInput) {
-    try {
-      await createUser(data);
-      toast.success("Utilisateur créé.");
+    const result = await submit(data);
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -101,6 +99,10 @@ export function UserFormDialog({
             {errors.roleId && <p className="text-sm text-destructive">{errors.roleId.message}</p>}
           </div>
           <div className="space-y-2">
+            <Label htmlFor="poste">Poste / fonction</Label>
+            <Input id="poste" placeholder="Ex : Responsable communication" {...register("poste")} />
+          </div>
+          <div className="space-y-2">
             <Label>Département</Label>
             <Select onValueChange={(v) => setValue("departmentId", v)}>
               <SelectTrigger>
@@ -115,8 +117,8 @@ export function UserFormDialog({
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer"}
           </Button>
         </form>
       </DialogContent>

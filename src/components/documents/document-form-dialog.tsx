@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createDocument } from "@/actions/document.actions";
 import { createDocumentSchema, type CreateDocumentInput } from "@/lib/validations/document.schema";
 import { Button } from "@/components/ui/button";
@@ -54,21 +55,19 @@ export function DocumentFormDialog({
     setValue,
     getValues,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateDocumentInput>({
     resolver: zodResolver(createDocumentSchema),
     defaultValues: { projectId, folderId: currentFolderId, sectionId, taskId, meetingId },
   });
+  const { run: submit, isPending } = useAction(createDocument, { successMessage: "Document ajouté." });
 
   async function onSubmit(data: CreateDocumentInput) {
-    try {
-      await createDocument({ ...data, projectId, sectionId, taskId, meetingId });
-      toast.success("Document ajouté.");
+    const result = await submit({ ...data, projectId, sectionId, taskId, meetingId });
+    if (result.ok) {
       reset();
       setUploadedFileName(null);
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'ajout.");
     }
   }
 
@@ -146,8 +145,8 @@ export function DocumentFormDialog({
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Ajout..." : "Ajouter"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Ajout..." : "Ajouter"}
           </Button>
         </form>
       </DialogContent>

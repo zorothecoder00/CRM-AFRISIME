@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { toggleRolePermission } from "@/actions/role.actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { PermissionKey } from "@/lib/permissions";
@@ -18,26 +18,19 @@ export function RolePermissionCheckbox({
   disabled?: boolean;
 }) {
   const [checked, setChecked] = useState(initialChecked);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(toggleRolePermission);
 
   async function handleChange(next: boolean) {
     setChecked(next);
-    setIsSubmitting(true);
-    try {
-      await toggleRolePermission(roleId, permissionKey, next);
-    } catch (err) {
-      setChecked(!next);
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run(roleId, permissionKey, next);
+    if (!result.ok) setChecked(!next);
   }
 
   return (
     <Checkbox
       checked={checked}
       onCheckedChange={(v) => handleChange(v === true)}
-      disabled={disabled || isSubmitting}
+      disabled={disabled || isPending}
     />
   );
 }

@@ -27,6 +27,9 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -71,7 +74,14 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
+  /* Teintes semantiques additionnelles (statuts) : memes valeurs que la
+     palette CVD-safe deja utilisee dans StatCard, promues en tokens pour
+     etre reutilisables par Badge et les vues de statut (taches, projets,
+     objectifs, reunions). */
+  --success: #157f3c;
+  --warning: #a15c07;
+  --info: #2a78d6;
+  --border: oklch(0.882 0 0);
   --input: oklch(0.922 0 0);
   --ring: #2a78d6;
   --chart-1: #2a78d6;
@@ -86,7 +96,7 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-border: oklch(0.882 0 0);
   --sidebar-ring: #2a78d6;
 }
 
@@ -106,7 +116,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #3987e5;
+  --border: oklch(1 0 0 / 14%);
   --input: oklch(1 0 0 / 15%);
   --ring: #3987e5;
   --chart-1: #3987e5;
@@ -120,7 +133,7 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-border: oklch(1 0 0 / 14%);
   --sidebar-ring: #3987e5;
 }
 

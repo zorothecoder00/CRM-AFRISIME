@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createConversation } from "@/actions/message.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +19,19 @@ import { Plus } from "lucide-react";
 
 type Option = { id: string; label: string };
 
-export function ConversationFormDialog({ users }: { users: Option[] }) {
+export function ConversationFormDialog({
+  users,
+  variant = "default",
+}: {
+  users: Option[];
+  /** "icon" : bouton rond compact, pour un en-tete de barre laterale. */
+  variant?: "default" | "icon";
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [nom, setNom] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run: submit, isPending } = useAction(createConversation, { successMessage: "Conversation créée." });
 
   function toggle(userId: string, checked: boolean) {
     setParticipantIds((prev) => (checked ? [...prev, userId] : prev.filter((id) => id !== userId)));
@@ -32,31 +39,31 @@ export function ConversationFormDialog({ users }: { users: Option[] }) {
 
   async function handleSubmit() {
     if (participantIds.length === 0) return;
-    setIsSubmitting(true);
-    try {
-      const conversation = await createConversation({
-        participantIds,
-        nom: participantIds.length > 1 ? nom || undefined : undefined,
-      });
-      toast.success("Conversation créée.");
+    const result = await submit({
+      participantIds,
+      nom: participantIds.length > 1 ? nom || undefined : undefined,
+    });
+    if (result.ok) {
       setOpen(false);
       setParticipantIds([]);
       setNom("");
-      router.push(`/messages/${conversation.id}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
-    } finally {
-      setIsSubmitting(false);
+      router.push(`/messages/${result.data.id}`);
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle conversation
-        </Button>
+        {variant === "icon" ? (
+          <Button size="icon" className="rounded-full" aria-label="Nouvelle conversation" title="Nouvelle conversation">
+            <Plus className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle conversation
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -86,9 +93,9 @@ export function ConversationFormDialog({ users }: { users: Option[] }) {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={isSubmitting || participantIds.length === 0}
+            disabled={isPending || participantIds.length === 0}
           >
-            {isSubmitting ? "Création..." : "Créer"}
+            {isPending ? "Création..." : "Créer"}
           </Button>
         </div>
       </DialogContent>

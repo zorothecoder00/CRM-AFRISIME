@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createSection } from "@/actions/project.actions";
 import {
   createSectionSchema,
@@ -47,20 +47,18 @@ export function SectionFormDialog({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateSectionInput>({
     resolver: zodResolver(createSectionSchema),
     defaultValues: { projectId, parentId, type: parentId ? "LOT" : "PHASE" },
   });
+  const { run: submit, isPending } = useAction(createSection, { successMessage: "Élément créé." });
 
   async function onSubmit(data: CreateSectionInput) {
-    try {
-      await createSection({ ...data, projectId, parentId });
-      toast.success("Élément créé.");
+    const result = await submit({ ...data, projectId, parentId });
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -127,8 +125,8 @@ export function SectionFormDialog({
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer"}
           </Button>
         </form>
       </DialogContent>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { addDependency } from "@/actions/task.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,19 +25,12 @@ export function DependencySection({
   otherTasks: DependencyData[];
 }) {
   const [selected, setSelected] = useState<string | undefined>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(addDependency);
 
   async function handleAdd() {
     if (!selected) return;
-    setIsSubmitting(true);
-    try {
-      await addDependency(taskId, selected);
-      setSelected(undefined);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run(taskId, selected);
+    if (result.ok) setSelected(undefined);
   }
 
   return (
@@ -67,7 +60,7 @@ export function DependencySection({
             ))}
           </SelectContent>
         </Select>
-        <Button size="sm" variant="outline" onClick={handleAdd} disabled={isSubmitting || !selected}>
+        <Button size="sm" variant="outline" onClick={handleAdd} disabled={isPending || !selected}>
           Ajouter
         </Button>
       </div>

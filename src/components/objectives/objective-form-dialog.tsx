@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createObjective } from "@/actions/objective.actions";
 import { createObjectiveSchema, type CreateObjectiveInput } from "@/lib/validations/objective.schema";
 import { Button } from "@/components/ui/button";
@@ -46,21 +46,19 @@ export function ObjectiveFormDialog({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateObjectiveInput>({
     resolver: zodResolver(createObjectiveSchema),
     defaultValues: { periode: "MENSUEL", scope: "INDIVIDUEL", userId: currentUserId },
   });
+  const { run: submit, isPending } = useAction(createObjective, { successMessage: "Objectif créé." });
 
   async function onSubmit(data: CreateObjectiveInput) {
-    try {
-      await createObjective(data);
-      toast.success("Objectif créé.");
+    const result = await submit(data);
+    if (result.ok) {
       reset();
       setScope("INDIVIDUEL");
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -207,8 +205,8 @@ export function ObjectiveFormDialog({
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer l'objectif"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer l'objectif"}
           </Button>
         </form>
       </DialogContent>

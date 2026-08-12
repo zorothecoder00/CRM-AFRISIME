@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateIndicatorValue } from "@/actions/objective.actions";
 import { indicatorProgress } from "@/lib/objective-progress";
 import { ProgressBar } from "@/components/objectives/progress-bar";
@@ -18,19 +18,11 @@ export type IndicatorData = {
 
 function IndicatorRow({ indicator }: { indicator: IndicatorData }) {
   const [value, setValue] = useState(String(indicator.valeurActuelle));
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(updateIndicatorValue, { successMessage: "Indicateur mis à jour." });
   const progress = indicatorProgress(Number(value) || 0, indicator.valeurCible);
 
   async function handleSave() {
-    setIsSubmitting(true);
-    try {
-      await updateIndicatorValue({ indicatorId: indicator.id, valeurActuelle: value });
-      toast.success("Indicateur mis à jour.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await run({ indicatorId: indicator.id, valeurActuelle: value });
   }
 
   return (
@@ -50,7 +42,7 @@ function IndicatorRow({ indicator }: { indicator: IndicatorData }) {
           onChange={(e) => setValue(e.target.value)}
           className="h-8"
         />
-        <Button size="sm" variant="outline" onClick={handleSave} disabled={isSubmitting}>
+        <Button size="sm" variant="outline" onClick={handleSave} disabled={isPending}>
           Mettre à jour
         </Button>
       </div>

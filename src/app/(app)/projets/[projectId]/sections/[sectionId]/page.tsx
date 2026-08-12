@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
@@ -62,7 +63,7 @@ export default async function SectionDetailPage({
           <div className="flex items-center gap-2">
             <Badge variant="outline">{TYPE_LABELS[section.type]}</Badge>
             <h1 className="text-2xl font-semibold">{section.nom}</h1>
-            <Badge variant="secondary">{STATUS_LABELS[section.statut]}</Badge>
+            <Badge variant={toneForStatus(section.statut)}>{STATUS_LABELS[section.statut]}</Badge>
           </div>
           <Link href={`/projets/${projectId}`} className="text-sm text-muted-foreground hover:underline">
             {section.project.nom}
@@ -109,7 +110,7 @@ export default async function SectionDetailPage({
       </div>
 
       <div className="space-y-6">
-        <Card>
+        <Card accent={accentForStatus(section.statut)}>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>

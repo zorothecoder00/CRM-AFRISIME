@@ -1,4 +1,20 @@
 export const PERMISSIONS = {
+  CRM_READ: "crm.read",
+  CRM_MANAGE: "crm.manage",
+
+  PROGRAM_READ: "program.read",
+  PROGRAM_MANAGE: "program.manage",
+
+  ADMIN_REQUEST_CREATE: "admin_request.create",
+  ADMIN_REQUEST_READ: "admin_request.read",
+  ADMIN_REQUEST_VALIDATE: "admin_request.validate",
+
+  PLAN_READ: "plan.read",
+  PLAN_MANAGE: "plan.manage",
+
+  EVALUATION_READ: "evaluation.read",
+  EVALUATION_MANAGE: "evaluation.manage",
+
   PROJECT_CREATE: "project.create",
   PROJECT_READ: "project.read",
   PROJECT_UPDATE: "project.update",
@@ -33,6 +49,11 @@ export const PERMISSIONS = {
   DOCUMENT_UPDATE: "document.update",
   DOCUMENT_DELETE: "document.delete",
   DOCUMENT_MANAGE_FOLDERS: "document.manage_folders",
+
+  KNOWLEDGE_READ: "knowledge.read",
+  KNOWLEDGE_CREATE: "knowledge.create",
+  KNOWLEDGE_UPDATE: "knowledge.update",
+  KNOWLEDGE_MANAGE_CATEGORIES: "knowledge.manage_categories",
 
   LEAVE_CREATE: "leave.create",
   LEAVE_MANAGE: "leave.manage",
@@ -74,6 +95,22 @@ export const PERMISSION_CATALOG: {
   label: string;
   category: string;
 }[] = [
+  { key: PERMISSIONS.CRM_READ, label: "Consulter le CRM (contacts, organisations, pipeline)", category: "CRM" },
+  { key: PERMISSIONS.CRM_MANAGE, label: "Gérer le CRM (contacts, organisations, opportunités, interactions)", category: "CRM" },
+
+  { key: PERMISSIONS.PROGRAM_READ, label: "Consulter les programmes", category: "Programmes" },
+  { key: PERMISSIONS.PROGRAM_MANAGE, label: "Créer et gérer les programmes", category: "Programmes" },
+
+  { key: PERMISSIONS.ADMIN_REQUEST_CREATE, label: "Soumettre une demande administrative", category: "Demandes administratives" },
+  { key: PERMISSIONS.ADMIN_REQUEST_READ, label: "Consulter les demandes administratives", category: "Demandes administratives" },
+  { key: PERMISSIONS.ADMIN_REQUEST_VALIDATE, label: "Approuver/refuser une demande administrative", category: "Demandes administratives" },
+
+  { key: PERMISSIONS.PLAN_READ, label: "Consulter les plans de planification", category: "Planification" },
+  { key: PERMISSIONS.PLAN_MANAGE, label: "Créer et gérer les plans de planification", category: "Planification" },
+
+  { key: PERMISSIONS.EVALUATION_READ, label: "Consulter les évaluations de performance", category: "Évaluations de performance" },
+  { key: PERMISSIONS.EVALUATION_MANAGE, label: "Mener et soumettre des évaluations de performance", category: "Évaluations de performance" },
+
   { key: PERMISSIONS.PROJECT_CREATE, label: "Créer un projet", category: "Projets" },
   { key: PERMISSIONS.PROJECT_READ, label: "Consulter les projets", category: "Projets" },
   { key: PERMISSIONS.PROJECT_UPDATE, label: "Modifier un projet", category: "Projets" },
@@ -107,6 +144,11 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.DOCUMENT_UPDATE, label: "Modifier un document (nouvelle version)", category: "Documents" },
   { key: PERMISSIONS.DOCUMENT_DELETE, label: "Supprimer un document", category: "Documents" },
   { key: PERMISSIONS.DOCUMENT_MANAGE_FOLDERS, label: "Gérer les dossiers", category: "Documents" },
+
+  { key: PERMISSIONS.KNOWLEDGE_READ, label: "Consulter la base de connaissances", category: "Base de connaissances" },
+  { key: PERMISSIONS.KNOWLEDGE_CREATE, label: "Créer un article (et modifier ses propres articles)", category: "Base de connaissances" },
+  { key: PERMISSIONS.KNOWLEDGE_UPDATE, label: "Modifier/publier les articles de tous les auteurs", category: "Base de connaissances" },
+  { key: PERMISSIONS.KNOWLEDGE_MANAGE_CATEGORIES, label: "Gérer les catégories de la base de connaissances", category: "Base de connaissances" },
 
   { key: PERMISSIONS.LEAVE_CREATE, label: "Demander un congé", category: "Calendrier" },
   { key: PERMISSIONS.LEAVE_MANAGE, label: "Approuver/refuser les congés", category: "Calendrier" },
@@ -150,7 +192,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS,
 
   DIRECTEUR_GENERAL: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_MANAGE,
+    PERMISSIONS.PROGRAM_MANAGE,
+    PERMISSIONS.PLAN_MANAGE,
     PERMISSIONS.PROJECT_CREATE,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.PROJECT_UPDATE,
     PERMISSIONS.PROJECT_VALIDATE,
@@ -164,6 +211,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_UPDATE,
     PERMISSIONS.TASK_ASSIGN,
     PERMISSIONS.TASK_VALIDATE,
+    PERMISSIONS.ADMIN_REQUEST_VALIDATE,
+    PERMISSIONS.EVALUATION_MANAGE,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.TASK_EXPORT,
     PERMISSIONS.WORKFLOW_MANAGE,
@@ -175,7 +224,15 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.KNOWLEDGE_MANAGE_CATEGORIES,
+    PERMISSIONS.KNOWLEDGE_UPDATE,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.OBJECTIVE_CREATE,
@@ -196,7 +253,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   DIRECTEUR: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_MANAGE,
+    PERMISSIONS.PROGRAM_MANAGE,
+    PERMISSIONS.PLAN_MANAGE,
     PERMISSIONS.PROJECT_CREATE,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.PROJECT_UPDATE,
     PERMISSIONS.PROJECT_VALIDATE,
@@ -210,6 +272,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_UPDATE,
     PERMISSIONS.TASK_ASSIGN,
     PERMISSIONS.TASK_VALIDATE,
+    PERMISSIONS.ADMIN_REQUEST_VALIDATE,
+    PERMISSIONS.EVALUATION_MANAGE,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.TASK_EXPORT,
     PERMISSIONS.MEETING_CREATE,
@@ -220,7 +284,15 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.KNOWLEDGE_MANAGE_CATEGORIES,
+    PERMISSIONS.KNOWLEDGE_UPDATE,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.OBJECTIVE_CREATE,
@@ -238,7 +310,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   CHEF_DEPARTEMENT: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_MANAGE,
+    PERMISSIONS.PROGRAM_MANAGE,
+    PERMISSIONS.PLAN_MANAGE,
     PERMISSIONS.PROJECT_CREATE,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.PROJECT_UPDATE,
     PERMISSIONS.PROJECT_VALIDATE,
@@ -251,6 +328,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_UPDATE,
     PERMISSIONS.TASK_ASSIGN,
     PERMISSIONS.TASK_VALIDATE,
+    PERMISSIONS.ADMIN_REQUEST_VALIDATE,
+    PERMISSIONS.EVALUATION_MANAGE,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_CREATE,
     PERMISSIONS.MEETING_READ,
@@ -260,7 +339,15 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.KNOWLEDGE_MANAGE_CATEGORIES,
+    PERMISSIONS.KNOWLEDGE_UPDATE,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.OBJECTIVE_CREATE,
@@ -278,7 +365,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   CHEF_PROJET: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_MANAGE,
+    PERMISSIONS.PROGRAM_MANAGE,
     PERMISSIONS.PROJECT_CREATE,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.PROJECT_UPDATE,
     PERMISSIONS.PROJECT_MANAGE_MEMBERS,
@@ -290,6 +381,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_UPDATE,
     PERMISSIONS.TASK_ASSIGN,
     PERMISSIONS.TASK_VALIDATE,
+    PERMISSIONS.ADMIN_REQUEST_VALIDATE,
+    PERMISSIONS.EVALUATION_MANAGE,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_CREATE,
     PERMISSIONS.MEETING_READ,
@@ -299,7 +392,15 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
     PERMISSIONS.DOCUMENT_MANAGE_FOLDERS,
+    PERMISSIONS.KNOWLEDGE_MANAGE_CATEGORIES,
+    PERMISSIONS.KNOWLEDGE_UPDATE,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
@@ -314,6 +415,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   RESPONSABLE: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_MANAGE,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.SECTION_CREATE,
     PERMISSIONS.SECTION_UPDATE,
@@ -322,6 +426,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_UPDATE,
     PERMISSIONS.TASK_ASSIGN,
     PERMISSIONS.TASK_VALIDATE,
+    PERMISSIONS.ADMIN_REQUEST_VALIDATE,
+    PERMISSIONS.EVALUATION_MANAGE,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_CREATE,
     PERMISSIONS.MEETING_READ,
@@ -329,7 +435,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
+    PERMISSIONS.KNOWLEDGE_UPDATE,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
@@ -343,6 +456,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   MANAGER: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.CRM_MANAGE,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.TASK_CREATE,
     PERMISSIONS.TASK_READ,
@@ -355,7 +471,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
     PERMISSIONS.DOCUMENT_UPDATE,
+    PERMISSIONS.KNOWLEDGE_UPDATE,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.LEAVE_MANAGE,
     PERMISSIONS.EVENT_CREATE,
     PERMISSIONS.OBJECTIVE_CREATE,
@@ -371,6 +494,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   COLLABORATEUR: [
+    PERMISSIONS.CRM_READ,
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.TASK_READ,
     PERMISSIONS.TASK_UPDATE,
@@ -378,7 +503,13 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_CREATE,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.KNOWLEDGE_CREATE,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.LEAVE_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_CREATE,
+    PERMISSIONS.ADMIN_REQUEST_READ,
+    PERMISSIONS.PLAN_READ,
+    PERMISSIONS.EVALUATION_READ,
     PERMISSIONS.OBJECTIVE_CREATE,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.OBJECTIVE_UPDATE,
@@ -387,32 +518,38 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   CONSULTANT_EXTERNE: [
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.TASK_READ,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.MESSAGE_CREATE,
     PERMISSIONS.MESSAGE_READ,
   ],
 
   PRESTATAIRE: [
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.TASK_READ,
     PERMISSIONS.TASK_COMMENT,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.MESSAGE_CREATE,
     PERMISSIONS.MESSAGE_READ,
   ],
 
   INVITE: [
+    PERMISSIONS.PROGRAM_READ,
     PERMISSIONS.PROJECT_READ,
     PERMISSIONS.TASK_READ,
     PERMISSIONS.MEETING_READ,
     PERMISSIONS.DOCUMENT_READ,
+    PERMISSIONS.KNOWLEDGE_READ,
     PERMISSIONS.OBJECTIVE_READ,
     PERMISSIONS.MESSAGE_CREATE,
     PERMISSIONS.MESSAGE_READ,
@@ -435,52 +572,7 @@ export function requirePermission(
   }
 }
 
-/**
- * Portée département/projet (cahier des charges §19 : droits définissables
- * « par rôle, département, projet ou équipe »). N'interroge la base que si
- * un scope est fourni — n'affecte pas hasPermission/requirePermission
- * ci-dessus, utilisées telles quelles par les 38 sites d'appel existants.
- * Une dérogation DENY l'emporte toujours ; une dérogation GRANT complète un
- * rôle qui n'accorde pas le droit nativement.
- */
-export async function hasScopedPermission(
-  permissions: string[] | undefined,
-  key: PermissionKey,
-  userId: string,
-  scope?: { departmentId?: string; projectId?: string }
-): Promise<boolean> {
-  const roleGrants = hasPermission(permissions, key);
-  if (!scope?.departmentId && !scope?.projectId) {
-    return roleGrants;
-  }
-
-  // Import différé : évite d'alourdir le bundle client des consommateurs de
-  // PERMISSIONS/hasPermission qui n'utilisent jamais ce chemin scopé.
-  const { prisma } = await import("@/lib/prisma");
-  const overrides = await prisma.permissionOverride.findMany({
-    where: {
-      userId,
-      permissionKey: key,
-      OR: [
-        scope.departmentId ? { departmentId: scope.departmentId } : undefined,
-        scope.projectId ? { projectId: scope.projectId } : undefined,
-      ].filter((clause): clause is NonNullable<typeof clause> => Boolean(clause)),
-    },
-  });
-
-  if (overrides.some((o) => o.effect === "DENY")) return false;
-  if (overrides.some((o) => o.effect === "GRANT")) return true;
-  return roleGrants;
-}
-
-export async function requireScopedPermission(
-  permissions: string[] | undefined,
-  key: PermissionKey,
-  userId: string,
-  scope?: { departmentId?: string; projectId?: string }
-): Promise<void> {
-  const allowed = await hasScopedPermission(permissions, key, userId, scope);
-  if (!allowed) {
-    throw new Error(`Permission refusée: ${key}`);
-  }
-}
+// hasScopedPermission/requireScopedPermission (portée département/projet,
+// cahier des charges §19) vivent dans src/lib/permissions-scoped.ts — elles
+// touchent prisma, contrairement au reste de ce fichier qui doit rester
+// importable sans risque depuis un composant client (nav-config.ts etc.).

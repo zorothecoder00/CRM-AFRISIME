@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createProject } from "@/actions/project.actions";
 import {
   createProjectSchema,
@@ -44,20 +44,20 @@ export function ProjectFormDialog({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateProjectInput>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: { priorite: "MOYENNE" },
   });
+  const { run: submit, isPending } = useAction(createProject, {
+    successMessage: "Projet créé avec succès.",
+  });
 
   async function onSubmit(data: CreateProjectInput) {
-    try {
-      await createProject(data);
-      toast.success("Projet créé avec succès.");
+    const result = await submit(data);
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -165,8 +165,8 @@ export function ProjectFormDialog({
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer le projet"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer le projet"}
           </Button>
         </form>
       </DialogContent>

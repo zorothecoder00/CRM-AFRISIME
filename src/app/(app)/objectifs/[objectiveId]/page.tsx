@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import { IndicatorList } from "@/components/objectives/indicator-list";
 import { AddIndicatorDialog } from "@/components/objectives/add-indicator-dialog";
 import { ObjectiveStatusSelect } from "@/components/objectives/objective-status-select";
+import { accentForStatus } from "@/lib/status-tone";
 
 const PERIOD_LABELS: Record<string, string> = {
   ANNUEL: "Annuel",
@@ -80,7 +81,7 @@ export default async function ObjectiveDetailPage({
           </div>
         </div>
 
-        <Card>
+        <Card accent={accentForStatus(objective.statut)}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Indicateurs mesurables</CardTitle>
             <AddIndicatorDialog objectiveId={objective.id} />

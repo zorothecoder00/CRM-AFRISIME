@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { toggleValidationWorkflowActive } from "@/actions/validation-workflow.actions";
 import { Switch } from "@/components/ui/switch";
 
@@ -13,20 +13,13 @@ export function ToggleWorkflowButton({
   isActive: boolean;
 }) {
   const [checked, setChecked] = useState(isActive);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(toggleValidationWorkflowActive);
 
   async function handleChange(next: boolean) {
     setChecked(next);
-    setIsSubmitting(true);
-    try {
-      await toggleValidationWorkflowActive(workflowId, next);
-    } catch (err) {
-      setChecked(!next);
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await run(workflowId, next);
+    if (!result.ok) setChecked(!next);
   }
 
-  return <Switch checked={checked} onCheckedChange={handleChange} disabled={isSubmitting} />;
+  return <Switch checked={checked} onCheckedChange={handleChange} disabled={isPending} />;
 }

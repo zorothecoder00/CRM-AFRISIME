@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, type CardAccent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export type KpiDelta = {
@@ -56,6 +56,7 @@ export function KpiCard({
   value,
   delta,
   trend,
+  accent,
   className,
 }: {
   label: string;
@@ -63,6 +64,8 @@ export function KpiCard({
   delta?: KpiDelta;
   /** Serie de points (min. 2) pour une mini-tendance inline. */
   trend?: number[];
+  /** Barre d'accent + leger fond teinte (ex: "destructive" si un seuil est depasse). */
+  accent?: CardAccent;
   className?: string;
 }) {
   const displayValue = typeof value === "number" ? formatCompact(value) : value;
@@ -78,7 +81,7 @@ export function KpiCard({
   }
 
   return (
-    <Card className={cn(className)}>
+    <Card accent={accent} className={cn(className)}>
       <CardContent className="space-y-2">
         <div className="text-sm text-muted-foreground">{label}</div>
         <div className="flex items-end justify-between gap-2">

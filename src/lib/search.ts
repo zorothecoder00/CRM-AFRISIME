@@ -2,7 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import type { Prisma } from "@/generated/prisma/client";
 
-export type SearchResultType = "Projet" | "Tâche" | "Réunion" | "Document" | "Commentaire" | "Utilisateur";
+export type SearchResultType =
+  | "Projet"
+  | "Tâche"
+  | "Réunion"
+  | "Document"
+  | "Article"
+  | "Commentaire"
+  | "Utilisateur"
+  | "Contact CRM"
+  | "Organisation CRM";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -148,6 +157,73 @@ export async function globalSearch(
             title: d.nom,
             subtitle: d.project.nom,
             href: `/documents/${d.id}`,
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.KNOWLEDGE_READ)) {
+    searches.push(
+      prisma.knowledgeArticle
+        .findMany({
+          where: {
+            statut: "PUBLIE",
+            OR: [{ titre: { contains: q, mode: "insensitive" } }, { content: { contains: q, mode: "insensitive" } }],
+          },
+          take: 8,
+          select: { id: true, titre: true, category: { select: { nom: true } } },
+        })
+        .then((rows) =>
+          rows.map((a) => ({
+            type: "Article" as const,
+            id: a.id,
+            title: a.titre,
+            subtitle: a.category?.nom ?? null,
+            href: `/base-de-connaissances/${a.id}`,
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.CRM_READ)) {
+    searches.push(
+      prisma.crmContact
+        .findMany({
+          where: {
+            OR: [
+              { nom: { contains: q, mode: "insensitive" } },
+              { prenom: { contains: q, mode: "insensitive" } },
+              { email: { contains: q, mode: "insensitive" } },
+            ],
+          },
+          take: 8,
+          select: { id: true, nom: true, prenom: true, fonction: true, organization: { select: { nom: true } } },
+        })
+        .then((rows) =>
+          rows.map((c) => ({
+            type: "Contact CRM" as const,
+            id: c.id,
+            title: `${c.prenom} ${c.nom}`,
+            subtitle: c.organization?.nom ?? c.fonction ?? null,
+            href: `/crm/contacts/${c.id}`,
+          }))
+        )
+    );
+
+    searches.push(
+      prisma.crmOrganization
+        .findMany({
+          where: { nom: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, nom: true, secteur: true },
+        })
+        .then((rows) =>
+          rows.map((o) => ({
+            type: "Organisation CRM" as const,
+            id: o.id,
+            title: o.nom,
+            subtitle: o.secteur,
+            href: `/crm/organisations/${o.id}`,
           }))
         )
     );

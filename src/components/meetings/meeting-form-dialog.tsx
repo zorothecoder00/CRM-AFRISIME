@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createMeeting } from "@/actions/meeting.actions";
 import { createMeetingSchema, type CreateMeetingInput } from "@/lib/validations/meeting.schema";
 import { Button } from "@/components/ui/button";
@@ -43,11 +43,12 @@ export function MeetingFormDialog({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateMeetingInput>({
     resolver: zodResolver(createMeetingSchema),
     defaultValues: { participantIds: [] },
   });
+  const { run: submit, isPending } = useAction(createMeeting, { successMessage: "Réunion créée." });
 
   function toggleParticipant(userId: string, checked: boolean) {
     const next = checked
@@ -58,14 +59,11 @@ export function MeetingFormDialog({
   }
 
   async function onSubmit(data: CreateMeetingInput) {
-    try {
-      await createMeeting({ ...data, participantIds });
-      toast.success("Réunion créée.");
+    const result = await submit({ ...data, participantIds });
+    if (result.ok) {
       reset();
       setParticipantIds([]);
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -141,8 +139,8 @@ export function MeetingFormDialog({
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer la réunion"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer la réunion"}
           </Button>
         </form>
       </DialogContent>

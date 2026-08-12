@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createFolder } from "@/actions/document.actions";
 import { createFolderSchema, type CreateFolderInput } from "@/lib/validations/document.schema";
 import { Button } from "@/components/ui/button";
@@ -34,20 +34,18 @@ export function FolderFormDialog({
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateFolderInput>({
     resolver: zodResolver(createFolderSchema),
     defaultValues: { projectId, parentId },
   });
+  const { run: submit, isPending } = useAction(createFolder, { successMessage: "Dossier créé." });
 
   async function onSubmit(data: CreateFolderInput) {
-    try {
-      await createFolder({ ...data, projectId, parentId });
-      toast.success("Dossier créé.");
+    const result = await submit({ ...data, projectId, parentId });
+    if (result.ok) {
       reset();
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -69,8 +67,8 @@ export function FolderFormDialog({
             <Input id="nom" {...register("nom")} />
             {errors.nom && <p className="text-sm text-destructive">{errors.nom.message}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer"}
           </Button>
         </form>
       </DialogContent>

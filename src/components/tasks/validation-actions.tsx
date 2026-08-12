@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { submitForValidation, validateTask } from "@/actions/task.actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,9 +16,9 @@ type StepRow = {
   isCurrent: boolean;
 };
 
-const STEP_BADGE: Record<StepRow["statut"], { label: string; variant: "secondary" | "default" | "destructive" }> = {
+const STEP_BADGE: Record<StepRow["statut"], { label: string; variant: "secondary" | "success" | "destructive" }> = {
   EN_ATTENTE: { label: "En attente", variant: "secondary" },
-  APPROUVE: { label: "Approuvé", variant: "default" },
+  APPROUVE: { label: "Approuvé", variant: "success" },
   REJETE: { label: "Refusé", variant: "destructive" },
 };
 
@@ -37,32 +37,18 @@ export function ValidationActions({
   isCurrentApprover: boolean;
   steps: StepRow[];
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [commentaire, setCommentaire] = useState("");
+  const submitAction = useAction(submitForValidation, { successMessage: "Tâche soumise pour validation." });
+  const validateAction = useAction(validateTask);
+  const isSubmitting = submitAction.isPending || validateAction.isPending;
 
   async function handleSubmitForValidation() {
-    setIsSubmitting(true);
-    try {
-      await submitForValidation(taskId);
-      toast.success("Tâche soumise pour validation.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await submitAction.run(taskId);
   }
 
   async function handleValidate(approved: boolean) {
-    setIsSubmitting(true);
-    try {
-      await validateTask(taskId, approved, commentaire.trim() || undefined);
-      setCommentaire("");
-      toast.success(approved ? "Étape approuvée." : "Tâche refusée et renvoyée au créateur.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await validateAction.run(taskId, approved, commentaire.trim() || undefined);
+    if (result.ok) setCommentaire("");
   }
 
   const canSubmit = isResponsable && !["EN_REVISION", "TERMINEE", "ANNULEE"].includes(statut);

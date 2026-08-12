@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { saveWhiteboard, type WhiteboardNote } from "@/actions/whiteboard.actions";
 import { Button } from "@/components/ui/button";
 import { Plus, Save, X } from "lucide-react";
@@ -21,7 +21,7 @@ export function TaskWhiteboardView({
   initialNotes: WhiteboardNote[];
 }) {
   const [notes, setNotes] = useState<WhiteboardNote[]>(initialNotes);
-  const [isSaving, setIsSaving] = useState(false);
+  const { run, isPending: isSaving } = useAction(saveWhiteboard, { successMessage: "Tableau blanc enregistré." });
   const boardRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
 
@@ -65,15 +65,7 @@ export function TaskWhiteboardView({
   }
 
   async function handleSave() {
-    setIsSaving(true);
-    try {
-      await saveWhiteboard(projectId, notes);
-      toast.success("Tableau blanc enregistré.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSaving(false);
-    }
+    await run(projectId, notes);
   }
 
   return (

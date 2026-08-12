@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import {
   DndContext,
   closestCenter,
@@ -63,7 +64,9 @@ export function WidgetConfigDialog({ initialOrder }: { initialOrder: WidgetKey[]
     }));
     return [...ordered, ...rest];
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run: submit, isPending } = useAction(updateDashboardPreferences, {
+    successMessage: "Préférences enregistrées.",
+  });
   const sensors = useSensors(useSensor(PointerSensor));
 
   function handleDragEnd(event: DragEndEvent) {
@@ -86,16 +89,8 @@ export function WidgetConfigDialog({ initialOrder }: { initialOrder: WidgetKey[]
       toast.error("Sélectionnez au moins un widget.");
       return;
     }
-    setIsSubmitting(true);
-    try {
-      await updateDashboardPreferences({ widgets });
-      toast.success("Préférences enregistrées.");
-      setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const result = await submit({ widgets });
+    if (result.ok) setOpen(false);
   }
 
   return (
@@ -122,8 +117,8 @@ export function WidgetConfigDialog({ initialOrder }: { initialOrder: WidgetKey[]
             </div>
           </SortableContext>
         </DndContext>
-        <Button className="w-full" onClick={handleSave} disabled={isSubmitting}>
-          {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+        <Button className="w-full" onClick={handleSave} disabled={isPending}>
+          {isPending ? "Enregistrement..." : "Enregistrer"}
         </Button>
       </DialogContent>
     </Dialog>

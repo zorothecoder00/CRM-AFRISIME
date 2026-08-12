@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createTask } from "@/actions/task.actions";
 import { createTaskSchema, type CreateTaskInput } from "@/lib/validations/task.schema";
 import { Button } from "@/components/ui/button";
@@ -46,11 +46,12 @@ export function TaskFormDialog({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: { priorite: "MOYENNE" },
   });
+  const { run: submit, isPending } = useAction(createTask, { successMessage: "Tâche créée." });
 
   const sectionsForProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId)?.sections ?? [],
@@ -58,15 +59,12 @@ export function TaskFormDialog({
   );
 
   async function onSubmit(data: CreateTaskInput) {
-    try {
-      await createTask({ ...data, assigneeIds });
-      toast.success("Tâche créée.");
+    const result = await submit({ ...data, assigneeIds });
+    if (result.ok) {
       reset();
       setSelectedProjectId(undefined);
       setAssigneeIds([]);
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -206,8 +204,8 @@ export function TaskFormDialog({
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer la tâche"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer la tâche"}
           </Button>
         </form>
       </DialogContent>

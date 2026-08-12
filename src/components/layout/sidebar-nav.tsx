@@ -7,11 +7,11 @@ import { NAV_GROUPS } from "./nav-config";
 
 /** Contenu de navigation partagé entre la sidebar desktop et le tiroir mobile. */
 export function SidebarNav({
-  canAccessAdministration,
+  permissions,
   onNavigate,
   className,
 }: {
-  canAccessAdministration: boolean;
+  permissions: string[];
   onNavigate?: () => void;
   className?: string;
 }) {
@@ -20,9 +20,7 @@ export function SidebarNav({
   return (
     <nav className={cn("flex-1 space-y-5 overflow-y-auto p-3", className)}>
       {NAV_GROUPS.map((group) => {
-        const items = group.items.filter(
-          (item) => !item.href.startsWith("/administration") || canAccessAdministration
-        );
+        const items = group.items.filter((item) => !item.permission || permissions.includes(item.permission));
         if (items.length === 0) return null;
 
         return (
@@ -53,9 +51,9 @@ export function SidebarNav({
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/10 text-primary before:absolute before:top-1/2 before:left-0 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { createValidationWorkflow } from "@/actions/validation-workflow.actions";
 import {
   createValidationWorkflowSchema,
@@ -36,22 +36,30 @@ export function WorkflowFormDialog({ roles }: { roles: { key: string; label: str
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CreateValidationWorkflowInput>({
     resolver: zodResolver(createValidationWorkflowSchema),
-    defaultValues: { nom: "", steps: [{ approverRole: "" as CreateValidationWorkflowInput["steps"][number]["approverRole"], label: "" }] },
+    defaultValues: {
+      nom: "",
+      entityType: "TASK",
+      steps: [{ approverRole: "" as CreateValidationWorkflowInput["steps"][number]["approverRole"], label: "" }],
+    },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "steps" });
+  const { run: submit, isPending } = useAction(createValidationWorkflow, {
+    successMessage: "Circuit de validation créé et activé.",
+  });
 
   async function onSubmit(data: CreateValidationWorkflowInput) {
-    try {
-      await createValidationWorkflow(data);
-      toast.success("Circuit de validation créé et activé.");
-      reset({ nom: "", steps: [{ approverRole: "" as CreateValidationWorkflowInput["steps"][number]["approverRole"], label: "" }] });
+    const result = await submit(data);
+    if (result.ok) {
+      reset({
+        nom: "",
+        entityType: "TASK",
+        steps: [{ approverRole: "" as CreateValidationWorkflowInput["steps"][number]["approverRole"], label: "" }],
+      });
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création.");
     }
   }
 
@@ -76,6 +84,22 @@ export function WorkflowFormDialog({ roles }: { roles: { key: string; label: str
             <Label htmlFor="nom">Nom du circuit</Label>
             <Input id="nom" {...register("nom")} />
             {errors.nom && <p className="text-sm text-destructive">{errors.nom.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label>S&apos;applique à</Label>
+            <Select
+              defaultValue="TASK"
+              onValueChange={(v) => setValue("entityType", v as CreateValidationWorkflowInput["entityType"])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TASK">Tâches</SelectItem>
+                <SelectItem value="ADMIN_REQUEST">Demandes administratives</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -124,8 +148,8 @@ export function WorkflowFormDialog({ roles }: { roles: { key: string; label: str
             </Button>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Création..." : "Créer et activer"}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Création..." : "Créer et activer"}
           </Button>
         </form>
       </DialogContent>

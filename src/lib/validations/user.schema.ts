@@ -6,6 +6,7 @@ export const createUserSchema = z.object({
   password: z.string().min(8, "8 caractères minimum."),
   roleId: z.string().min(1, "Un rôle est requis."),
   departmentId: z.string().optional(),
+  poste: z.string().optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

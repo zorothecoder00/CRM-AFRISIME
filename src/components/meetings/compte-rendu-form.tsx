@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAction } from "@/hooks/use-action";
 import { updateCompteRendu } from "@/actions/meeting.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -31,18 +31,10 @@ export function CompteRenduForm({
 }) {
   const [compteRendu, setCompteRendu] = useState(initialCompteRendu);
   const [statut, setStatut] = useState(initialStatut);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isPending } = useAction(updateCompteRendu, { successMessage: "Compte rendu enregistré." });
 
   async function handleSave() {
-    setIsSubmitting(true);
-    try {
-      await updateCompteRendu({ meetingId, compteRendu, statut: statut as never });
-      toast.success("Compte rendu enregistré.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await run({ meetingId, compteRendu, statut: statut as never });
   }
 
   return (
@@ -67,8 +59,8 @@ export function CompteRenduForm({
         onChange={(e) => setCompteRendu(e.target.value)}
         rows={5}
       />
-      <Button size="sm" onClick={handleSave} disabled={isSubmitting}>
-        {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+      <Button size="sm" onClick={handleSave} disabled={isPending}>
+        {isPending ? "Enregistrement..." : "Enregistrer"}
       </Button>
     </div>
   );

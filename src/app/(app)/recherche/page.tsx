@@ -82,7 +82,7 @@ export default async function RecherchePage({
           <div className="grid gap-2 md:grid-cols-2">
             {items.map((item: SearchResult) => (
               <Link key={`${item.type}-${item.id}`} href={item.href}>
-                <Card className="transition-colors hover:bg-muted/50">
+                <Card className="transition-all hover:-translate-y-0.5 hover:bg-muted/50">
                   <CardContent className="flex items-center justify-between gap-2 py-3">
                     <div>
                       <div className="text-sm font-medium">{item.title}</div>

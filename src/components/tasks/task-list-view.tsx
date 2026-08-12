@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { toneForStatus, toneForPriority } from "@/lib/status-tone";
 import {
   Table,
   TableBody,
@@ -61,12 +62,18 @@ const columns: ColumnDef<TaskRow>[] = [
   {
     accessorKey: "statut",
     header: "Statut",
-    cell: ({ row }) => <Badge variant="secondary">{STATUS_LABELS[row.original.statut]}</Badge>,
+    cell: ({ row }) => (
+      <Badge variant={toneForStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
+    ),
   },
   {
     accessorKey: "priorite",
     header: "Priorité",
-    cell: ({ row }) => <Badge variant="outline">{PRIORITY_LABELS[row.original.priorite]}</Badge>,
+    cell: ({ row }) => (
+      <Badge variant={toneForPriority(row.original.priorite)}>
+        {PRIORITY_LABELS[row.original.priorite]}
+      </Badge>
+    ),
   },
   { accessorKey: "responsableNom", header: "Responsable" },
   {
