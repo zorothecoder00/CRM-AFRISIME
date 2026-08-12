@@ -15,11 +15,21 @@ function isoWeekKey(date: Date): string {
   return `${d.getUTCFullYear()}-W${weekNo}`;
 }
 
+const BLOCKED_VALIDATION_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+const CLIENT_STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
+
 /**
  * Ordonnanceur quotidien (cahier des charges §15 : rappels d'échéance
- * proactifs, plutôt que calculés à la visite de page ; §14 : alerte de
- * surcharge). Déclenché par Vercel Cron (voir vercel.json), protégé par
- * CRON_SECRET pour empêcher un appel public.
+ * proactifs, plutôt que calculés à la visite de page ; §14 : alertes de
+ * surcharge, objectif en retard, validation bloquée, client sans suivi).
+ * Déclenché par Vercel Cron (voir vercel.json), protégé par CRON_SECRET
+ * pour empêcher un appel public.
+ *
+ * "Budget dépassé" (également citée au §14) n'est volontairement pas
+ * implémentée ici : Project.budget n'a aucune contrepartie "coût réel"
+ * dans le schéma actuel (pas de suivi de dépenses), donc rien de fiable
+ * à comparer — ajouter cette alerte nécessiterait d'abord un module de
+ * suivi des dépenses, pas juste une requête de plus dans ce cron.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -79,8 +89,108 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // Objectifs en retard (§14) : période dépassée sans que le statut ait été
+  // clos (ATTEINT/NON_ATTEINT/ANNULE).
+  const lateObjectives = await prisma.objective.findMany({
+    where: { statut: "EN_COURS", dateFin: { lt: new Date() } },
+    select: { id: true, titre: true, userId: true, createdById: true },
+  });
+  await Promise.all(
+    lateObjectives.map((o) =>
+      createNotification({
+        userId: o.userId ?? o.createdById,
+        type: "RETARD",
+        titre: `Objectif en retard : ${o.titre}`,
+        lien: `/objectifs/${o.id}`,
+        entityType: "Objective",
+        entityId: o.id,
+      })
+    )
+  );
+
+  // Validations bloquées (§14) : circuit en cours dont l'étape courante n'a
+  // pas bougé depuis plus de 3 jours — on notifie tous les utilisateurs du
+  // rôle approbateur de cette étape.
+  const blockedSince = new Date(Date.now() - BLOCKED_VALIDATION_THRESHOLD_MS);
+  const [blockedTaskRuns, blockedAdminRequestRuns] = await Promise.all([
+    prisma.taskValidationRun.findMany({
+      where: { statut: "EN_COURS", updatedAt: { lt: blockedSince } },
+      include: { task: true, workflow: { include: { steps: true } } },
+    }),
+    prisma.adminRequestValidationRun.findMany({
+      where: { statut: "EN_COURS", updatedAt: { lt: blockedSince } },
+      include: { adminRequest: true, workflow: { include: { steps: true } } },
+    }),
+  ]);
+
+  async function notifyCurrentApprovers(approverRole: string, titre: string, lien: string, entityType: string, entityId: string) {
+    const approvers = await prisma.user.findMany({
+      where: { isActive: true, role: { key: approverRole as never } },
+      select: { id: true },
+    });
+    await Promise.all(
+      approvers.map((a) =>
+        createNotification({ userId: a.id, type: "VALIDATION", titre, lien, entityType, entityId })
+      )
+    );
+  }
+
+  await Promise.all(
+    blockedTaskRuns.map((run) => {
+      const step = run.workflow.steps.find((s) => s.ordre === run.currentOrdre);
+      if (!step) return Promise.resolve();
+      return notifyCurrentApprovers(
+        step.approverRole,
+        `Validation bloquée depuis plus de 3 jours : ${run.task.titre}`,
+        `/taches/${run.taskId}`,
+        "TaskValidationRun",
+        run.id
+      );
+    })
+  );
+  await Promise.all(
+    blockedAdminRequestRuns.map((run) => {
+      const step = run.workflow.steps.find((s) => s.ordre === run.currentOrdre);
+      if (!step) return Promise.resolve();
+      return notifyCurrentApprovers(
+        step.approverRole,
+        `Demande bloquée depuis plus de 3 jours : ${run.adminRequest.titre}`,
+        `/demandes/${run.adminRequestId}`,
+        "AdminRequestValidationRun",
+        run.id
+      );
+    })
+  );
+
+  // Clients sans suivi depuis 30 jours (§14) : dernière interaction (ou
+  // création si aucune) antérieure au seuil.
+  const staleClientCutoff = new Date(Date.now() - CLIENT_STALE_THRESHOLD_MS);
+  const clients = await prisma.crmContact.findMany({
+    where: { type: "CLIENT" },
+    include: { interactions: { orderBy: { dateInteraction: "desc" }, take: 1 } },
+  });
+  const staleClients = clients.filter((c) => {
+    const lastContact = c.interactions[0]?.dateInteraction ?? c.createdAt;
+    return lastContact < staleClientCutoff;
+  });
+  await Promise.all(
+    staleClients.map((c) =>
+      createNotification({
+        userId: c.ownerId ?? c.createdById,
+        type: "CLIENT_SANS_SUIVI",
+        titre: `Client sans suivi depuis 30 jours : ${c.prenom} ${c.nom}`,
+        lien: `/crm/contacts/${c.id}`,
+        entityType: "CrmContact",
+        entityId: c.id,
+      })
+    )
+  );
+
   return NextResponse.json({
     usersChecked: users.length,
     overloadedCount: overloaded.length,
+    lateObjectivesCount: lateObjectives.length,
+    blockedValidationsCount: blockedTaskRuns.length + blockedAdminRequestRuns.length,
+    staleClientsCount: staleClients.length,
   });
 }

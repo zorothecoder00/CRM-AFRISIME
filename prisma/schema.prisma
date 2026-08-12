@@ -145,6 +145,7 @@ enum NotificationType {
   RETARD
   MENTION
   SURCHARGE
+  CLIENT_SANS_SUIVI
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
