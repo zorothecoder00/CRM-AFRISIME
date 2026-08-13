@@ -107,6 +107,9 @@ export default async function TaskDetailPage({
     taskId: null,
     meetingTitre: d.meeting?.titre ?? null,
     meetingId: d.meetingId,
+    type: d.type,
+    statutSignature: d.statutSignature,
+    estArchive: d.estArchive,
   }));
 
   return (

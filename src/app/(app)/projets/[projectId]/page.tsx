@@ -84,7 +84,7 @@ export default async function ProjectDetailPage({
       orderBy: { nom: "asc" },
     }),
     prisma.document.findMany({
-      where: { projectId, folderId: null },
+      where: { projectId, folderId: null, estArchive: false },
       include: { uploadedBy: true, task: true, meeting: true, _count: { select: { versions: true } } },
       orderBy: { createdAt: "desc" },
     }),
@@ -284,6 +284,9 @@ export default async function ProjectDetailPage({
     taskId: d.taskId,
     meetingTitre: d.meeting?.titre ?? null,
     meetingId: d.meetingId,
+    type: d.type,
+    statutSignature: d.statutSignature,
+    estArchive: d.estArchive,
   }));
 
   const ruleData: RuleData[] = rules.map((r) => ({

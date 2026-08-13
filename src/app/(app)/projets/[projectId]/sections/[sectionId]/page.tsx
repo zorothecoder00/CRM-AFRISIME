@@ -54,6 +54,9 @@ export default async function SectionDetailPage({
     taskId: null,
     meetingTitre: null,
     meetingId: null,
+    type: d.type,
+    statutSignature: d.statutSignature,
+    estArchive: d.estArchive,
   }));
 
   return (

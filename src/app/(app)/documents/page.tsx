@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, DocumentType } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,15 @@ const MIME_GROUP_LABELS: Record<string, string> = {
   image: "Image",
   word: "Word",
   excel: "Excel",
+};
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  CONTRAT: "Contrat",
+  RAPPORT: "Rapport",
+  FACTURE: "Facture",
+  PROCES_VERBAL: "Procès-verbal",
+  LIVRABLE: "Livrable",
+  AUTRE: "Autre",
 };
 
 function buildFolderTree(
@@ -57,25 +66,30 @@ export default async function DocumentsPage({
     q?: string;
     uploadedById?: string;
     type?: string;
+    docType?: string;
+    archives?: string;
     dateFrom?: string;
     dateTo?: string;
   }>;
 }) {
-  const { projetId, folderId, q, uploadedById, type, dateFrom, dateTo } = await searchParams;
+  const { projetId, folderId, q, uploadedById, type, docType, archives, dateFrom, dateTo } = await searchParams;
+  const showArchives = archives === "1";
 
   const [projects, users] = await Promise.all([
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const hasAdvancedFilters = !!uploadedById || !!type || !!dateFrom || !!dateTo;
+  const hasAdvancedFilters = !!uploadedById || !!type || !!docType || !!dateFrom || !!dateTo;
 
   // Recherche globale : ignore le dossier courant, peut être limitée à un projet
-  if (q || hasAdvancedFilters) {
+  if (q || hasAdvancedFilters || showArchives) {
     const where: Prisma.DocumentWhereInput = {
       projectId: projetId || undefined,
       uploadedById: uploadedById || undefined,
       mimeType: type && MIME_GROUPS[type] ? { in: MIME_GROUPS[type] } : undefined,
+      type: docType && DOC_TYPE_LABELS[docType] ? (docType as DocumentType) : undefined,
+      estArchive: showArchives ? undefined : false,
     };
     if (q) where.nom = { contains: q, mode: "insensitive" };
     if (dateFrom || dateTo) {
@@ -109,6 +123,9 @@ export default async function DocumentsPage({
       taskId: d.taskId,
       meetingTitre: d.meeting?.titre ?? null,
       meetingId: d.meetingId,
+      type: d.type,
+      statutSignature: d.statutSignature,
+      estArchive: d.estArchive,
     }));
 
     return (
@@ -120,6 +137,8 @@ export default async function DocumentsPage({
           query={q}
           uploadedById={uploadedById}
           type={type}
+          docType={docType}
+          archives={showArchives}
           dateFrom={dateFrom}
           dateTo={dateTo}
         />
@@ -161,7 +180,7 @@ export default async function DocumentsPage({
       orderBy: { nom: "asc" },
     }),
     prisma.document.findMany({
-      where: { projectId: projetId, folderId: folderId || null },
+      where: { projectId: projetId, folderId: folderId || null, estArchive: false },
       include: { uploadedBy: true, task: true, meeting: true, _count: { select: { versions: true } } },
       orderBy: { createdAt: "desc" },
     }),
@@ -181,6 +200,9 @@ export default async function DocumentsPage({
     taskId: d.taskId,
     meetingTitre: d.meeting?.titre ?? null,
     meetingId: d.meetingId,
+    type: d.type,
+    statutSignature: d.statutSignature,
+    estArchive: d.estArchive,
   }));
 
   return (
@@ -230,6 +252,8 @@ function DocumentsHeader({
   query,
   uploadedById,
   type,
+  docType,
+  archives,
   dateFrom,
   dateTo,
 }: {
@@ -239,10 +263,12 @@ function DocumentsHeader({
   query?: string;
   uploadedById?: string;
   type?: string;
+  docType?: string;
+  archives?: boolean;
   dateFrom?: string;
   dateTo?: string;
 }) {
-  const hasFilters = activeProjectId || query || uploadedById || type || dateFrom || dateTo;
+  const hasFilters = activeProjectId || query || uploadedById || type || docType || archives || dateFrom || dateTo;
   const selectClass = "h-9 rounded-md border border-input bg-transparent px-2 text-sm";
 
   return (
@@ -277,8 +303,20 @@ function DocumentsHeader({
             </option>
           ))}
         </select>
+        <select name="docType" defaultValue={docType ?? ""} className={selectClass}>
+          <option value="">Tous les types</option>
+          {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
         <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
         <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
+        <label className="flex h-9 items-center gap-1.5 rounded-md border border-input px-2 text-sm text-muted-foreground">
+          <input type="checkbox" name="archives" value="1" defaultChecked={archives} className="h-3.5 w-3.5" />
+          Afficher les archives
+        </label>
         <Button type="submit" variant="outline">
           Rechercher
         </Button>

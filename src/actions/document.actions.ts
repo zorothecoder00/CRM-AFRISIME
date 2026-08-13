@@ -10,9 +10,11 @@ import {
   createFolderSchema,
   createDocumentSchema,
   addDocumentVersionSchema,
+  updateDocumentSignatureSchema,
   type CreateFolderInput,
   type CreateDocumentInput,
   type AddDocumentVersionInput,
+  type UpdateDocumentSignatureInput,
 } from "@/lib/validations/document.schema";
 
 async function requireSession() {
@@ -67,6 +69,7 @@ export async function createDocument(input: CreateDocumentInput) {
       url: data.url,
       mimeType: data.mimeType,
       sizeBytes: data.sizeBytes,
+      type: data.type,
       uploadedById: session.user.id,
       versions: {
         create: [
@@ -186,4 +189,82 @@ export async function revokeDocumentAccess(documentId: string, userId: string) {
   });
 
   revalidatePath(`/documents/${documentId}`);
+}
+
+/** Suivi de signature (cahier des charges §16), typiquement pour un document de type CONTRAT. */
+export async function updateDocumentSignature(input: UpdateDocumentSignatureInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const data = updateDocumentSignatureSchema.parse(input);
+
+  const document = await prisma.document.update({
+    where: { id: data.documentId },
+    data: {
+      statutSignature: data.statutSignature,
+      dateSignature:
+        data.statutSignature === "SIGNE"
+          ? new Date(data.dateSignature || Date.now())
+          : data.statutSignature === "EN_ATTENTE" || data.statutSignature === "NON_REQUISE"
+            ? null
+            : undefined,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document.signature_updated",
+    entityType: "Document",
+    entityId: data.documentId,
+    changes: { statutSignature: data.statutSignature },
+  });
+
+  revalidatePath(`/documents/${data.documentId}`);
+  revalidatePath("/documents");
+  return document;
+}
+
+/** Archivage (cahier des charges §17) : masque le document des listes par defaut sans le supprimer. */
+export async function archiveDocument(documentId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const document = await prisma.document.update({
+    where: { id: documentId },
+    data: { estArchive: true, dateArchivage: new Date(), archivedById: session.user.id },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document.archived",
+    entityType: "Document",
+    entityId: documentId,
+    changes: {},
+  });
+
+  revalidatePath(`/documents/${documentId}`);
+  revalidatePath("/documents");
+  return document;
+}
+
+export async function unarchiveDocument(documentId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const document = await prisma.document.update({
+    where: { id: documentId },
+    data: { estArchive: false, dateArchivage: null, archivedById: null },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document.unarchived",
+    entityType: "Document",
+    entityId: documentId,
+    changes: {},
+  });
+
+  revalidatePath(`/documents/${documentId}`);
+  revalidatePath("/documents");
+  return document;
 }

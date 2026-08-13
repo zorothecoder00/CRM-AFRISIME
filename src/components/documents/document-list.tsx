@@ -15,6 +15,25 @@ export type DocumentRow = {
   taskId: string | null;
   meetingTitre: string | null;
   meetingId: string | null;
+  type: string;
+  statutSignature: string;
+  estArchive: boolean;
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  AUTRE: "Autre",
+  CONTRAT: "Contrat",
+  RAPPORT: "Rapport",
+  FACTURE: "Facture",
+  PROCES_VERBAL: "Procès-verbal",
+  LIVRABLE: "Livrable",
+};
+
+const SIGNATURE_LABELS: Record<string, string> = {
+  NON_REQUISE: "Non requise",
+  EN_ATTENTE: "Signature en attente",
+  SIGNE: "Signé",
+  REFUSE: "Signature refusée",
 };
 
 // Un document rattache a une tache ou une reunion est colore en consequence
@@ -51,6 +70,13 @@ export function DocumentList({ documents }: { documents: DocumentRow[] }) {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 px-(--card-spacing) text-xs text-muted-foreground">
+                {doc.type !== "AUTRE" && <Badge variant="secondary">{TYPE_LABELS[doc.type]}</Badge>}
+                {doc.type === "CONTRAT" && doc.statutSignature !== "NON_REQUISE" && (
+                  <Badge variant={doc.statutSignature === "SIGNE" ? "success" : "warning"}>
+                    {SIGNATURE_LABELS[doc.statutSignature]}
+                  </Badge>
+                )}
+                {doc.estArchive && <Badge variant="outline">Archivé</Badge>}
                 {doc.taskId && <Badge variant="outline">Tâche : {doc.taskTitre}</Badge>}
                 {doc.meetingId && <Badge variant="outline">Réunion : {doc.meetingTitre}</Badge>}
                 <Badge variant="secondary">{doc.versionCount} version(s)</Badge>

@@ -166,7 +166,7 @@ export default async function DashboardPage() {
           .slice(0, 5)
       ),
     prisma.document.findMany({
-      where: { uploadedById: userId },
+      where: { uploadedById: userId, estArchive: false },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),

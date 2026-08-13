@@ -64,6 +64,9 @@ export default async function MeetingDetailPage({
     taskId: d.taskId,
     meetingTitre: null,
     meetingId: null,
+    type: d.type,
+    statutSignature: d.statutSignature,
+    estArchive: d.estArchive,
   }));
 
   return (

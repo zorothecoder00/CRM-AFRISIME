@@ -298,6 +298,7 @@ model User {
   meetingDecisionsOwned            MeetingDecision[]           @relation("MeetingDecisionResponsable")
   documentFoldersCreated           DocumentFolder[]            @relation("DocumentFolderCreatedBy")
   documentsUploaded                Document[]                  @relation("DocumentUploadedBy")
+  documentsArchived                Document[]                  @relation("DocumentArchivedBy")
   documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
   leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
   leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
@@ -1508,6 +1509,26 @@ model DocumentFolder {
 // peuvent être liés à des tâches ou à des réunions »). Le contrôle d'accès
 // s'appuie sur les permissions document.* et l'appartenance au projet
 // (ProjectMember), pas sur une liste d'accès par document.
+// Type de document (cahier des charges §16) — permet de distinguer un
+// contrat (suivi de signature) d'un simple fichier de travail.
+enum DocumentType {
+  CONTRAT
+  RAPPORT
+  FACTURE
+  PROCES_VERBAL
+  LIVRABLE
+  AUTRE
+}
+
+// Statut de signature (cahier des charges §16), pertinent surtout pour les
+// documents de type CONTRAT mais laisse disponible pour tout document.
+enum DocumentSignatureStatus {
+  NON_REQUISE
+  EN_ATTENTE
+  SIGNE
+  REFUSE
+}
+
 model Document {
   id           String          @id @default(cuid())
   projectId    String
@@ -1527,6 +1548,15 @@ model Document {
   url          String
   mimeType     String?
   sizeBytes    Int?
+  type             DocumentType            @default(AUTRE)
+  statutSignature  DocumentSignatureStatus @default(NON_REQUISE)
+  dateSignature    DateTime?
+  // Archivage (cahier des charges §17) : un document archive reste consultable
+  // mais disparait des listes par defaut (voir estArchive dans les filtres).
+  estArchive       Boolean                 @default(false)
+  dateArchivage    DateTime?
+  archivedById     String?
+  archivedBy       User?                   @relation("DocumentArchivedBy", fields: [archivedById], references: [id])
   uploadedById String
   uploadedBy   User            @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
   createdAt    DateTime        @default(now())
@@ -1541,6 +1571,8 @@ model Document {
   @@index([taskId])
   @@index([meetingId])
   @@index([messageId])
+  @@index([type])
+  @@index([estArchive])
 }
 
 // Controle d'acces par document (cahier des charges §10). Sans ligne pour un

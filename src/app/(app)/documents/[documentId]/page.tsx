@@ -8,6 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddVersionForm } from "@/components/documents/add-version-form";
 import { DocumentAccessManager } from "@/components/documents/document-access-manager";
+import { DocumentSignatureForm } from "@/components/documents/document-signature-form";
+import { DocumentArchiveButton } from "@/components/documents/document-archive-button";
+
+const TYPE_LABELS: Record<string, string> = {
+  CONTRAT: "Contrat",
+  RAPPORT: "Rapport",
+  FACTURE: "Facture",
+  PROCES_VERBAL: "Procès-verbal",
+  LIVRABLE: "Livrable",
+  AUTRE: "Autre",
+};
 
 function DocumentPreview({ url, mimeType, nom }: { url: string; mimeType: string | null; nom: string }) {
   if (mimeType === "application/pdf") {
@@ -41,6 +52,7 @@ export default async function DocumentDetailPage({
       task: true,
       meeting: true,
       uploadedBy: true,
+      archivedBy: true,
       versions: { include: { createdBy: true }, orderBy: { createdAt: "desc" } },
       accessGrants: { include: { user: true } },
     },
@@ -69,7 +81,11 @@ export default async function DocumentDetailPage({
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
         <div>
-          <h1 className="text-2xl font-semibold">{document.nom}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">{document.nom}</h1>
+            <Badge variant="secondary">{TYPE_LABELS[document.type]}</Badge>
+            {document.estArchive && <Badge variant="outline">Archivé</Badge>}
+          </div>
           <Link href={`/projets/${document.projectId}`} className="text-sm text-muted-foreground hover:underline">
             {document.project.nom}
           </Link>
@@ -160,6 +176,32 @@ export default async function DocumentDetailPage({
             )}
           </CardContent>
         </Card>
+
+        {canManageAccess && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Suivi documentaire</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {document.type === "CONTRAT" && (
+                <DocumentSignatureForm
+                  documentId={document.id}
+                  initialStatut={document.statutSignature}
+                  initialDateSignature={document.dateSignature ? document.dateSignature.toISOString().slice(0, 10) : null}
+                />
+              )}
+              <div>
+                {document.estArchive && (
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Archivé le {document.dateArchivage?.toLocaleDateString("fr-FR")}
+                    {document.archivedBy && ` par ${document.archivedBy.name}`}
+                  </p>
+                )}
+                <DocumentArchiveButton documentId={document.id} isArchived={document.estArchive} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {canManageAccess && (
           <Card>

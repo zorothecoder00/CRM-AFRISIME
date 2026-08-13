@@ -30,6 +30,15 @@ import { UploadButton } from "@/lib/uploadthing";
 
 type Option = { id: string; label: string };
 
+const TYPE_LABELS: Record<string, string> = {
+  AUTRE: "Autre",
+  CONTRAT: "Contrat",
+  RAPPORT: "Rapport",
+  FACTURE: "Facture",
+  PROCES_VERBAL: "Procès-verbal",
+  LIVRABLE: "Livrable",
+};
+
 export function DocumentFormDialog({
   projectId,
   folders,
@@ -58,7 +67,7 @@ export function DocumentFormDialog({
     formState: { errors },
   } = useForm<CreateDocumentInput>({
     resolver: zodResolver(createDocumentSchema),
-    defaultValues: { projectId, folderId: currentFolderId, sectionId, taskId, meetingId },
+    defaultValues: { projectId, folderId: currentFolderId, sectionId, taskId, meetingId, type: "AUTRE" },
   });
   const { run: submit, isPending } = useAction(createDocument, { successMessage: "Document ajouté." });
 
@@ -122,6 +131,25 @@ export function DocumentFormDialog({
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" {...register("description")} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Type de document</Label>
+            <Select
+              defaultValue="AUTRE"
+              onValueChange={(v) => setValue("type", v as CreateDocumentInput["type"])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(TYPE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {folders && folders.length > 0 && (
