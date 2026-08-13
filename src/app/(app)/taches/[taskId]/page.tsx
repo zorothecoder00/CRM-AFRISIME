@@ -17,6 +17,8 @@ import { ActualTimeForm } from "@/components/tasks/actual-time-form";
 import { ValidationActions } from "@/components/tasks/validation-actions";
 import { TaskHistory } from "@/components/tasks/task-history";
 import { LinkMissionForm } from "@/components/tasks/link-mission-form";
+import { IndicatorList, type IndicatorData } from "@/components/objectives/indicator-list";
+import { AddTaskIndicatorDialog } from "@/components/tasks/add-task-indicator-dialog";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -64,6 +66,7 @@ export default async function TaskDetailPage({
       courrier: true,
       meetingDecision: { include: { meeting: true } },
       adminRequest: true,
+      indicators: { orderBy: { createdAt: "asc" } },
       validationRun: {
         include: {
           workflow: { include: { steps: { orderBy: { ordre: "asc" } } } },
@@ -99,6 +102,14 @@ export default async function TaskDetailPage({
       : Promise.resolve([]),
   ]);
 
+  const indicatorRows: IndicatorData[] = task.indicators.map((i) => ({
+    id: i.id,
+    nom: i.nom,
+    unite: i.unite,
+    valeurCible: Number(i.valeurCible),
+    valeurActuelle: Number(i.valeurActuelle),
+  }));
+
   const documentRows: DocumentRow[] = task.documents.map((d) => ({
     id: d.id,
     nom: d.nom,
@@ -123,6 +134,7 @@ export default async function TaskDetailPage({
             <h1 className="text-2xl font-semibold">{task.titre}</h1>
             <Badge variant={toneForStatus(task.statut)}>{STATUS_LABELS[task.statut]}</Badge>
             <Badge variant={toneForPriority(task.priorite)}>{PRIORITY_LABELS[task.priorite]}</Badge>
+            {task.creeParWorkflow && <Badge variant="outline">Créée par workflow</Badge>}
           </div>
           <Link href={`/projets/${task.projectId}`} className="text-sm text-muted-foreground hover:underline">
             {task.project.nom}
@@ -147,6 +159,16 @@ export default async function TaskDetailPage({
           </CardHeader>
           <CardContent>
             <Checklist taskId={task.id} items={task.checklistItems} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">KPI</CardTitle>
+            <AddTaskIndicatorDialog taskId={task.id} />
+          </CardHeader>
+          <CardContent>
+            <IndicatorList indicators={indicatorRows} />
           </CardContent>
         </Card>
 
@@ -252,12 +274,17 @@ export default async function TaskDetailPage({
                   Courrier : {task.courrier.reference ?? task.courrier.objet}
                 </Link>
               )}
-              {task.meetingDecision && (
+              {task.meetingDecision?.meeting && (
                 <Link
                   href={`/reunions/${task.meetingDecision.meetingId}`}
                   className="block text-primary hover:underline"
                 >
                   Décision de réunion : {task.meetingDecision.meeting.titre}
+                </Link>
+              )}
+              {task.meetingDecision && !task.meetingDecision.meeting && (
+                <Link href={`/projets/${task.projectId}`} className="block text-primary hover:underline">
+                  Décision de projet
                 </Link>
               )}
               {task.adminRequest && (

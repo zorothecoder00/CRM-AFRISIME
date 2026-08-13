@@ -34,6 +34,10 @@ export const createValidationWorkflowSchema = z
           label: z.string().optional(),
           escaladeJours: z.string().optional(),
           escaladeRole: z.enum(ROLE_KEYS).optional(),
+          // Condition par etape (cahier des charges §VIII) — ignore si
+          // entityType=TASK ou si la demande n'a pas de montant.
+          montantMin: z.string().optional(),
+          montantMax: z.string().optional(),
         })
       )
       .min(1, "Au moins une étape est requise."),

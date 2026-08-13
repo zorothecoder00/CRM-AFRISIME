@@ -40,6 +40,26 @@ export async function getActiveAdminRequestWorkflow(type?: AdminRequestType, mon
   return eligible[0] ?? null;
 }
 
+/**
+ * Condition d'applicabilite d'une etape (cahier des charges §VIII,
+ * "Condition") : null/null = toujours applicable (comportement historique,
+ * garanti pour tous les circuits existants qui ne renseignent pas ces
+ * champs). Si une borne est definie mais que la demande n'a pas de montant,
+ * l'etape est consideree non applicable plutot que de bloquer le circuit.
+ */
+function stepConditionSatisfied(
+  step: { montantMin: unknown; montantMax: unknown },
+  montant: number | null
+): boolean {
+  const min = step.montantMin !== null ? Number(step.montantMin) : null;
+  const max = step.montantMax !== null ? Number(step.montantMax) : null;
+  if (min === null && max === null) return true;
+  if (montant === null) return false;
+  if (min !== null && montant < min) return false;
+  if (max !== null && montant > max) return false;
+  return true;
+}
+
 async function notifyApproversForStep(params: {
   approverRole: RoleKey;
   adminRequestId: string;
@@ -61,6 +81,49 @@ async function notifyApproversForStep(params: {
       })
     )
   );
+}
+
+/** Action automatique de fin de circuit (cahier des charges §VIII, ex. "Demande de mission -> ... -> Mission creee"). */
+async function finalizeApprovedRun(params: {
+  runId: string;
+  adminRequestId: string;
+  actorId: string;
+  creerTacheAlApprobation: boolean;
+  autoTaskProjectId: string | null;
+}) {
+  await prisma.adminRequestValidationRun.update({ where: { id: params.runId }, data: { statut: "APPROUVE" } });
+
+  if (params.creerTacheAlApprobation && params.autoTaskProjectId) {
+    const adminRequest = await prisma.adminRequest.findUniqueOrThrow({
+      where: { id: params.adminRequestId },
+      select: { titre: true, demandeurId: true },
+    });
+    const task = await prisma.task.create({
+      data: {
+        projectId: params.autoTaskProjectId,
+        titre: adminRequest.titre,
+        responsablePrincipalId: adminRequest.demandeurId,
+        createdById: params.actorId,
+        creeParWorkflow: true,
+      },
+    });
+    await prisma.adminRequest.update({ where: { id: params.adminRequestId }, data: { taskId: task.id } });
+    await logAudit({
+      userId: params.actorId,
+      action: "admin_request.task_auto_created",
+      entityType: "Task",
+      entityId: task.id,
+      changes: { adminRequestId: params.adminRequestId },
+    });
+    await createNotification({
+      userId: adminRequest.demandeurId,
+      type: "NOUVELLE_TACHE",
+      titre: `Mission créée : ${task.titre}`,
+      lien: `/taches/${task.id}`,
+      entityType: "Task",
+      entityId: task.id,
+    });
+  }
 }
 
 /** Demarre une instance de circuit pour une demande administrative des sa creation. */
@@ -88,6 +151,7 @@ export async function startAdminRequestValidationRun(params: {
         create: workflow.steps.map((step) => ({ stepId: step.id })),
       },
     },
+    include: { approvals: true },
   });
 
   await logAudit({
@@ -98,8 +162,45 @@ export async function startAdminRequestValidationRun(params: {
     changes: { workflowId: workflow.id, workflowNom: workflow.nom, steps: workflow.steps.length },
   });
 
+  // Ignore automatiquement les etapes initiales dont la condition de
+  // montant n'est pas remplie (cahier des charges §VIII, "Condition").
+  const firstApplicable = workflow.steps.find((s) => stepConditionSatisfied(s, params.montant));
+  for (const step of workflow.steps) {
+    if (firstApplicable && step.ordre >= firstApplicable.ordre) break;
+    const approval = run.approvals.find((a) => a.stepId === step.id);
+    if (!approval) continue;
+    await prisma.adminRequestApproval.update({
+      where: { id: approval.id },
+      data: {
+        statut: "APPROUVE",
+        commentaire: "Étape ignorée automatiquement — condition de montant non remplie.",
+        decidedAt: new Date(),
+      },
+    });
+    await logAudit({
+      userId: params.submittedById,
+      action: "admin_request.validation_step_skipped",
+      entityType: "AdminRequest",
+      entityId: params.adminRequestId,
+      changes: { stepOrdre: step.ordre },
+    });
+  }
+
+  if (!firstApplicable) {
+    await finalizeApprovedRun({
+      runId: run.id,
+      adminRequestId: params.adminRequestId,
+      actorId: params.submittedById,
+      creerTacheAlApprobation: workflow.creerTacheAlApprobation,
+      autoTaskProjectId: workflow.autoTaskProjectId,
+    });
+    return run;
+  }
+
+  await prisma.adminRequestValidationRun.update({ where: { id: run.id }, data: { currentOrdre: firstApplicable.ordre } });
+
   await notifyApproversForStep({
-    approverRole: workflow.steps[0].approverRole,
+    approverRole: firstApplicable.approverRole,
     adminRequestId: params.adminRequestId,
     titre: params.titre,
   });
@@ -161,45 +262,46 @@ export async function decideAdminRequestCurrentStep(params: {
     return { finalStatus: "REJETE" };
   }
 
-  const nextStep = run.workflow.steps.find((s) => s.ordre > currentStep.ordre);
+  const adminRequest = await prisma.adminRequest.findUniqueOrThrow({
+    where: { id: params.adminRequestId },
+    select: { titre: true, montant: true },
+  });
+  const montant = adminRequest.montant !== null ? Number(adminRequest.montant) : null;
 
-  if (!nextStep) {
-    await prisma.adminRequestValidationRun.update({ where: { id: run.id }, data: { statut: "APPROUVE" } });
-
-    // Action automatique de fin de circuit (cahier des charges §VIII, ex.
-    // "Demande de mission -> ... -> Mission creee") — cree la tache liee
-    // si le circuit est configure pour ca (cf. ValidationWorkflow).
-    if (run.workflow.creerTacheAlApprobation && run.workflow.autoTaskProjectId) {
-      const adminRequest = await prisma.adminRequest.findUniqueOrThrow({
-        where: { id: params.adminRequestId },
-        select: { titre: true, demandeurId: true },
-      });
-      const task = await prisma.task.create({
+  // Cherche la prochaine etape APPLICABLE, en ignorant automatiquement
+  // celles dont la condition de montant n'est pas remplie.
+  let nextStep = run.workflow.steps.find((s) => s.ordre > currentStep.ordre);
+  while (nextStep && !stepConditionSatisfied(nextStep, montant)) {
+    const skippedApproval = run.approvals.find((a) => a.stepId === nextStep!.id);
+    if (skippedApproval) {
+      await prisma.adminRequestApproval.update({
+        where: { id: skippedApproval.id },
         data: {
-          projectId: run.workflow.autoTaskProjectId,
-          titre: adminRequest.titre,
-          responsablePrincipalId: adminRequest.demandeurId,
-          createdById: params.approverId,
+          statut: "APPROUVE",
+          commentaire: "Étape ignorée automatiquement — condition de montant non remplie.",
+          decidedAt: new Date(),
         },
       });
-      await prisma.adminRequest.update({ where: { id: params.adminRequestId }, data: { taskId: task.id } });
       await logAudit({
         userId: params.approverId,
-        action: "admin_request.task_auto_created",
-        entityType: "Task",
-        entityId: task.id,
-        changes: { adminRequestId: params.adminRequestId },
-      });
-      await createNotification({
-        userId: adminRequest.demandeurId,
-        type: "NOUVELLE_TACHE",
-        titre: `Mission créée : ${task.titre}`,
-        lien: `/taches/${task.id}`,
-        entityType: "Task",
-        entityId: task.id,
+        action: "admin_request.validation_step_skipped",
+        entityType: "AdminRequest",
+        entityId: params.adminRequestId,
+        changes: { stepOrdre: nextStep.ordre },
       });
     }
+    const skippedOrdre = nextStep.ordre;
+    nextStep = run.workflow.steps.find((s) => s.ordre > skippedOrdre);
+  }
 
+  if (!nextStep) {
+    await finalizeApprovedRun({
+      runId: run.id,
+      adminRequestId: params.adminRequestId,
+      actorId: params.approverId,
+      creerTacheAlApprobation: run.workflow.creerTacheAlApprobation,
+      autoTaskProjectId: run.workflow.autoTaskProjectId,
+    });
     return { finalStatus: "APPROUVE" };
   }
 
@@ -208,10 +310,6 @@ export async function decideAdminRequestCurrentStep(params: {
     data: { currentOrdre: nextStep.ordre },
   });
 
-  const adminRequest = await prisma.adminRequest.findUniqueOrThrow({
-    where: { id: params.adminRequestId },
-    select: { titre: true },
-  });
   await notifyApproversForStep({
     approverRole: nextStep.approverRole,
     adminRequestId: params.adminRequestId,

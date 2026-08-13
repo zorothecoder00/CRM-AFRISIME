@@ -47,6 +47,7 @@ async function executeAction(rule: AutomationRule, context: AutomationContext) {
           echeance: rule.nextTaskDelaiJours
             ? new Date(Date.now() + rule.nextTaskDelaiJours * 24 * 60 * 60 * 1000)
             : undefined,
+          creeParWorkflow: true,
         },
       });
       await createNotification({

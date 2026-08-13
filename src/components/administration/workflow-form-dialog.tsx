@@ -46,6 +46,8 @@ const emptyStep = () => ({
   label: "",
   escaladeJours: "",
   escaladeRole: undefined,
+  montantMin: "",
+  montantMax: "",
 });
 
 export function WorkflowFormDialog({ roles, projects }: { roles: { key: string; label: string }[]; projects: Option[] }) {
@@ -242,6 +244,22 @@ export function WorkflowFormDialog({ roles, projects }: { roles: { key: string; 
                     </SelectContent>
                   </Select>
                 </div>
+                {entityType === "ADMIN_REQUEST" && (
+                  <div className="grid grid-cols-2 gap-2 pl-7">
+                    <Input
+                      type="number"
+                      placeholder="Condition : montant min"
+                      className="h-8 text-xs"
+                      {...register(`steps.${index}.montantMin`)}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Condition : montant max"
+                      className="h-8 text-xs"
+                      {...register(`steps.${index}.montantMax`)}
+                    />
+                  </div>
+                )}
               </div>
             ))}
             {errors.steps && (

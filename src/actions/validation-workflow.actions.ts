@@ -54,6 +54,8 @@ export async function createValidationWorkflow(input: CreateValidationWorkflowIn
             label: step.label,
             escaladeJours: step.escaladeJours ? Number(step.escaladeJours) : undefined,
             escaladeRole: step.escaladeRole || undefined,
+            montantMin: step.montantMin ? Number(step.montantMin) : undefined,
+            montantMax: step.montantMax ? Number(step.montantMax) : undefined,
           })),
         },
       },

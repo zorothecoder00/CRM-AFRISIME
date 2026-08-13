@@ -149,11 +149,13 @@ export async function updateIndicatorValue(input: UpdateIndicatorValueInput) {
     userId: session.user.id,
     action: "indicator.value_updated",
     entityType: "Objective",
-    entityId: indicator.objectiveId,
+    entityId: indicator.objectiveId ?? indicator.id,
     changes: { indicatorId: indicator.id, valeurActuelle: data.valeurActuelle },
   });
 
-  revalidatePath(`/objectifs/${indicator.objectiveId}`);
+  if (indicator.objectiveId) revalidatePath(`/objectifs/${indicator.objectiveId}`);
+  if (indicator.projectId) revalidatePath(`/projets/${indicator.projectId}`);
+  if (indicator.taskId) revalidatePath(`/taches/${indicator.taskId}`);
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
   return indicator;

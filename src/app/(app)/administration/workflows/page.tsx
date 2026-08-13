@@ -75,6 +75,8 @@ type WorkflowRow = {
     label: string | null;
     escaladeJours?: number | null;
     escaladeRole?: string | null;
+    montantMin?: unknown;
+    montantMax?: unknown;
   }[];
 };
 
@@ -112,6 +114,13 @@ function WorkflowSection({ title, workflows }: { title: string; workflows: Workf
                       {step.ordre}. {step.label || step.approverRole}
                       {step.escaladeJours && step.escaladeRole && (
                         <span className="ml-1 text-xs">(escalade à {step.escaladeRole} après {step.escaladeJours}j)</span>
+                      )}
+                      {(step.montantMin != null || step.montantMax != null) && (
+                        <span className="ml-1 text-xs">
+                          (condition :
+                          {step.montantMin != null ? ` ≥ ${Number(step.montantMin).toLocaleString("fr-FR")}` : ""}
+                          {step.montantMax != null ? ` ≤ ${Number(step.montantMax).toLocaleString("fr-FR")}` : ""} FCFA)
+                        </span>
                       )}
                     </li>
                   ))}

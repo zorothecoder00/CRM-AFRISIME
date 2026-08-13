@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -9,6 +10,8 @@ import { DeleteTeamButton } from "@/components/administration/delete-team-button
 import { TeamMemberManager } from "@/components/administration/team-member-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 
 export default async function EquipesPage() {
   const session = await getServerSession(authOptions);
@@ -65,6 +68,12 @@ export default async function EquipesPage() {
                     availableUsers={users.map((u) => ({ id: u.id, label: u.name }))}
                   />
                 </div>
+                <Link href={`/administration/equipes/${t.id}`}>
+                  <Button variant="outline" size="sm">
+                    <MessageSquare className="mr-1 h-4 w-4" />
+                    Discussion d&apos;équipe
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}

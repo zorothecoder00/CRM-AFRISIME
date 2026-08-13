@@ -7,7 +7,19 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 
-export type WhiteboardNote = { id: string; x: number; y: number; text: string; color: string };
+// kind (cahier des charges §X, "Coédition : Notes / Tableaux / Plans") —
+// change seulement l'icone/le style de la carte, pas son comportement :
+// pas de vraie difference structurelle entre une "table" et une "note"
+// dans ce MVP sans moteur de diagramme.
+export type WhiteboardNoteKind = "NOTE" | "TABLEAU" | "PLAN";
+export type WhiteboardNote = {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  kind?: WhiteboardNoteKind;
+};
 
 /**
  * Sauvegarde le tableau blanc d'un projet (cahier des charges §7) — remplace

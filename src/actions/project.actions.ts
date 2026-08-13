@@ -25,6 +25,11 @@ import {
   createProjectDeliverableSchema,
   updateProjectDeliverableStatusSchema,
   deleteProjectDeliverableSchema,
+  createProjectDecisionSchema,
+  createProjectIndicatorSchema,
+  createTaskIndicatorSchema,
+  createProjectResourceSchema,
+  deleteProjectResourceSchema,
   type CreateProjectInput,
   type CreateSectionInput,
   type AddSectionCommentInput,
@@ -42,7 +47,13 @@ import {
   type CreateProjectDeliverableInput,
   type UpdateProjectDeliverableStatusInput,
   type DeleteProjectDeliverableInput,
+  type CreateProjectDecisionInput,
+  type CreateProjectIndicatorInput,
+  type CreateTaskIndicatorInput,
+  type CreateProjectResourceInput,
+  type DeleteProjectResourceInput,
 } from "@/lib/validations/project.schema";
+import { createNotification } from "@/lib/notify";
 
 export async function createProject(input: CreateProjectInput) {
   const session = await getServerSession(authOptions);
@@ -531,4 +542,163 @@ export async function deleteProjectDeliverable(input: DeleteProjectDeliverableIn
 
   revalidatePath(`/projets/${deliverable.projectId}`);
   return deliverable;
+}
+
+// ---- Décisions (cahier des charges §VI/§X) ----
+
+/** Décision prise directement au niveau projet, sans réunion. Même principe que addDecision (meeting.actions.ts) : crée une tâche automatiquement. */
+export async function createProjectDecision(input: CreateProjectDecisionInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = createProjectDecisionSchema.parse(input);
+
+  const task = await prisma.task.create({
+    data: {
+      projectId: data.projectId,
+      titre: data.description,
+      statut: "A_FAIRE",
+      priorite: "MOYENNE",
+      echeance: data.echeance ? new Date(data.echeance) : undefined,
+      responsablePrincipalId: data.responsableId,
+      createdById: session.user.id,
+      creeParWorkflow: true,
+    },
+  });
+
+  const decision = await prisma.meetingDecision.create({
+    data: {
+      projectId: data.projectId,
+      description: data.description,
+      responsableId: data.responsableId,
+      echeance: data.echeance ? new Date(data.echeance) : undefined,
+      taskId: task.id,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.decision_created",
+    entityType: "MeetingDecision",
+    entityId: decision.id,
+    changes: { description: data.description, projectId: data.projectId },
+  });
+
+  if (data.responsableId !== session.user.id) {
+    await createNotification({
+      userId: data.responsableId,
+      type: "NOUVELLE_TACHE",
+      titre: `Nouvelle tâche assignée : ${task.titre}`,
+      lien: `/taches/${task.id}`,
+      entityType: "Task",
+      entityId: task.id,
+    });
+  }
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return decision;
+}
+
+// ---- KPI / Indicateurs (cahier des charges §VI/§IX) ----
+
+export async function createProjectIndicator(input: CreateProjectIndicatorInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = createProjectIndicatorSchema.parse(input);
+
+  const indicator = await prisma.indicator.create({
+    data: { projectId: data.projectId, nom: data.nom, unite: data.unite, valeurCible: Number(data.valeurCible) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "indicator.created",
+    entityType: "Project",
+    entityId: data.projectId,
+    changes: { nom: indicator.nom },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return indicator;
+}
+
+export async function createTaskIndicator(input: CreateTaskIndicatorInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+
+  const data = createTaskIndicatorSchema.parse(input);
+
+  const indicator = await prisma.indicator.create({
+    data: { taskId: data.taskId, nom: data.nom, unite: data.unite, valeurCible: Number(data.valeurCible) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "indicator.created",
+    entityType: "Task",
+    entityId: data.taskId,
+    changes: { nom: indicator.nom },
+  });
+
+  revalidatePath(`/taches/${data.taskId}`);
+  return indicator;
+}
+
+// ---- Ressources (cahier des charges §VI) ----
+
+export async function createProjectResource(input: CreateProjectResourceInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = createProjectResourceSchema.parse(input);
+
+  const resource = await prisma.projectResource.create({
+    data: {
+      projectId: data.projectId,
+      nom: data.nom,
+      type: data.type || undefined,
+      quantite: data.quantite ? Number(data.quantite) : undefined,
+      unite: data.unite || undefined,
+      coutUnitaire: data.coutUnitaire ? Number(data.coutUnitaire) : undefined,
+      notes: data.notes || undefined,
+      createdById: session.user.id,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.resource_created",
+    entityType: "ProjectResource",
+    entityId: resource.id,
+    changes: { nom: resource.nom, projectId: data.projectId },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return resource;
+}
+
+export async function deleteProjectResource(input: DeleteProjectResourceInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = deleteProjectResourceSchema.parse(input);
+
+  const resource = await prisma.projectResource.delete({ where: { id: data.resourceId } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.resource_deleted",
+    entityType: "ProjectResource",
+    entityId: resource.id,
+    changes: { nom: resource.nom },
+  });
+
+  revalidatePath(`/projets/${resource.projectId}`);
+  return resource;
 }

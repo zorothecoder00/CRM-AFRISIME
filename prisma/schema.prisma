@@ -312,6 +312,7 @@ model User {
   teamsLed                         Team[]                      @relation("TeamLeader")
   teamsCreated                     Team[]                      @relation("TeamCreatedBy")
   teamMemberships                  TeamMember[]
+  projectResourcesCreated          ProjectResource[]           @relation("ProjectResourceCreatedBy")
   documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
   leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
   leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
@@ -468,7 +469,8 @@ model Team {
   createdBy    User     @relation("TeamCreatedBy", fields: [createdById], references: [id])
   createdAt    DateTime @default(now())
 
-  members TeamMember[]
+  members      TeamMember[]
+  conversation Conversation?
 
   @@index([departmentId])
 }
@@ -758,6 +760,9 @@ model Project {
   deliverables        ProjectDeliverable[]
   autoTaskWorkflows   ValidationWorkflow[]
   evaluations         Evaluation[]
+  decisions           MeetingDecision[]
+  indicators          Indicator[]
+  resources           ProjectResource[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -913,6 +918,27 @@ model ProjectDeliverable {
   createdBy     User              @relation("DeliverableCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+
+  @@index([projectId])
+}
+
+// Ressource de projet (cahier des charges §VI) : registre distinct de
+// l'equipe (ProjectMember) — materiel, budget alloue a une ligne precise,
+// prestation externe... Type libre plutot qu'un enum ferme, la nature des
+// ressources variant trop d'un projet a l'autre.
+model ProjectResource {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  nom           String
+  type          String?
+  quantite      Decimal? @db.Decimal(10, 2)
+  unite         String?
+  coutUnitaire  Decimal? @db.Decimal(14, 2)
+  notes         String?
+  createdById   String
+  createdBy     User     @relation("ProjectResourceCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
 
   @@index([projectId])
 }
@@ -1203,6 +1229,11 @@ model Task {
   objective              Objective?      @relation(fields: [objectiveId], references: [id])
   planId                 String?
   plan                   Plan?           @relation(fields: [planId], references: [id])
+  // Traçabilité de l'origine "workflow" (cahier des charges §IX) : vrai
+  // quand la tâche a été créée automatiquement par un circuit de validation
+  // (ValidationWorkflow.creerTacheAlApprobation) ou une règle d'automatisation
+  // (AutomationRule action CREATE_NEXT_TASK), plutôt que saisie manuellement.
+  creeParWorkflow        Boolean         @default(false)
   createdById            String
   createdBy              User            @relation("TaskCreatedBy", fields: [createdById], references: [id])
   ordre                  Int             @default(0)
@@ -1219,6 +1250,7 @@ model Task {
   validationRun   TaskValidationRun?
   courrier        Courrier?
   adminRequest    AdminRequest?
+  indicators      Indicator[]
 
   @@index([projectId])
   @@index([sectionId])
@@ -1327,6 +1359,14 @@ model ValidationWorkflowStep {
   // titulaires de escaladeRole (approvers normaux toujours notifies aussi).
   escaladeJours Int?
   escaladeRole  RoleKey?
+  // Condition d'applicabilite de l'etape (cahier des charges §VIII,
+  // "Condition") — ne s'applique qu'aux demandes administratives (montant
+  // renseigne) ; null = pas de condition, l'etape s'applique toujours. Si le
+  // montant de la demande ne satisfait pas la condition, l'etape est
+  // ignoree automatiquement (voir decideAdminRequestCurrentStep) plutot que
+  // bloquer le circuit sur une etape qui n'a pas lieu d'etre.
+  montantMin    Decimal?             @db.Decimal(14, 2)
+  montantMax    Decimal?             @db.Decimal(14, 2)
 
   approvals             TaskApproval[]
   adminRequestApprovals AdminRequestApproval[]
@@ -1546,10 +1586,16 @@ model MeetingParticipant {
 
 // Une décision/action peut donner naissance à une Task (cahier des charges
 // §8 : « les actions décidées deviennent automatiquement des tâches »).
+// Decision (cahier des charges §VI/§X) : issue d'une reunion (meetingId) OU
+// prise directement au niveau projet sans reunion (projectId) — exactement
+// l'un des deux est renseigne, verifie en application plutot qu'en
+// contrainte DB (meme pattern que Reaction.taskCommentId/messageId).
 model MeetingDecision {
   id            String    @id @default(cuid())
-  meetingId     String
-  meeting       Meeting   @relation(fields: [meetingId], references: [id])
+  meetingId     String?
+  meeting       Meeting?  @relation(fields: [meetingId], references: [id])
+  projectId     String?
+  project       Project?  @relation(fields: [projectId], references: [id])
   description   String
   responsableId String?
   responsable   User?     @relation("MeetingDecisionResponsable", fields: [responsableId], references: [id])
@@ -1559,6 +1605,7 @@ model MeetingDecision {
   createdAt     DateTime  @default(now())
 
   @@index([meetingId])
+  @@index([projectId])
 }
 
 // Dossier documentaire d'un projet — auto-référencé pour le classement en
@@ -1845,18 +1892,29 @@ model Objective {
 }
 
 // Indicateur mesurable relié à un objectif (cahier des charges §13).
+// KPI (cahier des charges §VI/§IX) : rattache a un Objective, un Project ou
+// une Task — exactement un des trois, verifie en application (meme pattern
+// que MeetingDecision ci-dessus). Le rattachement Objective reste le cas
+// historique (Resultats cles/OKR) ; Project/Task etendent le meme modele
+// plutot que d'en dupliquer un.
 model Indicator {
-  id             String    @id @default(cuid())
-  objectiveId    String
-  objective      Objective @relation(fields: [objectiveId], references: [id])
+  id             String     @id @default(cuid())
+  objectiveId    String?
+  objective      Objective? @relation(fields: [objectiveId], references: [id])
+  projectId      String?
+  project        Project?   @relation(fields: [projectId], references: [id])
+  taskId         String?
+  task           Task?      @relation(fields: [taskId], references: [id])
   nom            String
   unite          String?
-  valeurCible    Decimal   @db.Decimal(12, 2)
-  valeurActuelle Decimal   @default(0) @db.Decimal(12, 2)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  valeurCible    Decimal    @db.Decimal(12, 2)
+  valeurActuelle Decimal    @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([objectiveId])
+  @@index([projectId])
+  @@index([taskId])
 }
 
 // Cahier des charges §14 — évaluation de performance périodique. Flux à
@@ -1952,6 +2010,11 @@ model Conversation {
   isGroup     Boolean  @default(false)
   projectId   String?  @unique
   project     Project? @relation(fields: [projectId], references: [id])
+  // Conversation d'equipe (cahier des charges §X), meme principe que
+  // projectId ci-dessus : un seul canal par equipe, participants
+  // synchronises sur TeamMember plutot que geres manuellement.
+  teamId      String?  @unique
+  team        Team?    @relation(fields: [teamId], references: [id])
   createdById String
   createdBy   User     @relation("ConversationCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())

@@ -30,6 +30,12 @@ import { computeProjectPilotage } from "@/lib/project-pilotage";
 import { ensureProjectConversation } from "@/lib/project-conversation";
 import { MessageThread, type MessageData } from "@/components/messages/message-thread";
 import { documentUploaderName } from "@/lib/document-uploader";
+import { ProjectDecisionsSection, type ProjectDecisionData } from "@/components/projects/project-decisions-section";
+import { IndicatorList, type IndicatorData } from "@/components/objectives/indicator-list";
+import { AddProjectIndicatorDialog } from "@/components/projects/add-project-indicator-dialog";
+import { ProjectResourcesSection, type ProjectResourceData } from "@/components/projects/project-resources-section";
+import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
+import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-view";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -60,8 +66,26 @@ export default async function ProjectDetailPage({
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
   const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves, risks, stakeholders, milestones, deliverables, contacts, validationRuns] =
-    await Promise.all([
+  const [
+    project,
+    sections,
+    tasks,
+    users,
+    folders,
+    rootDocuments,
+    rules,
+    members,
+    leaves,
+    risks,
+    stakeholders,
+    milestones,
+    deliverables,
+    contacts,
+    validationRuns,
+    decisions,
+    indicators,
+    resources,
+  ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       include: { department: true, responsable: true, programme: true, sponsor: true },
@@ -126,6 +150,13 @@ export default async function ProjectDetailPage({
       where: { task: { projectId }, statut: { in: ["APPROUVE", "REJETE"] } },
       select: { statut: true },
     }),
+    prisma.meetingDecision.findMany({
+      where: { projectId },
+      include: { responsable: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.indicator.findMany({ where: { projectId }, orderBy: { createdAt: "asc" } }),
+    prisma.projectResource.findMany({ where: { projectId }, orderBy: { createdAt: "asc" } }),
   ]);
 
   if (!project) {
@@ -248,6 +279,43 @@ export default async function ProjectDetailPage({
     contactName: s.contact ? `${s.contact.prenom} ${s.contact.nom}` : null,
   }));
 
+  const decisionRows: ProjectDecisionData[] = decisions.map((d) => ({
+    id: d.id,
+    description: d.description,
+    responsableName: d.responsable?.name ?? null,
+    echeance: d.echeance ? d.echeance.toISOString() : null,
+    taskId: d.taskId,
+  }));
+
+  const indicatorRows: IndicatorData[] = indicators.map((i) => ({
+    id: i.id,
+    nom: i.nom,
+    unite: i.unite,
+    valeurCible: Number(i.valeurCible),
+    valeurActuelle: Number(i.valeurActuelle),
+  }));
+
+  const ganttRows: GanttTaskRow[] = tasks.map((t) => ({
+    id: t.id,
+    titre: t.titre,
+    projectNom: project.nom,
+    statut: t.statut,
+    priorite: t.priorite,
+    echeance: t.echeance ? t.echeance.toISOString() : null,
+    dateDebut: t.dateDebut ? t.dateDebut.toISOString() : null,
+    responsableNom: t.responsablePrincipal.name,
+    avancement: t.avancement,
+  }));
+
+  const resourceRows: ProjectResourceData[] = resources.map((r) => ({
+    id: r.id,
+    nom: r.nom,
+    type: r.type,
+    quantite: r.quantite !== null ? Number(r.quantite) : null,
+    unite: r.unite,
+    coutUnitaire: r.coutUnitaire !== null ? Number(r.coutUnitaire) : null,
+  }));
+
   const milestoneRows: MilestoneRow[] = milestones.map((m) => ({
     id: m.id,
     nom: m.nom,
@@ -328,10 +396,15 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="pilotage">Pilotage</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="gantt">Gantt</TabsTrigger>
           <TabsTrigger value="jalons">Jalons</TabsTrigger>
           <TabsTrigger value="livrables">Livrables</TabsTrigger>
           <TabsTrigger value="risques">Risques</TabsTrigger>
           <TabsTrigger value="parties-prenantes">Parties prenantes</TabsTrigger>
+          <TabsTrigger value="decisions">Décisions</TabsTrigger>
+          <TabsTrigger value="kpi">KPI</TabsTrigger>
+          <TabsTrigger value="ressources">Ressources</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
@@ -440,6 +513,14 @@ export default async function ProjectDetailPage({
           </div>
         </TabsContent>
 
+        <TabsContent value="timeline" className="mt-4">
+          <TaskTimelineView tasks={ganttRows} />
+        </TabsContent>
+
+        <TabsContent value="gantt" className="mt-4">
+          <TaskGanttView tasks={ganttRows} />
+        </TabsContent>
+
         <TabsContent value="jalons" className="mt-4">
           <ProjectMilestonesSection projectId={project.id} milestones={milestoneRows} canManage={canUpdateProject} />
         </TabsContent>
@@ -465,6 +546,22 @@ export default async function ProjectDetailPage({
             contacts={contactOptions}
             canManage={canUpdateProject}
           />
+        </TabsContent>
+
+        <TabsContent value="decisions" className="mt-4">
+          <ProjectDecisionsSection projectId={project.id} decisions={decisionRows} users={userOptions} />
+        </TabsContent>
+
+        <TabsContent value="kpi" className="mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Indicateurs clés de performance du projet.</p>
+            <AddProjectIndicatorDialog projectId={project.id} />
+          </div>
+          <IndicatorList indicators={indicatorRows} />
+        </TabsContent>
+
+        <TabsContent value="ressources" className="mt-4">
+          <ProjectResourcesSection projectId={project.id} resources={resourceRows} />
         </TabsContent>
 
         {canReadWorkload && (

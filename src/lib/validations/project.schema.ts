@@ -154,3 +154,52 @@ export type UpdateProjectDeliverableStatusInput = z.infer<typeof updateProjectDe
 export const deleteProjectDeliverableSchema = z.object({ deliverableId: z.string().min(1) });
 
 export type DeleteProjectDeliverableInput = z.infer<typeof deleteProjectDeliverableSchema>;
+
+// ---- Décisions (cahier des charges §VI/§X) ----
+
+export const createProjectDecisionSchema = z.object({
+  projectId: z.string().min(1),
+  description: z.string().min(2, "La description est requise."),
+  responsableId: z.string().min(1, "Un responsable est requis."),
+  echeance: z.string().optional(),
+});
+
+export type CreateProjectDecisionInput = z.infer<typeof createProjectDecisionSchema>;
+
+// ---- KPI / Indicateurs (cahier des charges §VI/§IX) ----
+
+export const createProjectIndicatorSchema = z.object({
+  projectId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  unite: z.string().optional(),
+  valeurCible: z.string().min(1, "La cible est requise."),
+});
+
+export type CreateProjectIndicatorInput = z.infer<typeof createProjectIndicatorSchema>;
+
+export const createTaskIndicatorSchema = z.object({
+  taskId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  unite: z.string().optional(),
+  valeurCible: z.string().min(1, "La cible est requise."),
+});
+
+export type CreateTaskIndicatorInput = z.infer<typeof createTaskIndicatorSchema>;
+
+// ---- Ressources (cahier des charges §VI) ----
+
+export const createProjectResourceSchema = z.object({
+  projectId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  type: z.string().optional(),
+  quantite: z.string().optional(),
+  unite: z.string().optional(),
+  coutUnitaire: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type CreateProjectResourceInput = z.infer<typeof createProjectResourceSchema>;
+
+export const deleteProjectResourceSchema = z.object({ resourceId: z.string().min(1) });
+
+export type DeleteProjectResourceInput = z.infer<typeof deleteProjectResourceSchema>;
