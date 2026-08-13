@@ -19,6 +19,7 @@ const PERIOD_LABELS: Record<string, string> = {
 };
 
 const SCOPE_LABELS: Record<string, string> = {
+  ORGANISATION: "Organisation entière",
   INDIVIDUEL: "Individuel",
   EQUIPE: "Équipe",
   DEPARTEMENT: "Département",
@@ -47,6 +48,7 @@ export default async function ObjectiveDetailPage({
         project: true,
         department: true,
         programme: true,
+        axis: true,
         createdBy: true,
         indicators: { orderBy: { createdAt: "asc" } },
         parent: true,
@@ -104,19 +106,22 @@ export default async function ObjectiveDetailPage({
             {target && objective.scope !== "EQUIPE" && objective.scope !== "PROGRAMME" && (
               <span className="text-sm text-muted-foreground">{target}</span>
             )}
+            {objective.axis && <Badge variant="outline">↗ {objective.axis.nom}</Badge>}
           </div>
         </div>
 
         <Card accent={accentForStatus(objective.statut)}>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Indicateurs mesurables</CardTitle>
+            <CardTitle className="text-base">Résultats clés (Key Results)</CardTitle>
             <AddIndicatorDialog objectiveId={objective.id} />
           </CardHeader>
           <CardContent>
             <div className="mb-4">
               <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="font-medium">Avancement global</span>
-                <span>{progress}%</span>
+                <span className="font-medium">Score OKR</span>
+                <span>
+                  {(progress / 100).toFixed(2)} <span className="text-muted-foreground">({progress}%)</span>
+                </span>
               </div>
               <ProgressBar value={progress} />
             </div>

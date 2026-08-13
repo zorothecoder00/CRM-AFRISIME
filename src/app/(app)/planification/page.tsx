@@ -60,13 +60,14 @@ export default async function PlanificationPage() {
   }
   const canManage = session!.user.permissions.includes(PERMISSIONS.PLAN_MANAGE);
 
-  const [plans, departments, users] = await Promise.all([
+  const [plans, departments, users, axes] = await Promise.all([
     prisma.plan.findMany({
       include: { department: true, owner: true },
       orderBy: { dateDebut: "desc" },
     }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.strategicAxis.findMany({ orderBy: { nom: "asc" } }),
   ]);
 
   const tree = buildPlanTree(plans);
@@ -86,6 +87,7 @@ export default async function PlanificationPage() {
           <PlanFormDialog
             departments={departments.map((d) => ({ id: d.id, label: d.name }))}
             users={users.map((u) => ({ id: u.id, label: u.name }))}
+            axes={axes.map((a) => ({ id: a.id, label: a.nom }))}
             parentOptions={parentOptions}
             currentUserId={session!.user.id}
           />

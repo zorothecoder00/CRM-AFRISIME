@@ -19,6 +19,7 @@ const PERIOD_LABELS: Record<string, string> = {
 };
 
 const SCOPE_LABELS: Record<string, string> = {
+  ORGANISATION: "Organisation entière",
   INDIVIDUEL: "Individuel",
   EQUIPE: "Équipe",
   DEPARTEMENT: "Département",
@@ -40,19 +41,28 @@ export default async function ObjectifsPage({
   const { periode, scope } = await searchParams;
   const session = await getServerSession(authOptions);
 
-  const [objectives, users, projects, departments, programmes, allObjectives] = await Promise.all([
+  const [objectives, users, projects, departments, programmes, axes, allObjectives] = await Promise.all([
     prisma.objective.findMany({
       where: {
         periode: periode as ObjectivePeriod | undefined,
         scope: scope as ObjectiveScope | undefined,
       },
-      include: { user: true, project: true, department: true, programme: true, indicators: true, parent: true },
+      include: {
+        user: true,
+        project: true,
+        department: true,
+        programme: true,
+        axis: true,
+        indicators: true,
+        parent: true,
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
     prisma.programme.findMany({ orderBy: { nom: "asc" } }),
+    prisma.strategicAxis.findMany({ orderBy: { nom: "asc" } }),
     prisma.objective.findMany({ orderBy: { titre: "asc" }, select: { id: true, titre: true } }),
   ]);
 
@@ -76,6 +86,7 @@ export default async function ObjectifsPage({
           projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
           departments={departments.map((d) => ({ id: d.id, label: d.name }))}
           programmes={programmes.map((p) => ({ id: p.id, label: p.nom }))}
+          axes={axes.map((a) => ({ id: a.id, label: a.nom }))}
           objectives={allObjectives.map((o) => ({ id: o.id, label: o.titre }))}
           currentUserId={session!.user.id}
         />
@@ -142,6 +153,7 @@ export default async function ObjectifsPage({
                     <Badge variant={toneForStatus(objective.statut)}>{STATUS_LABELS[objective.statut]}</Badge>
                   </div>
                   {target && <p className="text-sm text-muted-foreground">{target}</p>}
+                  {objective.axis && <Badge variant="outline">{objective.axis.nom}</Badge>}
                   {objective.parent && (
                     <p className="text-xs text-muted-foreground">↳ {objective.parent.titre}</p>
                   )}

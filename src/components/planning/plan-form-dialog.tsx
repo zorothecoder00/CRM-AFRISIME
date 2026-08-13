@@ -30,6 +30,7 @@ type PlanEdit = {
   dateFin: string;
   budgetIndicatif: string | null;
   priorites: string | null;
+  axisId: string | null;
   departmentId: string | null;
   parentId: string | null;
   ownerId: string;
@@ -45,6 +46,7 @@ const NIVEAU_LABELS: Record<string, string> = {
 export function PlanFormDialog({
   departments,
   users,
+  axes,
   parentOptions,
   currentUserId,
   plan,
@@ -53,6 +55,7 @@ export function PlanFormDialog({
 }: {
   departments: Option[];
   users: Option[];
+  axes: Option[];
   /** Plans eligibles comme plan parent (deja indentes par profondeur dans le label). */
   parentOptions: Option[];
   currentUserId: string;
@@ -80,6 +83,7 @@ export function PlanFormDialog({
           dateFin: plan.dateFin,
           budgetIndicatif: plan.budgetIndicatif ?? undefined,
           priorites: plan.priorites ?? undefined,
+          axisId: plan.axisId ?? undefined,
           departmentId: plan.departmentId ?? undefined,
           parentId: plan.parentId ?? undefined,
           ownerId: plan.ownerId,
@@ -219,7 +223,23 @@ export function PlanFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="priorites">Priorités</Label>
+            <Label>Axe stratégique</Label>
+            <Select defaultValue={plan?.axisId ?? undefined} onValueChange={(v) => setValue("axisId", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Aucun" />
+              </SelectTrigger>
+              <SelectContent>
+                {axes.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="priorites">Priorités (libellé libre)</Label>
             <Textarea id="priorites" placeholder="Une priorité par ligne" {...register("priorites")} />
           </div>
 

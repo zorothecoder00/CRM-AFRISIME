@@ -63,6 +63,7 @@ export async function createObjective(input: CreateObjectiveInput) {
       projectId: data.scope === "EQUIPE" ? data.projectId : undefined,
       departmentId: data.scope === "DEPARTEMENT" ? data.departmentId : undefined,
       programmeId: data.scope === "PROGRAMME" ? data.programmeId : undefined,
+      axisId: data.axisId || undefined,
       parentId: data.parentId || undefined,
       createdById: session.user.id,
     },

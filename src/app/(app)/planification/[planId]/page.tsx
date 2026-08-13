@@ -42,13 +42,14 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
   }
   const canManage = session!.user.permissions.includes(PERMISSIONS.PLAN_MANAGE);
 
-  const [plan, departments, users, parentCandidates, availableObjectives, availableProgrammes] =
+  const [plan, departments, users, axes, parentCandidates, availableObjectives, availableProgrammes] =
     await Promise.all([
       prisma.plan.findUnique({
         where: { id: planId },
         include: {
           department: true,
           owner: true,
+          axis: true,
           parent: true,
           children: { orderBy: { dateDebut: "asc" } },
           objectives: { orderBy: { dateDebut: "desc" } },
@@ -57,6 +58,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
       }),
       prisma.department.findMany({ orderBy: { name: "asc" } }),
       prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+      prisma.strategicAxis.findMany({ orderBy: { nom: "asc" } }),
       prisma.plan.findMany({ where: { id: { not: planId } }, select: { id: true, nom: true } }),
       prisma.objective.findMany({
         where: { OR: [{ planId: null }, { planId: { not: planId } }] },
@@ -100,6 +102,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
               <PlanFormDialog
                 departments={departments.map((d) => ({ id: d.id, label: d.name }))}
                 users={users.map((u) => ({ id: u.id, label: u.name }))}
+                axes={axes.map((a) => ({ id: a.id, label: a.nom }))}
                 parentOptions={parentCandidates.map((p) => ({ id: p.id, label: p.nom }))}
                 currentUserId={session!.user.id}
                 plan={{
@@ -111,6 +114,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
                   dateFin: plan.dateFin.toISOString().slice(0, 10),
                   budgetIndicatif: plan.budgetIndicatif ? String(plan.budgetIndicatif) : null,
                   priorites: plan.priorites,
+                  axisId: plan.axisId,
                   departmentId: plan.departmentId,
                   parentId: plan.parentId,
                   ownerId: plan.ownerId,
@@ -128,6 +132,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
               value={plan.budgetIndicatif ? `${Number(plan.budgetIndicatif).toLocaleString("fr-FR")} FCFA` : "—"}
             />
             <Info label="Sous-plans" value={String(plan.children.length)} />
+            <Info label="Axe stratégique" value={plan.axis?.nom ?? "—"} />
           </CardContent>
           {plan.priorites && (
             <CardContent className="pt-0">

@@ -195,7 +195,12 @@ export async function getReportData(type: ReportType): Promise<ReportTable> {
         { key: "progression", label: "Progression indicateurs" },
       ],
       rows: objectives.map((o) => {
-        const portee = o.user?.name ?? o.project?.nom ?? o.department?.name ?? o.programme?.nom ?? "—";
+        const portee =
+          o.user?.name ??
+          o.project?.nom ??
+          o.department?.name ??
+          o.programme?.nom ??
+          (o.scope === "ORGANISATION" ? "Organisation entière" : "—");
         const progression =
           o.indicators.length > 0
             ? `${Math.round(

@@ -121,6 +121,7 @@ enum ObjectivePeriod {
 // « équipe » n'a pas de modèle dédié dans ce MVP — une équipe est
 // représentée par les membres d'un Projet (ProjectMember), déjà modélisé.
 enum ObjectiveScope {
+  ORGANISATION
   INDIVIDUEL
   EQUIPE
   DEPARTEMENT
@@ -286,6 +287,7 @@ model User {
   delegationsReceived              Delegation[]                @relation("DelegationDelegataire")
   delegationsCreated               Delegation[]                @relation("DelegationCreatedBy")
   organizationProfilesUpdated      OrganizationProfile[]
+  strategicAxesCreated             StrategicAxis[]
   tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                      @relation("TaskCreatedBy")
   taskAssignments                  TaskAssignee[]
@@ -526,28 +528,50 @@ enum PlanNiveau {
 // lequel des Objectifs et des Programmes peuvent etre rattaches pour rendre
 // visible la cascade strategie -> objectifs -> travail. Reutilise
 // ProjectStatus pour le cycle de vie, comme Programme.
+// Axe strategique (cahier des charges §III, "Axes strategiques / Priorites
+// strategiques") — entite structuree remplacant le texte libre Plan.priorites
+// pour les plans et objectifs qui veulent s'y rattacher explicitement.
+// priorite reutilise l'echelle ProjectPriority (meme semantique).
+model StrategicAxis {
+  id          String          @id @default(cuid())
+  nom         String
+  description String?
+  priorite    ProjectPriority @default(MOYENNE)
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  plans      Plan[]
+  objectives Objective[]
+}
+
 model Plan {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   nom             String
   niveau          PlanNiveau
   description     String?
   dateDebut       DateTime
   dateFin         DateTime
-  budgetIndicatif Decimal?      @db.Decimal(14, 2)
+  budgetIndicatif Decimal?       @db.Decimal(14, 2)
   priorites       String?
-  statut          ProjectStatus @default(PLANIFIE)
+  // Rattachement structure (cahier des charges §III), coexiste avec le
+  // champ texte libre priorites ci-dessus plutot que de le remplacer.
+  axisId          String?
+  axis            StrategicAxis? @relation(fields: [axisId], references: [id])
+  statut          ProjectStatus  @default(PLANIFIE)
   // Nul = plan a l'echelle de toute l'organisation.
   departmentId    String?
-  department      Department?   @relation(fields: [departmentId], references: [id])
+  department      Department?    @relation(fields: [departmentId], references: [id])
   parentId        String?
-  parent          Plan?         @relation("PlanHierarchy", fields: [parentId], references: [id])
-  children        Plan[]        @relation("PlanHierarchy")
+  parent          Plan?          @relation("PlanHierarchy", fields: [parentId], references: [id])
+  children        Plan[]         @relation("PlanHierarchy")
   ownerId         String
-  owner           User          @relation("PlanOwner", fields: [ownerId], references: [id])
+  owner           User           @relation("PlanOwner", fields: [ownerId], references: [id])
   createdById     String
-  createdBy       User          @relation("PlanCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdBy       User           @relation("PlanCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   objectives Objective[]
   programmes Programme[]
@@ -1610,6 +1634,10 @@ model Objective {
   programme    Programme?      @relation(fields: [programmeId], references: [id])
   planId       String?
   plan         Plan?           @relation(fields: [planId], references: [id])
+  // Rattachement a un axe strategique (cahier des charges §III), optionnel
+  // quelle que soit la portee de l'objectif.
+  axisId       String?
+  axis         StrategicAxis?  @relation(fields: [axisId], references: [id])
   // Cahier des charges §III — cascade d'objectifs (entreprise -> direction
   // -> equipe -> individuel), independante du rattachement a un Plan.
   parentId     String?
@@ -1627,6 +1655,7 @@ model Objective {
   @@index([departmentId])
   @@index([programmeId])
   @@index([planId])
+  @@index([axisId])
   @@index([parentId])
   @@index([periode])
 }

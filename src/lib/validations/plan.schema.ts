@@ -8,6 +8,7 @@ export const createPlanSchema = z.object({
   dateFin: z.string().min(1, "La date de fin est requise."),
   budgetIndicatif: z.string().optional(),
   priorites: z.string().optional(),
+  axisId: z.string().optional(),
   departmentId: z.string().optional(),
   parentId: z.string().optional(),
   ownerId: z.string().min(1, "Un responsable est requis."),

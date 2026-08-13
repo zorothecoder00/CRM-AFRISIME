@@ -33,6 +33,7 @@ export function ObjectiveFormDialog({
   projects,
   departments,
   programmes,
+  axes,
   objectives,
   currentUserId,
   defaultParentId,
@@ -45,6 +46,8 @@ export function ObjectiveFormDialog({
   departments: Option[];
   /** Requis seulement si un objectif de portée PROGRAMME doit pouvoir être créé. */
   programmes?: Option[];
+  /** Axes stratégiques (cahier des charges §III) — rattachement optionnel, indépendant de la portée. */
+  axes?: Option[];
   /** Objectifs existants éligibles comme objectif parent (cascade §III). */
   objectives?: Option[];
   currentUserId: string;
@@ -140,6 +143,7 @@ export function ObjectiveFormDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="ORGANISATION">Organisation entière</SelectItem>
                   <SelectItem value="INDIVIDUEL">Individuel</SelectItem>
                   <SelectItem value="EQUIPE">Équipe (projet)</SelectItem>
                   <SelectItem value="DEPARTEMENT">Département</SelectItem>
@@ -226,6 +230,24 @@ export function ObjectiveFormDialog({
                 </SelectContent>
               </Select>
               {errors.programmeId && <p className="text-sm text-destructive">{errors.programmeId.message}</p>}
+            </div>
+          )}
+
+          {axes && axes.length > 0 && (
+            <div className="space-y-2">
+              <Label>Axe stratégique (optionnel)</Label>
+              <Select onValueChange={(v) => setValue("axisId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun" />
+                </SelectTrigger>
+                <SelectContent>
+                  {axes.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 

@@ -18,7 +18,7 @@ export type IndicatorData = {
 
 function IndicatorRow({ indicator }: { indicator: IndicatorData }) {
   const [value, setValue] = useState(String(indicator.valeurActuelle));
-  const { run, isPending } = useAction(updateIndicatorValue, { successMessage: "Indicateur mis à jour." });
+  const { run, isPending } = useAction(updateIndicatorValue, { successMessage: "Résultat clé mis à jour." });
   const progress = indicatorProgress(Number(value) || 0, indicator.valeurCible);
 
   async function handleSave() {
@@ -52,7 +52,7 @@ function IndicatorRow({ indicator }: { indicator: IndicatorData }) {
 
 export function IndicatorList({ indicators }: { indicators: IndicatorData[] }) {
   if (indicators.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucun indicateur pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">Aucun résultat clé pour le moment.</p>;
   }
 
   return (

@@ -29,7 +29,7 @@ export function AddIndicatorDialog({ objectiveId }: { objectiveId: string }) {
     resolver: zodResolver(addIndicatorSchema),
     defaultValues: { objectiveId },
   });
-  const { run: submit, isPending } = useAction(addIndicator, { successMessage: "Indicateur ajouté." });
+  const { run: submit, isPending } = useAction(addIndicator, { successMessage: "Résultat clé ajouté." });
 
   async function onSubmit(data: AddIndicatorInput) {
     const result = await submit({ ...data, objectiveId });
@@ -44,12 +44,12 @@ export function AddIndicatorDialog({ objectiveId }: { objectiveId: string }) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Plus className="mr-1 h-4 w-4" />
-          Ajouter un indicateur
+          Ajouter un résultat clé
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ajouter un indicateur mesurable</DialogTitle>
+          <DialogTitle>Ajouter un résultat clé (Key Result)</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">

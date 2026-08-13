@@ -23,6 +23,7 @@ import {
   Milestone,
   BookOpen,
   Mail,
+  Compass,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -63,6 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Travail",
     items: [
+      { title: "Stratégie", href: "/strategie", icon: Compass, permission: PERMISSIONS.PLAN_READ },
       { title: "Planification", href: "/planification", icon: Milestone, permission: PERMISSIONS.PLAN_READ },
       { title: "Programmes", href: "/programmes", icon: Layers, permission: PERMISSIONS.PROGRAM_READ },
       { title: "Projets", href: "/projets", icon: FolderKanban, permission: PERMISSIONS.PROJECT_READ },
