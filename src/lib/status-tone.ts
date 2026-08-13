@@ -149,3 +149,53 @@ export function toneForCourrierStatus(status: string): BadgeTone {
 export function accentForCourrierStatus(status: string): CardAccent {
   return toCardAccent(toneForCourrierStatus(status) as StatusTone);
 }
+
+/** Statut d'un risque projet (IDENTIFIE/EN_TRAITEMENT/MAITRISE/SURVENU/CLOS). */
+const RISK_TONES: Record<string, StatusTone> = {
+  IDENTIFIE: "secondary",
+  EN_TRAITEMENT: "info",
+  MAITRISE: "success",
+  SURVENU: "destructive",
+  CLOS: "secondary",
+};
+
+export function toneForRiskStatus(status: string): BadgeTone {
+  return RISK_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+/** Statut d'un jalon projet (A_VENIR/ATTEINT/MANQUE). */
+const MILESTONE_TONES: Record<string, StatusTone> = {
+  A_VENIR: "secondary",
+  ATTEINT: "success",
+  MANQUE: "destructive",
+};
+
+export function toneForMilestoneStatus(status: string): BadgeTone {
+  return MILESTONE_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+/** Statut d'un livrable projet (A_FAIRE/EN_COURS/SOUMIS/VALIDE/REJETE). */
+const DELIVERABLE_TONES: Record<string, StatusTone> = {
+  A_FAIRE: "secondary",
+  EN_COURS: "info",
+  SOUMIS: "warning",
+  VALIDE: "success",
+  REJETE: "destructive",
+};
+
+export function toneForDeliverableStatus(status: string): BadgeTone {
+  return DELIVERABLE_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+/**
+ * Niveau generique FAIBLE/MOYEN(NE)/ELEVE(E) — reutilise pour la probabilite
+ * et l'impact d'un risque, ainsi que l'influence et l'interet d'une partie
+ * prenante : meme echelle a 3 crans, plus le niveau est haut plus la teinte
+ * doit attirer l'attention.
+ */
+export function toneForNiveau(niveau: string): BadgeTone {
+  const n = niveau.toUpperCase();
+  if (n.includes("FAIBLE")) return "secondary";
+  if (n.includes("ELEV")) return "destructive";
+  return "warning";
+}

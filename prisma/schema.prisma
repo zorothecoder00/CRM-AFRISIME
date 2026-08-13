@@ -257,7 +257,13 @@ model User {
 
   projectsOwned                    Project[]                   @relation("ProjectResponsable")
   projectsCreated                  Project[]                   @relation("ProjectCreatedBy")
+  projectsSponsored                Project[]                   @relation("ProjectSponsor")
   projectMemberships               ProjectMember[]
+  risksResponsable                 ProjectRisk[]               @relation("RiskResponsable")
+  risksCreated                     ProjectRisk[]               @relation("RiskCreatedBy")
+  stakeholderLinks                 ProjectStakeholder[]        @relation("StakeholderUser")
+  deliverablesResponsable          ProjectDeliverable[]        @relation("DeliverableResponsable")
+  deliverablesCreated              ProjectDeliverable[]        @relation("DeliverableCreatedBy")
   tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                      @relation("TaskCreatedBy")
   taskAssignments                  TaskAssignee[]
@@ -310,11 +316,11 @@ model User {
   evaluationsRecues                Evaluation[]                @relation("EvaluationEvalue")
   evaluationsMenees                Evaluation[]                @relation("EvaluationEvaluateur")
   evaluationsCreees                Evaluation[]                @relation("EvaluationCreatedBy")
-  knowledgeCategoriesCreated        KnowledgeCategory[]         @relation("KnowledgeCategoryCreatedBy")
-  knowledgeArticlesAuthored         KnowledgeArticle[]          @relation("KnowledgeArticleAuthor")
-  portalAccountsInvited             PortalAccount[]             @relation("PortalAccountInvitedBy")
-  courriersResponsable              Courrier[]                  @relation("CourrierResponsable")
-  courriersCreated                  Courrier[]                  @relation("CourrierCreatedBy")
+  knowledgeCategoriesCreated       KnowledgeCategory[]         @relation("KnowledgeCategoryCreatedBy")
+  knowledgeArticlesAuthored        KnowledgeArticle[]          @relation("KnowledgeArticleAuthor")
+  portalAccountsInvited            PortalAccount[]             @relation("PortalAccountInvitedBy")
+  courriersResponsable             Courrier[]                  @relation("CourrierResponsable")
+  courriersCreated                 Courrier[]                  @relation("CourrierCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -491,6 +497,10 @@ model Project {
   programmeId   String?
   programme     Programme?      @relation(fields: [programmeId], references: [id])
   priorite      ProjectPriority @default(MOYENNE)
+  // Sponsor (cahier des charges §VI) — porteur hierarchique du projet,
+  // distinct du chef de projet operationnel (responsableId).
+  sponsorId     String?
+  sponsor       User?           @relation("ProjectSponsor", fields: [sponsorId], references: [id])
   dateDebut     DateTime?
   dateFin       DateTime?
   budget        Decimal?        @db.Decimal(14, 2)
@@ -517,6 +527,10 @@ model Project {
   automationRules     AutomationRule[]
   permissionOverrides PermissionOverride[]
   whiteboard          Whiteboard?
+  risks               ProjectRisk[]
+  stakeholders        ProjectStakeholder[]
+  milestones          ProjectMilestone[]
+  deliverables        ProjectDeliverable[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -548,6 +562,132 @@ model ProjectMember {
   addedAt       DateTime          @default(now())
 
   @@unique([projectId, userId])
+}
+
+enum RiskProbability {
+  FAIBLE
+  MOYENNE
+  ELEVEE
+}
+
+enum RiskImpact {
+  FAIBLE
+  MOYEN
+  ELEVE
+}
+
+enum RiskStatus {
+  IDENTIFIE
+  EN_TRAITEMENT
+  MAITRISE
+  SURVENU
+  CLOS
+}
+
+// Registre des risques (cahier des charges §VI — "Un projet possede : ...
+// Risques"). Probabilite x impact restent des estimations manuelles
+// affichees cote a cote ; pas de score calcule automatiquement, le statut
+// resume l'etat reel du risque.
+model ProjectRisk {
+  id             String          @id @default(cuid())
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id])
+  titre          String
+  description    String?
+  probabilite    RiskProbability @default(MOYENNE)
+  impact         RiskImpact      @default(MOYEN)
+  statut         RiskStatus      @default(IDENTIFIE)
+  planMitigation String?
+  responsableId  String?
+  responsable    User?           @relation("RiskResponsable", fields: [responsableId], references: [id])
+  createdById    String
+  createdBy      User            @relation("RiskCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([projectId])
+}
+
+enum StakeholderNiveau {
+  FAIBLE
+  MOYEN
+  ELEVE
+}
+
+// Partie prenante (cahier des charges §VI) — distincte de ProjectMember :
+// une partie prenante n'est pas forcement sur l'equipe (sponsor externe,
+// direction, client), et peut etre interne (User) ou externe (CrmContact),
+// ou ni l'un ni l'autre (simple nom/role en texte libre).
+model ProjectStakeholder {
+  id        String            @id @default(cuid())
+  projectId String
+  project   Project           @relation(fields: [projectId], references: [id])
+  nom       String
+  role      String?
+  userId    String?
+  user      User?             @relation("StakeholderUser", fields: [userId], references: [id])
+  contactId String?
+  contact   CrmContact?       @relation(fields: [contactId], references: [id])
+  influence StakeholderNiveau @default(MOYEN)
+  interet   StakeholderNiveau @default(MOYEN)
+  notes     String?
+  createdAt DateTime          @default(now())
+
+  @@index([projectId])
+}
+
+enum MilestoneStatus {
+  A_VENIR
+  ATTEINT
+  MANQUE
+}
+
+// Jalon (cahier des charges §VI — "Un projet possede : ... Jalons"),
+// distinct d'une tache : un jalon est un point de controle daté, pas une
+// unite de travail assignable.
+model ProjectMilestone {
+  id          String          @id @default(cuid())
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id])
+  nom         String
+  description String?
+  dateCible   DateTime
+  statut      MilestoneStatus @default(A_VENIR)
+  ordre       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([projectId])
+}
+
+enum DeliverableStatus {
+  A_FAIRE
+  EN_COURS
+  SOUMIS
+  VALIDE
+  REJETE
+}
+
+// Livrable (cahier des charges §VI). Jusqu'ici seuls les documents lies a
+// une tache en tenaient lieu de facon informelle (cf. Task.externalContactId) ;
+// ceci donne un cycle de vie propre au niveau du projet, independant du
+// module documentaire.
+model ProjectDeliverable {
+  id            String            @id @default(cuid())
+  projectId     String
+  project       Project           @relation(fields: [projectId], references: [id])
+  nom           String
+  description   String?
+  statut        DeliverableStatus @default(A_FAIRE)
+  echeance      DateTime?
+  responsableId String?
+  responsable   User?             @relation("DeliverableResponsable", fields: [responsableId], references: [id])
+  createdById   String
+  createdBy     User              @relation("DeliverableCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([projectId])
 }
 
 // ─── CRM relationnel ──────────────────────────────────────────────────────
@@ -645,6 +785,7 @@ model CrmContact {
   interactions  CrmInteraction[]
   portalAccount PortalAccount?
   missions      Task[]
+  stakeholderOf ProjectStakeholder[]
 
   @@index([organizationId])
   @@index([ownerId])
@@ -658,17 +799,17 @@ model CrmContact {
 // ce n'est pas un User, pas de role/permissions, juste un acces en lecture
 // scope a son propre contact/organisation.
 model PortalAccount {
-  id           String    @id @default(cuid())
-  contactId    String    @unique
+  id           String     @id @default(cuid())
+  contactId    String     @unique
   contact      CrmContact @relation(fields: [contactId], references: [id])
-  email        String    @unique
+  email        String     @unique
   passwordHash String?
-  isActive     Boolean   @default(true)
+  isActive     Boolean    @default(true)
   invitedById  String
-  invitedBy    User      @relation("PortalAccountInvitedBy", fields: [invitedById], references: [id])
+  invitedBy    User       @relation("PortalAccountInvitedBy", fields: [invitedById], references: [id])
   activatedAt  DateTime?
   lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime   @default(now())
 
   inviteTokens PortalInviteToken[]
 }

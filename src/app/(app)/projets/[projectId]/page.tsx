@@ -19,6 +19,11 @@ import { RuleList, type RuleData } from "@/components/automation/rule-list";
 import { computeWorkload } from "@/lib/workload";
 import { WorkloadTable } from "@/components/workload/workload-table";
 import { ProjectCoutReelForm } from "@/components/projects/project-cout-reel-form";
+import { ProjectSponsorForm } from "@/components/projects/project-sponsor-form";
+import { ProjectRisksSection, type RiskRow } from "@/components/projects/project-risks-section";
+import { ProjectStakeholdersSection, type StakeholderRow } from "@/components/projects/project-stakeholders-section";
+import { ProjectMilestonesSection, type MilestoneRow } from "@/components/projects/project-milestones-section";
+import { ProjectDeliverablesSection, type DeliverableRow } from "@/components/projects/project-deliverables-section";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -49,10 +54,11 @@ export default async function ProjectDetailPage({
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
   const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves] = await Promise.all([
+  const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves, risks, stakeholders, milestones, deliverables, contacts] =
+    await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
-      include: { department: true, responsable: true, programme: true },
+      include: { department: true, responsable: true, programme: true, sponsor: true },
     }),
     prisma.projectSection.findMany({
       where: { projectId },
@@ -87,6 +93,23 @@ export default async function ProjectDetailPage({
       include: { user: { include: { role: true } } },
     }),
     prisma.leave.findMany({ where: { statut: "APPROUVE" } }),
+    prisma.projectRisk.findMany({
+      where: { projectId },
+      include: { responsable: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.projectStakeholder.findMany({
+      where: { projectId },
+      include: { user: true, contact: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.projectMilestone.findMany({ where: { projectId }, orderBy: { dateCible: "asc" } }),
+    prisma.projectDeliverable.findMany({
+      where: { projectId },
+      include: { responsable: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.crmContact.findMany({ orderBy: { nom: "asc" }, select: { id: true, prenom: true, nom: true } }),
   ]);
 
   if (!project) {
@@ -145,6 +168,46 @@ export default async function ProjectDetailPage({
   }
 
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
+  const contactOptions = contacts.map((c) => ({ id: c.id, label: `${c.prenom} ${c.nom}` }));
+
+  const riskRows: RiskRow[] = risks.map((r) => ({
+    id: r.id,
+    titre: r.titre,
+    description: r.description,
+    probabilite: r.probabilite,
+    impact: r.impact,
+    statut: r.statut,
+    planMitigation: r.planMitigation,
+    responsableName: r.responsable?.name ?? null,
+  }));
+
+  const stakeholderRows: StakeholderRow[] = stakeholders.map((s) => ({
+    id: s.id,
+    nom: s.nom,
+    role: s.role,
+    influence: s.influence,
+    interet: s.interet,
+    notes: s.notes,
+    userName: s.user?.name ?? null,
+    contactName: s.contact ? `${s.contact.prenom} ${s.contact.nom}` : null,
+  }));
+
+  const milestoneRows: MilestoneRow[] = milestones.map((m) => ({
+    id: m.id,
+    nom: m.nom,
+    description: m.description,
+    dateCible: m.dateCible.toISOString(),
+    statut: m.statut,
+  }));
+
+  const deliverableRows: DeliverableRow[] = deliverables.map((d) => ({
+    id: d.id,
+    nom: d.nom,
+    description: d.description,
+    statut: d.statut,
+    echeance: d.echeance ? d.echeance.toISOString() : null,
+    responsableName: d.responsable?.name ?? null,
+  }));
 
   const folderNodeById = new Map<string, FolderNode>();
   for (const f of folders) {
@@ -205,6 +268,10 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
+          <TabsTrigger value="jalons">Jalons</TabsTrigger>
+          <TabsTrigger value="livrables">Livrables</TabsTrigger>
+          <TabsTrigger value="risques">Risques</TabsTrigger>
+          <TabsTrigger value="parties-prenantes">Parties prenantes</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="automatisations">Automatisations</TabsTrigger>
@@ -231,6 +298,14 @@ export default async function ProjectDetailPage({
               />
               <Info label="Budget" value={project.budget ? `${project.budget} FCFA` : "—"} />
               <Info label="Avancement" value={`${project.avancement}%`} />
+            </CardContent>
+            <CardContent className="pt-0">
+              <div className="mb-1 text-xs text-muted-foreground">Sponsor</div>
+              {canUpdateProject ? (
+                <ProjectSponsorForm projectId={project.id} users={userOptions} initialSponsorId={project.sponsorId} />
+              ) : (
+                <p className="text-sm font-medium">{project.sponsor?.name || "—"}</p>
+              )}
             </CardContent>
             <CardContent className="pt-0">
               <div className="mb-1 text-xs text-muted-foreground">Coût réel</div>
@@ -279,6 +354,33 @@ export default async function ProjectDetailPage({
               </Link>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="jalons" className="mt-4">
+          <ProjectMilestonesSection projectId={project.id} milestones={milestoneRows} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="livrables" className="mt-4">
+          <ProjectDeliverablesSection
+            projectId={project.id}
+            deliverables={deliverableRows}
+            users={userOptions}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="risques" className="mt-4">
+          <ProjectRisksSection projectId={project.id} risks={riskRows} users={userOptions} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="parties-prenantes" className="mt-4">
+          <ProjectStakeholdersSection
+            projectId={project.id}
+            stakeholders={stakeholderRows}
+            users={userOptions}
+            contacts={contactOptions}
+            canManage={canUpdateProject}
+          />
         </TabsContent>
 
         {canReadWorkload && (
