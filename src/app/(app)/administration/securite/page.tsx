@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
+import Link from "next/link";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -75,8 +77,13 @@ export default async function SecuritePage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Journal d&apos;audit (50 derniers événements)</CardTitle>
+          <Link href="/administration/audit">
+            <Button variant="outline" size="sm">
+              Journal complet &amp; filtres →
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent>
           <Table>

@@ -13,8 +13,10 @@ const TABS = [
   { href: "/administration/sites", label: "Sites" },
   { href: "/administration/delegations", label: "Délégations" },
   { href: "/administration/roles", label: "Rôles & permissions" },
+  { href: "/administration/acces-avances", label: "Accès avancés" },
   { href: "/administration/workflows", label: "Circuits de validation" },
   { href: "/administration/securite", label: "Sécurité" },
+  { href: "/administration/audit", label: "Audit" },
   { href: "/administration/integrations", label: "Intégrations" },
 ];
 
