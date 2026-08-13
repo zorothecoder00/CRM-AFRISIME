@@ -22,6 +22,7 @@ const SCOPE_LABELS: Record<string, string> = {
   INDIVIDUEL: "Individuel",
   EQUIPE: "Équipe",
   DEPARTEMENT: "Département",
+  PROGRAMME: "Programme",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,6 +46,7 @@ export default async function ObjectiveDetailPage({
         user: true,
         project: true,
         department: true,
+        programme: true,
         createdBy: true,
         indicators: { orderBy: { createdAt: "asc" } },
         parent: true,
@@ -74,7 +76,9 @@ export default async function ObjectiveDetailPage({
       ? objective.user?.name
       : objective.scope === "EQUIPE"
         ? objective.project?.nom
-        : objective.department?.name;
+        : objective.scope === "DEPARTEMENT"
+          ? objective.department?.name
+          : objective.programme?.nom;
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -92,7 +96,12 @@ export default async function ObjectiveDetailPage({
                 {objective.project.nom}
               </Link>
             )}
-            {target && objective.scope !== "EQUIPE" && (
+            {objective.scope === "PROGRAMME" && objective.programme && (
+              <Link href={`/programmes/${objective.programme.id}`} className="text-sm text-primary hover:underline">
+                {objective.programme.nom}
+              </Link>
+            )}
+            {target && objective.scope !== "EQUIPE" && objective.scope !== "PROGRAMME" && (
               <span className="text-sm text-muted-foreground">{target}</span>
             )}
           </div>

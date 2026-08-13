@@ -5,12 +5,13 @@ export const createObjectiveSchema = z
     titre: z.string().min(2, "Le titre est requis."),
     description: z.string().optional(),
     periode: z.enum(["ANNUEL", "TRIMESTRIEL", "MENSUEL", "HEBDOMADAIRE"]),
-    scope: z.enum(["INDIVIDUEL", "EQUIPE", "DEPARTEMENT"]),
+    scope: z.enum(["INDIVIDUEL", "EQUIPE", "DEPARTEMENT", "PROGRAMME"]),
     dateDebut: z.string().min(1, "La date de début est requise."),
     dateFin: z.string().min(1, "La date de fin est requise."),
     userId: z.string().optional(),
     projectId: z.string().optional(),
     departmentId: z.string().optional(),
+    programmeId: z.string().optional(),
     parentId: z.string().optional(),
   })
   .refine((data) => data.scope !== "INDIVIDUEL" || !!data.userId, {
@@ -24,6 +25,10 @@ export const createObjectiveSchema = z
   .refine((data) => data.scope !== "DEPARTEMENT" || !!data.departmentId, {
     message: "Un département est requis pour un objectif de département.",
     path: ["departmentId"],
+  })
+  .refine((data) => data.scope !== "PROGRAMME" || !!data.programmeId, {
+    message: "Un programme est requis pour un objectif de programme.",
+    path: ["programmeId"],
   });
 
 export type CreateObjectiveInput = z.infer<typeof createObjectiveSchema>;

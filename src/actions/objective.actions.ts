@@ -62,6 +62,7 @@ export async function createObjective(input: CreateObjectiveInput) {
       userId: data.scope === "INDIVIDUEL" ? data.userId : undefined,
       projectId: data.scope === "EQUIPE" ? data.projectId : undefined,
       departmentId: data.scope === "DEPARTEMENT" ? data.departmentId : undefined,
+      programmeId: data.scope === "PROGRAMME" ? data.programmeId : undefined,
       parentId: data.parentId || undefined,
       createdById: session.user.id,
     },
@@ -77,6 +78,7 @@ export async function createObjective(input: CreateObjectiveInput) {
 
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
+  if (data.scope === "PROGRAMME" && data.programmeId) revalidatePath(`/programmes/${data.programmeId}`);
   return objective;
 }
 

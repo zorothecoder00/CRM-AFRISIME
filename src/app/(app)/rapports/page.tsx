@@ -15,6 +15,7 @@ const FORMATS: { format: string; label: string }[] = [
 
 const DESCRIPTIONS: Record<ReportType, string> = {
   PROJETS: "Liste des projets avec département, responsable, statut, avancement et budget.",
+  PROGRAMMES: "Liste des programmes avec responsable, statut, projets associés, avancement et budget.",
   TACHES: "Liste des tâches avec projet, responsable, statut, priorité et échéance.",
   CHARGE_TRAVAIL: "Charge de travail par collaborateur : tâches actives, occupation, disponibilité.",
   OBJECTIFS: "Objectifs et progression de leurs indicateurs.",

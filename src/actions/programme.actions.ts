@@ -10,9 +10,17 @@ import {
   createProgrammeSchema,
   updateProgrammeSchema,
   linkProjectToProgrammeSchema,
+  updateProgrammeCoutReelSchema,
+  createProgrammeRiskSchema,
+  updateProgrammeRiskStatusSchema,
+  deleteProgrammeRiskSchema,
   type CreateProgrammeInput,
   type UpdateProgrammeInput,
   type LinkProjectToProgrammeInput,
+  type UpdateProgrammeCoutReelInput,
+  type CreateProgrammeRiskInput,
+  type UpdateProgrammeRiskStatusInput,
+  type DeleteProgrammeRiskInput,
 } from "@/lib/validations/programme.schema";
 
 async function requireSession() {
@@ -107,4 +115,99 @@ export async function linkProjectToProgramme(input: LinkProjectToProgrammeInput)
   revalidatePath("/programmes");
   revalidatePath(`/projets/${data.projectId}`);
   return project;
+}
+
+export async function updateProgrammeCoutReel(input: UpdateProgrammeCoutReelInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
+  const data = updateProgrammeCoutReelSchema.parse(input);
+
+  const programme = await prisma.programme.update({
+    where: { id: data.programmeId },
+    data: { coutReel: Number(data.coutReel) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "programme.cout_reel_updated",
+    entityType: "Programme",
+    entityId: programme.id,
+    changes: { coutReel: data.coutReel },
+  });
+
+  revalidatePath(`/programmes/${data.programmeId}`);
+  return programme;
+}
+
+// ---- Risques (cahier des charges §V) ----
+
+export async function createProgrammeRisk(input: CreateProgrammeRiskInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
+  const data = createProgrammeRiskSchema.parse(input);
+
+  const risk = await prisma.programmeRisk.create({
+    data: {
+      programmeId: data.programmeId,
+      titre: data.titre,
+      description: data.description,
+      probabilite: data.probabilite,
+      impact: data.impact,
+      planMitigation: data.planMitigation,
+      responsableId: data.responsableId || undefined,
+      createdById: session.user.id,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "programme.risk_created",
+    entityType: "ProgrammeRisk",
+    entityId: risk.id,
+    changes: { titre: risk.titre, programmeId: data.programmeId },
+  });
+
+  revalidatePath(`/programmes/${data.programmeId}`);
+  return risk;
+}
+
+export async function updateProgrammeRiskStatus(input: UpdateProgrammeRiskStatusInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
+  const data = updateProgrammeRiskStatusSchema.parse(input);
+
+  const risk = await prisma.programmeRisk.update({
+    where: { id: data.riskId },
+    data: { statut: data.statut },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "programme.risk_status_updated",
+    entityType: "ProgrammeRisk",
+    entityId: risk.id,
+    changes: { statut: data.statut },
+  });
+
+  revalidatePath(`/programmes/${risk.programmeId}`);
+  return risk;
+}
+
+export async function deleteProgrammeRisk(input: DeleteProgrammeRiskInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
+  const data = deleteProgrammeRiskSchema.parse(input);
+
+  const risk = await prisma.programmeRisk.delete({ where: { id: data.riskId } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "programme.risk_deleted",
+    entityType: "ProgrammeRisk",
+    entityId: risk.id,
+    changes: { titre: risk.titre },
+  });
+
+  revalidatePath(`/programmes/${risk.programmeId}`);
+  return risk;
 }

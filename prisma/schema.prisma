@@ -124,6 +124,7 @@ enum ObjectiveScope {
   INDIVIDUEL
   EQUIPE
   DEPARTEMENT
+  PROGRAMME
 }
 
 enum ObjectiveStatus {
@@ -264,6 +265,8 @@ model User {
   stakeholderLinks                 ProjectStakeholder[]        @relation("StakeholderUser")
   deliverablesResponsable          ProjectDeliverable[]        @relation("DeliverableResponsable")
   deliverablesCreated              ProjectDeliverable[]        @relation("DeliverableCreatedBy")
+  programmeRisksResponsable        ProgrammeRisk[]             @relation("ProgrammeRiskResponsable")
+  programmeRisksCreated            ProgrammeRisk[]             @relation("ProgrammeRiskCreatedBy")
   tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                      @relation("TaskCreatedBy")
   taskAssignments                  TaskAssignee[]
@@ -471,6 +474,9 @@ model Programme {
   responsable   User          @relation("ProgrammeResponsable", fields: [responsableId], references: [id])
   statut        ProjectStatus @default(PLANIFIE)
   budget        Decimal?      @db.Decimal(14, 2)
+  // Cout reel cumule du programme (distinct du cumul des budgets projets,
+  // deja calcule a la volee) — meme principe manuel que Project.coutReel.
+  coutReel      Decimal?      @db.Decimal(14, 2)
   dateDebut     DateTime?
   dateFin       DateTime?
   planId        String?
@@ -480,9 +486,34 @@ model Programme {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  projects Project[]
+  projects   Project[]
+  objectives Objective[]
+  risks      ProgrammeRisk[]
 
   @@index([responsableId])
+}
+
+// Registre des risques au niveau programme (cahier des charges §V) — meme
+// structure que ProjectRisk (memes enums RiskProbability/RiskImpact/
+// RiskStatus, deux systemes paralleles plutot qu'une relation polymorphe).
+model ProgrammeRisk {
+  id             String          @id @default(cuid())
+  programmeId    String
+  programme      Programme       @relation(fields: [programmeId], references: [id])
+  titre          String
+  description    String?
+  probabilite    RiskProbability @default(MOYENNE)
+  impact         RiskImpact      @default(MOYEN)
+  statut         RiskStatus      @default(IDENTIFIE)
+  planMitigation String?
+  responsableId  String?
+  responsable    User?           @relation("ProgrammeRiskResponsable", fields: [responsableId], references: [id])
+  createdById    String
+  createdBy      User            @relation("ProgrammeRiskCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([programmeId])
 }
 
 model Project {
@@ -1477,6 +1508,9 @@ model Objective {
   project      Project?        @relation(fields: [projectId], references: [id])
   departmentId String?
   department   Department?     @relation(fields: [departmentId], references: [id])
+  // Portee PROGRAMME (cahier des charges §V, menu "Objectifs" du programme).
+  programmeId  String?
+  programme    Programme?      @relation(fields: [programmeId], references: [id])
   planId       String?
   plan         Plan?           @relation(fields: [planId], references: [id])
   // Cahier des charges §III — cascade d'objectifs (entreprise -> direction
@@ -1494,6 +1528,7 @@ model Objective {
   @@index([userId])
   @@index([projectId])
   @@index([departmentId])
+  @@index([programmeId])
   @@index([planId])
   @@index([parentId])
   @@index([periode])

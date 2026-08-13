@@ -26,3 +26,35 @@ export const linkProjectToProgrammeSchema = z.object({
 });
 
 export type LinkProjectToProgrammeInput = z.infer<typeof linkProjectToProgrammeSchema>;
+
+export const updateProgrammeCoutReelSchema = z.object({
+  programmeId: z.string().min(1),
+  coutReel: z.string().min(1, "Un montant est requis."),
+});
+
+export type UpdateProgrammeCoutReelInput = z.infer<typeof updateProgrammeCoutReelSchema>;
+
+// ---- Risques (cahier des charges §V) ----
+
+export const createProgrammeRiskSchema = z.object({
+  programmeId: z.string().min(1),
+  titre: z.string().min(2, "Le titre est requis."),
+  description: z.string().optional(),
+  probabilite: z.enum(["FAIBLE", "MOYENNE", "ELEVEE"]),
+  impact: z.enum(["FAIBLE", "MOYEN", "ELEVE"]),
+  planMitigation: z.string().optional(),
+  responsableId: z.string().optional(),
+});
+
+export type CreateProgrammeRiskInput = z.infer<typeof createProgrammeRiskSchema>;
+
+export const updateProgrammeRiskStatusSchema = z.object({
+  riskId: z.string().min(1),
+  statut: z.enum(["IDENTIFIE", "EN_TRAITEMENT", "MAITRISE", "SURVENU", "CLOS"]),
+});
+
+export type UpdateProgrammeRiskStatusInput = z.infer<typeof updateProgrammeRiskStatusSchema>;
+
+export const deleteProgrammeRiskSchema = z.object({ riskId: z.string().min(1) });
+
+export type DeleteProgrammeRiskInput = z.infer<typeof deleteProgrammeRiskSchema>;

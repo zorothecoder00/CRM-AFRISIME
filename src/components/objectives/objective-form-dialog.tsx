@@ -32,20 +32,30 @@ export function ObjectiveFormDialog({
   users,
   projects,
   departments,
+  programmes,
   objectives,
   currentUserId,
   defaultParentId,
+  defaultScope = "INDIVIDUEL",
+  defaultProgrammeId,
+  triggerLabel = "Nouvel objectif",
 }: {
   users: Option[];
   projects: Option[];
   departments: Option[];
+  /** Requis seulement si un objectif de portée PROGRAMME doit pouvoir être créé. */
+  programmes?: Option[];
   /** Objectifs existants éligibles comme objectif parent (cascade §III). */
   objectives?: Option[];
   currentUserId: string;
   defaultParentId?: string;
+  /** Pré-sélectionne la portée (ex: "PROGRAMME" quand le dialogue est ouvert depuis une fiche programme). */
+  defaultScope?: CreateObjectiveInput["scope"];
+  defaultProgrammeId?: string;
+  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [scope, setScope] = useState<CreateObjectiveInput["scope"]>("INDIVIDUEL");
+  const [scope, setScope] = useState<CreateObjectiveInput["scope"]>(defaultScope);
   const {
     register,
     handleSubmit,
@@ -56,8 +66,9 @@ export function ObjectiveFormDialog({
     resolver: zodResolver(createObjectiveSchema),
     defaultValues: {
       periode: "MENSUEL",
-      scope: "INDIVIDUEL",
-      userId: currentUserId,
+      scope: defaultScope,
+      userId: defaultScope === "INDIVIDUEL" ? currentUserId : undefined,
+      programmeId: defaultProgrammeId,
       parentId: defaultParentId,
     },
   });
@@ -67,7 +78,7 @@ export function ObjectiveFormDialog({
     const result = await submit(data);
     if (result.ok) {
       reset();
-      setScope("INDIVIDUEL");
+      setScope(defaultScope);
       setOpen(false);
     }
   }
@@ -77,7 +88,7 @@ export function ObjectiveFormDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Nouvel objectif
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -118,7 +129,7 @@ export function ObjectiveFormDialog({
             <div className="space-y-2">
               <Label>Portée</Label>
               <Select
-                defaultValue="INDIVIDUEL"
+                defaultValue={defaultScope}
                 onValueChange={(v) => {
                   const next = v as CreateObjectiveInput["scope"];
                   setScope(next);
@@ -132,6 +143,7 @@ export function ObjectiveFormDialog({
                   <SelectItem value="INDIVIDUEL">Individuel</SelectItem>
                   <SelectItem value="EQUIPE">Équipe (projet)</SelectItem>
                   <SelectItem value="DEPARTEMENT">Département</SelectItem>
+                  {programmes && <SelectItem value="PROGRAMME">Programme</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -195,6 +207,25 @@ export function ObjectiveFormDialog({
               {errors.departmentId && (
                 <p className="text-sm text-destructive">{errors.departmentId.message}</p>
               )}
+            </div>
+          )}
+
+          {scope === "PROGRAMME" && programmes && (
+            <div className="space-y-2">
+              <Label>Programme</Label>
+              <Select defaultValue={defaultProgrammeId} onValueChange={(v) => setValue("programmeId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {programmes.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.programmeId && <p className="text-sm text-destructive">{errors.programmeId.message}</p>}
             </div>
           )}
 

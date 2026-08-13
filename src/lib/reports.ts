@@ -3,6 +3,7 @@ import { computeWorkload } from "@/lib/workload";
 
 export const REPORT_TYPES = [
   "PROJETS",
+  "PROGRAMMES",
   "TACHES",
   "CHARGE_TRAVAIL",
   "OBJECTIFS",
@@ -15,6 +16,7 @@ export type ReportType = (typeof REPORT_TYPES)[number];
 
 export const REPORT_LABELS: Record<ReportType, string> = {
   PROJETS: "Rapport des projets",
+  PROGRAMMES: "Rapport des programmes",
   TACHES: "Rapport des tâches",
   CHARGE_TRAVAIL: "Rapport de charge de travail",
   OBJECTIFS: "Rapport des objectifs & KPI",
@@ -142,9 +144,44 @@ export async function getReportData(type: ReportType): Promise<ReportTable> {
     };
   }
 
+  if (type === "PROGRAMMES") {
+    const programmes = await prisma.programme.findMany({
+      include: { responsable: true, projects: true },
+      orderBy: { nom: "asc" },
+    });
+    return {
+      title: REPORT_LABELS.PROGRAMMES,
+      generatedAt,
+      columns: [
+        { key: "nom", label: "Programme" },
+        { key: "responsable", label: "Responsable" },
+        { key: "statut", label: "Statut" },
+        { key: "projets", label: "Projets" },
+        { key: "avancementMoyen", label: "Avancement moyen" },
+        { key: "budget", label: "Budget" },
+        { key: "coutReel", label: "Coût réel" },
+      ],
+      rows: programmes.map((p) => {
+        const avancementMoyen =
+          p.projects.length > 0
+            ? Math.round(p.projects.reduce((sum, proj) => sum + proj.avancement, 0) / p.projects.length)
+            : 0;
+        return {
+          nom: p.nom,
+          responsable: p.responsable.name,
+          statut: p.statut,
+          projets: String(p.projects.length),
+          avancementMoyen: `${avancementMoyen}%`,
+          budget: p.budget ? Number(p.budget).toLocaleString("fr-FR") : "—",
+          coutReel: p.coutReel ? Number(p.coutReel).toLocaleString("fr-FR") : "—",
+        };
+      }),
+    };
+  }
+
   if (type === "OBJECTIFS") {
     const objectives = await prisma.objective.findMany({
-      include: { indicators: true, user: true, project: true, department: true },
+      include: { indicators: true, user: true, project: true, department: true, programme: true },
       orderBy: { dateDebut: "desc" },
     });
     return {
@@ -158,7 +195,7 @@ export async function getReportData(type: ReportType): Promise<ReportTable> {
         { key: "progression", label: "Progression indicateurs" },
       ],
       rows: objectives.map((o) => {
-        const portee = o.user?.name ?? o.project?.nom ?? o.department?.name ?? "—";
+        const portee = o.user?.name ?? o.project?.nom ?? o.department?.name ?? o.programme?.nom ?? "—";
         const progression =
           o.indicators.length > 0
             ? `${Math.round(
