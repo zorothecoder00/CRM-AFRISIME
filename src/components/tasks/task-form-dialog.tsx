@@ -33,9 +33,14 @@ type ProjectWithSections = { id: string; nom: string; sections: Option[] };
 export function TaskFormDialog({
   projects,
   users,
+  objectives,
+  plans,
 }: {
   projects: ProjectWithSections[];
   users: Option[];
+  /** Origines optionnelles (cahier des charges §IX). */
+  objectives?: Option[];
+  plans?: Option[];
 }) {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
@@ -203,6 +208,45 @@ export function TaskFormDialog({
               <Input id="tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
             </div>
           </div>
+
+          {(objectives && objectives.length > 0) || (plans && plans.length > 0) ? (
+            <div className="grid grid-cols-2 gap-4">
+              {objectives && objectives.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Objectif lié (optionnel)</Label>
+                  <Select onValueChange={(v) => setValue("objectiveId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Aucun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {objectives.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {plans && plans.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Plan lié (optionnel)</Label>
+                  <Select onValueChange={(v) => setValue("planId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Aucun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Création..." : "Créer la tâche"}

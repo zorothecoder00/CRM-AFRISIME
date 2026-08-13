@@ -10,6 +10,9 @@ export const createTaskSchema = z.object({
   assigneeIds: z.array(z.string()).optional().default([]),
   echeance: z.string().optional(),
   tempsEstimeHeures: z.string().optional(),
+  // Origines supplementaires (cahier des charges §IX), toutes optionnelles.
+  objectiveId: z.string().optional(),
+  planId: z.string().optional(),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;

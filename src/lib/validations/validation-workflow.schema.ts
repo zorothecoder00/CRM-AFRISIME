@@ -14,18 +14,34 @@ const ROLE_KEYS = [
   "INVITE",
 ] as const;
 
-export const createValidationWorkflowSchema = z.object({
-  nom: z.string().min(2, "Le nom est requis."),
-  entityType: z.enum(["TASK", "ADMIN_REQUEST"]),
-  steps: z
-    .array(
-      z.object({
-        approverRole: z.enum(ROLE_KEYS),
-        label: z.string().optional(),
-      })
-    )
-    .min(1, "Au moins une étape est requise."),
-});
+const ADMIN_REQUEST_TYPES = ["ACHAT", "MISSION", "DECAISSEMENT", "MATERIEL", "AUTORISATION", "RECRUTEMENT", "AUTRE"] as const;
+
+export const createValidationWorkflowSchema = z
+  .object({
+    nom: z.string().min(2, "Le nom est requis."),
+    entityType: z.enum(["TASK", "ADMIN_REQUEST"]),
+    // Condition de selection du circuit (cahier des charges §VIII) —
+    // ignores si entityType=TASK.
+    adminRequestType: z.enum(ADMIN_REQUEST_TYPES).optional(),
+    montantMin: z.string().optional(),
+    // Action automatique a l'approbation complete (cahier des charges §VIII).
+    creerTacheAlApprobation: z.boolean().default(false),
+    autoTaskProjectId: z.string().optional(),
+    steps: z
+      .array(
+        z.object({
+          approverRole: z.enum(ROLE_KEYS),
+          label: z.string().optional(),
+          escaladeJours: z.string().optional(),
+          escaladeRole: z.enum(ROLE_KEYS).optional(),
+        })
+      )
+      .min(1, "Au moins une étape est requise."),
+  })
+  .refine((data) => !data.creerTacheAlApprobation || !!data.autoTaskProjectId, {
+    message: "Un projet d'accueil est requis pour créer une tâche automatiquement.",
+    path: ["autoTaskProjectId"],
+  });
 
 export type CreateValidationWorkflowInput = z.infer<typeof createValidationWorkflowSchema>;
 

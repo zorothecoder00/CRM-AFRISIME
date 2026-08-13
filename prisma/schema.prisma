@@ -575,6 +575,7 @@ model Plan {
 
   objectives Objective[]
   programmes Programme[]
+  tasks      Task[]
 
   @@index([departmentId])
   @@index([parentId])
@@ -690,6 +691,7 @@ model Project {
   stakeholders        ProjectStakeholder[]
   milestones          ProjectMilestone[]
   deliverables        ProjectDeliverable[]
+  autoTaskWorkflows   ValidationWorkflow[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1114,6 +1116,13 @@ model Task {
   // documents lies (deja existants) en tiennent lieu de livrables.
   externalContactId      String?
   externalContact        CrmContact?     @relation(fields: [externalContactId], references: [id])
+  // Origines supplementaires (cahier des charges §IX — "la tache peut
+  // provenir : ... d'un objectif ... d'un plan"). Optionnelles et
+  // independantes du projet, purement traceabilite.
+  objectiveId            String?
+  objective              Objective?      @relation(fields: [objectiveId], references: [id])
+  planId                 String?
+  plan                   Plan?           @relation(fields: [planId], references: [id])
   createdById            String
   createdBy              User            @relation("TaskCreatedBy", fields: [createdById], references: [id])
   ordre                  Int             @default(0)
@@ -1129,12 +1138,15 @@ model Task {
   meetingDecision MeetingDecision?
   validationRun   TaskValidationRun?
   courrier        Courrier?
+  adminRequest    AdminRequest?
 
   @@index([projectId])
   @@index([sectionId])
   @@index([parentTaskId])
   @@index([responsablePrincipalId])
   @@index([externalContactId])
+  @@index([objectiveId])
+  @@index([planId])
   @@index([statut])
   @@index([echeance])
 }
@@ -1189,14 +1201,27 @@ model TaskDependency {
 // Responsable → Directeur → DG). Défini une fois par un admin, réutilisé
 // pour chaque tâche soumise à validation de ce type d'entité.
 model ValidationWorkflow {
-  id          String               @id @default(cuid())
-  nom         String
-  entityType  ValidationEntityType
-  isActive    Boolean              @default(true)
-  createdById String
-  createdBy   User                 @relation("ValidationWorkflowCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id                      String               @id @default(cuid())
+  nom                     String
+  entityType              ValidationEntityType
+  // Condition de selection du circuit (cahier des charges §VIII) — ne
+  // s'applique qu'aux demandes administratives (entityType=ADMIN_REQUEST) :
+  // adminRequestType nul = s'applique a tous les types ; montantMin nul =
+  // aucun plancher. getActiveAdminRequestWorkflow() choisit le circuit
+  // actif le plus specifique (voir src/lib/admin-request-workflow.ts).
+  adminRequestType        AdminRequestType?
+  montantMin              Decimal?             @db.Decimal(14, 2)
+  isActive                Boolean              @default(true)
+  // Action automatique a l'approbation complete (cahier des charges §VIII,
+  // ex. "Mission creee" en fin de circuit) — cree une Task liee via
+  // AdminRequest.taskId, dans autoTaskProjectId (requis si active).
+  creerTacheAlApprobation Boolean              @default(false)
+  autoTaskProjectId       String?
+  autoTaskProject         Project?             @relation(fields: [autoTaskProjectId], references: [id])
+  createdById             String
+  createdBy               User                 @relation("ValidationWorkflowCreatedBy", fields: [createdById], references: [id])
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 
   steps            ValidationWorkflowStep[]
   runs             TaskValidationRun[]
@@ -1211,12 +1236,17 @@ model ValidationWorkflow {
 // Une étape du circuit, dans l'ordre `ordre` — l'approbateur est désigné par
 // rôle (ex: RESPONSABLE puis DIRECTEUR puis DIRECTEUR_GENERAL).
 model ValidationWorkflowStep {
-  id           String             @id @default(cuid())
-  workflowId   String
-  workflow     ValidationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  ordre        Int
-  approverRole RoleKey
-  label        String?
+  id            String             @id @default(cuid())
+  workflowId    String
+  workflow      ValidationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  ordre         Int
+  approverRole  RoleKey
+  label         String?
+  // Escalade (cahier des charges §VIII) — si l'etape n'est pas decidee
+  // depuis plus de escaladeJours, le cron quotidien notifie en plus les
+  // titulaires de escaladeRole (approvers normaux toujours notifies aussi).
+  escaladeJours Int?
+  escaladeRole  RoleKey?
 
   approvals             TaskApproval[]
   adminRequestApprovals AdminRequestApproval[]
@@ -1282,6 +1312,13 @@ model AdminRequest {
   departmentId String?
   department   Department?        @relation(fields: [departmentId], references: [id])
   statut       AdminRequestStatus @default(EN_ATTENTE)
+  // Tache/mission generee automatiquement a l'approbation complete du
+  // circuit (cahier des charges §VIII, ex. "Demande de mission -> ... ->
+  // Mission creee") — voir ValidationWorkflow.creerTacheAlApprobation.
+  // Meme pattern que Courrier.taskId : la tache est un rattachement
+  // optionnel, pas une propriete intrinseque de la demande.
+  taskId       String?            @unique
+  task         Task?              @relation(fields: [taskId], references: [id])
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -1649,6 +1686,7 @@ model Objective {
   updatedAt    DateTime        @updatedAt
 
   indicators Indicator[]
+  tasks      Task[]
 
   @@index([userId])
   @@index([projectId])

@@ -148,30 +148,43 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Escalade (cahier des charges §VIII) : au-dela de step.escaladeJours (en
+  // plus des approbateurs normaux, toujours notifies), les titulaires de
+  // step.escaladeRole sont notifies a leur tour. Evalue uniquement parmi les
+  // runs deja detectes "bloques" (>= 3 jours) : un escaladeJours plus court
+  // que ce seuil ne se declenchera qu'a partir de 3 jours.
+  async function escalateIfNeeded(
+    step: { escaladeJours: number | null; escaladeRole: string | null },
+    updatedAt: Date,
+    titre: string,
+    lien: string,
+    entityType: string,
+    entityId: string
+  ) {
+    if (!step.escaladeJours || !step.escaladeRole) return;
+    const escaladeSince = new Date(Date.now() - step.escaladeJours * 24 * 60 * 60 * 1000);
+    if (updatedAt >= escaladeSince) return;
+    await notifyCurrentApprovers(step.escaladeRole, `[Escalade] ${titre}`, lien, entityType, entityId);
+  }
+
   await Promise.all(
-    blockedTaskRuns.map((run) => {
+    blockedTaskRuns.map(async (run) => {
       const step = run.workflow.steps.find((s) => s.ordre === run.currentOrdre);
-      if (!step) return Promise.resolve();
-      return notifyCurrentApprovers(
-        step.approverRole,
-        `Validation bloquée depuis plus de 3 jours : ${run.task.titre}`,
-        `/taches/${run.taskId}`,
-        "TaskValidationRun",
-        run.id
-      );
+      if (!step) return;
+      const titre = `Validation bloquée depuis plus de 3 jours : ${run.task.titre}`;
+      const lien = `/taches/${run.taskId}`;
+      await notifyCurrentApprovers(step.approverRole, titre, lien, "TaskValidationRun", run.id);
+      await escalateIfNeeded(step, run.updatedAt, titre, lien, "TaskValidationRun", run.id);
     })
   );
   await Promise.all(
-    blockedAdminRequestRuns.map((run) => {
+    blockedAdminRequestRuns.map(async (run) => {
       const step = run.workflow.steps.find((s) => s.ordre === run.currentOrdre);
-      if (!step) return Promise.resolve();
-      return notifyCurrentApprovers(
-        step.approverRole,
-        `Demande bloquée depuis plus de 3 jours : ${run.adminRequest.titre}`,
-        `/demandes/${run.adminRequestId}`,
-        "AdminRequestValidationRun",
-        run.id
-      );
+      if (!step) return;
+      const titre = `Demande bloquée depuis plus de 3 jours : ${run.adminRequest.titre}`;
+      const lien = `/demandes/${run.adminRequestId}`;
+      await notifyCurrentApprovers(step.approverRole, titre, lien, "AdminRequestValidationRun", run.id);
+      await escalateIfNeeded(step, run.updatedAt, titre, lien, "AdminRequestValidationRun", run.id);
     })
   );
 

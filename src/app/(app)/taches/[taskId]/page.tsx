@@ -56,6 +56,11 @@ export default async function TaskDetailPage({
       documents: { include: { uploadedBy: true, meeting: true, _count: { select: { versions: true } } } },
       dependsOn: { include: { dependsOnTask: true } },
       externalContact: true,
+      objective: true,
+      plan: true,
+      courrier: true,
+      meetingDecision: { include: { meeting: true } },
+      adminRequest: true,
       validationRun: {
         include: {
           workflow: { include: { steps: { orderBy: { ordre: "asc" } } } },
@@ -219,6 +224,44 @@ export default async function TaskDetailPage({
             <Info label="Avancement" value={`${task.avancement}%`} />
           </CardContent>
         </Card>
+
+        {(task.objective || task.plan || task.courrier || task.meetingDecision || task.adminRequest) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Origine</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {task.objective && (
+                <Link href={`/objectifs/${task.objective.id}`} className="block text-primary hover:underline">
+                  Objectif : {task.objective.titre}
+                </Link>
+              )}
+              {task.plan && (
+                <Link href={`/planification/${task.plan.id}`} className="block text-primary hover:underline">
+                  Plan : {task.plan.nom}
+                </Link>
+              )}
+              {task.courrier && (
+                <Link href={`/courrier/${task.courrier.id}`} className="block text-primary hover:underline">
+                  Courrier : {task.courrier.reference ?? task.courrier.objet}
+                </Link>
+              )}
+              {task.meetingDecision && (
+                <Link
+                  href={`/reunions/${task.meetingDecision.meetingId}`}
+                  className="block text-primary hover:underline"
+                >
+                  Décision de réunion : {task.meetingDecision.meeting.titre}
+                </Link>
+              )}
+              {task.adminRequest && (
+                <Link href={`/demandes/${task.adminRequest.id}`} className="block text-primary hover:underline">
+                  Demande administrative : {task.adminRequest.titre}
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

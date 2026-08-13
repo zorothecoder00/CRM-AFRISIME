@@ -17,16 +17,24 @@ async function requireSession() {
   return session;
 }
 
-/** Un seul circuit actif a la fois par type d'entite : creer un nouveau desactive l'ancien du meme type. */
+/**
+ * Un seul circuit actif a la fois par condition (entityType + adminRequestType
+ * + montantMin) : creer un nouveau ne desactive que les circuits couvrant
+ * exactement la meme condition, pas tous ceux du meme entityType — c'est ce
+ * qui permet des circuits differencies par sous-type/montant (cahier des
+ * charges §VIII) a cote les uns des autres.
+ */
 export async function createValidationWorkflow(input: CreateValidationWorkflowInput) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.WORKFLOW_MANAGE);
 
   const data = createValidationWorkflowSchema.parse(input);
+  const montantMin = data.montantMin ? Number(data.montantMin) : null;
+  const adminRequestType = data.entityType === "ADMIN_REQUEST" ? data.adminRequestType ?? null : null;
 
   const workflow = await prisma.$transaction(async (tx) => {
     await tx.validationWorkflow.updateMany({
-      where: { entityType: data.entityType, isActive: true },
+      where: { entityType: data.entityType, adminRequestType, montantMin, isActive: true },
       data: { isActive: false },
     });
 
@@ -34,12 +42,18 @@ export async function createValidationWorkflow(input: CreateValidationWorkflowIn
       data: {
         nom: data.nom,
         entityType: data.entityType,
+        adminRequestType,
+        montantMin: montantMin ?? undefined,
+        creerTacheAlApprobation: data.entityType === "ADMIN_REQUEST" ? data.creerTacheAlApprobation : false,
+        autoTaskProjectId: data.entityType === "ADMIN_REQUEST" && data.creerTacheAlApprobation ? data.autoTaskProjectId : undefined,
         createdById: session.user.id,
         steps: {
           create: data.steps.map((step, index) => ({
             ordre: index + 1,
             approverRole: step.approverRole,
             label: step.label,
+            escaladeJours: step.escaladeJours ? Number(step.escaladeJours) : undefined,
+            escaladeRole: step.escaladeRole || undefined,
           })),
         },
       },

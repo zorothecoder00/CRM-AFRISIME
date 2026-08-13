@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +37,7 @@ export default async function AdminRequestDetailPage({
     include: {
       demandeur: true,
       department: true,
+      task: true,
       validationRun: {
         include: {
           workflow: { include: { steps: { orderBy: { ordre: "asc" } } } },
@@ -79,6 +81,13 @@ export default async function AdminRequestDetailPage({
           </CardContent>
           {request.description && (
             <CardContent className="pt-0 text-sm text-muted-foreground">{request.description}</CardContent>
+          )}
+          {request.task && (
+            <CardContent className="pt-0 text-sm">
+              <Link href={`/taches/${request.task.id}`} className="text-primary hover:underline">
+                Mission créée : {request.task.titre}
+              </Link>
+            </CardContent>
           )}
         </Card>
 

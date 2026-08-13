@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
-import type { RoleKey } from "@/generated/prisma/enums";
+import type { RoleKey, AdminRequestType } from "@/generated/prisma/enums";
 
 /**
  * Miroir exact de src/lib/validation-workflow.ts, pour les demandes
@@ -10,12 +10,34 @@ import type { RoleKey } from "@/generated/prisma/enums";
  * progression d'etape, pour ne pas risquer de regression sur le circuit des
  * taches deja en production.
  */
-export async function getActiveAdminRequestWorkflow() {
-  return prisma.validationWorkflow.findFirst({
+
+/**
+ * Choisit le circuit actif le plus specifique pour une demande donnee
+ * (cahier des charges §VIII, "Condition") : un circuit dont
+ * adminRequestType correspond exactement passe avant un circuit generique
+ * (adminRequestType nul), et parmi les circuits dont le montantMin est
+ * satisfait, celui avec le montantMin le plus eleve est le plus specifique.
+ */
+export async function getActiveAdminRequestWorkflow(type?: AdminRequestType, montant?: number | null) {
+  const candidates = await prisma.validationWorkflow.findMany({
     where: { entityType: "ADMIN_REQUEST", isActive: true },
-    orderBy: { createdAt: "desc" },
     include: { steps: { orderBy: { ordre: "asc" } } },
   });
+
+  const eligible = candidates.filter((w) => {
+    const typeOk = !w.adminRequestType || w.adminRequestType === type;
+    const montantOk = w.montantMin === null || (montant !== null && montant !== undefined && montant >= Number(w.montantMin));
+    return typeOk && montantOk;
+  });
+
+  eligible.sort((a, b) => {
+    const typeScore = (w: (typeof eligible)[number]) => (w.adminRequestType ? 1 : 0);
+    if (typeScore(b) !== typeScore(a)) return typeScore(b) - typeScore(a);
+    const montantScore = (w: (typeof eligible)[number]) => (w.montantMin === null ? -1 : Number(w.montantMin));
+    return montantScore(b) - montantScore(a);
+  });
+
+  return eligible[0] ?? null;
 }
 
 async function notifyApproversForStep(params: {
@@ -46,8 +68,10 @@ export async function startAdminRequestValidationRun(params: {
   adminRequestId: string;
   titre: string;
   submittedById: string;
+  type: AdminRequestType;
+  montant: number | null;
 }) {
-  const workflow = await getActiveAdminRequestWorkflow();
+  const workflow = await getActiveAdminRequestWorkflow(params.type, params.montant);
   if (!workflow || workflow.steps.length === 0) {
     throw new Error(
       "Aucun circuit de validation n'est configuré pour les demandes administratives. Un administrateur doit en créer un dans Administration > Circuits de validation."
@@ -141,6 +165,41 @@ export async function decideAdminRequestCurrentStep(params: {
 
   if (!nextStep) {
     await prisma.adminRequestValidationRun.update({ where: { id: run.id }, data: { statut: "APPROUVE" } });
+
+    // Action automatique de fin de circuit (cahier des charges §VIII, ex.
+    // "Demande de mission -> ... -> Mission creee") — cree la tache liee
+    // si le circuit est configure pour ca (cf. ValidationWorkflow).
+    if (run.workflow.creerTacheAlApprobation && run.workflow.autoTaskProjectId) {
+      const adminRequest = await prisma.adminRequest.findUniqueOrThrow({
+        where: { id: params.adminRequestId },
+        select: { titre: true, demandeurId: true },
+      });
+      const task = await prisma.task.create({
+        data: {
+          projectId: run.workflow.autoTaskProjectId,
+          titre: adminRequest.titre,
+          responsablePrincipalId: adminRequest.demandeurId,
+          createdById: params.approverId,
+        },
+      });
+      await prisma.adminRequest.update({ where: { id: params.adminRequestId }, data: { taskId: task.id } });
+      await logAudit({
+        userId: params.approverId,
+        action: "admin_request.task_auto_created",
+        entityType: "Task",
+        entityId: task.id,
+        changes: { adminRequestId: params.adminRequestId },
+      });
+      await createNotification({
+        userId: adminRequest.demandeurId,
+        type: "NOUVELLE_TACHE",
+        titre: `Mission créée : ${task.titre}`,
+        lien: `/taches/${task.id}`,
+        entityType: "Task",
+        entityId: task.id,
+      });
+    }
+
     return { finalStatus: "APPROUVE" };
   }
 

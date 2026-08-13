@@ -56,6 +56,8 @@ export async function createTask(input: CreateTaskInput) {
       responsablePrincipalId: data.responsablePrincipalId,
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : undefined,
+      objectiveId: data.objectiveId || undefined,
+      planId: data.planId || undefined,
       createdById: session.user.id,
       assignees: {
         create: assigneeIds.map((userId) => ({ userId })),

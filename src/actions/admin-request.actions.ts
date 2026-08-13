@@ -41,6 +41,8 @@ export async function createAdminRequest(input: CreateAdminRequestInput) {
     adminRequestId: request.id,
     titre: request.titre,
     submittedById: session.user.id,
+    type: request.type,
+    montant: request.montant ? Number(request.montant) : null,
   });
 
   revalidatePath("/demandes");
