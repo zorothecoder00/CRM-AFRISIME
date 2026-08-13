@@ -165,6 +165,24 @@ export function ProjectFormDialog({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="localisation">Localisation</Label>
+            <Input id="localisation" placeholder="Ex. Cotonou, Bénin" {...register("localisation")} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input id="latitude" type="number" step="any" placeholder="Ex. 6.3703" {...register("latitude")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input id="longitude" type="number" step="any" placeholder="Ex. 2.3912" {...register("longitude")} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Coordonnées utilisées par la vue Carte — laissez vide si vous ne les connaissez pas.
+          </p>
+
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Création..." : "Créer le projet"}
           </Button>

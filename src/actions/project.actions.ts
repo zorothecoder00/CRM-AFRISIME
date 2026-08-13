@@ -11,7 +11,9 @@ import {
   createSectionSchema,
   addSectionCommentSchema,
   updateProjectCoutReelSchema,
+  updateProjectStatusSchema,
   updateProjectSponsorSchema,
+  updateProjectLocationSchema,
   createProjectRiskSchema,
   updateProjectRiskStatusSchema,
   deleteProjectRiskSchema,
@@ -28,6 +30,7 @@ import {
   type AddSectionCommentInput,
   type UpdateProjectCoutReelInput,
   type UpdateProjectSponsorInput,
+  type UpdateProjectLocationInput,
   type CreateProjectRiskInput,
   type UpdateProjectRiskStatusInput,
   type DeleteProjectRiskInput,
@@ -59,6 +62,9 @@ export async function createProject(input: CreateProjectInput) {
       dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
       dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
       budget: data.budget ? Number(data.budget) : undefined,
+      localisation: data.localisation,
+      latitude: data.latitude ? Number(data.latitude) : undefined,
+      longitude: data.longitude ? Number(data.longitude) : undefined,
       createdById: session.user.id,
       members: {
         create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET" }],
@@ -162,6 +168,32 @@ export async function updateProjectCoutReel(input: UpdateProjectCoutReelInput) {
   return project;
 }
 
+/** Changement de statut depuis la vue Kanban (cahier des charges §VI) — meme principe que updateTaskStatus. */
+export async function updateProjectStatus(projectId: string, statut: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectStatusSchema.parse({ projectId, statut });
+
+  const project = await prisma.project.update({
+    where: { id: data.projectId },
+    data: { statut: data.statut },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.status_changed",
+    entityType: "Project",
+    entityId: project.id,
+    changes: { statut: data.statut },
+  });
+
+  revalidatePath("/projets");
+  revalidatePath(`/projets/${data.projectId}`);
+  return project;
+}
+
 export async function updateProjectSponsor(input: UpdateProjectSponsorInput) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
@@ -183,6 +215,35 @@ export async function updateProjectSponsor(input: UpdateProjectSponsorInput) {
   });
 
   revalidatePath(`/projets/${data.projectId}`);
+  return project;
+}
+
+export async function updateProjectLocation(input: UpdateProjectLocationInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectLocationSchema.parse(input);
+
+  const project = await prisma.project.update({
+    where: { id: data.projectId },
+    data: {
+      localisation: data.localisation || null,
+      latitude: data.latitude ? Number(data.latitude) : null,
+      longitude: data.longitude ? Number(data.longitude) : null,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.location_updated",
+    entityType: "Project",
+    entityId: project.id,
+    changes: { localisation: data.localisation ?? null, latitude: data.latitude ?? null, longitude: data.longitude ?? null },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  revalidatePath("/projets/carte");
   return project;
 }
 

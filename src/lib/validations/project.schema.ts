@@ -10,9 +10,21 @@ export const createProjectSchema = z.object({
   dateDebut: z.string().optional(),
   dateFin: z.string().optional(),
   budget: z.string().optional(),
+  localisation: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const updateProjectLocationSchema = z.object({
+  projectId: z.string().min(1),
+  localisation: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+});
+
+export type UpdateProjectLocationInput = z.infer<typeof updateProjectLocationSchema>;
 
 export const createSectionSchema = z.object({
   projectId: z.string().min(1),
@@ -39,6 +51,13 @@ export const updateProjectCoutReelSchema = z.object({
 });
 
 export type UpdateProjectCoutReelInput = z.infer<typeof updateProjectCoutReelSchema>;
+
+export const updateProjectStatusSchema = z.object({
+  projectId: z.string().min(1),
+  statut: z.enum(["PLANIFIE", "EN_COURS", "EN_PAUSE", "TERMINE", "ANNULE"]),
+});
+
+export type UpdateProjectStatusInput = z.infer<typeof updateProjectStatusSchema>;
 
 export const updateProjectSponsorSchema = z.object({
   projectId: z.string().min(1),

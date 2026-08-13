@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { Button } from "@/components/ui/button";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
+import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
+import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -25,7 +27,18 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITIQUE: "Critique",
 };
 
-export default async function ProjetsPage() {
+const VIEWS = [
+  { key: "liste", label: "Liste" },
+  { key: "table", label: "Table" },
+  { key: "kanban", label: "Kanban" },
+] as const;
+
+export default async function ProjetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vue?: string }>;
+}) {
+  const { vue = "liste" } = await searchParams;
   const session = await getServerSession(authOptions);
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
   const where = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
@@ -44,9 +57,26 @@ export default async function ProjetsPage() {
       : Promise.resolve([]),
   ]);
 
+  const projectRows: ProjectRow[] = projects.map((p) => ({
+    id: p.id,
+    nom: p.nom,
+    statut: p.statut,
+    priorite: p.priorite,
+    departmentNom: p.department.name,
+    responsableNom: p.responsable.name,
+    avancement: p.avancement,
+    budget: p.budget ? Number(p.budget) : null,
+    coutReel: p.coutReel ? Number(p.coutReel) : null,
+    dateFin: p.dateFin ? p.dateFin.toISOString() : null,
+  }));
+
+  function withVue(key: string) {
+    return `?vue=${key}`;
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Projets</h1>
           <p className="text-sm text-muted-foreground">
@@ -54,11 +84,36 @@ export default async function ProjetsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/projets/roadmap">
-            <Button variant="outline" size="sm">
-              Roadmap
-            </Button>
-          </Link>
+          <div className="flex flex-wrap rounded-md border">
+            {VIEWS.map((v, i) => (
+              <Link key={v.key} href={withVue(v.key)}>
+                <Button
+                  variant={vue === v.key ? "default" : "ghost"}
+                  size="sm"
+                  className={i === 0 ? "rounded-r-none" : i === VIEWS.length - 1 ? "rounded-l-none" : "rounded-none"}
+                >
+                  {v.label}
+                </Button>
+              </Link>
+            ))}
+          </div>
+          <div className="flex rounded-md border">
+            <Link href="/projets/roadmap">
+              <Button variant="ghost" size="sm" className="rounded-r-none">
+                Roadmap
+              </Button>
+            </Link>
+            <Link href="/projets/calendrier">
+              <Button variant="ghost" size="sm" className="rounded-none">
+                Calendrier
+              </Button>
+            </Link>
+            <Link href="/projets/carte">
+              <Button variant="ghost" size="sm" className="rounded-l-none">
+                Carte
+              </Button>
+            </Link>
+          </div>
           {canCreate && (
             <ProjectFormDialog
               departments={departments.map((d) => ({ id: d.id, label: d.name }))}
@@ -68,40 +123,44 @@ export default async function ProjetsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
-          <Link key={project.id} href={`/projets/${project.id}`}>
-            <Card
-              accent={accentForStatus(project.statut)}
-              className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
-            >
-              <CardHeader>
-                <CardTitle className="text-base">{project.nom}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {project.description || "Pas de description."}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
-                  <Badge variant={toneForPriority(project.priorite)}>{PRIORITY_LABELS[project.priorite]}</Badge>
-                  <Badge variant="outline">{project.department.name}</Badge>
-                  {project.budget && project.coutReel && Number(project.coutReel) > Number(project.budget) && (
-                    <Badge variant="destructive">Budget dépassé</Badge>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Responsable : {project.responsable.name}
-                </div>
-                <div className="text-xs font-medium">Avancement : {project.avancement}%</div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-        {projects.length === 0 && (
-          <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
-        )}
-      </div>
+      {vue === "table" && <ProjectTableView projects={projectRows} />}
+      {vue === "kanban" && <ProjectKanbanView projects={projectRows} />}
+      {vue === "liste" && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <Link key={project.id} href={`/projets/${project.id}`}>
+              <Card
+                accent={accentForStatus(project.statut)}
+                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              >
+                <CardHeader>
+                  <CardTitle className="text-base">{project.nom}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {project.description || "Pas de description."}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
+                    <Badge variant={toneForPriority(project.priorite)}>{PRIORITY_LABELS[project.priorite]}</Badge>
+                    <Badge variant="outline">{project.department.name}</Badge>
+                    {project.budget && project.coutReel && Number(project.coutReel) > Number(project.budget) && (
+                      <Badge variant="destructive">Budget dépassé</Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Responsable : {project.responsable.name}
+                  </div>
+                  <div className="text-xs font-medium">Avancement : {project.avancement}%</div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+          {projects.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

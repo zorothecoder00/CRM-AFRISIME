@@ -503,6 +503,13 @@ model Project {
   sponsor       User?           @relation("ProjectSponsor", fields: [sponsorId], references: [id])
   dateDebut     DateTime?
   dateFin       DateTime?
+  // Localisation (cahier des charges §VI, vue "Carte") — libelle libre
+  // (ville/pays) affiche dans les popups, latitude/longitude pour le
+  // placement du pin. Les trois sont optionnels : un projet sans
+  // coordonnees reste simplement absent de la carte.
+  localisation  String?
+  latitude      Float?
+  longitude     Float?
   budget        Decimal?        @db.Decimal(14, 2)
   // Cout reel a date (cahier des charges §14 — alerte "Budget depasse").
   // Suivi manuel, meme principe que Task.tempsReelHeures : pas de module de

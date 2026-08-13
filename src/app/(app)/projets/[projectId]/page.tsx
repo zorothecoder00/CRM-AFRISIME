@@ -20,6 +20,7 @@ import { computeWorkload } from "@/lib/workload";
 import { WorkloadTable } from "@/components/workload/workload-table";
 import { ProjectCoutReelForm } from "@/components/projects/project-cout-reel-form";
 import { ProjectSponsorForm } from "@/components/projects/project-sponsor-form";
+import { ProjectLocationForm } from "@/components/projects/project-location-form";
 import { ProjectRisksSection, type RiskRow } from "@/components/projects/project-risks-section";
 import { ProjectStakeholdersSection, type StakeholderRow } from "@/components/projects/project-stakeholders-section";
 import { ProjectMilestonesSection, type MilestoneRow } from "@/components/projects/project-milestones-section";
@@ -305,6 +306,19 @@ export default async function ProjectDetailPage({
                 <ProjectSponsorForm projectId={project.id} users={userOptions} initialSponsorId={project.sponsorId} />
               ) : (
                 <p className="text-sm font-medium">{project.sponsor?.name || "—"}</p>
+              )}
+            </CardContent>
+            <CardContent className="pt-0">
+              <div className="mb-1 text-xs text-muted-foreground">Localisation</div>
+              {canUpdateProject ? (
+                <ProjectLocationForm
+                  projectId={project.id}
+                  initialLocalisation={project.localisation}
+                  initialLatitude={project.latitude}
+                  initialLongitude={project.longitude}
+                />
+              ) : (
+                <p className="text-sm font-medium">{project.localisation || "—"}</p>
               )}
             </CardContent>
             <CardContent className="pt-0">
