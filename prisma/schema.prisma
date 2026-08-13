@@ -242,8 +242,23 @@ model User {
   departmentId               String?
   department                 Department? @relation(fields: [departmentId], references: [id])
   // Poste / fonction (cahier des charges §I, "Postes / Fonctions") — libelle
-  // libre, distinct du Role qui porte les permissions.
+  // libre historique, distinct du Role qui porte les permissions. posteId
+  // est le rattachement structure (avec responsabilites) recommande pour
+  // les nouveaux comptes ; les deux coexistent pour ne pas perdre les
+  // libelles libres deja saisis.
   poste                      String?
+  posteId                    String?
+  posteRef                   Poste?      @relation(fields: [posteId], references: [id])
+  // Site / agence de rattachement (cahier des charges §I).
+  siteId                     String?
+  site                       Site?       @relation(fields: [siteId], references: [id])
+  // Rattachement hierarchique individuel (cahier des charges §I) — distinct
+  // du departementId : deux collaborateurs du meme departement peuvent avoir
+  // des managers differents, et un manager peut superviser des gens d'autres
+  // departements (organisation matricielle).
+  managerId                  String?
+  manager                    User?       @relation("UserManager", fields: [managerId], references: [id])
+  directReports              User[]      @relation("UserManager")
   isActive                   Boolean     @default(true)
   // Base de calcul du taux d'occupation (cahier des charges §14).
   capaciteHebdomadaireHeures Decimal     @default(35) @db.Decimal(5, 2)
@@ -267,6 +282,9 @@ model User {
   deliverablesCreated              ProjectDeliverable[]        @relation("DeliverableCreatedBy")
   programmeRisksResponsable        ProgrammeRisk[]             @relation("ProgrammeRiskResponsable")
   programmeRisksCreated            ProgrammeRisk[]             @relation("ProgrammeRiskCreatedBy")
+  delegationsGiven                 Delegation[]                @relation("DelegationDelegant")
+  delegationsReceived              Delegation[]                @relation("DelegationDelegataire")
+  delegationsCreated               Delegation[]                @relation("DelegationCreatedBy")
   tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                      @relation("TaskCreatedBy")
   taskAssignments                  TaskAssignee[]
@@ -411,7 +429,68 @@ model Department {
   plans               Plan[]
   evaluations         Evaluation[]
   courriers           Courrier[]
+  postes              Poste[]
+  sites               Site[]
   createdAt           DateTime             @default(now())
+}
+
+// Poste / fonction structure (cahier des charges §I) — un poste peut etre
+// occupe par plusieurs collaborateurs (ex: "Developpeur Backend"), porte ses
+// propres responsabilites plutot que le simple libelle texte User.poste.
+model Poste {
+  id              String      @id @default(cuid())
+  nom             String
+  description     String?
+  responsabilites String?
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  users User[]
+
+  @@index([departmentId])
+}
+
+// Site / agence (cahier des charges §I, "Sites / agences, Localisations").
+model Site {
+  id           String      @id @default(cuid())
+  nom          String
+  ville        String?
+  pays         String?
+  adresse      String?
+  latitude     Float?
+  longitude    Float?
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  users User[]
+
+  @@index([departmentId])
+}
+
+// Delegation temporaire d'autorite (cahier des charges §I, "Delegations")
+// — un enregistrement traçable de qui delegue a qui et pourquoi, sur une
+// periode donnee. Volontairement un simple registre consultable (pas de
+// reroutage automatique des circuits de validation existants, qui resterait
+// une extension separee).
+model Delegation {
+  id            String   @id @default(cuid())
+  delegantId    String
+  delegant      User     @relation("DelegationDelegant", fields: [delegantId], references: [id])
+  delegataireId String
+  delegataire   User     @relation("DelegationDelegataire", fields: [delegataireId], references: [id])
+  motif         String?
+  dateDebut     DateTime
+  dateFin       DateTime
+  createdById   String
+  createdBy     User     @relation("DelegationCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([delegantId])
+  @@index([delegataireId])
 }
 
 // Cahier des charges §IV — planification multi-niveaux. STRATEGIQUE/ANNUEL

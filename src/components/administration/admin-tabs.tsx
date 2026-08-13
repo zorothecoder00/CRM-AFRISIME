@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { href: "/administration/utilisateurs", label: "Utilisateurs" },
   { href: "/administration/departements", label: "Départements" },
+  { href: "/administration/postes", label: "Postes" },
+  { href: "/administration/sites", label: "Sites" },
+  { href: "/administration/delegations", label: "Délégations" },
   { href: "/administration/roles", label: "Rôles & permissions" },
   { href: "/administration/workflows", label: "Circuits de validation" },
   { href: "/administration/securite", label: "Sécurité" },

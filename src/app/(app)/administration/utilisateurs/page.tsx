@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserFormDialog } from "@/components/administration/user-form-dialog";
+import { EditUserDialog } from "@/components/administration/edit-user-dialog";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 
 /** Options de departement indentees par profondeur, meme logique que la page Departements. */
@@ -33,16 +34,21 @@ function buildDepartmentOptions(
 }
 
 export default async function UtilisateursPage() {
-  const [users, roles, departments] = await Promise.all([
+  const [users, roles, departments, postes, sites] = await Promise.all([
     prisma.user.findMany({
-      include: { role: true, department: true },
+      include: { role: true, department: true, posteRef: true, site: true, manager: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.role.findMany({ orderBy: { label: "asc" } }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
+    prisma.poste.findMany({ orderBy: { nom: "asc" } }),
+    prisma.site.findMany({ orderBy: { nom: "asc" } }),
   ]);
 
   const departmentOptions = buildDepartmentOptions(departments);
+  const posteOptions = postes.map((p) => ({ id: p.id, label: p.nom }));
+  const siteOptions = sites.map((s) => ({ id: s.id, label: s.nom }));
+  const managerOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
   return (
     <div className="space-y-6">
@@ -55,6 +61,9 @@ export default async function UtilisateursPage() {
         <UserFormDialog
           roles={roles.map((r) => ({ id: r.id, label: r.label }))}
           departments={departmentOptions}
+          postes={posteOptions}
+          sites={siteOptions}
+          managers={managerOptions}
         />
       </div>
 
@@ -67,7 +76,10 @@ export default async function UtilisateursPage() {
               <TableHead>Poste</TableHead>
               <TableHead>Rôle</TableHead>
               <TableHead>Département</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Manager</TableHead>
               <TableHead>Statut</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -75,15 +87,37 @@ export default async function UtilisateursPage() {
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell className="text-muted-foreground">{user.poste ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{user.posteRef?.nom ?? user.poste ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{user.role.label}</Badge>
                 </TableCell>
                 <TableCell>{user.department?.name ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{user.site?.nom ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{user.manager?.name ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant={user.isActive ? "secondary" : "destructive"}>
                     {user.isActive ? "Actif" : "Inactif"}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <EditUserDialog
+                    user={{
+                      id: user.id,
+                      name: user.name,
+                      email: user.email,
+                      roleId: user.roleId,
+                      departmentId: user.departmentId,
+                      poste: user.poste,
+                      posteId: user.posteId,
+                      siteId: user.siteId,
+                      managerId: user.managerId,
+                    }}
+                    roles={roles.map((r) => ({ id: r.id, label: r.label }))}
+                    departments={departmentOptions}
+                    postes={posteOptions}
+                    sites={siteOptions}
+                    managers={managerOptions}
+                  />
                 </TableCell>
               </TableRow>
             ))}
