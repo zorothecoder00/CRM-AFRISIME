@@ -31,6 +31,13 @@ const OBJECTIVE_STATUS_LABELS: Record<string, string> = {
   ANNULE: "Annulé",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  AUTO: "Auto-évaluation",
+  MANAGER: "Manager",
+  PAIRS_360: "360°",
+  PROJET: "Projet",
+};
+
 export default async function EvaluationDetailPage({
   params,
 }: {
@@ -50,6 +57,7 @@ export default async function EvaluationDetailPage({
       evalue: true,
       evaluateur: true,
       department: true,
+      project: true,
       criteres: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -80,21 +88,23 @@ export default async function EvaluationDetailPage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{evaluation.evalue.name}</h1>
+            <Badge variant="secondary">{TYPE_LABELS[evaluation.type]}</Badge>
             <Badge variant="outline">{PERIODE_LABELS[evaluation.periode]}</Badge>
             <Badge variant={toneForEvaluationStatus(evaluation.statut)}>
               {STATUS_LABELS[evaluation.statut]}
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Évaluée par {evaluation.evaluateur.name}
+            Évaluée par {isEvaluateur && evaluation.evaluateurId === evaluation.evalueId ? "vous-même" : evaluation.evaluateur.name}
             {evaluation.department && ` — ${evaluation.department.name}`}
+            {evaluation.project && ` — Projet : ${evaluation.project.nom}`}
           </p>
         </div>
 
         <Card accent={accentForEvaluationStatus(evaluation.statut)}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Informations générales</CardTitle>
-            {canManage && isEvaluateur && evaluation.statut === "BROUILLON" && (
+            {isEvaluateur && evaluation.statut === "BROUILLON" && (
               <EditEvaluationDialog
                 evaluation={{
                   id: evaluation.id,

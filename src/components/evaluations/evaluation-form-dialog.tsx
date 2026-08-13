@@ -28,8 +28,34 @@ const PERIODE_LABELS: Record<string, string> = {
   TRIMESTRIELLE: "Trimestrielle",
 };
 
-export function EvaluationFormDialog({ evaluables }: { evaluables: Option[] }) {
+const TYPE_LABELS: Record<string, string> = {
+  AUTO: "Auto-évaluation",
+  MANAGER: "Évaluation manager",
+  PAIRS_360: "Évaluation 360°",
+  PROJET: "Évaluation projet",
+};
+
+/**
+ * Types d'evaluation (cahier des charges §XII). L'auto-evaluation est
+ * toujours proposee (self-service) ; les autres types ne le sont que si
+ * `evaluables` est fourni (permission EVALUATION_MANAGE cote page).
+ */
+export function EvaluationFormDialog({
+  currentUserId,
+  currentUserName,
+  evaluables,
+  projects,
+}: {
+  currentUserId: string;
+  currentUserName: string;
+  /** Absent/vide = seule l'auto-évaluation est proposée. */
+  evaluables?: Option[];
+  projects?: Option[];
+}) {
   const [open, setOpen] = useState(false);
+  const [type, setType] = useState<CreateEvaluationInput["type"]>("AUTO");
+  const canEvaluateOthers = !!evaluables && evaluables.length > 0;
+
   const {
     register,
     handleSubmit,
@@ -38,7 +64,7 @@ export function EvaluationFormDialog({ evaluables }: { evaluables: Option[] }) {
     formState: { errors },
   } = useForm<CreateEvaluationInput>({
     resolver: zodResolver(createEvaluationSchema),
-    defaultValues: { periode: "ANNUELLE" },
+    defaultValues: { periode: "ANNUELLE", type: "AUTO", evalueId: currentUserId },
   });
   const { run: submit, isPending } = useAction(createEvaluation, {
     successMessage: "Évaluation créée en brouillon.",
@@ -47,7 +73,8 @@ export function EvaluationFormDialog({ evaluables }: { evaluables: Option[] }) {
   async function onSubmit(data: CreateEvaluationInput) {
     const result = await submit(data);
     if (result.ok) {
-      reset();
+      reset({ periode: "ANNUELLE", type: "AUTO", evalueId: currentUserId });
+      setType("AUTO");
       setOpen(false);
     }
   }
@@ -66,21 +93,70 @@ export function EvaluationFormDialog({ evaluables }: { evaluables: Option[] }) {
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Collaborateur évalué</Label>
-            <Select onValueChange={(v) => setValue("evalueId", v)}>
+            <Label>Type</Label>
+            <Select
+              defaultValue="AUTO"
+              onValueChange={(v) => {
+                const next = v as CreateEvaluationInput["type"];
+                setType(next);
+                setValue("type", next);
+                setValue("evalueId", next === "AUTO" ? currentUserId : "");
+              }}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {evaluables.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.label}
-                  </SelectItem>
-                ))}
+                <SelectItem value="AUTO">{TYPE_LABELS.AUTO}</SelectItem>
+                {canEvaluateOthers && (
+                  <>
+                    <SelectItem value="MANAGER">{TYPE_LABELS.MANAGER}</SelectItem>
+                    <SelectItem value="PAIRS_360">{TYPE_LABELS.PAIRS_360}</SelectItem>
+                    <SelectItem value="PROJET">{TYPE_LABELS.PROJET}</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
-            {errors.evalueId && <p className="text-sm text-destructive">{errors.evalueId.message}</p>}
           </div>
+
+          {type === "AUTO" ? (
+            <p className="text-sm text-muted-foreground">Collaborateur évalué : {currentUserName} (vous-même)</p>
+          ) : (
+            <div className="space-y-2">
+              <Label>Collaborateur évalué</Label>
+              <Select onValueChange={(v) => setValue("evalueId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {evaluables?.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.evalueId && <p className="text-sm text-destructive">{errors.evalueId.message}</p>}
+            </div>
+          )}
+
+          {type === "PROJET" && projects && projects.length > 0 && (
+            <div className="space-y-2">
+              <Label>Projet concerné</Label>
+              <Select onValueChange={(v) => setValue("projectId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Périodicité</Label>

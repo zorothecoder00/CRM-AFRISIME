@@ -41,6 +41,18 @@ export default async function MeetingDetailPage({
     notFound();
   }
 
+  // Serie recurrente (cahier des charges §XI) : racine + toutes les
+  // occurrences qui pointent vers elle, quel que soit le membre consulte.
+  const seriesRootId = meeting.recurrenceParentId ?? meeting.id;
+  const seriesMeetings =
+    meeting.recurrence !== "AUCUNE" || meeting.recurrenceParentId
+      ? await prisma.meeting.findMany({
+          where: { OR: [{ id: seriesRootId }, { recurrenceParentId: seriesRootId }] },
+          orderBy: { dateHeure: "asc" },
+          select: { id: true, dateHeure: true, statut: true },
+        })
+      : [];
+
   const documentRows: DocumentRow[] = meeting.documents.map((d) => ({
     id: d.id,
     nom: d.nom,
@@ -152,6 +164,31 @@ export default async function MeetingDetailPage({
           </CardHeader>
           <CardContent className="text-sm">{meeting.createdBy.name}</CardContent>
         </Card>
+
+        {seriesMeetings.length > 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Réunions de la série ({seriesMeetings.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm">
+                {seriesMeetings.map((m) => (
+                  <li key={m.id}>
+                    {m.id === meeting.id ? (
+                      <span className="font-medium">
+                        {new Date(m.dateHeure).toLocaleDateString("fr-FR")} (actuelle)
+                      </span>
+                    ) : (
+                      <Link href={`/reunions/${m.id}`} className="text-primary hover:underline">
+                        {new Date(m.dateHeure).toLocaleDateString("fr-FR")}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

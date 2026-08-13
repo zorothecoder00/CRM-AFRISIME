@@ -692,6 +692,7 @@ model Project {
   milestones          ProjectMilestone[]
   deliverables        ProjectDeliverable[]
   autoTaskWorkflows   ValidationWorkflow[]
+  evaluations         Evaluation[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1417,20 +1418,34 @@ model Courrier {
   @@index([type])
 }
 
+enum MeetingRecurrence {
+  AUCUNE
+  HEBDOMADAIRE
+  MENSUELLE
+}
+
 model Meeting {
-  id          String        @id @default(cuid())
-  projectId   String
-  project     Project       @relation(fields: [projectId], references: [id])
-  titre       String
-  dateHeure   DateTime
-  lieu        String?
-  ordreDuJour String?
-  compteRendu String?
-  statut      MeetingStatus @default(PLANIFIEE)
-  createdById String
-  createdBy   User          @relation("MeetingCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                    String            @id @default(cuid())
+  projectId             String
+  project               Project           @relation(fields: [projectId], references: [id])
+  titre                 String
+  dateHeure             DateTime
+  lieu                  String?
+  ordreDuJour           String?
+  compteRendu           String?
+  statut                MeetingStatus     @default(PLANIFIEE)
+  // Reunions recurrentes (cahier des charges §XI) — recurrence renseignee
+  // seulement sur la reunion "mere" ; les occurrences generees pointent
+  // vers elle via recurrenceParentId, ce qui les regroupe en serie sans
+  // avoir a parser une regle RRULE.
+  recurrence            MeetingRecurrence @default(AUCUNE)
+  recurrenceParentId    String?
+  recurrenceParent      Meeting?          @relation("MeetingRecurrence", fields: [recurrenceParentId], references: [id])
+  recurrenceOccurrences Meeting[]         @relation("MeetingRecurrence")
+  createdById           String
+  createdBy             User              @relation("MeetingCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   participants MeetingParticipant[]
   decisions    MeetingDecision[]
@@ -1438,6 +1453,7 @@ model Meeting {
 
   @@index([projectId])
   @@index([dateHeure])
+  @@index([recurrenceParentId])
 }
 
 model MeetingParticipant {
@@ -1729,8 +1745,19 @@ enum EvaluationStatus {
   ACCUSE_RECEPTION
 }
 
+// Cahier des charges §XII — "Types d'evaluation". PERIODIQUE n'est pas un
+// type distinct ici : c'est deja porte par Evaluation.periode, applicable a
+// n'importe lequel des 4 types ci-dessous.
+enum EvaluationType {
+  MANAGER
+  AUTO
+  PAIRS_360
+  PROJET
+}
+
 model Evaluation {
   id                    String            @id @default(cuid())
+  type                  EvaluationType    @default(MANAGER)
   periode               EvaluationPeriode
   dateDebut             DateTime
   dateFin               DateTime
@@ -1742,6 +1769,9 @@ model Evaluation {
   // rapports meme si l'evalue change ensuite de departement.
   departmentId          String?
   department            Department?       @relation(fields: [departmentId], references: [id])
+  // Renseigne seulement pour type=PROJET (cahier des charges §XII).
+  projectId             String?
+  project               Project?          @relation(fields: [projectId], references: [id])
   pointsForts           String?
   axesAmelioration      String?
   commentaireEvaluateur String?
@@ -1760,6 +1790,7 @@ model Evaluation {
   @@index([evalueId])
   @@index([evaluateurId])
   @@index([departmentId])
+  @@index([projectId])
   @@index([dateDebut])
 }
 

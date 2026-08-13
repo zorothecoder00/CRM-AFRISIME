@@ -38,6 +38,7 @@ export function MeetingFormDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [recurrence, setRecurrence] = useState<CreateMeetingInput["recurrence"]>("AUCUNE");
   const {
     register,
     handleSubmit,
@@ -46,7 +47,7 @@ export function MeetingFormDialog({
     formState: { errors },
   } = useForm<CreateMeetingInput>({
     resolver: zodResolver(createMeetingSchema),
-    defaultValues: { participantIds: [] },
+    defaultValues: { participantIds: [], recurrence: "AUCUNE" },
   });
   const { run: submit, isPending } = useAction(createMeeting, { successMessage: "Réunion créée." });
 
@@ -63,6 +64,7 @@ export function MeetingFormDialog({
     if (result.ok) {
       reset();
       setParticipantIds([]);
+      setRecurrence("AUCUNE");
       setOpen(false);
     }
   }
@@ -122,6 +124,35 @@ export function MeetingFormDialog({
           <div className="space-y-2">
             <Label htmlFor="ordreDuJour">Ordre du jour</Label>
             <Textarea id="ordreDuJour" {...register("ordreDuJour")} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Récurrence</Label>
+              <Select
+                defaultValue="AUCUNE"
+                onValueChange={(v) => {
+                  const next = v as CreateMeetingInput["recurrence"];
+                  setRecurrence(next);
+                  setValue("recurrence", next);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AUCUNE">Aucune</SelectItem>
+                  <SelectItem value="HEBDOMADAIRE">Hebdomadaire</SelectItem>
+                  <SelectItem value="MENSUELLE">Mensuelle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {recurrence !== "AUCUNE" && (
+              <div className="space-y-2">
+                <Label htmlFor="recurrenceFin">Jusqu&apos;au (optionnel)</Label>
+                <Input id="recurrenceFin" type="date" {...register("recurrenceFin")} />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

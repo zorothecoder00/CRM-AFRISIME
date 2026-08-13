@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
+import { buildRecurrenceDates } from "@/lib/meeting-recurrence";
 import {
   createMeetingSchema,
   updateCompteRenduSchema,
@@ -28,6 +29,7 @@ export async function createMeeting(input: CreateMeetingInput) {
   requirePermission(session.user.permissions, PERMISSIONS.MEETING_CREATE);
 
   const data = createMeetingSchema.parse(input);
+  const participantIds = Array.from(new Set([...data.participantIds, session.user.id]));
 
   const meeting = await prisma.meeting.create({
     data: {
@@ -36,14 +38,38 @@ export async function createMeeting(input: CreateMeetingInput) {
       dateHeure: new Date(data.dateHeure),
       lieu: data.lieu,
       ordreDuJour: data.ordreDuJour,
+      recurrence: data.recurrence,
       createdById: session.user.id,
       participants: {
-        create: Array.from(new Set([...data.participantIds, session.user.id])).map((userId) => ({
-          userId,
-        })),
+        create: participantIds.map((userId) => ({ userId })),
       },
     },
   });
+
+  // Reunions recurrentes (cahier des charges §XI) : genere les occurrences
+  // suivantes d'un coup, toutes rattachees a celle-ci via recurrenceParentId.
+  if (data.recurrence !== "AUCUNE") {
+    const occurrenceDates = buildRecurrenceDates(
+      new Date(data.dateHeure),
+      data.recurrence,
+      data.recurrenceFin ? new Date(data.recurrenceFin) : undefined
+    );
+    for (const dateHeure of occurrenceDates) {
+      await prisma.meeting.create({
+        data: {
+          projectId: data.projectId,
+          titre: data.titre,
+          dateHeure,
+          lieu: data.lieu,
+          ordreDuJour: data.ordreDuJour,
+          recurrence: data.recurrence,
+          recurrenceParentId: meeting.id,
+          createdById: session.user.id,
+          participants: { create: participantIds.map((userId) => ({ userId })) },
+        },
+      });
+    }
+  }
 
   revalidatePath("/reunions");
   return meeting;

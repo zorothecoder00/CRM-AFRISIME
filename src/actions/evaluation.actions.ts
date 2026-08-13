@@ -26,13 +26,22 @@ async function requireSession() {
   return session;
 }
 
+/**
+ * Types d'evaluation (cahier des charges §XII). L'auto-evaluation (type
+ * AUTO) est en libre-service : n'importe quel collaborateur peut evaluer
+ * son propre travail sans la permission EVALUATION_MANAGE, qui reste
+ * requise pour evaluer quelqu'un d'autre (MANAGER/PAIRS_360/PROJET).
+ */
 export async function createEvaluation(input: CreateEvaluationInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.EVALUATION_MANAGE);
   const data = createEvaluationSchema.parse(input);
 
-  if (data.evalueId === session.user.id) {
-    throw new Error("Vous ne pouvez pas créer votre propre évaluation.");
+  const isSelf = data.evalueId === session.user.id;
+  if (isSelf && data.type !== "AUTO") {
+    throw new Error("Vous ne pouvez créer une évaluation vous concernant qu'en auto-évaluation.");
+  }
+  if (!isSelf) {
+    requirePermission(session.user.permissions, PERMISSIONS.EVALUATION_MANAGE);
   }
   if (new Date(data.dateFin) < new Date(data.dateDebut)) {
     throw new Error("La date de fin doit être postérieure à la date de début.");
@@ -45,12 +54,14 @@ export async function createEvaluation(input: CreateEvaluationInput) {
 
   const evaluation = await prisma.evaluation.create({
     data: {
+      type: data.type,
       periode: data.periode,
       dateDebut: new Date(data.dateDebut),
       dateFin: new Date(data.dateFin),
       evalueId: data.evalueId,
       evaluateurId: session.user.id,
       departmentId: evalue.departmentId,
+      projectId: data.type === "PROJET" ? data.projectId || undefined : undefined,
       pointsForts: data.pointsForts || undefined,
       axesAmelioration: data.axesAmelioration || undefined,
       commentaireEvaluateur: data.commentaireEvaluateur || undefined,
@@ -63,16 +74,19 @@ export async function createEvaluation(input: CreateEvaluationInput) {
     action: "evaluation.created",
     entityType: "Evaluation",
     entityId: evaluation.id,
-    changes: { evalueId: evaluation.evalueId, periode: evaluation.periode },
+    changes: { evalueId: evaluation.evalueId, periode: evaluation.periode, type: evaluation.type },
   });
 
   revalidatePath("/evaluations");
   return evaluation;
 }
 
+// Les fonctions suivantes (edition/soumission) ne verifient pas
+// EVALUATION_MANAGE : l'appartenance a evaluateurId est le vrai perimetre
+// d'autorisation, ce qui laisse un auto-evaluateur (type AUTO, cree sans
+// cette permission) modifier et soumettre sa propre evaluation.
 export async function updateEvaluation(input: UpdateEvaluationInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.EVALUATION_MANAGE);
   const data = updateEvaluationSchema.parse(input);
 
   const existing = await prisma.evaluation.findUniqueOrThrow({ where: { id: data.id } });
@@ -111,7 +125,6 @@ export async function updateEvaluation(input: UpdateEvaluationInput) {
 
 export async function addEvaluationCritere(input: AddEvaluationCritereInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.EVALUATION_MANAGE);
   const data = addEvaluationCritereSchema.parse(input);
 
   const evaluation = await prisma.evaluation.findUniqueOrThrow({ where: { id: data.evaluationId } });
@@ -150,7 +163,6 @@ export async function addEvaluationCritere(input: AddEvaluationCritereInput) {
 
 export async function updateEvaluationCritere(input: UpdateEvaluationCritereInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.EVALUATION_MANAGE);
   const data = updateEvaluationCritereSchema.parse(input);
 
   const critere = await prisma.evaluationCritere.findUniqueOrThrow({
@@ -188,7 +200,6 @@ export async function updateEvaluationCritere(input: UpdateEvaluationCritereInpu
 
 export async function submitEvaluation(evaluationId: string) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.EVALUATION_MANAGE);
 
   const evaluation = await prisma.evaluation.findUniqueOrThrow({
     where: { id: evaluationId },

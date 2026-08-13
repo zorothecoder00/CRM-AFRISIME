@@ -2,8 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
+import { Repeat } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -12,11 +14,21 @@ const STATUS_LABELS: Record<string, string> = {
   ANNULEE: "Annulée",
 };
 
-export default async function ReunionsPage() {
+const PERIOD_LABELS = { avenir: "À venir", passees: "Passées", toutes: "Toutes" } as const;
+
+export default async function ReunionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periode?: string }>;
+}) {
+  const { periode = "avenir" } = await searchParams;
+  const now = new Date();
+
   const [meetings, projects, users] = await Promise.all([
     prisma.meeting.findMany({
+      where: periode === "avenir" ? { dateHeure: { gte: now } } : periode === "passees" ? { dateHeure: { lt: now } } : {},
       include: { project: true, participants: true },
-      orderBy: { dateHeure: "desc" },
+      orderBy: { dateHeure: periode === "passees" ? "desc" : "asc" },
     }),
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -24,15 +36,30 @@ export default async function ReunionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Réunions</h1>
           <p className="text-sm text-muted-foreground">{meetings.length} réunion(s)</p>
         </div>
-        <MeetingFormDialog
-          projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
-          users={users.map((u) => ({ id: u.id, label: u.name }))}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-md border">
+            {Object.entries(PERIOD_LABELS).map(([key, label], i) => (
+              <Link key={key} href={`/reunions?periode=${key}`}>
+                <Button
+                  variant={periode === key ? "default" : "ghost"}
+                  size="sm"
+                  className={i === 0 ? "rounded-r-none" : i === Object.keys(PERIOD_LABELS).length - 1 ? "rounded-l-none" : "rounded-none"}
+                >
+                  {label}
+                </Button>
+              </Link>
+            ))}
+          </div>
+          <MeetingFormDialog
+            projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
+            users={users.map((u) => ({ id: u.id, label: u.name }))}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -43,7 +70,12 @@ export default async function ReunionsPage() {
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
             >
               <CardHeader>
-                <CardTitle className="text-base">{meeting.titre}</CardTitle>
+                <CardTitle className="flex items-center gap-1.5 text-base">
+                  {meeting.titre}
+                  {meeting.recurrence !== "AUCUNE" && (
+                    <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Réunion récurrente" />
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground">{meeting.project.nom}</p>

@@ -7,6 +7,8 @@ export const createMeetingSchema = z.object({
   lieu: z.string().optional(),
   ordreDuJour: z.string().optional(),
   participantIds: z.array(z.string()).default([]),
+  recurrence: z.enum(["AUCUNE", "HEBDOMADAIRE", "MENSUELLE"]).default("AUCUNE"),
+  recurrenceFin: z.string().optional(),
 });
 
 export type CreateMeetingInput = z.infer<typeof createMeetingSchema>;

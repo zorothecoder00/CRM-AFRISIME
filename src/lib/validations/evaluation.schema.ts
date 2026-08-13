@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const createEvaluationSchema = z.object({
   evalueId: z.string().min(1, "Un collaborateur évalué est requis."),
+  type: z.enum(["MANAGER", "AUTO", "PAIRS_360", "PROJET"]).default("MANAGER"),
+  projectId: z.string().optional(),
   periode: z.enum(["ANNUELLE", "SEMESTRIELLE", "TRIMESTRIELLE"]),
   dateDebut: z.string().min(1, "La date de début est requise."),
   dateFin: z.string().min(1, "La date de fin est requise."),
@@ -13,7 +15,7 @@ export const createEvaluationSchema = z.object({
 export type CreateEvaluationInput = z.infer<typeof createEvaluationSchema>;
 
 export const updateEvaluationSchema = createEvaluationSchema
-  .omit({ evalueId: true, periode: true })
+  .omit({ evalueId: true, periode: true, type: true, projectId: true })
   .extend({
     id: z.string().min(1),
   });

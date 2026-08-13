@@ -21,6 +21,13 @@ const STATUS_LABELS: Record<string, string> = {
   ACCUSE_RECEPTION: "Accusée réception",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  AUTO: "Auto-évaluation",
+  MANAGER: "Manager",
+  PAIRS_360: "360°",
+  PROJET: "Projet",
+};
+
 export default async function EvaluationsPage() {
   const session = await getServerSession(authOptions);
   if (!session!.user.permissions.includes(PERMISSIONS.EVALUATION_READ)) {
@@ -29,7 +36,7 @@ export default async function EvaluationsPage() {
   const canManage = session!.user.permissions.includes(PERMISSIONS.EVALUATION_MANAGE);
   const userId = session!.user.id;
 
-  const [recues, menees, evaluables] = await Promise.all([
+  const [recues, menees, evaluables, projects] = await Promise.all([
     prisma.evaluation.findMany({
       where: { evalueId: userId },
       include: { evaluateur: true },
@@ -37,7 +44,7 @@ export default async function EvaluationsPage() {
     }),
     canManage
       ? prisma.evaluation.findMany({
-          where: { evaluateurId: userId },
+          where: { evaluateurId: userId, evalueId: { not: userId } },
           include: { evalue: true },
           orderBy: { createdAt: "desc" },
         })
@@ -49,6 +56,7 @@ export default async function EvaluationsPage() {
           select: { id: true, name: true },
         })
       : Promise.resolve([]),
+    canManage ? prisma.project.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }) : Promise.resolve([]),
   ]);
 
   return (
@@ -57,12 +65,15 @@ export default async function EvaluationsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Évaluations de performance</h1>
           <p className="text-sm text-muted-foreground">
-            Évaluations périodiques — un évaluateur note un collaborateur, qui en accuse réception.
+            Auto-évaluation, évaluation manager, 360° et évaluation projet (cahier des charges §XII).
           </p>
         </div>
-        {canManage && (
-          <EvaluationFormDialog evaluables={evaluables.map((u) => ({ id: u.id, label: u.name }))} />
-        )}
+        <EvaluationFormDialog
+          currentUserId={userId}
+          currentUserName={session!.user.name ?? "Vous"}
+          evaluables={canManage ? evaluables.map((u) => ({ id: u.id, label: u.name })) : undefined}
+          projects={canManage ? projects.map((p) => ({ id: p.id, label: p.nom })) : undefined}
+        />
       </div>
 
       {canManage && (
@@ -80,6 +91,7 @@ export default async function EvaluationsPage() {
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">{TYPE_LABELS[evaluation.type]}</Badge>
                       <Badge variant="outline">{PERIODE_LABELS[evaluation.periode]}</Badge>
                       <Badge variant={toneForEvaluationStatus(evaluation.statut)}>
                         {STATUS_LABELS[evaluation.statut]}
@@ -101,7 +113,7 @@ export default async function EvaluationsPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-medium">Mes évaluations reçues ({recues.length})</h2>
+        <h2 className="text-lg font-medium">Mes évaluations reçues, dont auto-évaluations ({recues.length})</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recues.map((evaluation) => (
             <Link key={evaluation.id} href={`/evaluations/${evaluation.id}`}>
@@ -114,6 +126,7 @@ export default async function EvaluationsPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{TYPE_LABELS[evaluation.type]}</Badge>
                     <Badge variant={toneForEvaluationStatus(evaluation.statut)}>
                       {STATUS_LABELS[evaluation.statut]}
                     </Badge>
@@ -122,7 +135,9 @@ export default async function EvaluationsPage() {
                     {evaluation.dateDebut.toLocaleDateString("fr-FR")} →{" "}
                     {evaluation.dateFin.toLocaleDateString("fr-FR")}
                   </div>
-                  <div className="text-xs text-muted-foreground">Évaluateur : {evaluation.evaluateur.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Évaluateur : {evaluation.evaluateur.id === userId ? "Vous-même" : evaluation.evaluateur.name}
+                  </div>
                 </CardContent>
               </Card>
             </Link>
