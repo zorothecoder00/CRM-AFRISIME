@@ -7,6 +7,7 @@ import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
+import { Button } from "@/components/ui/button";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -52,12 +53,19 @@ export default async function ProjetsPage() {
             {projects.length} projet(s)
           </p>
         </div>
-        {canCreate && (
-          <ProjectFormDialog
-            departments={departments.map((d) => ({ id: d.id, label: d.name }))}
-            users={users.map((u) => ({ id: u.id, label: u.name }))}
-          />
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/projets/roadmap">
+            <Button variant="outline" size="sm">
+              Roadmap
+            </Button>
+          </Link>
+          {canCreate && (
+            <ProjectFormDialog
+              departments={departments.map((d) => ({ id: d.id, label: d.name }))}
+              users={users.map((u) => ({ id: u.id, label: u.name }))}
+            />
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
