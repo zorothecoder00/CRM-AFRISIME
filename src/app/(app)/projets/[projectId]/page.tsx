@@ -403,7 +403,13 @@ export default async function ProjectDetailPage({
           </Card>
         </TabsContent>
 
-        <TabsContent value="pilotage" className="mt-4">
+        <TabsContent value="pilotage" className="mt-4 space-y-3">
+          <Link
+            href={`/pilotage/departement/${project.departmentId}`}
+            className="inline-block text-sm text-primary hover:underline"
+          >
+            Voir le pilotage du département {project.department.name} →
+          </Link>
           <ProjectPilotagePanel pilotage={pilotage} />
         </TabsContent>
 

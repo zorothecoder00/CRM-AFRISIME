@@ -10,6 +10,7 @@ import {
   Gauge,
   Zap,
   LayoutGrid,
+  Network,
   ShieldCheck,
   FileBarChart,
   Search,
@@ -49,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "Espace personnel", href: "/dashboard", icon: LayoutDashboard },
       { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Niveaux de pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Recherche", href: "/recherche", icon: Search },
     ],
   },
