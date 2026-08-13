@@ -14,6 +14,8 @@ import { TaskMindMapView, type MindMapTaskRow } from "@/components/tasks/task-mi
 import { TaskPortfolioView } from "@/components/tasks/task-portfolio-view";
 import { TaskWhiteboardView } from "@/components/tasks/task-whiteboard-view";
 import type { WhiteboardNote } from "@/actions/whiteboard.actions";
+import type { Prisma } from "@/generated/prisma/client";
+import { User } from "lucide-react";
 
 const VIEWS = [
   { key: "liste", label: "Liste" },
@@ -28,17 +30,30 @@ const VIEWS = [
 export default async function TachesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string; projetId?: string }>;
+  searchParams: Promise<{ vue?: string; projetId?: string; mine?: string }>;
 }) {
-  const { vue = "liste", projetId } = await searchParams;
+  const { vue = "liste", projetId, mine } = await searchParams;
   const session = await getServerSession(authOptions);
+  const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
   const taskScope = taskVisibilityWhere(session!.user.roleKey, session!.user.id);
   const projectScope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
+  const onlyMine = mine === "1";
+
+  // Filtre "Mes tâches" : responsable principal OU assigné, combiné (pas
+  // fusionné) avec le taskScope des rôles externes qui a déjà son propre OR.
+  const andClauses: Prisma.TaskWhereInput[] = [];
+  if (taskScope) andClauses.push(taskScope);
+  if (onlyMine) {
+    andClauses.push({ OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] });
+  }
 
   const [tasks, projects, users, whiteboard] = await Promise.all([
     prisma.task.findMany({
-      where: { projectId: projetId || undefined, ...taskScope },
+      where: {
+        projectId: projetId || undefined,
+        ...(andClauses.length > 0 ? { AND: andClauses } : {}),
+      },
       include: { project: true, responsablePrincipal: true },
       orderBy: { createdAt: "desc" },
     }),
@@ -85,17 +100,27 @@ export default async function TachesPage({
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
   function withVue(key: string) {
-    return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}`;
+    return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "&mine=1" : ""}`;
   }
+
+  const mineHref = `?vue=${vue}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "" : "&mine=1"}`;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Tâches</h1>
-          <p className="text-sm text-muted-foreground">{tasks.length} tâche(s)</p>
+          <p className="text-sm text-muted-foreground">
+            {tasks.length} tâche(s){onlyMine ? " — assignées à moi" : ""}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href={mineHref}>
+            <Button variant={onlyMine ? "default" : "outline"} size="sm">
+              <User className="mr-1 h-4 w-4" />
+              Mes tâches
+            </Button>
+          </Link>
           <div className="flex flex-wrap rounded-md border">
             {VIEWS.map((v, i) => (
               <Link key={v.key} href={withVue(v.key)}>

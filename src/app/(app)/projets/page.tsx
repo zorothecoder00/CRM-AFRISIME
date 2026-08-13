@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
 import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
+import type { Prisma } from "@/generated/prisma/client";
+import { User } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -36,12 +38,24 @@ const VIEWS = [
 export default async function ProjetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string }>;
+  searchParams: Promise<{ vue?: string; mine?: string }>;
 }) {
-  const { vue = "liste" } = await searchParams;
+  const { vue = "liste", mine } = await searchParams;
   const session = await getServerSession(authOptions);
+  const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
-  const where = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
+  const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
+  const onlyMine = mine === "1";
+
+  // Filtre "Mes projets" : responsable OU membre, combiné avec le scope des
+  // rôles externes qui a déjà son propre filtre (déjà restreint aux projets
+  // dont l'utilisateur est membre, donc redondant mais sans effet de bord).
+  const andClauses: Prisma.ProjectWhereInput[] = [];
+  if (scope) andClauses.push(scope);
+  if (onlyMine) {
+    andClauses.push({ OR: [{ responsableId: userId }, { members: { some: { userId } } }] });
+  }
+  const where: Prisma.ProjectWhereInput | undefined = andClauses.length > 0 ? { AND: andClauses } : undefined;
 
   const [projects, departments, users] = await Promise.all([
     prisma.project.findMany({
@@ -71,8 +85,10 @@ export default async function ProjetsPage({
   }));
 
   function withVue(key: string) {
-    return `?vue=${key}`;
+    return `?vue=${key}${onlyMine ? "&mine=1" : ""}`;
   }
+
+  const mineHref = `?vue=${vue}${onlyMine ? "" : "&mine=1"}`;
 
   return (
     <div className="space-y-6">
@@ -80,10 +96,16 @@ export default async function ProjetsPage({
         <div>
           <h1 className="text-2xl font-semibold">Projets</h1>
           <p className="text-sm text-muted-foreground">
-            {projects.length} projet(s)
+            {projects.length} projet(s){onlyMine ? " — les miens" : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href={mineHref}>
+            <Button variant={onlyMine ? "default" : "outline"} size="sm">
+              <User className="mr-1 h-4 w-4" />
+              Mes projets
+            </Button>
+          </Link>
           <div className="flex flex-wrap rounded-md border">
             {VIEWS.map((v, i) => (
               <Link key={v.key} href={withVue(v.key)}>
