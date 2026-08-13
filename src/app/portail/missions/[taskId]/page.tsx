@@ -6,7 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
+import { PortalDocumentUploadForm } from "@/components/portal/portal-document-upload-form";
+import { PortalDeliverableReview } from "@/components/portal/portal-deliverable-review";
 import { FileText } from "lucide-react";
+
+const VALIDATION_LABELS: Record<string, string> = {
+  EN_ATTENTE: "En attente de votre validation",
+  VALIDE: "Validé",
+  REJETE: "Rejeté",
+};
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -83,20 +91,20 @@ export default async function PortalMissionDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Livrables</CardTitle>
+            <CardTitle className="text-base">Documents &amp; livrables</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             {task.documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun livrable pour le moment.</p>
+              <p className="text-sm text-muted-foreground">Aucun document pour le moment.</p>
             ) : (
               <ul className="space-y-2">
                 {task.documents.map((doc) => (
-                  <li key={doc.id}>
+                  <li key={doc.id} className="rounded-lg border bg-card px-3 py-2 text-sm">
                     <a
                       href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                      className="flex items-center justify-between gap-2 hover:underline"
                     >
                       <span className="flex items-center gap-2">
                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -106,10 +114,30 @@ export default async function PortalMissionDetailPage({
                         {doc.createdAt.toLocaleDateString("fr-FR")}
                       </span>
                     </a>
+                    {doc.validationExterne !== "NON_REQUISE" && (
+                      <div className="mt-2 space-y-2 border-t pt-2">
+                        <Badge
+                          variant={
+                            doc.validationExterne === "VALIDE"
+                              ? "success"
+                              : doc.validationExterne === "REJETE"
+                                ? "destructive"
+                                : "warning"
+                          }
+                        >
+                          {VALIDATION_LABELS[doc.validationExterne]}
+                        </Badge>
+                        {doc.validationExterne === "EN_ATTENTE" && <PortalDeliverableReview documentId={doc.id} />}
+                        {doc.commentaireValidationExterne && (
+                          <p className="text-xs text-muted-foreground">« {doc.commentaireValidationExterne} »</p>
+                        )}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
+            <PortalDocumentUploadForm taskId={task.id} />
           </CardContent>
         </Card>
       </main>

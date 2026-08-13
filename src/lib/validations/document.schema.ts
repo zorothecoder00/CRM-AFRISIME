@@ -41,6 +41,27 @@ export const updateDocumentSignatureSchema = z.object({
 
 export type UpdateDocumentSignatureInput = z.infer<typeof updateDocumentSignatureSchema>;
 
+// Depot depuis le portail externe (cahier des charges §21) : pas de projectId
+// choisi par le contact, il est derive de la mission (Task) ciblee.
+export const depositPortalDocumentSchema = z.object({
+  taskId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  description: z.string().optional(),
+  url: z.string().min(1, "Un fichier est requis."),
+  mimeType: z.string().optional(),
+  sizeBytes: z.number().int().positive().optional(),
+});
+
+export type DepositPortalDocumentInput = z.infer<typeof depositPortalDocumentSchema>;
+
+export const reviewPortalDeliverableSchema = z.object({
+  documentId: z.string().min(1),
+  decision: z.enum(["VALIDE", "REJETE"]),
+  commentaire: z.string().optional(),
+});
+
+export type ReviewPortalDeliverableInput = z.infer<typeof reviewPortalDeliverableSchema>;
+
 export const addDocumentVersionSchema = z.object({
   documentId: z.string().min(1),
   url: z.string().min(1, "Un lien ou chemin de fichier est requis."),

@@ -9,6 +9,7 @@ import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { accentForStatus } from "@/lib/status-tone";
+import { documentUploaderName } from "@/lib/document-uploader";
 
 const MIME_GROUPS: Record<string, string[]> = {
   pdf: ["application/pdf"],
@@ -104,6 +105,7 @@ export default async function DocumentsPage({
       include: {
         project: true,
         uploadedBy: true,
+        uploadedByContact: true,
         task: true,
         meeting: true,
         _count: { select: { versions: true } },
@@ -116,7 +118,7 @@ export default async function DocumentsPage({
       nom: d.nom,
       description: d.description,
       projectNom: d.project.nom,
-      uploadedByName: d.uploadedBy.name,
+      uploadedByName: documentUploaderName(d),
       createdAt: d.createdAt.toISOString(),
       versionCount: d._count.versions,
       taskTitre: d.task?.titre ?? null,
@@ -181,7 +183,13 @@ export default async function DocumentsPage({
     }),
     prisma.document.findMany({
       where: { projectId: projetId, folderId: folderId || null, estArchive: false },
-      include: { uploadedBy: true, task: true, meeting: true, _count: { select: { versions: true } } },
+      include: {
+        uploadedBy: true,
+        uploadedByContact: true,
+        task: true,
+        meeting: true,
+        _count: { select: { versions: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -193,7 +201,7 @@ export default async function DocumentsPage({
     id: d.id,
     nom: d.nom,
     description: d.description,
-    uploadedByName: d.uploadedBy.name,
+    uploadedByName: documentUploaderName(d),
     createdAt: d.createdAt.toISOString(),
     versionCount: d._count.versions,
     taskTitre: d.task?.titre ?? null,

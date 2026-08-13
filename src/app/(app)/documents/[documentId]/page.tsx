@@ -10,6 +10,15 @@ import { AddVersionForm } from "@/components/documents/add-version-form";
 import { DocumentAccessManager } from "@/components/documents/document-access-manager";
 import { DocumentSignatureForm } from "@/components/documents/document-signature-form";
 import { DocumentArchiveButton } from "@/components/documents/document-archive-button";
+import { RequestExternalValidationButton } from "@/components/documents/request-external-validation-button";
+import { documentUploaderName } from "@/lib/document-uploader";
+
+const VALIDATION_LABELS: Record<string, string> = {
+  NON_REQUISE: "Non requise",
+  EN_ATTENTE: "En attente de validation client",
+  VALIDE: "Validé par le client",
+  REJETE: "Rejeté par le client",
+};
 
 const TYPE_LABELS: Record<string, string> = {
   CONTRAT: "Contrat",
@@ -52,6 +61,7 @@ export default async function DocumentDetailPage({
       task: true,
       meeting: true,
       uploadedBy: true,
+      uploadedByContact: true,
       archivedBy: true,
       versions: { include: { createdBy: true }, orderBy: { createdAt: "desc" } },
       accessGrants: { include: { user: true } },
@@ -84,6 +94,19 @@ export default async function DocumentDetailPage({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold">{document.nom}</h1>
             <Badge variant="secondary">{TYPE_LABELS[document.type]}</Badge>
+            {document.validationExterne !== "NON_REQUISE" && (
+              <Badge
+                variant={
+                  document.validationExterne === "VALIDE"
+                    ? "success"
+                    : document.validationExterne === "REJETE"
+                      ? "destructive"
+                      : "warning"
+                }
+              >
+                {VALIDATION_LABELS[document.validationExterne]}
+              </Badge>
+            )}
             {document.estArchive && <Badge variant="outline">Archivé</Badge>}
           </div>
           <Link href={`/projets/${document.projectId}`} className="text-sm text-muted-foreground hover:underline">
@@ -156,7 +179,7 @@ export default async function DocumentDetailPage({
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <Info label="Ajouté par" value={document.uploadedBy.name} />
+            <Info label="Ajouté par" value={documentUploaderName(document)} />
             <Info label="Ajouté le" value={new Date(document.createdAt).toLocaleDateString("fr-FR")} />
             {document.task && (
               <div>
@@ -199,6 +222,20 @@ export default async function DocumentDetailPage({
                 )}
                 <DocumentArchiveButton documentId={document.id} isArchived={document.estArchive} />
               </div>
+              {document.task?.externalContactId && (
+                <div className="space-y-1 border-t pt-3">
+                  <div className="text-xs text-muted-foreground">Validation par le partenaire externe</div>
+                  <p className="text-sm font-medium">{VALIDATION_LABELS[document.validationExterne]}</p>
+                  {document.commentaireValidationExterne && (
+                    <p className="text-sm text-muted-foreground">
+                      « {document.commentaireValidationExterne} »
+                    </p>
+                  )}
+                  {document.validationExterne === "NON_REQUISE" && (
+                    <RequestExternalValidationButton documentId={document.id} />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

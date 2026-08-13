@@ -950,6 +950,7 @@ model CrmContact {
   portalAccount PortalAccount?
   missions      Task[]
   stakeholderOf ProjectStakeholder[]
+  documentsUploaded Document[] @relation("DocumentUploadedByContact")
 
   @@index([organizationId])
   @@index([ownerId])
@@ -1529,6 +1530,18 @@ enum DocumentSignatureStatus {
   REFUSE
 }
 
+// Validation client d'un livrable (cahier des charges §21) : un membre
+// interne marque un document comme "a valider" une fois le livrable pret ;
+// le partenaire/prestataire concerne (Task.externalContactId) le valide ou
+// le rejette depuis le portail. Independant de statutSignature (signature de
+// contrat) qui repond a un besoin different.
+enum DocumentValidationStatus {
+  NON_REQUISE
+  EN_ATTENTE
+  VALIDE
+  REJETE
+}
+
 model Document {
   id           String          @id @default(cuid())
   projectId    String
@@ -1557,8 +1570,16 @@ model Document {
   dateArchivage    DateTime?
   archivedById     String?
   archivedBy       User?                   @relation("DocumentArchivedBy", fields: [archivedById], references: [id])
-  uploadedById String
-  uploadedBy   User            @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+  validationExterne            DocumentValidationStatus @default(NON_REQUISE)
+  dateValidationExterne        DateTime?
+  commentaireValidationExterne String?
+  // Un document depose depuis le portail externe (cahier des charges §21) a
+  // uploadedByContactId renseigne et uploadedById null ; l'inverse pour un
+  // depot interne classique — jamais les deux a la fois.
+  uploadedById String?
+  uploadedBy   User?           @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+  uploadedByContactId String?
+  uploadedByContact   CrmContact? @relation("DocumentUploadedByContact", fields: [uploadedByContactId], references: [id])
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 

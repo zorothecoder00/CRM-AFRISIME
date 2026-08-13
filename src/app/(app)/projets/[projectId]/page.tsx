@@ -29,6 +29,7 @@ import { ProjectPilotagePanel } from "@/components/projects/project-pilotage-pan
 import { computeProjectPilotage } from "@/lib/project-pilotage";
 import { ensureProjectConversation } from "@/lib/project-conversation";
 import { MessageThread, type MessageData } from "@/components/messages/message-thread";
+import { documentUploaderName } from "@/lib/document-uploader";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -85,7 +86,13 @@ export default async function ProjectDetailPage({
     }),
     prisma.document.findMany({
       where: { projectId, folderId: null, estArchive: false },
-      include: { uploadedBy: true, task: true, meeting: true, _count: { select: { versions: true } } },
+      include: {
+        uploadedBy: true,
+        uploadedByContact: true,
+        task: true,
+        meeting: true,
+        _count: { select: { versions: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.automationRule.findMany({
@@ -277,7 +284,7 @@ export default async function ProjectDetailPage({
     id: d.id,
     nom: d.nom,
     description: d.description,
-    uploadedByName: d.uploadedBy.name,
+    uploadedByName: documentUploaderName(d),
     createdAt: d.createdAt.toISOString(),
     versionCount: d._count.versions,
     taskTitre: d.task?.titre ?? null,

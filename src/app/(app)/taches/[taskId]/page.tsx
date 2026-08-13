@@ -12,6 +12,7 @@ import { CommentSection } from "@/components/tasks/comment-section";
 import { DependencySection } from "@/components/tasks/dependency-section";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
+import { documentUploaderName } from "@/lib/document-uploader";
 import { ActualTimeForm } from "@/components/tasks/actual-time-form";
 import { ValidationActions } from "@/components/tasks/validation-actions";
 import { TaskHistory } from "@/components/tasks/task-history";
@@ -53,7 +54,9 @@ export default async function TaskDetailPage({
         include: { author: true, reactions: { include: { user: true } } },
         orderBy: { createdAt: "asc" },
       },
-      documents: { include: { uploadedBy: true, meeting: true, _count: { select: { versions: true } } } },
+      documents: {
+        include: { uploadedBy: true, uploadedByContact: true, meeting: true, _count: { select: { versions: true } } },
+      },
       dependsOn: { include: { dependsOnTask: true } },
       externalContact: true,
       objective: true,
@@ -100,7 +103,7 @@ export default async function TaskDetailPage({
     id: d.id,
     nom: d.nom,
     description: d.description,
-    uploadedByName: d.uploadedBy.name,
+    uploadedByName: documentUploaderName(d),
     createdAt: d.createdAt.toISOString(),
     versionCount: d._count.versions,
     taskTitre: null,

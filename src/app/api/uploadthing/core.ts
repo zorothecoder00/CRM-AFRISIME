@@ -3,6 +3,7 @@ import { UploadThingError } from "uploadthing/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPortalSession } from "@/lib/portal-auth";
 
 const f = createUploadthing();
 
@@ -32,6 +33,36 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       return {
         uploadedById: metadata.userId,
+        url: file.ufsUrl,
+        nom: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      };
+    }),
+
+  // Depot de documents depuis le portail externe (cahier des charges §21) :
+  // authentifie par la session portail (cookie separe), pas la session
+  // interne — un contact CRM n'a pas de compte User.
+  portalDocumentUploader: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    text: { maxFileSize: "4MB", maxFileCount: 1 },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+      maxFileSize: "16MB",
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async () => {
+      const session = await getPortalSession();
+      if (!session) {
+        throw new UploadThingError("Non authentifié");
+      }
+      return { contactId: session.contactId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      return {
+        uploadedByContactId: metadata.contactId,
         url: file.ufsUrl,
         nom: file.name,
         mimeType: file.type,

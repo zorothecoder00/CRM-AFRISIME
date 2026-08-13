@@ -8,6 +8,7 @@ import { CompteRenduForm } from "@/components/meetings/compte-rendu-form";
 import { DecisionsSection } from "@/components/meetings/decisions-section";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
+import { documentUploaderName } from "@/lib/document-uploader";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -31,7 +32,9 @@ export default async function MeetingDetailPage({
         createdBy: true,
         participants: { include: { user: true } },
         decisions: { include: { responsable: true }, orderBy: { createdAt: "asc" } },
-        documents: { include: { uploadedBy: true, task: true, _count: { select: { versions: true } } } },
+        documents: {
+          include: { uploadedBy: true, uploadedByContact: true, task: true, _count: { select: { versions: true } } },
+        },
       },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -57,7 +60,7 @@ export default async function MeetingDetailPage({
     id: d.id,
     nom: d.nom,
     description: d.description,
-    uploadedByName: d.uploadedBy.name,
+    uploadedByName: documentUploaderName(d),
     createdAt: d.createdAt.toISOString(),
     versionCount: d._count.versions,
     taskTitre: d.task?.titre ?? null,

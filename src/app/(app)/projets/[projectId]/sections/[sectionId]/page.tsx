@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { SectionCommentSection } from "@/components/projects/section-comment-section";
+import { documentUploaderName } from "@/lib/document-uploader";
 
 const TYPE_LABELS: Record<string, string> = {
   PHASE: "Phase",
@@ -33,7 +34,7 @@ export default async function SectionDetailPage({
     include: {
       project: true,
       responsable: true,
-      documents: { include: { uploadedBy: true, _count: { select: { versions: true } } } },
+      documents: { include: { uploadedBy: true, uploadedByContact: true, _count: { select: { versions: true } } } },
       comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
       _count: { select: { tasks: true } },
     },
@@ -47,7 +48,7 @@ export default async function SectionDetailPage({
     id: d.id,
     nom: d.nom,
     description: d.description,
-    uploadedByName: d.uploadedBy.name,
+    uploadedByName: documentUploaderName(d),
     createdAt: d.createdAt.toISOString(),
     versionCount: d._count.versions,
     taskTitre: null,
