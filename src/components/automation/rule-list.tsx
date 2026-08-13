@@ -7,12 +7,18 @@ const TRIGGER_LABELS: Record<string, string> = {
   TASK_VALIDATION_REJECTED: "Une validation de tâche est refusée",
   DEADLINE_APPROACHING: "Une échéance approche",
   PROJECT_COMPLETED: "Le projet atteint 100 %",
+  TASK_OVERDUE: "Une tâche est en retard",
+  PROJECT_OVERDUE: "Le projet est en retard",
+  BUDGET_EXCEEDED: "Le budget du projet est dépassé",
+  RISK_CRITICAL: "Un risque critique est actif",
 };
 
 const ACTION_LABELS: Record<string, string> = {
   CREATE_NEXT_TASK: "Créer automatiquement une tâche",
   SEND_REMINDER: "Envoyer un rappel au responsable",
   NOTIFY_STAKEHOLDERS: "Notifier les parties prenantes",
+  ESCALATE_TO_MANAGER: "Escalader au manager du responsable",
+  MARK_TASK_BLOCKED: "Marquer la tâche comme bloquée",
 };
 
 export type RuleData = {

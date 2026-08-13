@@ -32,12 +32,18 @@ const TRIGGER_OPTIONS = [
   { value: "TASK_VALIDATION_REJECTED", label: "Une validation de tâche est refusée" },
   { value: "DEADLINE_APPROACHING", label: "Une échéance approche" },
   { value: "PROJECT_COMPLETED", label: "Le projet atteint 100 %" },
+  { value: "TASK_OVERDUE", label: "Une tâche est en retard (évalué chaque jour)" },
+  { value: "PROJECT_OVERDUE", label: "Le projet est en retard (évalué chaque jour)" },
+  { value: "BUDGET_EXCEEDED", label: "Le budget du projet est dépassé (évalué chaque jour)" },
+  { value: "RISK_CRITICAL", label: "Un risque critique est actif (évalué chaque jour)" },
 ];
 
 const ACTION_OPTIONS = [
   { value: "CREATE_NEXT_TASK", label: "Créer automatiquement une tâche" },
   { value: "SEND_REMINDER", label: "Envoyer un rappel au responsable" },
   { value: "NOTIFY_STAKEHOLDERS", label: "Notifier les parties prenantes du projet" },
+  { value: "ESCALATE_TO_MANAGER", label: "Escalader au manager du responsable" },
+  { value: "MARK_TASK_BLOCKED", label: "Marquer la tâche comme bloquée" },
 ];
 
 export function RuleFormDialog({ projectId, users }: { projectId: string; users: Option[] }) {

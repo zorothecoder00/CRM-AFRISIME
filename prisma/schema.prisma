@@ -207,12 +207,21 @@ enum AutomationTrigger {
   TASK_VALIDATION_REJECTED
   DEADLINE_APPROACHING
   PROJECT_COMPLETED
+  // Ajoutes (cahier des charges §22) : declencheurs evalues par le cron
+  // quotidien (src/app/api/cron/daily-checks/route.ts), pas a la visite.
+  TASK_OVERDUE
+  PROJECT_OVERDUE
+  BUDGET_EXCEEDED
+  RISK_CRITICAL
 }
 
 enum AutomationActionType {
   CREATE_NEXT_TASK
   SEND_REMINDER
   NOTIFY_STAKEHOLDERS
+  // Ajoutes (cahier des charges §22)
+  ESCALATE_TO_MANAGER
+  MARK_TASK_BLOCKED
 }
 
 // Cahier des charges §21 — cadre générique de connexion à des systèmes

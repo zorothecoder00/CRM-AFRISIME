@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateDeadlineNotifications, createNotification } from "@/lib/notify";
 import { computeWorkload } from "@/lib/workload";
+import {
+  runTaskOverdueRules,
+  runProjectOverdueRules,
+  runBudgetExceededRules,
+  runRiskCriticalRules,
+} from "@/lib/automation";
 
 // Numéro de semaine ISO — utilisé pour que l'alerte de surcharge (§14) ne se
 // répète qu'une fois par semaine par utilisateur (idempotence via la
@@ -232,6 +238,17 @@ export async function GET(request: NextRequest) {
       })
     )
   );
+
+  // Règles d'automatisation évaluées quotidiennement (cahier des charges
+  // §22) : réutilisent les mêmes conditions que les alertes ci-dessus, mais
+  // déclenchent l'action configurée par la règle (rappel, escalade,
+  // blocage de tâche...) plutôt qu'une notification fixe.
+  await Promise.all([
+    runTaskOverdueRules(),
+    runProjectOverdueRules(),
+    runBudgetExceededRules(),
+    runRiskCriticalRules(),
+  ]);
 
   return NextResponse.json({
     usersChecked: users.length,

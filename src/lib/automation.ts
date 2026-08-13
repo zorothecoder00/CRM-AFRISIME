@@ -94,6 +94,49 @@ async function executeAction(rule: AutomationRule, context: AutomationContext) {
       await logExecution(rule.id, context, `${stakeholderIds.length} partie(s) prenante(s) notifiée(s).`);
       return;
     }
+
+    case "ESCALATE_TO_MANAGER": {
+      if (!context.targetUserId) {
+        await logExecution(rule.id, context, "Ignorée : aucun destinataire déterminé.");
+        return;
+      }
+      const target = await prisma.user.findUnique({
+        where: { id: context.targetUserId },
+        select: { managerId: true },
+      });
+      if (!target?.managerId) {
+        await logExecution(rule.id, context, "Ignorée : le responsable n'a pas de manager renseigné.");
+        return;
+      }
+      await createNotification({
+        userId: target.managerId,
+        type: "RETARD",
+        titre: `[Escalade] Automatisation « ${rule.nom} » : ${context.label}`,
+        lien: `/projets/${context.projectId}`,
+        entityType: context.entityType,
+        entityId: context.entityId,
+      });
+      await logExecution(rule.id, context, "Manager notifié.");
+      return;
+    }
+
+    case "MARK_TASK_BLOCKED": {
+      if (context.entityType !== "Task") {
+        await logExecution(rule.id, context, "Ignorée : cette action ne s'applique qu'à une tâche.");
+        return;
+      }
+      const task = await prisma.task.findUnique({
+        where: { id: context.entityId },
+        select: { statut: true },
+      });
+      if (!task || task.statut === "TERMINEE" || task.statut === "ANNULEE" || task.statut === "BLOQUEE") {
+        await logExecution(rule.id, context, "Ignorée : tâche déjà terminée, annulée ou bloquée.");
+        return;
+      }
+      await prisma.task.update({ where: { id: context.entityId }, data: { statut: "BLOQUEE" } });
+      await logExecution(rule.id, context, "Tâche marquée comme bloquée.");
+      return;
+    }
   }
 }
 
@@ -193,6 +236,99 @@ export async function runDeadlineApproachingRules(userId: string) {
         label: task.titre,
         projectId: rule.projectId,
         targetUserId: task.responsablePrincipalId,
+      });
+    }
+  }
+}
+
+/**
+ * Déclencheurs évalués par le cron quotidien (cahier des charges §22),
+ * plutôt qu'à la visite d'une page — contrairement à
+ * runDeadlineApproachingRules ci-dessus, celui-ci ne dépend pas de
+ * l'utilisateur qui consulte l'app : appelé une fois par jour pour
+ * l'ensemble des projets concernés.
+ */
+export async function runTaskOverdueRules() {
+  const rules = await prisma.automationRule.findMany({ where: { trigger: "TASK_OVERDUE", isActive: true } });
+
+  for (const rule of rules) {
+    const tasks = await prisma.task.findMany({
+      where: {
+        projectId: rule.projectId,
+        statut: { in: ACTIVE_TASK_STATUSES },
+        echeance: { not: null, lt: new Date() },
+      },
+      select: { id: true, titre: true, responsablePrincipalId: true },
+    });
+    for (const task of tasks) {
+      await executeAction(rule, {
+        entityType: "Task",
+        entityId: task.id,
+        label: task.titre,
+        projectId: rule.projectId,
+        targetUserId: task.responsablePrincipalId,
+      });
+    }
+  }
+}
+
+export async function runProjectOverdueRules() {
+  const rules = await prisma.automationRule.findMany({ where: { trigger: "PROJECT_OVERDUE", isActive: true } });
+
+  for (const rule of rules) {
+    const project = await prisma.project.findFirst({
+      where: { id: rule.projectId, statut: "EN_COURS", dateFin: { lt: new Date() } },
+      select: { id: true, nom: true, responsableId: true },
+    });
+    if (!project) continue;
+    await executeAction(rule, {
+      entityType: "Project",
+      entityId: project.id,
+      label: project.nom,
+      projectId: project.id,
+      targetUserId: project.responsableId,
+    });
+  }
+}
+
+export async function runBudgetExceededRules() {
+  const rules = await prisma.automationRule.findMany({ where: { trigger: "BUDGET_EXCEEDED", isActive: true } });
+
+  for (const rule of rules) {
+    const project = await prisma.project.findFirst({
+      where: { id: rule.projectId, budget: { not: null }, coutReel: { not: null } },
+      select: { id: true, nom: true, budget: true, coutReel: true, responsableId: true },
+    });
+    if (!project || Number(project.coutReel) <= Number(project.budget)) continue;
+    await executeAction(rule, {
+      entityType: "Project",
+      entityId: project.id,
+      label: project.nom,
+      projectId: project.id,
+      targetUserId: project.responsableId,
+    });
+  }
+}
+
+export async function runRiskCriticalRules() {
+  const rules = await prisma.automationRule.findMany({ where: { trigger: "RISK_CRITICAL", isActive: true } });
+
+  for (const rule of rules) {
+    const risks = await prisma.projectRisk.findMany({
+      where: {
+        projectId: rule.projectId,
+        statut: { notIn: ["MAITRISE", "CLOS"] },
+        OR: [{ probabilite: "ELEVEE" }, { impact: "ELEVE" }],
+      },
+      select: { id: true, titre: true, responsableId: true },
+    });
+    for (const risk of risks) {
+      await executeAction(rule, {
+        entityType: "ProjectRisk",
+        entityId: risk.id,
+        label: risk.titre,
+        projectId: rule.projectId,
+        targetUserId: risk.responsableId ?? undefined,
       });
     }
   }
