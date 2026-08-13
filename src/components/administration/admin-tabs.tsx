@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const TABS = [
+  { href: "/administration/profil", label: "Profil" },
   { href: "/administration/utilisateurs", label: "Utilisateurs" },
   { href: "/administration/departements", label: "Départements" },
+  { href: "/administration/organigramme", label: "Organigramme" },
   { href: "/administration/postes", label: "Postes" },
   { href: "/administration/sites", label: "Sites" },
   { href: "/administration/delegations", label: "Délégations" },

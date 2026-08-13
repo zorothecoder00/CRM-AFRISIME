@@ -285,6 +285,7 @@ model User {
   delegationsGiven                 Delegation[]                @relation("DelegationDelegant")
   delegationsReceived              Delegation[]                @relation("DelegationDelegataire")
   delegationsCreated               Delegation[]                @relation("DelegationCreatedBy")
+  organizationProfilesUpdated      OrganizationProfile[]
   tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                      @relation("TaskCreatedBy")
   taskAssignments                  TaskAssignee[]
@@ -432,6 +433,23 @@ model Department {
   postes              Poste[]
   sites               Site[]
   createdAt           DateTime             @default(now())
+}
+
+// Profil de l'organisation (cahier des charges §I "Profil de l'organisation"
+// et §III "Vision / Mission / Valeurs") — ligne unique (id fixe "org-profile"),
+// pas de vraie table multi-tenant : ce logiciel pilote une seule organisation.
+model OrganizationProfile {
+  id          String   @id @default("org-profile")
+  nom         String   @default("Mon organisation")
+  logoUrl     String?
+  description String?
+  vision      String?
+  mission     String?
+  valeurs     String?
+  siteWeb     String?
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
 }
 
 // Poste / fonction structure (cahier des charges §I) — un poste peut etre
