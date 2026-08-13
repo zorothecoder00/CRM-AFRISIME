@@ -21,9 +21,9 @@ const CLIENT_STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
 /**
  * Ordonnanceur quotidien (cahier des charges §15 : rappels d'échéance
  * proactifs, plutôt que calculés à la visite de page ; §14 : alertes de
- * surcharge, objectif en retard, validation bloquée, client sans suivi,
- * budget dépassé). Déclenché par Vercel Cron (voir vercel.json), protégé
- * par CRON_SECRET pour empêcher un appel public.
+ * surcharge, objectif en retard, projet en retard, validation bloquée,
+ * client sans suivi, budget dépassé). Déclenché par Vercel Cron (voir
+ * vercel.json), protégé par CRON_SECRET pour empêcher un appel public.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -98,6 +98,25 @@ export async function GET(request: NextRequest) {
         lien: `/objectifs/${o.id}`,
         entityType: "Objective",
         entityId: o.id,
+      })
+    )
+  );
+
+  // Projets en retard (§14) : dateFin depassee alors que le projet est
+  // toujours EN_COURS — meme logique que "Objectif en retard" ci-dessus.
+  const lateProjects = await prisma.project.findMany({
+    where: { statut: "EN_COURS", dateFin: { lt: new Date() } },
+    select: { id: true, nom: true, responsableId: true },
+  });
+  await Promise.all(
+    lateProjects.map((p) =>
+      createNotification({
+        userId: p.responsableId,
+        type: "RETARD",
+        titre: `Projet en retard : ${p.nom}`,
+        lien: `/projets/${p.id}`,
+        entityType: "Project",
+        entityId: p.id,
       })
     )
   );
@@ -205,6 +224,7 @@ export async function GET(request: NextRequest) {
     usersChecked: users.length,
     overloadedCount: overloaded.length,
     lateObjectivesCount: lateObjectives.length,
+    lateProjectsCount: lateProjects.length,
     blockedValidationsCount: blockedTaskRuns.length + blockedAdminRequestRuns.length,
     staleClientsCount: staleClients.length,
     overBudgetCount: overBudget.length,

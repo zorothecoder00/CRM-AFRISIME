@@ -25,6 +25,8 @@ import { ProjectRisksSection, type RiskRow } from "@/components/projects/project
 import { ProjectStakeholdersSection, type StakeholderRow } from "@/components/projects/project-stakeholders-section";
 import { ProjectMilestonesSection, type MilestoneRow } from "@/components/projects/project-milestones-section";
 import { ProjectDeliverablesSection, type DeliverableRow } from "@/components/projects/project-deliverables-section";
+import { ProjectPilotagePanel } from "@/components/projects/project-pilotage-panel";
+import { computeProjectPilotage } from "@/lib/project-pilotage";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -55,7 +57,7 @@ export default async function ProjectDetailPage({
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
   const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves, risks, stakeholders, milestones, deliverables, contacts] =
+  const [project, sections, tasks, users, folders, rootDocuments, rules, members, leaves, risks, stakeholders, milestones, deliverables, contacts, validationRuns] =
     await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -111,6 +113,10 @@ export default async function ProjectDetailPage({
       orderBy: { createdAt: "desc" },
     }),
     prisma.crmContact.findMany({ orderBy: { nom: "asc" }, select: { id: true, prenom: true, nom: true } }),
+    prisma.taskValidationRun.findMany({
+      where: { task: { projectId }, statut: { in: ["APPROUVE", "REJETE"] } },
+      select: { statut: true },
+    }),
   ]);
 
   if (!project) {
@@ -143,6 +149,21 @@ export default async function ProjectDetailPage({
       statut: l.statut,
     }))
   );
+
+  const pilotage = computeProjectPilotage({
+    project: {
+      avancement: project.avancement,
+      budget: project.budget ? Number(project.budget) : null,
+      coutReel: project.coutReel ? Number(project.coutReel) : null,
+      statut: project.statut,
+      dateFin: project.dateFin,
+    },
+    tasks: tasks.map((t) => ({ statut: t.statut, echeance: t.echeance, completedAt: t.completedAt })),
+    workload: projectWorkload.map((w) => ({ tauxOccupation: w.tauxOccupation })),
+    risks: risks.map((r) => ({ statut: r.statut, probabilite: r.probabilite, impact: r.impact })),
+    deliverables: deliverables.map((d) => ({ statut: d.statut })),
+    validationRuns,
+  });
 
   const responsableById = new Map(users.map((u) => [u.id, u.name]));
 
@@ -267,6 +288,7 @@ export default async function ProjectDetailPage({
       <Tabs defaultValue="apercu">
         <TabsList>
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
+          <TabsTrigger value="pilotage">Pilotage</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
           <TabsTrigger value="jalons">Jalons</TabsTrigger>
@@ -341,6 +363,10 @@ export default async function ProjectDetailPage({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="pilotage" className="mt-4">
+          <ProjectPilotagePanel pilotage={pilotage} />
         </TabsContent>
 
         <TabsContent value="hierarchie" className="mt-4">
