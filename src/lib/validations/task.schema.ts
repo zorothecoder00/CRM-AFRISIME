@@ -38,3 +38,10 @@ export const updateActualTimeSchema = z.object({
   taskId: z.string().min(1),
   tempsReelHeures: z.string().min(1, "La valeur est requise."),
 });
+
+export const linkTaskExternalContactSchema = z.object({
+  taskId: z.string().min(1),
+  externalContactId: z.string().optional(),
+});
+
+export type LinkTaskExternalContactInput = z.infer<typeof linkTaskExternalContactSchema>;

@@ -15,6 +15,7 @@ import { DocumentList, type DocumentRow } from "@/components/documents/document-
 import { ActualTimeForm } from "@/components/tasks/actual-time-form";
 import { ValidationActions } from "@/components/tasks/validation-actions";
 import { TaskHistory } from "@/components/tasks/task-history";
+import { LinkMissionForm } from "@/components/tasks/link-mission-form";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -54,6 +55,7 @@ export default async function TaskDetailPage({
       },
       documents: { include: { uploadedBy: true, meeting: true, _count: { select: { versions: true } } } },
       dependsOn: { include: { dependsOnTask: true } },
+      externalContact: true,
       validationRun: {
         include: {
           workflow: { include: { steps: { orderBy: { ordre: "asc" } } } },
@@ -67,7 +69,9 @@ export default async function TaskDetailPage({
     notFound();
   }
 
-  const [otherTasks, historyEntries] = await Promise.all([
+  const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
+
+  const [otherTasks, historyEntries, externalCandidates] = await Promise.all([
     prisma.task.findMany({
       where: { projectId: task.projectId, id: { not: task.id } },
       select: { id: true, titre: true },
@@ -78,6 +82,13 @@ export default async function TaskDetailPage({
       orderBy: { createdAt: "desc" },
       take: 30,
     }),
+    canAssign
+      ? prisma.crmContact.findMany({
+          where: { type: { in: ["PARTENAIRE", "PRESTATAIRE", "CONSULTANT"] } },
+          orderBy: { nom: "asc" },
+          select: { id: true, prenom: true, nom: true, type: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const documentRows: DocumentRow[] = task.documents.map((d) => ({
@@ -240,6 +251,33 @@ export default async function TaskDetailPage({
             />
           </CardContent>
         </Card>
+
+        {canAssign && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mission externe</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {task.externalContact ? (
+                <p className="text-sm">
+                  Déléguée à{" "}
+                  <Link href={`/crm/contacts/${task.externalContact.id}`} className="text-primary hover:underline">
+                    {task.externalContact.prenom} {task.externalContact.nom}
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Non déléguée. La déléguer la rend visible dans le portail externe du contact.
+                </p>
+              )}
+              <LinkMissionForm
+                taskId={task.id}
+                candidates={externalCandidates.map((c) => ({ id: c.id, label: `${c.prenom} ${c.nom}` }))}
+                hasMission={!!task.externalContact}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

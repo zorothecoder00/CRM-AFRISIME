@@ -5,7 +5,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForOpportunityStatus, accentForOpportunityStatus } from "@/lib/status-tone";
+import { toneForOpportunityStatus, accentForOpportunityStatus, toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 
@@ -16,6 +16,15 @@ const STATUS_LABELS: Record<string, string> = {
   NEGOCIATION: "Négociation",
   GAGNEE: "Gagnée",
   PERDUE: "Perdue",
+};
+
+const TASK_STATUS_LABELS: Record<string, string> = {
+  A_FAIRE: "À faire",
+  EN_COURS: "En cours",
+  EN_REVISION: "En révision",
+  BLOQUEE: "Bloquée",
+  TERMINEE: "Terminée",
+  ANNULEE: "Annulée",
 };
 
 function formatMontant(montant: number | null) {
@@ -43,6 +52,12 @@ export default async function PortalDashboardPage() {
     orderBy: { updatedAt: "desc" },
   });
 
+  const missions = await prisma.task.findMany({
+    where: { externalContactId: contact.id },
+    include: { project: true },
+    orderBy: { updatedAt: "desc" },
+  });
+
   return (
     <div className="min-h-screen bg-muted/20">
       <PortalHeader
@@ -57,6 +72,37 @@ export default async function PortalDashboardPage() {
             {contact.organization ? contact.organization.nom : "Suivi de votre relation avec AfriSime."}
           </p>
         </div>
+
+        {missions.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-medium">Mes missions</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {missions.map((mission) => (
+                <Link key={mission.id} href={`/portail/missions/${mission.id}`}>
+                  <Card
+                    accent={accentForStatus(mission.statut)}
+                    className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base">{mission.titre}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Badge variant={toneForStatus(mission.statut)}>
+                        {TASK_STATUS_LABELS[mission.statut] ?? mission.statut}
+                      </Badge>
+                      <p className="text-sm text-muted-foreground">{mission.project.nom}</p>
+                      {mission.echeance && (
+                        <p className="text-xs text-muted-foreground">
+                          Échéance : {mission.echeance.toLocaleDateString("fr-FR")}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {opportunities.map((opportunity) => (

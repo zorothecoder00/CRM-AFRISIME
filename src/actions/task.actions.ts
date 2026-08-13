@@ -19,7 +19,9 @@ import {
   addChecklistItemSchema,
   addDependencySchema,
   updateActualTimeSchema,
+  linkTaskExternalContactSchema,
   type CreateTaskInput,
+  type LinkTaskExternalContactInput,
 } from "@/lib/validations/task.schema";
 
 async function requireSession() {
@@ -375,5 +377,33 @@ export async function updateActualTime(taskId: string, tempsReelHeures: string) 
 
   revalidatePath(`/taches/${taskId}`);
   revalidatePath("/charge-de-travail");
+  return task;
+}
+
+/**
+ * Delegue (ou retire) cette tache comme mission a un contact CRM externe
+ * (cahier des charges §XXI — "portail prestataire, avec missions et
+ * livrables"). Le contact voit alors la tache dans son portail ; ses
+ * documents lies en tiennent lieu de livrables.
+ */
+export async function linkTaskExternalContact(input: LinkTaskExternalContactInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_ASSIGN);
+  const data = linkTaskExternalContactSchema.parse(input);
+
+  const task = await prisma.task.update({
+    where: { id: data.taskId },
+    data: { externalContactId: data.externalContactId || null },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: data.externalContactId ? "task.mission_assigned" : "task.mission_unassigned",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { externalContactId: data.externalContactId ?? null },
+  });
+
+  revalidatePath(`/taches/${data.taskId}`);
   return task;
 }
