@@ -19,6 +19,13 @@ const PROJECT_STATUS_LABELS: Record<string, string> = {
   ANNULE: "Annulé",
 };
 
+const NIVEAU_LABELS: Record<string, string> = {
+  DEBUTANT: "Débutant",
+  INTERMEDIAIRE: "Intermédiaire",
+  AVANCE: "Avancé",
+  EXPERT: "Expert",
+};
+
 function toneForRate(rate: number | null): StatCardTone {
   if (rate === null) return "default";
   if (rate >= 80) return "success";
@@ -121,6 +128,21 @@ export default async function IndividualPilotagePage({
         <Link href={`/objectifs`}>
           <Badge variant="outline">Voir les objectifs →</Badge>
         </Link>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-medium">Compétences ({p.competences.length})</h2>
+        {p.competences.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune compétence déclarée.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {p.competences.map((c) => (
+              <Badge key={c.nom} variant="outline">
+                {c.nom} — {NIVEAU_LABELS[c.niveau]}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">

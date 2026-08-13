@@ -150,6 +150,7 @@ enum NotificationType {
   CLIENT_SANS_SUIVI
   BUDGET_DEPASSE
   RELANCE_PLANIFIEE
+  TACHE_CRITIQUE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -313,6 +314,8 @@ model User {
   teamsCreated                     Team[]                      @relation("TeamCreatedBy")
   teamMemberships                  TeamMember[]
   projectResourcesCreated          ProjectResource[]           @relation("ProjectResourceCreatedBy")
+  competences                      UserCompetence[]
+  competencesCreated                Competence[]               @relation("CompetenceCreatedBy")
   documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
   leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
   leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
@@ -1590,19 +1593,29 @@ model MeetingParticipant {
 // prise directement au niveau projet sans reunion (projectId) — exactement
 // l'un des deux est renseigne, verifie en application plutot qu'en
 // contrainte DB (meme pattern que Reaction.taskCommentId/messageId).
+enum DecisionStatus {
+  EN_COURS
+  TRAITEE
+  ANNULEE
+}
+
 model MeetingDecision {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   meetingId     String?
-  meeting       Meeting?  @relation(fields: [meetingId], references: [id])
+  meeting       Meeting?       @relation(fields: [meetingId], references: [id])
   projectId     String?
-  project       Project?  @relation(fields: [projectId], references: [id])
+  project       Project?       @relation(fields: [projectId], references: [id])
   description   String
+  // Motif (cahier des charges §XI) — pourquoi cette decision, distinct de
+  // la description de l'action elle-meme.
+  motif         String?
+  statut        DecisionStatus @default(EN_COURS)
   responsableId String?
-  responsable   User?     @relation("MeetingDecisionResponsable", fields: [responsableId], references: [id])
+  responsable   User?          @relation("MeetingDecisionResponsable", fields: [responsableId], references: [id])
   echeance      DateTime?
-  taskId        String?   @unique
-  task          Task?     @relation(fields: [taskId], references: [id])
-  createdAt     DateTime  @default(now())
+  taskId        String?        @unique
+  task          Task?          @relation(fields: [taskId], references: [id])
+  createdAt     DateTime       @default(now())
 
   @@index([meetingId])
   @@index([projectId])
@@ -1764,6 +1777,42 @@ model DocumentVersion {
 enum KnowledgeArticleStatus {
   BROUILLON
   PUBLIE
+}
+
+// Compétences (cahier des charges §XII, "Évaluation individuelle :
+// Compétences") — catalogue global géré en administration, assignation
+// libre-service par collaborateur (comme un CV structuré).
+enum CompetenceNiveau {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+  EXPERT
+}
+
+model Competence {
+  id          String   @id @default(cuid())
+  nom         String   @unique
+  categorie   String?
+  createdById String
+  createdBy   User     @relation("CompetenceCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  users UserCompetence[]
+}
+
+model UserCompetence {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id])
+  competenceId String
+  competence   Competence       @relation(fields: [competenceId], references: [id])
+  niveau       CompetenceNiveau @default(DEBUTANT)
+  notes        String?
+  createdAt    DateTime         @default(now())
+
+  @@unique([userId, competenceId])
+  @@index([userId])
+  @@index([competenceId])
 }
 
 model KnowledgeCategory {

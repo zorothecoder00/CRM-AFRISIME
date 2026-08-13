@@ -282,6 +282,8 @@ export default async function ProjectDetailPage({
   const decisionRows: ProjectDecisionData[] = decisions.map((d) => ({
     id: d.id,
     description: d.description,
+    motif: d.motif,
+    statut: d.statut,
     responsableName: d.responsable?.name ?? null,
     echeance: d.echeance ? d.echeance.toISOString() : null,
     taskId: d.taskId,

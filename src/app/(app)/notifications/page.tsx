@@ -21,6 +21,7 @@ const TYPE_LABELS: Record<string, string> = {
   CLIENT_SANS_SUIVI: "Client sans suivi",
   BUDGET_DEPASSE: "Budget dépassé",
   RELANCE_PLANIFIEE: "Relance planifiée",
+  TACHE_CRITIQUE: "Tâche critique",
 };
 
 export default async function NotificationsPage() {

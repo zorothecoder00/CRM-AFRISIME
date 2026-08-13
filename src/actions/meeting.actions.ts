@@ -12,10 +12,12 @@ import {
   createMeetingSchema,
   updateCompteRenduSchema,
   addDecisionSchema,
+  updateDecisionStatusSchema,
   addParticipantSchema,
   type CreateMeetingInput,
   type UpdateCompteRenduInput,
   type AddDecisionInput,
+  type UpdateDecisionStatusInput,
 } from "@/lib/validations/meeting.schema";
 
 async function requireSession() {
@@ -151,6 +153,7 @@ export async function addDecision(input: AddDecisionInput) {
     data: {
       meetingId: data.meetingId,
       description: data.description,
+      motif: data.motif || undefined,
       responsableId: data.responsableId,
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       taskId: task.id,
@@ -159,5 +162,29 @@ export async function addDecision(input: AddDecisionInput) {
 
   revalidatePath(`/reunions/${data.meetingId}`);
   revalidatePath("/taches");
+  return decision;
+}
+
+export async function updateDecisionStatus(input: UpdateDecisionStatusInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.MEETING_UPDATE);
+
+  const data = updateDecisionStatusSchema.parse(input);
+
+  const decision = await prisma.meetingDecision.update({
+    where: { id: data.decisionId },
+    data: { statut: data.statut },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "decision.status_updated",
+    entityType: "MeetingDecision",
+    entityId: decision.id,
+    changes: { statut: data.statut },
+  });
+
+  if (decision.meetingId) revalidatePath(`/reunions/${decision.meetingId}`);
+  if (decision.projectId) revalidatePath(`/projets/${decision.projectId}`);
   return decision;
 }

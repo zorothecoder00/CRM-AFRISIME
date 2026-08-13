@@ -26,11 +26,19 @@ export type UpdateCompteRenduInput = z.infer<typeof updateCompteRenduSchema>;
 export const addDecisionSchema = z.object({
   meetingId: z.string().min(1),
   description: z.string().min(2, "La description est requise."),
+  motif: z.string().optional(),
   responsableId: z.string().min(1, "Un responsable est requis."),
   echeance: z.string().optional(),
 });
 
 export type AddDecisionInput = z.infer<typeof addDecisionSchema>;
+
+export const updateDecisionStatusSchema = z.object({
+  decisionId: z.string().min(1),
+  statut: z.enum(["EN_COURS", "TRAITEE", "ANNULEE"]),
+});
+
+export type UpdateDecisionStatusInput = z.infer<typeof updateDecisionStatusSchema>;
 
 export const addParticipantSchema = z.object({
   meetingId: z.string().min(1),

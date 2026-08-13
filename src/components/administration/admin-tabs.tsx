@@ -11,6 +11,7 @@ const TABS = [
   { href: "/administration/organigramme", label: "Organigramme" },
   { href: "/administration/postes", label: "Postes" },
   { href: "/administration/equipes", label: "Équipes" },
+  { href: "/administration/competences", label: "Compétences" },
   { href: "/administration/sites", label: "Sites" },
   { href: "/administration/delegations", label: "Délégations" },
   { href: "/administration/roles", label: "Rôles & permissions" },

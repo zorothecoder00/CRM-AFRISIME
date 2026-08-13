@@ -13,7 +13,7 @@ const ACTIVE_TASK_STATUSES: TaskStatus[] = [
 export async function computeIndividualPilotage(userId: string) {
   const now = new Date();
 
-  const [user, tasks, evaluations, objectives, leaves, memberships] = await Promise.all([
+  const [user, tasks, evaluations, objectives, leaves, memberships, competences] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
       include: { role: true, department: true },
@@ -30,6 +30,7 @@ export async function computeIndividualPilotage(userId: string) {
     prisma.objective.findMany({ where: { userId } }),
     prisma.leave.findMany({ where: { userId, statut: "APPROUVE" } }),
     prisma.projectMember.findMany({ where: { userId }, include: { project: true } }),
+    prisma.userCompetence.findMany({ where: { userId }, include: { competence: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
   const activeSet = new Set<string>(ACTIVE_TASK_STATUSES);
@@ -83,5 +84,6 @@ export async function computeIndividualPilotage(userId: string) {
     objectifsAtteints: objectives.filter((o) => o.statut === "ATTEINT").length,
     objectifsTotal: objectives.length,
     projects: memberships.map((m) => m.project),
+    competences: competences.map((c) => ({ nom: c.competence.nom, niveau: c.niveau })),
   };
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAction } from "@/hooks/use-action";
-import { addDecision } from "@/actions/meeting.actions";
+import { addDecision, updateDecisionStatus } from "@/actions/meeting.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,36 @@ type Option = { id: string; label: string };
 export type DecisionData = {
   id: string;
   description: string;
+  motif: string | null;
+  statut: string;
   responsableName: string | null;
   echeance: string | null;
   taskId: string | null;
 };
+
+const STATUT_LABELS: Record<string, string> = {
+  EN_COURS: "En cours",
+  TRAITEE: "Traitée",
+  ANNULEE: "Annulée",
+};
+
+function DecisionStatusSelect({ decisionId, statut }: { decisionId: string; statut: string }) {
+  const { run } = useAction(updateDecisionStatus, { successMessage: "Statut mis à jour." });
+  return (
+    <Select value={statut} onValueChange={(v) => run({ decisionId, statut: v as "EN_COURS" | "TRAITEE" | "ANNULEE" })}>
+      <SelectTrigger className="h-7 w-32 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(STATUT_LABELS).map(([value, label]) => (
+          <SelectItem key={value} value={value}>
+            {label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function DecisionsSection({
   meetingId,
@@ -35,6 +61,7 @@ export function DecisionsSection({
   users: Option[];
 }) {
   const [description, setDescription] = useState("");
+  const [motif, setMotif] = useState("");
   const [responsableId, setResponsableId] = useState<string | undefined>();
   const [echeance, setEcheance] = useState("");
   const { run, isPending } = useAction(addDecision, {
@@ -46,11 +73,13 @@ export function DecisionsSection({
     const result = await run({
       meetingId,
       description: description.trim(),
+      motif: motif.trim() || undefined,
       responsableId,
       echeance: echeance || undefined,
     });
     if (result.ok) {
       setDescription("");
+      setMotif("");
       setResponsableId(undefined);
       setEcheance("");
     }
@@ -60,7 +89,11 @@ export function DecisionsSection({
     <div className="space-y-3">
       {decisions.map((d) => (
         <div key={d.id} className="rounded-md border p-3 text-sm">
-          <p className="font-medium">{d.description}</p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-medium">{d.description}</p>
+            <DecisionStatusSelect decisionId={d.id} statut={d.statut} />
+          </div>
+          {d.motif && <p className="mt-1 text-xs text-muted-foreground">Motif : {d.motif}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {d.responsableName && <span>Responsable : {d.responsableName}</span>}
             {d.echeance && <span>Échéance : {new Date(d.echeance).toLocaleDateString("fr-FR")}</span>}
@@ -82,6 +115,7 @@ export function DecisionsSection({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+        <Input placeholder="Motif (optionnel)" value={motif} onChange={(e) => setMotif(e.target.value)} />
         <div className="grid grid-cols-2 gap-2">
           <Select value={responsableId} onValueChange={setResponsableId}>
             <SelectTrigger>

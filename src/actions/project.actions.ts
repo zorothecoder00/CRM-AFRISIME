@@ -571,6 +571,7 @@ export async function createProjectDecision(input: CreateProjectDecisionInput) {
     data: {
       projectId: data.projectId,
       description: data.description,
+      motif: data.motif || undefined,
       responsableId: data.responsableId,
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       taskId: task.id,

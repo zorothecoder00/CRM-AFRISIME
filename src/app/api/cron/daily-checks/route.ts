@@ -258,6 +258,30 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // Tâche critique non traitée (§14) : priorité très haute, active, en
+  // retard ou bloquée — distinct de l'alerte générique "retard" ci-dessus
+  // (generateDeadlineNotifications), qui ne tient pas compte de la priorité.
+  const criticalTasks = await prisma.task.findMany({
+    where: {
+      priorite: "TRES_HAUTE",
+      statut: { in: ["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"] },
+      OR: [{ echeance: { lt: new Date() } }, { statut: "BLOQUEE" }],
+    },
+    select: { id: true, titre: true, responsablePrincipalId: true },
+  });
+  await Promise.all(
+    criticalTasks.map((t) =>
+      createNotification({
+        userId: t.responsablePrincipalId,
+        type: "TACHE_CRITIQUE",
+        titre: `Tâche critique non traitée : ${t.titre}`,
+        lien: `/taches/${t.id}`,
+        entityType: "Task",
+        entityId: t.id,
+      })
+    )
+  );
+
   // Règles d'automatisation évaluées quotidiennement (cahier des charges
   // §22) : réutilisent les mêmes conditions que les alertes ci-dessus, mais
   // déclenchent l'action configurée par la règle (rappel, escalade,
@@ -278,5 +302,6 @@ export async function GET(request: NextRequest) {
     staleClientsCount: staleClients.length,
     dueRelancesCount: dueRelances.length,
     overBudgetCount: overBudget.length,
+    criticalTasksCount: criticalTasks.length,
   });
 }

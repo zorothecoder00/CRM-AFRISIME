@@ -160,6 +160,7 @@ export type DeleteProjectDeliverableInput = z.infer<typeof deleteProjectDelivera
 export const createProjectDecisionSchema = z.object({
   projectId: z.string().min(1),
   description: z.string().min(2, "La description est requise."),
+  motif: z.string().optional(),
   responsableId: z.string().min(1, "Un responsable est requis."),
   echeance: z.string().optional(),
 });
