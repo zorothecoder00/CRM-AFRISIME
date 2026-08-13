@@ -27,6 +27,8 @@ import { ProjectMilestonesSection, type MilestoneRow } from "@/components/projec
 import { ProjectDeliverablesSection, type DeliverableRow } from "@/components/projects/project-deliverables-section";
 import { ProjectPilotagePanel } from "@/components/projects/project-pilotage-panel";
 import { computeProjectPilotage } from "@/lib/project-pilotage";
+import { ensureProjectConversation } from "@/lib/project-conversation";
+import { MessageThread, type MessageData } from "@/components/messages/message-thread";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -122,6 +124,31 @@ export default async function ProjectDetailPage({
   if (!project) {
     notFound();
   }
+
+  // Fil de discussion du projet (cahier des charges §10) : un seul canal
+  // par projet, participants synchronises sur l'equipe courante a chaque
+  // ouverture de l'onglet.
+  const conversationId = await ensureProjectConversation(project.id, session!.user.id);
+  const conversation = await prisma.conversation.findUniqueOrThrow({
+    where: { id: conversationId },
+    include: {
+      messages: {
+        include: { author: true, reactions: { include: { user: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  const conversationMessages: MessageData[] = conversation.messages.map((m) => ({
+    id: m.id,
+    content: m.content,
+    authorId: m.authorId,
+    authorName: m.author.name,
+    authorImage: m.author.image,
+    createdAt: m.createdAt.toISOString(),
+    reactions: m.reactions.map((r) => ({ emoji: r.emoji, userId: r.userId, userName: r.user.name })),
+    attachmentUrl: m.attachmentUrl,
+    attachmentNom: m.attachmentNom,
+  }));
 
   // Charge de travail restreinte a l'equipe du projet et a ses taches
   // (cahier des charges §VI — vue "Workload" par projet, distincte de la
@@ -297,6 +324,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="parties-prenantes">Parties prenantes</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="discussion">Discussion</TabsTrigger>
           <TabsTrigger value="automatisations">Automatisations</TabsTrigger>
         </TabsList>
 
@@ -471,6 +499,19 @@ export default async function ProjectDetailPage({
               <DocumentList documents={documentRows} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="discussion" className="mt-4">
+          <p className="mb-2 text-sm text-muted-foreground">
+            Fil de discussion de l&apos;équipe projet. Les membres actuels du projet y ont automatiquement accès.
+          </p>
+          <div className="flex h-[600px] flex-col overflow-hidden rounded-lg border">
+            <MessageThread
+              conversationId={conversation.id}
+              messages={conversationMessages}
+              currentUserId={session!.user.id}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="automatisations" className="mt-4 space-y-4">

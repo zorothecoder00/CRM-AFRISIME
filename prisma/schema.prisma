@@ -687,6 +687,7 @@ model Project {
   automationRules     AutomationRule[]
   permissionOverrides PermissionOverride[]
   whiteboard          Whiteboard?
+  conversation        Conversation?
   risks               ProjectRisk[]
   stakeholders        ProjectStakeholder[]
   milestones          ProjectMilestone[]
@@ -1811,10 +1812,17 @@ model EvaluationCritere {
 // Messagerie interne (cahier des charges §11). Une conversation à deux
 // participants est une messagerie directe ; `isGroup` + `nom` distinguent
 // une discussion de groupe.
+// Une conversation privee n'a pas de projet (projectId null). Une conversation
+// de projet (cahier des charges §10 : « fil de discussion par projet ») a
+// projectId renseigne et unique : un seul canal par projet, dont les
+// participants sont synchronises sur l'equipe projet (voir
+// src/lib/project-conversation.ts) plutot que geres manuellement.
 model Conversation {
   id          String   @id @default(cuid())
   nom         String?
   isGroup     Boolean  @default(false)
+  projectId   String?  @unique
+  project     Project? @relation(fields: [projectId], references: [id])
   createdById String
   createdBy   User     @relation("ConversationCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
