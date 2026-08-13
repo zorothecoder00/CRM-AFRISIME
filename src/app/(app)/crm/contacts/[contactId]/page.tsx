@@ -20,6 +20,7 @@ const TYPE_LABELS: Record<string, string> = {
   PRESTATAIRE: "Prestataire",
   CANDIDAT: "Candidat",
   MEMBRE: "Membre",
+  INVESTISSEUR: "Investisseur",
   AUTRE: "Autre",
 };
 
@@ -54,6 +55,9 @@ export default async function CrmContactDetailPage({
           orderBy: { dateInteraction: "desc" },
         },
         portalAccount: true,
+        stakeholderOf: { include: { project: true } },
+        documentsUploaded: { include: { project: true }, orderBy: { createdAt: "desc" }, take: 10 },
+        missions: { include: { project: true }, orderBy: { updatedAt: "desc" } },
       },
     }),
     prisma.crmOrganization.findMany({ orderBy: { nom: "asc" } }),
@@ -97,6 +101,12 @@ export default async function CrmContactDetailPage({
             <Info label="Téléphone" value={contact.telephone || "—"} />
             <Info label="Source" value={contact.source || "—"} />
             <Info label="Responsable" value={contact.owner?.name ?? "—"} />
+            <Info label="Segment" value={contact.segment || "—"} />
+            <Info label="Score" value={contact.score !== null ? `${contact.score} / 100` : "—"} />
+            <Info
+              label="Prochaine relance"
+              value={contact.prochaineRelance ? contact.prochaineRelance.toLocaleDateString("fr-FR") : "—"}
+            />
           </CardContent>
           {contact.notes && (
             <CardContent className="pt-0 text-sm text-muted-foreground">{contact.notes}</CardContent>
@@ -159,6 +169,61 @@ export default async function CrmContactDetailPage({
             )}
           </CardContent>
         </Card>
+
+        {(contact.stakeholderOf.length > 0 || contact.missions.length > 0 || contact.documentsUploaded.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Fiche 360°</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              {contact.stakeholderOf.length > 0 && (
+                <div>
+                  <div className="mb-1 text-xs font-medium text-muted-foreground">Projets liés</div>
+                  <ul className="space-y-1">
+                    {contact.stakeholderOf.map((s) => (
+                      <li key={s.id}>
+                        <Link href={`/projets/${s.project.id}`} className="text-primary hover:underline">
+                          {s.project.nom}
+                        </Link>
+                        {s.role && <span className="text-muted-foreground"> — {s.role}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {contact.missions.length > 0 && (
+                <div>
+                  <div className="mb-1 text-xs font-medium text-muted-foreground">Missions / tâches</div>
+                  <ul className="space-y-1">
+                    {contact.missions.map((m) => (
+                      <li key={m.id}>
+                        <Link href={`/taches/${m.id}`} className="text-primary hover:underline">
+                          {m.titre}
+                        </Link>
+                        <span className="text-muted-foreground"> · {m.project.nom}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {contact.documentsUploaded.length > 0 && (
+                <div>
+                  <div className="mb-1 text-xs font-medium text-muted-foreground">Documents déposés</div>
+                  <ul className="space-y-1">
+                    {contact.documentsUploaded.map((d) => (
+                      <li key={d.id}>
+                        <Link href={`/documents/${d.id}`} className="text-primary hover:underline">
+                          {d.nom}
+                        </Link>
+                        <span className="text-muted-foreground"> · {d.project.nom}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {canManage && (
           <PortalAccessCard

@@ -21,6 +21,7 @@ import {
   Layers,
   ClipboardList,
   ClipboardCheck,
+  CalendarRange,
   Milestone,
   BookOpen,
   Mail,
@@ -49,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Aperçu",
     items: [
       { title: "Espace personnel", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Mon planning", href: "/planning", icon: CalendarRange },
       { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Niveaux de pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Recherche", href: "/recherche", icon: Search },

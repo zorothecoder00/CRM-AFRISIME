@@ -115,6 +115,9 @@ export async function createContact(input: CreateContactInput) {
       notes: data.notes || undefined,
       ownerId: data.ownerId || session.user.id,
       createdById: session.user.id,
+      score: data.score,
+      segment: data.segment || undefined,
+      prochaineRelance: data.prochaineRelance ? new Date(data.prochaineRelance) : undefined,
     },
   });
 
@@ -149,6 +152,9 @@ export async function updateContact(input: UpdateContactInput) {
       organizationId: data.organizationId || undefined,
       notes: data.notes || undefined,
       ownerId: data.ownerId || undefined,
+      score: data.score,
+      segment: data.segment || undefined,
+      prochaineRelance: data.prochaineRelance ? new Date(data.prochaineRelance) : data.prochaineRelance === "" ? null : undefined,
     },
   });
 

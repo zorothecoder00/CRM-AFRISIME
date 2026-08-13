@@ -6,7 +6,7 @@ import { addInteraction } from "@/actions/crm.actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Phone, MessageCircle, CalendarClock, MapPin, StickyNote, type LucideIcon } from "lucide-react";
+import { Mail, Phone, MessageCircle, CalendarClock, MapPin, StickyNote, MessageSquare, PartyPopper, type LucideIcon } from "lucide-react";
 
 export type InteractionData = {
   id: string;
@@ -23,6 +23,8 @@ const TYPE_LABELS: Record<string, string> = {
   REUNION: "Réunion",
   VISITE: "Visite",
   NOTE: "Note",
+  MESSAGE: "Message",
+  EVENEMENT: "Événement",
 };
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
@@ -32,6 +34,8 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   REUNION: CalendarClock,
   VISITE: MapPin,
   NOTE: StickyNote,
+  MESSAGE: MessageSquare,
+  EVENEMENT: PartyPopper,
 };
 
 /** Journal d'interactions (appels, emails, notes...) — réutilisé sur les fiches contact/organisation/opportunité. */

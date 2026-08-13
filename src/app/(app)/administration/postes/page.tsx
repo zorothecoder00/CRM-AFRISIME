@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { PosteFormDialog } from "@/components/administration/poste-form-dialog";
 import { DeletePosteButton } from "@/components/administration/delete-poste-button";
+import { PosteResponsabiliteList } from "@/components/administration/poste-responsabilite-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -17,7 +18,11 @@ export default async function PostesPage() {
 
   const [postes, departments] = await Promise.all([
     prisma.poste.findMany({
-      include: { department: true, _count: { select: { users: true } } },
+      include: {
+        department: true,
+        _count: { select: { users: true } },
+        responsabilitesListe: { orderBy: { ordre: "asc" } },
+      },
       orderBy: { nom: "asc" },
     }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
@@ -50,9 +55,16 @@ export default async function PostesPage() {
                 {p.description && <p className="text-muted-foreground">{p.description}</p>}
                 {p.responsabilites && (
                   <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Responsabilités :</span> {p.responsabilites}
+                    <span className="font-medium">Notes :</span> {p.responsabilites}
                   </p>
                 )}
+                <div>
+                  <div className="mb-1 text-xs font-medium text-muted-foreground">Responsabilités</div>
+                  <PosteResponsabiliteList
+                    posteId={p.id}
+                    items={p.responsabilitesListe.map((r) => ({ id: r.id, libelle: r.libelle }))}
+                  />
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {p.department && <Badge variant="outline">{p.department.name}</Badge>}
                   <Badge variant="secondary">{p._count.users} collaborateur(s)</Badge>

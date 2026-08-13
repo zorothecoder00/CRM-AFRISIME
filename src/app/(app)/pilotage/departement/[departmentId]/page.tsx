@@ -59,9 +59,14 @@ export default async function DepartmentPilotagePage({
   const breadcrumb = buildBreadcrumb(departmentId, byId);
   const children = directChildren(departmentId, allDepartments);
 
-  const [scope, { members, projects }] = await Promise.all([
+  const [scope, { members, projects }, teams] = await Promise.all([
     getDepartmentScope(departmentId, allDepartments),
     getDirectTeamScope(departmentId),
+    prisma.team.findMany({
+      where: { departmentId },
+      include: { leader: true, _count: { select: { members: true } } },
+      orderBy: { nom: "asc" },
+    }),
   ]);
   const [pilotage, childrenPilotage] = await Promise.all([
     computeScopePilotage(scope),
@@ -156,6 +161,25 @@ export default async function DepartmentPilotagePage({
           </div>
         )}
       </div>
+
+      {teams.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-medium">Équipes de cette unité ({teams.length})</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {teams.map((t) => (
+              <Card key={t.id} size="sm">
+                <CardContent className="space-y-1 py-3">
+                  <div className="text-sm font-medium">{t.nom}</div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <Badge variant="outline">{t._count.members} membre(s)</Badge>
+                    {t.leader && <Badge variant="secondary">{t.leader.name}</Badge>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         <h2 className="text-lg font-medium">Projets de cette unité ({projects.length})</h2>

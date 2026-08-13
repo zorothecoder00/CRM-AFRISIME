@@ -218,6 +218,25 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // Relances planifiées (§II, "Relances") : date choisie manuellement sur
+  // le contact, tous types confondus (pas seulement CLIENT comme ci-dessus).
+  const dueRelances = await prisma.crmContact.findMany({
+    where: { prochaineRelance: { lte: new Date() } },
+    select: { id: true, prenom: true, nom: true, ownerId: true, createdById: true },
+  });
+  await Promise.all(
+    dueRelances.map((c) =>
+      createNotification({
+        userId: c.ownerId ?? c.createdById,
+        type: "RELANCE_PLANIFIEE",
+        titre: `Relance planifiée aujourd'hui : ${c.prenom} ${c.nom}`,
+        lien: `/crm/contacts/${c.id}`,
+        entityType: "CrmContact",
+        entityId: c.id,
+      })
+    )
+  );
+
   // Budget dépassé (§14) : coût réel saisi manuellement au-delà du budget.
   const overBudgetProjects = await prisma.project.findMany({
     where: { budget: { not: null }, coutReel: { not: null } },
@@ -257,6 +276,7 @@ export async function GET(request: NextRequest) {
     lateProjectsCount: lateProjects.length,
     blockedValidationsCount: blockedTaskRuns.length + blockedAdminRequestRuns.length,
     staleClientsCount: staleClients.length,
+    dueRelancesCount: dueRelances.length,
     overBudgetCount: overBudget.length,
   });
 }

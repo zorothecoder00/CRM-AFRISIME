@@ -18,3 +18,10 @@ export type UpdatePosteInput = z.infer<typeof updatePosteSchema>;
 export const deletePosteSchema = z.object({ id: z.string().min(1) });
 
 export type DeletePosteInput = z.infer<typeof deletePosteSchema>;
+
+export const addPosteResponsabiliteSchema = z.object({
+  posteId: z.string().min(1),
+  libelle: z.string().min(2, "Le libellé est requis."),
+});
+
+export type AddPosteResponsabiliteInput = z.infer<typeof addPosteResponsabiliteSchema>;

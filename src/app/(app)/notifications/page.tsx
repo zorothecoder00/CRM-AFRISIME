@@ -17,6 +17,10 @@ const TYPE_LABELS: Record<string, string> = {
   ECHEANCE_PROCHE: "Échéance proche",
   RETARD: "Retard",
   MENTION: "Mention",
+  SURCHARGE: "Surcharge",
+  CLIENT_SANS_SUIVI: "Client sans suivi",
+  BUDGET_DEPASSE: "Budget dépassé",
+  RELANCE_PLANIFIEE: "Relance planifiée",
 };
 
 export default async function NotificationsPage() {

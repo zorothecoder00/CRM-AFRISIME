@@ -29,6 +29,7 @@ const TYPE_LABELS: Record<string, string> = {
   PRESTATAIRE: "Prestataire",
   CANDIDAT: "Candidat",
   MEMBRE: "Membre",
+  INVESTISSEUR: "Investisseur",
   AUTRE: "Autre",
 };
 
@@ -150,6 +151,21 @@ export function ContactFormDialog({
           <div className="space-y-2">
             <Label htmlFor="source">Source</Label>
             <Input id="source" placeholder="Ex : salon, recommandation, site web..." {...register("source")} />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="score">Score (0-100)</Label>
+              <Input id="score" type="number" min={0} max={100} {...register("score", { valueAsNumber: true })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="segment">Segment</Label>
+              <Input id="segment" placeholder="Ex : PME, grand compte..." {...register("segment")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prochaineRelance">Prochaine relance</Label>
+              <Input id="prochaineRelance" type="date" {...register("prochaineRelance")} />
+            </div>
           </div>
 
           <div className="space-y-2">

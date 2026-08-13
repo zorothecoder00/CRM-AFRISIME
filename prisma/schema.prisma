@@ -149,6 +149,7 @@ enum NotificationType {
   SURCHARGE
   CLIENT_SANS_SUIVI
   BUDGET_DEPASSE
+  RELANCE_PLANIFIEE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -308,6 +309,9 @@ model User {
   documentFoldersCreated           DocumentFolder[]            @relation("DocumentFolderCreatedBy")
   documentsUploaded                Document[]                  @relation("DocumentUploadedBy")
   documentsArchived                Document[]                  @relation("DocumentArchivedBy")
+  teamsLed                         Team[]                      @relation("TeamLeader")
+  teamsCreated                     Team[]                      @relation("TeamCreatedBy")
+  teamMemberships                  TeamMember[]
   documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
   leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
   leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
@@ -444,7 +448,41 @@ model Department {
   courriers           Courrier[]
   postes              Poste[]
   sites               Site[]
+  teams               Team[]
   createdAt           DateTime             @default(now())
+}
+
+// Équipe (cahier des charges §I "Structures... Équipes" et niveau 5 du
+// pilotage §XXIII) : regroupement de travail au sein d'un département,
+// distinct de la hierarchie Direction/Departement/Service (qui est la
+// profondeur de l'arbre Department) — une équipe est un groupe transverse
+// ou informel, pas un niveau organisationnel supplementaire.
+model Team {
+  id           String   @id @default(cuid())
+  nom          String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  leaderId     String?
+  leader       User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  createdById  String
+  createdBy    User     @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+
+  members TeamMember[]
+
+  @@index([departmentId])
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
 }
 
 // Profil de l'organisation (cahier des charges §I "Profil de l'organisation"
@@ -471,15 +509,31 @@ model Poste {
   id              String      @id @default(cuid())
   nom             String
   description     String?
+  // Champ texte libre historique, conserve pour compatibilite. La liste
+  // structuree ci-dessous (responsabilitesListe) est la version §I
+  // "Responsabilités" utilisable comme un vrai registre (une ligne par
+  // responsabilite, reordonnable) plutot qu'un paragraphe.
   responsabilites String?
   departmentId    String?
   department      Department? @relation(fields: [departmentId], references: [id])
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  users User[]
+  users                User[]
+  responsabilitesListe PosteResponsabilite[]
 
   @@index([departmentId])
+}
+
+// Registre structure des responsabilites d'un poste (cahier des charges §I).
+model PosteResponsabilite {
+  id      String @id @default(cuid())
+  posteId String
+  poste   Poste  @relation(fields: [posteId], references: [id], onDelete: Cascade)
+  libelle String
+  ordre   Int    @default(0)
+
+  @@index([posteId])
 }
 
 // Site / agence (cahier des charges §I, "Sites / agences, Localisations").
@@ -889,6 +943,7 @@ enum CrmContactType {
   PRESTATAIRE
   CANDIDAT
   MEMBRE
+  INVESTISSEUR
   AUTRE
 }
 
@@ -908,6 +963,8 @@ enum CrmInteractionType {
   REUNION
   VISITE
   NOTE
+  MESSAGE
+  EVENEMENT
 }
 
 model CrmOrganization {
@@ -944,6 +1001,16 @@ model CrmContact {
   fonction       String?
   type           CrmContactType   @default(PROSPECT)
   source         String?
+  // Scoring/segmentation (cahier des charges §II, "Scoring / Segmentation").
+  // score : 0-100, saisi manuellement (pas de modele de scoring automatique
+  // dans ce MVP). segment : texte libre plutot qu'un enum ferme, les
+  // segments d'une organisation variant trop pour etre figes en base.
+  score          Int?
+  segment        String?
+  // Relance planifiee (cahier des charges §II, "Relances") — complete
+  // l'alerte automatique "client sans suivi 30 jours" du cron quotidien par
+  // une date de relance choisie manuellement par le proprietaire du contact.
+  prochaineRelance DateTime?
   organizationId String?
   organization   CrmOrganization? @relation(fields: [organizationId], references: [id])
   notes          String?

@@ -10,9 +10,11 @@ import {
   createPosteSchema,
   updatePosteSchema,
   deletePosteSchema,
+  addPosteResponsabiliteSchema,
   type CreatePosteInput,
   type UpdatePosteInput,
   type DeletePosteInput,
+  type AddPosteResponsabiliteInput,
 } from "@/lib/validations/poste.schema";
 
 async function requireSession() {
@@ -91,4 +93,43 @@ export async function deletePoste(input: DeletePosteInput) {
 
   revalidatePath("/administration/postes");
   return poste;
+}
+
+export async function addPosteResponsabilite(input: AddPosteResponsabiliteInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+  const data = addPosteResponsabiliteSchema.parse(input);
+
+  const count = await prisma.posteResponsabilite.count({ where: { posteId: data.posteId } });
+  const responsabilite = await prisma.posteResponsabilite.create({
+    data: { posteId: data.posteId, libelle: data.libelle, ordre: count },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "poste.responsabilite_added",
+    entityType: "Poste",
+    entityId: data.posteId,
+    changes: { libelle: data.libelle },
+  });
+
+  revalidatePath("/administration/postes");
+  return responsabilite;
+}
+
+export async function deletePosteResponsabilite(id: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+
+  const responsabilite = await prisma.posteResponsabilite.delete({ where: { id } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "poste.responsabilite_removed",
+    entityType: "Poste",
+    entityId: responsabilite.posteId,
+    changes: { libelle: responsabilite.libelle },
+  });
+
+  revalidatePath("/administration/postes");
 }

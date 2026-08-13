@@ -35,12 +35,16 @@ export const createContactSchema = z.object({
     "PRESTATAIRE",
     "CANDIDAT",
     "MEMBRE",
+    "INVESTISSEUR",
     "AUTRE",
   ]),
   source: z.string().optional(),
   organizationId: z.string().optional(),
   notes: z.string().optional(),
   ownerId: z.string().optional(),
+  score: z.number().int().min(0).max(100).optional(),
+  segment: z.string().optional(),
+  prochaineRelance: z.string().optional(),
 });
 
 export type CreateContactInput = z.infer<typeof createContactSchema>;
@@ -81,7 +85,7 @@ export type UpdateOpportunityStatusInput = z.infer<typeof updateOpportunityStatu
 
 export const createInteractionSchema = z
   .object({
-    type: z.enum(["EMAIL", "APPEL", "WHATSAPP", "REUNION", "VISITE", "NOTE"]),
+    type: z.enum(["EMAIL", "APPEL", "WHATSAPP", "REUNION", "VISITE", "NOTE", "MESSAGE", "EVENEMENT"]),
     contenu: z.string().min(1, "Le contenu est requis."),
     dateInteraction: z.string().optional(),
     contactId: z.string().optional(),
