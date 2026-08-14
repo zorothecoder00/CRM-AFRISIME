@@ -1654,6 +1654,7 @@ enum DocumentType {
   FACTURE
   PROCES_VERBAL
   LIVRABLE
+  MODELE
   AUTRE
 }
 
@@ -2206,6 +2207,10 @@ model AuditLog {
   entityType String
   entityId   String
   changes    Json?
+  // Adresse IP de la requête à l'origine de l'action (cahier des charges
+  // §18/§23 : journalisation complète). Absente pour les entrées générées
+  // hors requête HTTP (ex. automatisations serveur).
+  ipAddress  String?
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])

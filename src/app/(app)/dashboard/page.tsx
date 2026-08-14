@@ -12,6 +12,7 @@ import { objectiveProgress } from "@/lib/objective-progress";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { computeWorkload } from "@/lib/workload";
 import { cn } from "@/lib/utils";
+import { toneForAdminRequestStatus } from "@/lib/status-tone";
 
 // Ligne cliquable des widgets du dashboard : fond legerement teinte (au lieu
 // de blanc sur blanc) + effet de survol anime (leger soulevement, halo
@@ -23,6 +24,12 @@ const ROW_LINK =
 
 // Meme traitement de surface, sans interaction (evenements/conges : pas de lien).
 const STATIC_ROW = "flex justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm";
+
+const ADMIN_REQUEST_STATUS_LABELS: Record<string, string> = {
+  EN_ATTENTE: "En attente",
+  APPROUVEE: "Approuvée",
+  REJETEE: "Rejetée",
+};
 
 const ACTION_LABELS: Record<string, string> = {
   "task.created": "a créé une tâche",
@@ -82,6 +89,7 @@ export default async function DashboardPage() {
     myNotifications,
     myConversations,
     myDocuments,
+    myAdminRequests,
     pendingApprovals,
     workloadUsers,
     workloadTasks,
@@ -167,6 +175,11 @@ export default async function DashboardPage() {
       ),
     prisma.document.findMany({
       where: { uploadedById: userId, estArchive: false },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.adminRequest.findMany({
+      where: { demandeurId: userId },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
@@ -263,7 +276,7 @@ export default async function DashboardPage() {
       </DashboardSection>
 
       <DashboardSection title="À traiter">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card accent={myPendingApprovals.length > 0 ? "warning" : "none"}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes validations en attente</CardTitle>
@@ -308,6 +321,33 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes demandes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myAdminRequests.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune demande pour le moment.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {myAdminRequests.map((r) => (
+                    <li key={r.id}>
+                      <Link href={`/demandes/${r.id}`} className={cn(ROW_LINK, "flex items-center justify-between")}>
+                        <span className="font-medium">{r.titre}</span>
+                        <Badge variant={toneForAdminRequestStatus(r.statut)}>
+                          {ADMIN_REQUEST_STATUS_LABELS[r.statut]}
+                        </Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/demandes" className="mt-2 block text-xs text-primary hover:underline">
+                Voir toutes mes demandes
+              </Link>
             </CardContent>
           </Card>
         </div>

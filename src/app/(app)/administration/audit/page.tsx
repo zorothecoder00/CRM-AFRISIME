@@ -125,6 +125,7 @@ export default async function AuditPage({
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead>Entité</TableHead>
+                <TableHead>IP</TableHead>
                 <TableHead>Détails</TableHead>
               </TableRow>
             </TableHeader>
@@ -140,6 +141,9 @@ export default async function AuditPage({
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {log.entityType} · {log.entityId}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                    {log.ipAddress ?? "—"}
                   </TableCell>
                   <TableCell>
                     {log.changes ? (
@@ -157,7 +161,7 @@ export default async function AuditPage({
               ))}
               {logs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                     Aucun événement pour ces filtres.
                   </TableCell>
                 </TableRow>

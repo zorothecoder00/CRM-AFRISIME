@@ -27,6 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
   FACTURE: "Facture",
   PROCES_VERBAL: "Procès-verbal",
   LIVRABLE: "Livrable",
+  MODELE: "Modèle",
 };
 
 const SIGNATURE_LABELS: Record<string, string> = {

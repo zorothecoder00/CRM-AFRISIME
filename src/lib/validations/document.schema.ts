@@ -14,6 +14,7 @@ export const documentTypeSchema = z.enum([
   "FACTURE",
   "PROCES_VERBAL",
   "LIVRABLE",
+  "MODELE",
   "AUTRE",
 ]);
 
