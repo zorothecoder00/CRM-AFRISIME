@@ -325,6 +325,23 @@ model User {
   competences                      UserCompetence[]
   competencesCreated                Competence[]               @relation("CompetenceCreatedBy")
   documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
+  // Extension v2.0 — Gouvernance
+  governanceInstancesCreated        GovernanceInstance[]            @relation("GovernanceInstanceCreatedBy")
+  governanceMemberships             GovernanceInstanceMember[]      @relation("GovernanceInstanceMemberUser")
+  governanceMeetingsCreated         GovernanceMeeting[]             @relation("GovernanceMeetingCreatedBy")
+  governanceMeetingParticipations   GovernanceMeetingParticipant[]  @relation("GovernanceMeetingParticipantUser")
+  governanceMeetingDocsUploaded     GovernanceMeetingDocument[]     @relation("GovernanceMeetingDocumentUploadedBy")
+  governanceDecisionsResponsable    GovernanceDecision[]            @relation("GovernanceDecisionResponsable")
+  // Extension v2.0 — Processus
+  processusResponsable              Processus[]                    @relation("ProcessusResponsable")
+  processusCreated                  Processus[]                    @relation("ProcessusCreatedBy")
+  processusEtapesResponsable        ProcessusEtape[]                @relation("ProcessusEtapeResponsable")
+  processusVersionsCreated          ProcessusVersion[]              @relation("ProcessusVersionCreatedBy")
+  processusExecutionsCreated        ProcessusExecution[]            @relation("ProcessusExecutionCreatedBy")
+  processusDocumentsUploaded        ProcessusDocument[]             @relation("ProcessusDocumentUploadedBy")
+  // Extension v2.0 — Registre des risques organisationnel
+  organizationalRisksResponsable    OrganizationalRisk[]            @relation("OrganizationalRiskResponsable")
+  organizationalRisksCreated        OrganizationalRisk[]            @relation("OrganizationalRiskCreatedBy")
   leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
   leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
   eventsCreated                    Event[]                     @relation("EventCreatedBy")
@@ -773,6 +790,7 @@ model Project {
   whiteboard          Whiteboard?
   conversation        Conversation?
   risks               ProjectRisk[]
+  organizationalRisks OrganizationalRisk[]
   stakeholders        ProjectStakeholder[]
   milestones          ProjectMilestone[]
   deliverables        ProjectDeliverable[]
@@ -1264,8 +1282,9 @@ model Task {
   documents       Document[]
   dependsOn       TaskDependency[]   @relation("DependentTask")
   blocking        TaskDependency[]   @relation("PrerequisiteTask")
-  meetingDecision MeetingDecision?
-  validationRun   TaskValidationRun?
+  meetingDecision    MeetingDecision?
+  governanceDecision GovernanceDecision?
+  validationRun      TaskValidationRun?
   courrier        Courrier?
   adminRequest    AdminRequest?
   indicators      Indicator[]
@@ -2283,4 +2302,328 @@ model DashboardWidgetPreference {
   user      User     @relation(fields: [userId], references: [id])
   widgets   Json
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// EXTENSION v2.0 — "Extension du socle fonctionnel initial"
+// ============================================================================
+// Chaque nouveau module ci-dessous est un ajout pur : aucun modele existant
+// n'est modifie ou supprime (hors deux relations inverses sur User/Project,
+// necessaires cote Prisma pour les nouvelles relations nommees).
+
+enum GovernanceInstanceType {
+  CONSEIL_ADMINISTRATION
+  COMITE_DIRECTION
+  COMITE_PILOTAGE
+  COMITE_TECHNIQUE
+  COMMISSION
+  GROUPE_TRAVAIL
+  COMITE_AD_HOC
+  AUTRE
+}
+
+enum GovernanceMemberStatus {
+  ACTIF
+  TERMINE
+  SUSPENDU
+}
+
+enum GovernanceDecisionPriorite {
+  BASSE
+  MOYENNE
+  HAUTE
+  CRITIQUE
+}
+
+// §3 — Gouvernance. Distinct du Meeting/MeetingDecision existants (qui
+// exigent tous deux un Project) : une instance de gouvernance (CA, comite
+// de direction...) est un objet organisationnel, pas rattache a un projet —
+// reutiliser Meeting aurait force un Project fictif pour chaque instance.
+// Meme logique de decision -> tache auto-creee que MeetingDecision, en
+// miroir (comme AdminRequestValidationRun est deja un miroir de
+// TaskValidationRun dans ce schema).
+model GovernanceInstance {
+  id          String                 @id @default(cuid())
+  nom         String
+  type        GovernanceInstanceType @default(AUTRE)
+  description String?
+  estActive   Boolean                @default(true)
+  createdById String
+  createdBy   User                   @relation("GovernanceInstanceCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  membres  GovernanceInstanceMember[]
+  reunions GovernanceMeeting[]
+}
+
+model GovernanceInstanceMember {
+  id         String                 @id @default(cuid())
+  instanceId String
+  instance   GovernanceInstance     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                   @relation("GovernanceInstanceMemberUser", fields: [userId], references: [id])
+  fonction   String?
+  role       String?
+  mandat     String?
+  dateDebut  DateTime?
+  dateFin    DateTime?
+  statut     GovernanceMemberStatus @default(ACTIF)
+  createdAt  DateTime               @default(now())
+
+  @@index([instanceId])
+  @@index([userId])
+}
+
+model GovernanceMeeting {
+  id          String             @id @default(cuid())
+  instanceId  String
+  instance    GovernanceInstance @relation(fields: [instanceId], references: [id])
+  titre       String
+  dateHeure   DateTime
+  lieu        String?
+  ordreDuJour String?
+  compteRendu String?
+  statut      MeetingStatus      @default(PLANIFIEE)
+  createdById String
+  createdBy   User               @relation("GovernanceMeetingCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  participants GovernanceMeetingParticipant[]
+  decisions    GovernanceDecision[]
+  documents    GovernanceMeetingDocument[]
+
+  @@index([instanceId])
+}
+
+model GovernanceMeetingParticipant {
+  meetingId String
+  userId    String
+  meeting   GovernanceMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user      User              @relation("GovernanceMeetingParticipantUser", fields: [userId], references: [id])
+
+  @@id([meetingId, userId])
+}
+
+// Piece jointe simple (memes 4 champs que Message.attachment*) plutot que le
+// modele Document complet : Document.projectId est obligatoire, et une
+// reunion de gouvernance n'appartient justement a aucun projet.
+model GovernanceMeetingDocument {
+  id           String            @id @default(cuid())
+  meetingId    String
+  meeting      GovernanceMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  nom          String
+  url          String
+  mimeType     String?
+  sizeBytes    Int?
+  uploadedById String
+  uploadedBy   User              @relation("GovernanceMeetingDocumentUploadedBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@index([meetingId])
+}
+
+// Workflow (cahier des charges v2 §3.2D) : Reunion -> Decision -> Action
+// (Task auto-creee, meme mecanisme que MeetingDecision.addDecision) ->
+// Controle (suivi via le statut de la Task) -> Cloture (statut TRAITEE +
+// Task TERMINEE).
+model GovernanceDecision {
+  id            String                     @id @default(cuid())
+  meetingId     String
+  meeting       GovernanceMeeting          @relation(fields: [meetingId], references: [id])
+  reference     String?
+  objet         String
+  contexte      String?
+  decision      String
+  responsableId String?
+  responsable   User?                      @relation("GovernanceDecisionResponsable", fields: [responsableId], references: [id])
+  echeance      DateTime?
+  priorite      GovernanceDecisionPriorite @default(MOYENNE)
+  statut        DecisionStatus             @default(EN_COURS)
+  taskId        String?                    @unique
+  task          Task?                      @relation(fields: [taskId], references: [id])
+  createdAt     DateTime                   @default(now())
+
+  @@index([meetingId])
+}
+
+enum ProcessusStatut {
+  BROUILLON
+  ACTIF
+  ARCHIVE
+}
+
+enum ProcessusExecutionStatut {
+  EN_COURS
+  TERMINE
+  REJETE
+  ANNULE
+}
+
+// §4 — Gestion des processus. Cartographie (processus/sous-processus via
+// auto-relation), etapes ordonnees (Process Designer §4.3 implemente comme
+// une liste reordonnable par glisser-deposer plutot qu'un canevas graphique
+// noeuds/fleches — meme mecanique que le drag-and-drop deja en place pour
+// DashboardWidgetPreference), et executions reelles pour que les indicateurs
+// d'analyse (§4.4) soient calcules sur des donnees vraies, pas fictives.
+model Processus {
+  id                String          @id @default(cuid())
+  nom               String
+  description       String?
+  processusParentId String?
+  processusParent   Processus?      @relation("ProcessusHierarchy", fields: [processusParentId], references: [id])
+  sousProcessus     Processus[]     @relation("ProcessusHierarchy")
+  responsableId     String?
+  responsable       User?           @relation("ProcessusResponsable", fields: [responsableId], references: [id])
+  delaiJours        Int?
+  version           Int             @default(1)
+  statut            ProcessusStatut @default(BROUILLON)
+  createdById       String
+  createdBy         User            @relation("ProcessusCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  etapes     ProcessusEtape[]
+  versions   ProcessusVersion[]
+  executions ProcessusExecution[]
+  documents  ProcessusDocument[]
+  risques    OrganizationalRisk[]
+
+  @@index([processusParentId])
+}
+
+model ProcessusEtape {
+  id            String    @id @default(cuid())
+  processusId   String
+  processus     Processus @relation(fields: [processusId], references: [id], onDelete: Cascade)
+  nom           String
+  ordre         Int       @default(0)
+  responsableId String?
+  responsable   User?     @relation("ProcessusEtapeResponsable", fields: [responsableId], references: [id])
+  delaiJours    Int?
+  entrees       String?
+  sorties       String?
+  regles        String?
+  createdAt     DateTime  @default(now())
+
+  executionsCourantes ProcessusExecution[]      @relation("ExecutionEtapeActuelle")
+  historique          ProcessusExecutionEtape[]
+
+  @@index([processusId])
+}
+
+// Instantane leger a chaque nouvelle version — meme principe que
+// DocumentVersion : pas de diff structurel, juste un horodatage + note.
+model ProcessusVersion {
+  id          String    @id @default(cuid())
+  processusId String
+  processus   Processus @relation(fields: [processusId], references: [id])
+  version     Int
+  note        String?
+  createdById String
+  createdBy   User      @relation("ProcessusVersionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@index([processusId])
+}
+
+// Un "dossier" qui traverse le processus etape par etape — sert de base
+// reelle au calcul des indicateurs (§4.4 : duree moyenne, temps par etape,
+// goulots, taux d'erreur/rejet, dossiers en attente) plutot que des chiffres
+// mockes. Voir src/lib/processus-analytics.ts.
+model ProcessusExecution {
+  id              String                   @id @default(cuid())
+  processusId     String
+  processus       Processus                @relation(fields: [processusId], references: [id])
+  libelle         String
+  etapeActuelleId String?
+  etapeActuelle   ProcessusEtape?          @relation("ExecutionEtapeActuelle", fields: [etapeActuelleId], references: [id])
+  statut          ProcessusExecutionStatut @default(EN_COURS)
+  dateDebut       DateTime                 @default(now())
+  dateFin         DateTime?
+  createdById     String
+  createdBy       User                     @relation("ProcessusExecutionCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime                 @default(now())
+
+  historique ProcessusExecutionEtape[]
+
+  @@index([processusId])
+  @@index([statut])
+}
+
+// Un log par passage dans une etape : dateEntree/dateSortie permettent le
+// calcul du temps par etape et la detection des goulots d'etranglement.
+model ProcessusExecutionEtape {
+  id          String             @id @default(cuid())
+  executionId String
+  execution   ProcessusExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  etapeId     String
+  etape       ProcessusEtape     @relation(fields: [etapeId], references: [id])
+  dateEntree  DateTime           @default(now())
+  dateSortie  DateTime?
+
+  @@index([executionId])
+  @@index([etapeId])
+}
+
+model ProcessusDocument {
+  id           String    @id @default(cuid())
+  processusId  String
+  processus    Processus @relation(fields: [processusId], references: [id], onDelete: Cascade)
+  nom          String
+  url          String
+  mimeType     String?
+  sizeBytes    Int?
+  uploadedById String
+  uploadedBy   User      @relation("ProcessusDocumentUploadedBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime  @default(now())
+
+  @@index([processusId])
+}
+
+enum RiskCriticite {
+  FAIBLE
+  MODERE
+  IMPORTANT
+  ELEVE
+  CRITIQUE
+}
+
+// §5 — Registre des risques organisationnel. Distinct de ProjectRisk
+// (existant, scope projet uniquement — jamais modifie ici pour eviter toute
+// regression sur les pages projet deja en place) : ce registre est
+// organisation-wide, avec un lien optionnel vers un Project ET/OU un
+// Processus. Reutilise RiskProbability/RiskImpact/RiskStatus (deja definis
+// pour ProjectRisk) plutot que de dupliquer des enums quasi identiques.
+model OrganizationalRisk {
+  id                 String          @id @default(cuid())
+  code               String          @unique
+  titre              String
+  description        String?
+  categorie          String?
+  origine            String?
+  probabilite        RiskProbability @default(MOYENNE)
+  impact             RiskImpact      @default(MOYEN)
+  // Calcule automatiquement (probabilite x impact) a la creation/mise a
+  // jour — voir src/lib/risk-matrix.ts — jamais saisi manuellement.
+  criticite          RiskCriticite
+  responsableId      String?
+  responsable        User?           @relation("OrganizationalRiskResponsable", fields: [responsableId], references: [id])
+  projectId          String?
+  project            Project?        @relation(fields: [projectId], references: [id])
+  processusId        String?
+  processus          Processus?      @relation(fields: [processusId], references: [id])
+  mesuresPreventives String?
+  planMitigation     String?
+  echeance           DateTime?
+  statut             RiskStatus      @default(IDENTIFIE)
+  createdById        String
+  createdBy          User            @relation("OrganizationalRiskCreatedBy", fields: [createdById], references: [id])
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([projectId])
+  @@index([processusId])
+  @@index([statut])
 }

@@ -187,6 +187,23 @@ export function toneForDeliverableStatus(status: string): BadgeTone {
   return DELIVERABLE_TONES[status.toUpperCase()] ?? "secondary";
 }
 
+/** Criticite d'un risque organisationnel (FAIBLE/MODERE/IMPORTANT/ELEVE/CRITIQUE, echelle a 5 crans issue de la matrice probabilite x impact). */
+const CRITICITE_TONES: Record<string, StatusTone> = {
+  FAIBLE: "secondary",
+  MODERE: "info",
+  IMPORTANT: "warning",
+  ELEVE: "destructive",
+  CRITIQUE: "destructive",
+};
+
+export function toneForCriticite(criticite: string): BadgeTone {
+  return CRITICITE_TONES[criticite.toUpperCase()] ?? "secondary";
+}
+
+export function accentForCriticite(criticite: string): CardAccent {
+  return toCardAccent(CRITICITE_TONES[criticite.toUpperCase()] ?? "secondary");
+}
+
 /**
  * Niveau generique FAIBLE/MOYEN(NE)/ELEVE(E) — reutilise pour la probabilite
  * et l'impact d'un risque, ainsi que l'influence et l'interet d'une partie

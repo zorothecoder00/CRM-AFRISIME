@@ -26,6 +26,9 @@ import {
   BookOpen,
   Mail,
   Compass,
+  Landmark,
+  GitBranch,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -95,6 +98,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Demandes", href: "/demandes", icon: ClipboardList, permission: PERMISSIONS.ADMIN_REQUEST_READ },
       { title: "Automatisations", href: "/automatisations", icon: Zap, permission: PERMISSIONS.AUTOMATION_READ },
       { title: "Rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },
+    ],
+  },
+  {
+    label: "Gouvernance & Risques",
+    items: [
+      { title: "Gouvernance", href: "/gouvernance", icon: Landmark, permission: PERMISSIONS.GOVERNANCE_READ },
+      { title: "Processus", href: "/processus", icon: GitBranch, permission: PERMISSIONS.PROCESS_READ },
+      { title: "Risques", href: "/risques", icon: ShieldAlert, permission: PERMISSIONS.RISK_READ },
     ],
   },
   {

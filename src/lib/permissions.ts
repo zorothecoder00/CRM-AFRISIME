@@ -89,6 +89,16 @@ export const PERMISSIONS = {
   ADMINISTRATION_ACCESS: "administration.access",
   ADMINISTRATION_USERS_MANAGE: "administration.users.manage",
   ADMINISTRATION_ROLES_MANAGE: "administration.roles.manage",
+
+  // Extension v2.0
+  GOVERNANCE_READ: "governance.read",
+  GOVERNANCE_MANAGE: "governance.manage",
+
+  PROCESS_READ: "process.read",
+  PROCESS_MANAGE: "process.manage",
+
+  RISK_READ: "risk.read",
+  RISK_MANAGE: "risk.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -186,6 +196,15 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ROLES_MANAGE, label: "Gérer les rôles et permissions", category: "Administration" },
+
+  { key: PERMISSIONS.GOVERNANCE_READ, label: "Consulter les instances de gouvernance (réunions, décisions)", category: "Gouvernance" },
+  { key: PERMISSIONS.GOVERNANCE_MANAGE, label: "Créer et gérer les instances, réunions et décisions de gouvernance", category: "Gouvernance" },
+
+  { key: PERMISSIONS.PROCESS_READ, label: "Consulter les processus et leurs exécutions", category: "Processus" },
+  { key: PERMISSIONS.PROCESS_MANAGE, label: "Créer et gérer les processus, étapes et exécutions", category: "Processus" },
+
+  { key: PERMISSIONS.RISK_READ, label: "Consulter le registre des risques organisationnel", category: "Risques" },
+  { key: PERMISSIONS.RISK_MANAGE, label: "Créer et gérer les risques organisationnels", category: "Risques" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -258,6 +277,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.ADMINISTRATION_ACCESS,
     PERMISSIONS.SECURITY_AUDIT_READ,
     PERMISSIONS.INTEGRATION_MANAGE,
+    PERMISSIONS.GOVERNANCE_MANAGE,
+    PERMISSIONS.GOVERNANCE_READ,
+    PERMISSIONS.PROCESS_MANAGE,
+    PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.RISK_MANAGE,
+    PERMISSIONS.RISK_READ,
   ],
 
   DIRECTEUR: [
@@ -317,6 +342,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
+    PERMISSIONS.GOVERNANCE_MANAGE,
+    PERMISSIONS.GOVERNANCE_READ,
+    PERMISSIONS.PROCESS_MANAGE,
+    PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.RISK_MANAGE,
+    PERMISSIONS.RISK_READ,
   ],
 
   CHEF_DEPARTEMENT: [
@@ -374,6 +405,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
+    PERMISSIONS.GOVERNANCE_READ,
+    PERMISSIONS.PROCESS_MANAGE,
+    PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.RISK_MANAGE,
+    PERMISSIONS.RISK_READ,
   ],
 
   CHEF_PROJET: [
@@ -426,6 +462,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.GOVERNANCE_READ,
+    PERMISSIONS.PROCESS_MANAGE,
+    PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.RISK_MANAGE,
+    PERMISSIONS.RISK_READ,
   ],
 
   RESPONSABLE: [
@@ -469,6 +510,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.RISK_READ,
   ],
 
   MANAGER: [
@@ -508,6 +551,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.RISK_READ,
   ],
 
   COLLABORATEUR: [
