@@ -13,29 +13,29 @@ import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-
 import { TaskMindMapView, type MindMapTaskRow } from "@/components/tasks/task-mindmap-view";
 import { TaskPortfolioView } from "@/components/tasks/task-portfolio-view";
 import { TaskWhiteboardView } from "@/components/tasks/task-whiteboard-view";
+import { TaskViewSwitcher } from "@/components/tasks/task-view-switcher";
 import type { WhiteboardNote } from "@/actions/whiteboard.actions";
 import type { Prisma } from "@/generated/prisma/client";
 import { User } from "lucide-react";
-
-const VIEWS = [
-  { key: "liste", label: "Liste" },
-  { key: "kanban", label: "Kanban" },
-  { key: "chronologie", label: "Chronologie" },
-  { key: "gantt", label: "Gantt" },
-  { key: "mindmap", label: "Mind Map" },
-  { key: "portefeuille", label: "Portefeuille" },
-  { key: "blanc", label: "Tableau blanc" },
-] as const;
 
 export default async function TachesPage({
   searchParams,
 }: {
   searchParams: Promise<{ vue?: string; projetId?: string; mine?: string }>;
 }) {
-  const { vue = "liste", projetId, mine } = await searchParams;
+  const { vue: vueParam, projetId, mine } = await searchParams;
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
+
+  // Vue par defaut (cahier des charges §7 : "chaque utilisateur choisit sa
+  // vue") : sans ?vue= explicite dans l'URL, on retombe sur la preference
+  // memorisee de l'utilisateur plutot que sur "liste" en dur.
+  let vue = vueParam;
+  if (!vue) {
+    const me = await prisma.user.findUnique({ where: { id: userId }, select: { defaultTaskView: true } });
+    vue = me?.defaultTaskView ?? "liste";
+  }
   const taskScope = taskVisibilityWhere(session!.user.roleKey, session!.user.id);
   const projectScope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
   const onlyMine = mine === "1";
@@ -127,19 +127,7 @@ export default async function TachesPage({
               Mes tâches
             </Button>
           </Link>
-          <div className="flex flex-wrap rounded-md border">
-            {VIEWS.map((v, i) => (
-              <Link key={v.key} href={withVue(v.key)}>
-                <Button
-                  variant={vue === v.key ? "default" : "ghost"}
-                  size="sm"
-                  className={i === 0 ? "rounded-r-none" : i === VIEWS.length - 1 ? "rounded-l-none" : "rounded-none"}
-                >
-                  {v.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
+          <TaskViewSwitcher activeVue={vue} hrefFor={withVue} />
           <div className="flex rounded-md border">
             <Link href="/calendrier">
               <Button variant="ghost" size="sm" className="rounded-r-none">

@@ -36,6 +36,21 @@ const PRIORITES = [
   { value: "BASSE", label: "Basse" },
 ];
 
+const PROJECT_STATUTS = [
+  { value: "PLANIFIE", label: "Planifié" },
+  { value: "EN_COURS", label: "En cours" },
+  { value: "EN_PAUSE", label: "En pause" },
+  { value: "TERMINE", label: "Terminé" },
+  { value: "ANNULE", label: "Annulé" },
+];
+
+const PROJECT_PRIORITES = [
+  { value: "CRITIQUE", label: "Critique" },
+  { value: "HAUTE", label: "Haute" },
+  { value: "MOYENNE", label: "Moyenne" },
+  { value: "BASSE", label: "Basse" },
+];
+
 /** Filtres avancés de la recherche globale (cahier des charges §17). */
 export function SearchFilters({ users, departments }: { users: Option[]; departments: Option[] }) {
   const router = useRouter();
@@ -48,9 +63,16 @@ export function SearchFilters({ users, departments }: { users: Option[]; departm
     router.push(`/recherche?${params.toString()}`);
   }
 
-  const activeCount = ["dateFrom", "dateTo", "responsableId", "statut", "priorite", "departmentId"].filter((k) =>
-    searchParams.get(k)
-  ).length;
+  const activeCount = [
+    "dateFrom",
+    "dateTo",
+    "responsableId",
+    "statut",
+    "priorite",
+    "projectStatut",
+    "projectPriorite",
+    "departmentId",
+  ].filter((k) => searchParams.get(k)).length;
 
   return (
     <Popover>
@@ -148,6 +170,44 @@ export function SearchFilters({ users, departments }: { users: Option[]; departm
             </SelectTrigger>
             <SelectContent>
               {PRIORITES.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Statut (projets)</Label>
+          <Select
+            defaultValue={searchParams.get("projectStatut") ?? undefined}
+            onValueChange={(v) => setParam("projectStatut", v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Tous" />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_STATUTS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Priorité (projets)</Label>
+          <Select
+            defaultValue={searchParams.get("projectPriorite") ?? undefined}
+            onValueChange={(v) => setParam("projectPriorite", v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Toutes" />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_PRIORITES.map((p) => (
                 <SelectItem key={p.value} value={p.value}>
                   {p.label}
                 </SelectItem>

@@ -28,6 +28,10 @@ export type SearchFilters = {
   responsableId?: string;
   statut?: string;
   priorite?: string;
+  // Distincts de statut/priorite ci-dessus : enums propres a Project
+  // (ProjectStatus/ProjectPriority), differents de ceux des Taches.
+  projectStatut?: string;
+  projectPriorite?: string;
   departmentId?: string;
 };
 
@@ -35,8 +39,10 @@ export type SearchFilters = {
  * Recherche globale (cahier des charges §17) : chaque type d'entité n'est
  * cherché que si l'utilisateur a la permission de lecture correspondante.
  * Les filtres avancés (date/responsable/statut/priorité/département)
- * s'appliquent surtout aux Tâches (le seul type qui porte tous ces champs) ;
- * Projets/Réunions n'appliquent que les filtres qui leur correspondent.
+ * s'appliquent aux Tâches ET aux Projets (les deux types qui portent un
+ * statut et une priorité, avec des enums distincts — ProjectStatus/
+ * ProjectPriority vs TaskStatus/TaskPriority) ; Réunions n'applique que les
+ * filtres qui lui correspondent (pas de statut/priorité sur une réunion).
  */
 export async function globalSearch(
   query: string,
@@ -49,7 +55,14 @@ export async function globalSearch(
   const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
   const dateTo = filters.dateTo ? new Date(filters.dateTo) : undefined;
   const hasAdvancedFilters =
-    !!filters.dateFrom || !!filters.dateTo || !!filters.responsableId || !!filters.statut || !!filters.priorite || !!filters.departmentId;
+    !!filters.dateFrom ||
+    !!filters.dateTo ||
+    !!filters.responsableId ||
+    !!filters.statut ||
+    !!filters.priorite ||
+    !!filters.projectStatut ||
+    !!filters.projectPriorite ||
+    !!filters.departmentId;
 
   const searches: Promise<SearchResult[]>[] = [];
 
@@ -57,6 +70,8 @@ export async function globalSearch(
     const where: Prisma.ProjectWhereInput = { nom: { contains: q, mode: "insensitive" } };
     if (filters.responsableId) where.responsableId = filters.responsableId;
     if (filters.departmentId) where.departmentId = filters.departmentId;
+    if (filters.projectStatut) where.statut = filters.projectStatut as never;
+    if (filters.projectPriorite) where.priorite = filters.projectPriorite as never;
     if (dateFrom || dateTo) {
       where.dateDebut = { gte: dateFrom, lte: dateTo };
     }

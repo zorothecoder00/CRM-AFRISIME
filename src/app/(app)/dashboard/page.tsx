@@ -258,6 +258,9 @@ export default async function DashboardPage() {
           />
           <TaskWidget title="Mes tâches de la semaine" tasks={weekTasks} emptyLabel="Aucune tâche cette semaine." />
         </div>
+      </DashboardSection>
+
+      <DashboardSection title="Mes indicateurs de performance">
         <div className="grid gap-4 md:grid-cols-3">
           <KpiCard
             label="Mon taux d'occupation"

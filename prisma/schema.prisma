@@ -275,6 +275,10 @@ model User {
   manager                    User?       @relation("UserManager", fields: [managerId], references: [id])
   directReports              User[]      @relation("UserManager")
   isActive                   Boolean     @default(true)
+  // Vue de la liste de tâches mémorisée (cahier des charges §7 : "chaque
+  // utilisateur choisit sa vue") — null tant que l'utilisateur n'a jamais
+  // changé de vue, /taches retombe alors sur "liste".
+  defaultTaskView            String?
   // Base de calcul du taux d'occupation (cahier des charges §14).
   capaciteHebdomadaireHeures Decimal     @default(35) @db.Decimal(5, 2)
   // Authentification à deux facteurs (cahier des charges §22). mfaSecret

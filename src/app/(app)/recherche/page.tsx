@@ -20,6 +20,8 @@ export default async function RecherchePage({
     responsableId?: string;
     statut?: string;
     priorite?: string;
+    projectStatut?: string;
+    projectPriorite?: string;
     departmentId?: string;
   }>;
 }) {
@@ -35,6 +37,8 @@ export default async function RecherchePage({
           responsableId: params.responsableId,
           statut: params.statut,
           priorite: params.priorite,
+          projectStatut: params.projectStatut,
+          projectPriorite: params.projectPriorite,
           departmentId: params.departmentId,
         })
       : Promise.resolve([]),

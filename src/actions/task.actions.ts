@@ -419,3 +419,16 @@ export async function linkTaskExternalContact(input: LinkTaskExternalContactInpu
   revalidatePath(`/taches/${data.taskId}`);
   return task;
 }
+
+const TASK_VIEWS = ["liste", "kanban", "chronologie", "gantt", "mindmap", "portefeuille", "blanc"];
+
+/** Mémorise la vue choisie (cahier des charges §7 : "chaque utilisateur choisit sa vue"). */
+export async function setDefaultTaskView(vue: string) {
+  const session = await requireSession();
+  if (!TASK_VIEWS.includes(vue)) return;
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { defaultTaskView: vue },
+  });
+}
