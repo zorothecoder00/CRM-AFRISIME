@@ -625,6 +625,9 @@ export default async function ProjectDetailPage({
               conversationId={conversation.id}
               messages={conversationMessages}
               currentUserId={session!.user.id}
+              mentionCandidates={members
+                .filter((m) => m.userId !== session!.user.id)
+                .map((m) => ({ id: m.userId, name: m.user.name }))}
             />
           </div>
         </TabsContent>

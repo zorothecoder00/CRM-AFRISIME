@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useAction } from "@/hooks/use-action";
 import { addComment } from "@/actions/task.actions";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ReactionPicker, type ReactionData } from "@/components/shared/reaction-picker";
+import { MentionTextarea, type MentionCandidate } from "@/components/shared/mention-textarea";
 import { splitMentionSegments } from "@/lib/mentions";
 
 export type CommentData = {
@@ -20,10 +20,12 @@ export function CommentSection({
   taskId,
   comments,
   currentUserId,
+  candidates,
 }: {
   taskId: string;
   comments: CommentData[];
   currentUserId: string;
+  candidates: MentionCandidate[];
 }) {
   const [content, setContent] = useState("");
   const { run, isPending } = useAction(addComment);
@@ -66,10 +68,11 @@ export function CommentSection({
         <p className="text-sm text-muted-foreground">Aucun commentaire.</p>
       )}
       <div className="space-y-2">
-        <Textarea
-          placeholder="Ajouter un commentaire..."
+        <MentionTextarea
+          placeholder="Ajouter un commentaire... (@Prénom pour mentionner)"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          candidates={candidates}
         />
         <Button size="sm" onClick={handleSubmit} disabled={isPending}>
           {isPending ? "Envoi..." : "Commenter"}

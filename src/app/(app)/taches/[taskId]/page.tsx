@@ -47,7 +47,7 @@ export default async function TaskDetailPage({
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      project: true,
+      project: { include: { members: { include: { user: true } } } },
       section: true,
       responsablePrincipal: true,
       assignees: { include: { user: true } },
@@ -105,6 +105,19 @@ export default async function TaskDetailPage({
       include: { user: { select: { id: true, name: true } } },
     }),
   ]);
+
+  // Candidats @mention (src/lib/mentions.ts) : mêmes personnes que celles
+  // notifiées côté serveur pour un commentaire — responsable, co-responsables,
+  // membres du projet — dédupliquées.
+  const mentionCandidates = Array.from(
+    new Map(
+      [
+        { id: task.responsablePrincipalId, name: task.responsablePrincipal.name },
+        ...task.assignees.map((a) => ({ id: a.userId, name: a.user.name })),
+        ...task.project.members.map((m) => ({ id: m.userId, name: m.user.name })),
+      ].map((c) => [c.id, c])
+    ).values()
+  );
 
   const checklistRows = task.checklistItems.map((item) => ({
     id: item.id,
@@ -197,6 +210,7 @@ export default async function TaskDetailPage({
             <CommentSection
               taskId={task.id}
               currentUserId={session!.user.id}
+              candidates={mentionCandidates}
               comments={task.comments.map((c) => ({
                 id: c.id,
                 content: c.content,

@@ -18,8 +18,24 @@ const VIEWS = [
  * Mémorise la vue choisie côté serveur (cahier des charges §7 : "chaque
  * utilisateur choisit sa vue") sans bloquer la navigation : l'appel part en
  * tâche de fond pendant que le <Link> navigue normalement.
+ *
+ * Reçoit des données sérialisables (projetId/onlyMine), pas une fonction : un
+ * Server Component ne peut pas passer une closure à un Client Component
+ * (limite RSC — non sérialisable), l'URL est donc reconstruite ici.
  */
-export function TaskViewSwitcher({ activeVue, hrefFor }: { activeVue: string; hrefFor: (vue: string) => string }) {
+export function TaskViewSwitcher({
+  activeVue,
+  projetId,
+  onlyMine,
+}: {
+  activeVue: string;
+  projetId?: string;
+  onlyMine: boolean;
+}) {
+  function hrefFor(key: string) {
+    return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "&mine=1" : ""}`;
+  }
+
   return (
     <div className="flex flex-wrap rounded-md border">
       {VIEWS.map((v, i) => (

@@ -105,10 +105,6 @@ export default async function TachesPage({
 
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
-  function withVue(key: string) {
-    return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "&mine=1" : ""}`;
-  }
-
   const mineHref = `?vue=${vue}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "" : "&mine=1"}`;
 
   return (
@@ -127,7 +123,7 @@ export default async function TachesPage({
               Mes tâches
             </Button>
           </Link>
-          <TaskViewSwitcher activeVue={vue} hrefFor={withVue} />
+          <TaskViewSwitcher activeVue={vue} projetId={projetId} onlyMine={onlyMine} />
           <div className="flex rounded-md border">
             <Link href="/calendrier">
               <Button variant="ghost" size="sm" className="rounded-r-none">

@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { useAction } from "@/hooks/use-action";
 import { sendMessage, markConversationRead } from "@/actions/message.actions";
 import { splitMentionSegments } from "@/lib/mentions";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { MentionTextarea, type MentionCandidate } from "@/components/shared/mention-textarea";
 import { ReactionPicker, type ReactionData } from "@/components/shared/reaction-picker";
 import { UserAvatar } from "@/components/messages/user-avatar";
 import { UploadButton } from "@/lib/uploadthing";
@@ -87,10 +87,12 @@ export function MessageThread({
   conversationId,
   messages,
   currentUserId,
+  mentionCandidates,
 }: {
   conversationId: string;
   messages: MessageData[];
   currentUserId: string;
+  mentionCandidates: MentionCandidate[];
 }) {
   const [content, setContent] = useState("");
   const { run: send, isPending } = useAction(sendMessage);
@@ -225,10 +227,11 @@ export function MessageThread({
               toast.error(`Échec du téléversement : ${err.message}`);
             }}
           />
-          <Textarea
+          <MentionTextarea
             placeholder="Écrire un message... (@Prénom pour mentionner)"
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            candidates={mentionCandidates}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

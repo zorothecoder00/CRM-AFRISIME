@@ -1,0 +1,19 @@
+/*
+ * @uploadthing/react ships its own Tailwind reset (`*, :before, :after,
+ * ::backdrop { --tw-shadow: ...; --tw-backdrop-blur: ...; ... }`) as an
+ * UNLAYERED stylesheet. Per the CSS Cascade Layers spec, any unlayered rule
+ * always beats ANY layered rule, regardless of source order or specificity —
+ * so that reset silently wins over every one of our own Tailwind utilities
+ * that compose through a `--tw-*` variable (shadow-*, ring-*, blur-*,
+ * backdrop-blur-*, drop-shadow-*...), app-wide, not just where uploadthing's
+ * components are used.
+ *
+ * Wrapping the import in an explicitly named layer, declared here BEFORE
+ * `globals.css`'s `@import "tailwindcss"` runs (see the import order in
+ * layout.tsx), makes this layer the LOWEST-priority one in the whole
+ * cascade — so Tailwind's own `utilities` layer (declared after) correctly
+ * wins again.
+ */
+@layer uploadthing-vendor {
+  @import "@uploadthing/react/styles.css";
+}

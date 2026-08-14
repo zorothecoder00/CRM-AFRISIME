@@ -70,7 +70,12 @@ export default async function ConversationPage({
           </p>
         </div>
       </div>
-      <MessageThread conversationId={conversation.id} messages={messages} currentUserId={userId} />
+      <MessageThread
+        conversationId={conversation.id}
+        messages={messages}
+        currentUserId={userId}
+        mentionCandidates={otherParticipants.map((p) => ({ id: p.userId, name: p.user.name }))}
+      />
     </div>
   );
 }

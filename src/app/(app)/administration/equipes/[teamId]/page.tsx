@@ -17,7 +17,7 @@ export default async function TeamDiscussionPage({
 
   const team = await prisma.team.findUnique({
     where: { id: teamId },
-    include: { department: true },
+    include: { department: true, members: { include: { user: true } } },
   });
   if (!team) notFound();
 
@@ -50,7 +50,14 @@ export default async function TeamDiscussionPage({
         <Badge variant="outline">{team.department.name}</Badge>
       </div>
       <div className="flex h-[70vh] flex-col overflow-hidden rounded-lg border">
-        <MessageThread conversationId={conversation.id} messages={messages} currentUserId={session!.user.id} />
+        <MessageThread
+          conversationId={conversation.id}
+          messages={messages}
+          currentUserId={session!.user.id}
+          mentionCandidates={team.members
+            .filter((m) => m.userId !== session!.user.id)
+            .map((m) => ({ id: m.userId, name: m.user.name }))}
+        />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { createUserSchema, updateUserSchema, type CreateUserInput, type UpdateUserInput } from "@/lib/validations/user.schema";
@@ -38,19 +39,27 @@ export async function createUser(input: CreateUserInput) {
   const data = createUserSchema.parse(input);
   const passwordHash = await bcrypt.hash(data.password, 10);
 
-  const user = await prisma.user.create({
-    data: {
-      name: data.name,
-      email: data.email,
-      passwordHash,
-      roleId: data.roleId,
-      departmentId: data.departmentId || undefined,
-      poste: data.poste || undefined,
-      posteId: data.posteId || undefined,
-      siteId: data.siteId || undefined,
-      managerId: data.managerId || undefined,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        passwordHash,
+        roleId: data.roleId,
+        departmentId: data.departmentId || undefined,
+        poste: data.poste || undefined,
+        posteId: data.posteId || undefined,
+        siteId: data.siteId || undefined,
+        managerId: data.managerId || undefined,
+      },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error("Cet email est déjà utilisé par un autre utilisateur.");
+    }
+    throw err;
+  }
 
   await logAudit({
     userId: session.user.id,
@@ -75,19 +84,27 @@ export async function updateUser(input: UpdateUserInput) {
     await assertNoManagerCycle(data.id, data.managerId);
   }
 
-  const user = await prisma.user.update({
-    where: { id: data.id },
-    data: {
-      name: data.name,
-      email: data.email,
-      roleId: data.roleId,
-      departmentId: data.departmentId || null,
-      poste: data.poste || null,
-      posteId: data.posteId || null,
-      siteId: data.siteId || null,
-      managerId: data.managerId || null,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.update({
+      where: { id: data.id },
+      data: {
+        name: data.name,
+        email: data.email,
+        roleId: data.roleId,
+        departmentId: data.departmentId || null,
+        poste: data.poste || null,
+        posteId: data.posteId || null,
+        siteId: data.siteId || null,
+        managerId: data.managerId || null,
+      },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error("Cet email est déjà utilisé par un autre utilisateur.");
+    }
+    throw err;
+  }
 
   await logAudit({
     userId: session.user.id,
