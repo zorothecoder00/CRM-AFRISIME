@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAction } from "@/hooks/use-action";
-import { sendMessage, markConversationRead } from "@/actions/message.actions";
+import { sendMessage, markConversationRead, deleteMessage } from "@/actions/message.actions";
 import { splitMentionSegments } from "@/lib/mentions";
 import { Button } from "@/components/ui/button";
 import { MentionTextarea, type MentionCandidate } from "@/components/shared/mention-textarea";
@@ -11,7 +11,7 @@ import { ReactionPicker, type ReactionData } from "@/components/shared/reaction-
 import { UserAvatar } from "@/components/messages/user-avatar";
 import { UploadButton } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
-import { Paperclip, X, FileText, Send, Smile } from "lucide-react";
+import { Paperclip, X, FileText, Send, Smile, Trash2 } from "lucide-react";
 
 export type MessageData = {
   id: string;
@@ -23,11 +23,19 @@ export type MessageData = {
   reactions: ReactionData[];
   attachmentUrl: string | null;
   attachmentNom: string | null;
+  isDeleted: boolean;
 };
 
 const QUICK_EMOJIS = ["👍", "🎉", "✅", "❤️", "😂", "🙏", "👏", "🔥", "😮", "💡"];
 
-function MessageContent({ content, mine }: { content: string; mine: boolean }) {
+function MessageContent({ content, mine, isDeleted }: { content: string; mine: boolean; isDeleted: boolean }) {
+  if (isDeleted) {
+    return (
+      <p className={cn("text-sm italic", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
+        Message supprimé
+      </p>
+    );
+  }
   if (!content) return null;
   return (
     <p className="whitespace-pre-wrap text-sm">
@@ -79,6 +87,81 @@ function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function MessageBubble({
+  message,
+  mine,
+  showAvatar,
+  grouped,
+  currentUserId,
+}: {
+  message: MessageData;
+  mine: boolean;
+  showAvatar: boolean;
+  grouped: boolean;
+  currentUserId: string;
+}) {
+  const { run: remove, isPending: isDeleting } = useAction(deleteMessage);
+
+  return (
+    <div
+      className={cn(
+        "group flex items-end gap-2",
+        mine ? "justify-end" : "justify-start",
+        grouped ? "mt-0.5" : "mt-3"
+      )}
+    >
+      {!mine && (
+        <div className="w-7 shrink-0">
+          {showAvatar && <UserAvatar name={message.authorName} image={message.authorImage} size="sm" />}
+        </div>
+      )}
+      {mine && !message.isDeleted && (
+        <button
+          type="button"
+          onClick={() => remove(message.id)}
+          disabled={isDeleting}
+          aria-label="Supprimer le message"
+          className="mb-1 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <div className={cn("flex max-w-[75%] flex-col gap-1", mine ? "items-end" : "items-start")}>
+        <div
+          className={cn(
+            "space-y-1 rounded-2xl px-3.5 py-2 shadow-sm",
+            mine
+              ? "rounded-br-sm bg-primary text-primary-foreground"
+              : "rounded-bl-sm border bg-card text-card-foreground"
+          )}
+        >
+          {message.attachmentUrl && (
+            <a
+              href={message.attachmentUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-colors",
+                mine ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-muted hover:bg-muted/70"
+              )}
+            >
+              <FileText className="h-4 w-4 shrink-0" />
+              <span className="truncate">{message.attachmentNom}</span>
+            </a>
+          )}
+          <MessageContent content={message.content} mine={mine} isDeleted={message.isDeleted} />
+          <div className={cn("text-right text-[10px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
+            {new Date(message.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        </div>
+        {!message.isDeleted && (
+          <ReactionPicker messageId={message.id} reactions={message.reactions} currentUserId={currentUserId} />
+        )}
+      </div>
     </div>
   );
 }
@@ -148,46 +231,14 @@ export function MessageThread({
           const grouped = !!previous && previous.authorId === message.authorId;
 
           return (
-            <div
+            <MessageBubble
               key={message.id}
-              className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start", grouped ? "mt-0.5" : "mt-3")}
-            >
-              {!mine && (
-                <div className="w-7 shrink-0">
-                  {showAvatar && <UserAvatar name={message.authorName} image={message.authorImage} size="sm" />}
-                </div>
-              )}
-              <div className={cn("flex max-w-[75%] flex-col gap-1", mine ? "items-end" : "items-start")}>
-                <div
-                  className={cn(
-                    "space-y-1 rounded-2xl px-3.5 py-2 shadow-sm",
-                    mine
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm border bg-card text-card-foreground"
-                  )}
-                >
-                  {message.attachmentUrl && (
-                    <a
-                      href={message.attachmentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-colors",
-                        mine ? "bg-primary-foreground/10 hover:bg-primary-foreground/20" : "bg-muted hover:bg-muted/70"
-                      )}
-                    >
-                      <FileText className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{message.attachmentNom}</span>
-                    </a>
-                  )}
-                  <MessageContent content={message.content} mine={mine} />
-                  <div className={cn("text-right text-[10px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                    {new Date(message.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                </div>
-                <ReactionPicker messageId={message.id} reactions={message.reactions} currentUserId={currentUserId} />
-              </div>
-            </div>
+              message={message}
+              mine={mine}
+              showAvatar={showAvatar}
+              grouped={grouped}
+              currentUserId={currentUserId}
+            />
           );
         })}
         <div ref={bottomRef} />

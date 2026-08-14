@@ -166,3 +166,40 @@ export async function toggleReaction(input: AddReactionInput) {
     revalidatePath(`/messages/${message.conversationId}`);
   }
 }
+
+/**
+ * Suppression douce d'un message, par son auteur uniquement (comme
+ * WhatsApp/Slack) : le contenu et la pièce jointe sont effacés, la ligne
+ * reste pour garder la place dans le fil ("Message supprimé").
+ */
+export async function deleteMessage(messageId: string) {
+  const session = await requireSession();
+
+  const message = await prisma.message.findUniqueOrThrow({ where: { id: messageId } });
+  if (message.authorId !== session.user.id) {
+    throw new Error("Vous ne pouvez supprimer que vos propres messages.");
+  }
+  if (message.deletedAt) return;
+
+  await prisma.message.update({
+    where: { id: messageId },
+    data: {
+      deletedAt: new Date(),
+      content: "",
+      attachmentUrl: null,
+      attachmentNom: null,
+      attachmentMimeType: null,
+      attachmentSizeBytes: null,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "message.deleted",
+    entityType: "Message",
+    entityId: messageId,
+    changes: {},
+  });
+
+  revalidatePath(`/messages/${message.conversationId}`);
+}

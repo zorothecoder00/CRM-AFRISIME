@@ -186,6 +186,7 @@ export default async function ProjectDetailPage({
     reactions: m.reactions.map((r) => ({ emoji: r.emoji, userId: r.userId, userName: r.user.name })),
     attachmentUrl: m.attachmentUrl,
     attachmentNom: m.attachmentNom,
+    isDeleted: !!m.deletedAt,
   }));
 
   // Charge de travail restreinte a l'equipe du projet et a ses taches

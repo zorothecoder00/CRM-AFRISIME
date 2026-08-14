@@ -41,6 +41,7 @@ export default async function TeamDiscussionPage({
     reactions: m.reactions.map((r) => ({ emoji: r.emoji, userId: r.userId, userName: r.user.name })),
     attachmentUrl: m.attachmentUrl,
     attachmentNom: m.attachmentNom,
+    isDeleted: !!m.deletedAt,
   }));
 
   return (

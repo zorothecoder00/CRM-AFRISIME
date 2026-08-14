@@ -2125,6 +2125,10 @@ model Message {
   attachmentMimeType  String?
   attachmentSizeBytes Int?
   createdAt           DateTime     @default(now())
+  // Suppression douce, par l'auteur uniquement : le contenu/pièce jointe
+  // sont effacés mais la ligne reste (garde la place dans le fil, comme
+  // WhatsApp/Slack — "Message supprimé" plutôt qu'un trou silencieux).
+  deletedAt           DateTime?
 
   reactions Reaction[]
   documents Document[]
