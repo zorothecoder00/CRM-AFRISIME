@@ -233,6 +233,9 @@ enum AutomationActionType {
 enum IntegrationType {
   AFRIGES
   M365
+  GOOGLE_WORKSPACE
+  SLACK
+  VISIOCONFERENCE
   WHATSAPP
   AUTRE
 }
@@ -301,6 +304,7 @@ model User {
   strategicAxesCreated             StrategicAxis[]
   tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                      @relation("TaskCreatedBy")
+  checklistItemsResponsable        ChecklistItem[]             @relation("ChecklistItemResponsable")
   taskAssignments                  TaskAssignee[]
   comments                         TaskComment[]
   auditLogs                        AuditLog[]
@@ -425,6 +429,11 @@ model PermissionOverride {
   department    Department?      @relation(fields: [departmentId], references: [id])
   projectId     String?
   project       Project?         @relation(fields: [projectId], references: [id])
+  // Portée équipe (cahier des charges §19 : droits « par rôle, département,
+  // projet ou équipe ») — distincte du scope projet, s'appuie sur une vraie
+  // Team plutôt que sur l'approximation "équipe = membres d'un projet".
+  teamId        String?
+  team          Team?            @relation(fields: [teamId], references: [id])
   effect        PermissionEffect @default(GRANT)
   createdById   String
   createdBy     User             @relation("PermissionOverrideCreatedBy", fields: [createdById], references: [id])
@@ -433,6 +442,7 @@ model PermissionOverride {
   @@index([userId, permissionKey])
   @@index([departmentId])
   @@index([projectId])
+  @@index([teamId])
 }
 
 model Department {
@@ -474,6 +484,7 @@ model Team {
 
   members      TeamMember[]
   conversation Conversation?
+  permissionOverrides PermissionOverride[]
 
   @@index([departmentId])
 }
@@ -1276,13 +1287,18 @@ model TaskAssignee {
 }
 
 model ChecklistItem {
-  id        String   @id @default(cuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id])
-  label     String
-  isDone    Boolean  @default(false)
-  ordre     Int      @default(0)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id])
+  label         String
+  isDone        Boolean  @default(false)
+  ordre         Int      @default(0)
+  // Responsable/échéance propres (cahier des charges §5 : "chaque niveau
+  // peut avoir son responsable, ses échéances" — jusqu'à la checklist).
+  responsableId String?
+  responsable   User?    @relation("ChecklistItemResponsable", fields: [responsableId], references: [id])
+  echeance      DateTime?
+  createdAt     DateTime @default(now())
 }
 
 model TaskComment {

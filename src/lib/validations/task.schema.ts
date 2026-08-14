@@ -30,6 +30,8 @@ export const addCommentSchema = z.object({
 export const addChecklistItemSchema = z.object({
   taskId: z.string().min(1),
   label: z.string().min(1, "Le libellé est requis."),
+  responsableId: z.string().optional(),
+  echeance: z.string().optional(),
 });
 
 export const addDependencySchema = z.object({

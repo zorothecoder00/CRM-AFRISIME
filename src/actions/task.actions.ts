@@ -290,14 +290,24 @@ export async function addComment(taskId: string, content: string) {
   return comment;
 }
 
-export async function addChecklistItem(taskId: string, label: string) {
+export async function addChecklistItem(
+  taskId: string,
+  label: string,
+  responsableId?: string,
+  echeance?: string
+) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
 
-  const data = addChecklistItemSchema.parse({ taskId, label });
+  const data = addChecklistItemSchema.parse({ taskId, label, responsableId, echeance });
 
   const item = await prisma.checklistItem.create({
-    data: { taskId: data.taskId, label: data.label },
+    data: {
+      taskId: data.taskId,
+      label: data.label,
+      responsableId: data.responsableId || undefined,
+      echeance: data.echeance ? new Date(data.echeance) : undefined,
+    },
   });
 
   await logAudit({
@@ -305,7 +315,7 @@ export async function addChecklistItem(taskId: string, label: string) {
     action: "task.checklist_item_added",
     entityType: "Task",
     entityId: data.taskId,
-    changes: { label: item.label },
+    changes: { label: item.label, responsableId: item.responsableId, echeance: item.echeance },
   });
 
   revalidatePath(`/taches/${taskId}`);

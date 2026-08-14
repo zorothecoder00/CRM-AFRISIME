@@ -29,6 +29,7 @@ export async function createPermissionOverride(input: CreatePermissionOverrideIn
       permissionKey: data.permissionKey,
       departmentId: data.scopeType === "DEPARTEMENT" ? data.scopeId : undefined,
       projectId: data.scopeType === "PROJET" ? data.scopeId : undefined,
+      teamId: data.scopeType === "EQUIPE" ? data.scopeId : undefined,
       effect: data.effect,
       createdById: session.user.id,
     },

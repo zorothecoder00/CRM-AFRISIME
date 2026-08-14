@@ -51,7 +51,7 @@ export default async function TaskDetailPage({
       section: true,
       responsablePrincipal: true,
       assignees: { include: { user: true } },
-      checklistItems: { orderBy: { ordre: "asc" } },
+      checklistItems: { include: { responsable: true }, orderBy: { ordre: "asc" } },
       comments: {
         include: { author: true, reactions: { include: { user: true } } },
         orderBy: { createdAt: "asc" },
@@ -82,7 +82,7 @@ export default async function TaskDetailPage({
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
 
-  const [otherTasks, historyEntries, externalCandidates] = await Promise.all([
+  const [otherTasks, historyEntries, externalCandidates, projectMembers] = await Promise.all([
     prisma.task.findMany({
       where: { projectId: task.projectId, id: { not: task.id } },
       select: { id: true, titre: true },
@@ -100,7 +100,20 @@ export default async function TaskDetailPage({
           select: { id: true, prenom: true, nom: true, type: true },
         })
       : Promise.resolve([]),
+    prisma.projectMember.findMany({
+      where: { projectId: task.projectId },
+      include: { user: { select: { id: true, name: true } } },
+    }),
   ]);
+
+  const checklistRows = task.checklistItems.map((item) => ({
+    id: item.id,
+    label: item.label,
+    isDone: item.isDone,
+    responsableId: item.responsableId,
+    responsableName: item.responsable?.name ?? null,
+    echeance: item.echeance ? item.echeance.toISOString() : null,
+  }));
 
   const indicatorRows: IndicatorData[] = task.indicators.map((i) => ({
     id: i.id,
@@ -158,7 +171,11 @@ export default async function TaskDetailPage({
             <CardTitle className="text-base">Checklist</CardTitle>
           </CardHeader>
           <CardContent>
-            <Checklist taskId={task.id} items={task.checklistItems} />
+            <Checklist
+              taskId={task.id}
+              items={checklistRows}
+              members={projectMembers.map((m) => ({ id: m.user.id, name: m.user.name }))}
+            />
           </CardContent>
         </Card>
 

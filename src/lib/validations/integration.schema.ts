@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createIntegrationSchema = z.object({
   nom: z.string().min(2, "Le nom est requis."),
-  type: z.enum(["AFRIGES", "M365", "WHATSAPP", "AUTRE"]),
+  type: z.enum(["AFRIGES", "M365", "GOOGLE_WORKSPACE", "SLACK", "VISIOCONFERENCE", "WHATSAPP", "AUTRE"]),
   apiKey: z.string().optional(),
   webhookUrl: z.string().optional(),
   description: z.string().optional(),

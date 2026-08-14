@@ -29,11 +29,13 @@ export function PermissionOverrideFormDialog({
   permissions,
   departments,
   projects,
+  teams,
 }: {
   users: Option[];
   permissions: PermissionOption[];
   departments: Option[];
   projects: Option[];
+  teams: Option[];
 }) {
   const [open, setOpen] = useState(false);
   const [scopeType, setScopeType] = useState<CreatePermissionOverrideInput["scopeType"]>("DEPARTEMENT");
@@ -59,7 +61,8 @@ export function PermissionOverrideFormDialog({
     }
   }
 
-  const scopeOptions = scopeType === "DEPARTEMENT" ? departments : projects;
+  const scopeOptions = scopeType === "DEPARTEMENT" ? departments : scopeType === "PROJET" ? projects : teams;
+  const scopeLabel = scopeType === "DEPARTEMENT" ? "Département" : scopeType === "PROJET" ? "Projet" : "Équipe";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -141,12 +144,13 @@ export function PermissionOverrideFormDialog({
               <SelectContent>
                 <SelectItem value="DEPARTEMENT">Département</SelectItem>
                 <SelectItem value="PROJET">Projet</SelectItem>
+                <SelectItem value="EQUIPE">Équipe</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label>{scopeType === "DEPARTEMENT" ? "Département" : "Projet"}</Label>
+            <Label>{scopeLabel}</Label>
             <Select onValueChange={(v) => setValue("scopeId", v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner" />

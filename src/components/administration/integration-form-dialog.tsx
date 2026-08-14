@@ -28,6 +28,9 @@ import { Plus } from "lucide-react";
 const TYPES = [
   { value: "AFRIGES", label: "AfriGes (ERP)" },
   { value: "M365", label: "Microsoft 365" },
+  { value: "GOOGLE_WORKSPACE", label: "Google Workspace" },
+  { value: "SLACK", label: "Slack" },
+  { value: "VISIOCONFERENCE", label: "Visioconférence (Teams, Zoom, Meet)" },
   { value: "WHATSAPP", label: "WhatsApp" },
   { value: "AUTRE", label: "Autre" },
 ];

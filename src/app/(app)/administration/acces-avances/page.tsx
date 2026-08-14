@@ -18,14 +18,15 @@ export default async function AccesAvancesPage() {
     redirect("/dashboard");
   }
 
-  const [overrides, users, departments, projects] = await Promise.all([
+  const [overrides, users, departments, projects, teams] = await Promise.all([
     prisma.permissionOverride.findMany({
-      include: { user: true, department: true, project: true, createdBy: true },
+      include: { user: true, department: true, project: true, team: true, createdBy: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.project.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    prisma.team.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
   ]);
 
   return (
@@ -35,8 +36,8 @@ export default async function AccesAvancesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Accès avancés</h1>
           <p className="text-sm text-muted-foreground">
-            Dérogations ciblées par utilisateur, département ou projet — complètent la matrice par rôle
-            (cahier des charges §19). Une dérogation « Refuser » l&apos;emporte toujours sur le rôle.
+            Dérogations ciblées par utilisateur, département, projet ou équipe — complètent la matrice par
+            rôle (cahier des charges §19). Une dérogation « Refuser » l&apos;emporte toujours sur le rôle.
           </p>
         </div>
         <PermissionOverrideFormDialog
@@ -44,6 +45,7 @@ export default async function AccesAvancesPage() {
           permissions={PERMISSION_CATALOG}
           departments={departments.map((d) => ({ id: d.id, label: d.name }))}
           projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
+          teams={teams.map((t) => ({ id: t.id, label: t.nom }))}
         />
       </div>
 
@@ -72,7 +74,13 @@ export default async function AccesAvancesPage() {
                     <TableCell className="font-medium">{o.user.name}</TableCell>
                     <TableCell className="text-sm">{PERMISSION_LABELS.get(o.permissionKey) ?? o.permissionKey}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {o.department ? `Département : ${o.department.name}` : o.project ? `Projet : ${o.project.nom}` : "—"}
+                      {o.department
+                        ? `Département : ${o.department.name}`
+                        : o.project
+                          ? `Projet : ${o.project.nom}`
+                          : o.team
+                            ? `Équipe : ${o.team.nom}`
+                            : "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={o.effect === "GRANT" ? "success" : "destructive"}>
