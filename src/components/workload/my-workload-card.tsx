@@ -26,6 +26,7 @@ export function MyWorkloadCard({ workload }: { workload: UserWorkload }) {
         <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <Stat label="Tâches actives" value={String(workload.tacheCount)} />
           <Stat label="Charge estimée" value={`${workload.chargeHeures}h`} />
+          <Stat label="Heures consommées" value={`${workload.heuresConsommeesTotal}h`} />
           <Stat label="Capacité" value={`${workload.capaciteHeures}h / semaine`} />
           <Stat label="Disponibilité" value={`${workload.disponibiliteHeures}h`} />
         </div>

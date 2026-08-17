@@ -11,6 +11,15 @@ const TRIGGER_LABELS: Record<string, string> = {
   PROJECT_OVERDUE: "Le projet est en retard",
   BUDGET_EXCEEDED: "Le budget du projet est dépassé",
   RISK_CRITICAL: "Un risque critique est actif",
+  TASK_CREATED: "Une tâche est créée",
+  TASK_STATUS_CHANGED: "Le statut d'une tâche change",
+  PROJECT_STATUS_CHANGED: "Le statut du projet change",
+  OPPORTUNITY_CREATED: "Une nouvelle opportunité CRM est créée",
+  RISK_CREATED: "Un nouveau risque est créé",
+  DECISION_CREATED: "Une décision est prise",
+  MEETING_CREATED: "Une réunion est créée",
+  EVENT_CREATED: "Un événement est créé",
+  INDICATOR_OFF_TARGET: "Un indicateur s'écarte de sa cible",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -19,6 +28,41 @@ const ACTION_LABELS: Record<string, string> = {
   NOTIFY_STAKEHOLDERS: "Notifier les parties prenantes",
   ESCALATE_TO_MANAGER: "Escalader au manager du responsable",
   MARK_TASK_BLOCKED: "Marquer la tâche comme bloquée",
+  ASSIGN_USER: "Assigner un utilisateur",
+  SEND_EMAIL: "Envoyer un email (journalisé)",
+  CHANGE_STATUS: "Modifier le statut",
+  CREATE_MEETING: "Créer une réunion",
+  CREATE_ADMIN_REQUEST: "Créer une demande",
+  CREATE_RISK: "Créer un risque",
+  GENERATE_REPORT: "Générer un rapport",
+  REQUEST_VALIDATION: "Demander une validation",
+  TRIGGER_WORKFLOW: "Déclencher une autre règle",
+  VERIFY_RESOURCES: "Vérifier les ressources",
+  VERIFY_RISKS: "Vérifier les risques",
+  OPEN_TRACKING_BOARD: "Ouvrir le tableau de suivi",
+};
+
+const CONDITION_FIELD_LABELS: Record<string, string> = {
+  "task.retardJours": "retard tâche (j)",
+  "task.priorite": "priorité tâche",
+  "project.critique": "projet critique",
+  "project.retardJours": "retard projet (j)",
+  "project.budgetDepasse": "budget dépassé",
+  "project.statut": "statut projet",
+  "risk.probabilite": "probabilité risque",
+  "risk.impact": "impact risque",
+  "risk.criticite": "criticité risque",
+  "opportunity.probabilite": "probabilité opportunité",
+  "opportunity.montantEstime": "montant opportunité",
+  "indicator.ecartPourcent": "écart indicateur (%)",
+};
+
+const OPERATOR_LABELS: Record<string, string> = {
+  EQUALS: "=",
+  NOT_EQUALS: "≠",
+  GREATER_THAN: ">",
+  LESS_THAN: "<",
+  CONTAINS: "contient",
 };
 
 export type RuleData = {
@@ -27,7 +71,9 @@ export type RuleData = {
   trigger: string;
   action: string;
   isActive: boolean;
+  projectId: string | null;
   nextTaskTitre: string | null;
+  conditions: { champ: string; operateur: string; valeur: string; connecteur: string }[];
   executions: { id: string; resultat: string; executedAt: string }[];
 };
 
@@ -46,10 +92,22 @@ export function RuleList({ rules, canManage }: { rules: RuleData[]; canManage: b
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Badge variant="outline">Si : {TRIGGER_LABELS[rule.trigger]}</Badge>
-              <Badge variant="secondary">Alors : {ACTION_LABELS[rule.action]}</Badge>
+              <Badge variant="outline">Si : {TRIGGER_LABELS[rule.trigger] ?? rule.trigger}</Badge>
+              <Badge variant="secondary">Alors : {ACTION_LABELS[rule.action] ?? rule.action}</Badge>
+              {!rule.projectId && <Badge variant="outline">Globale</Badge>}
               {!rule.isActive && <Badge variant="destructive">Désactivée</Badge>}
             </div>
+            {rule.conditions.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Si{" "}
+                {rule.conditions.map((c, i) => (
+                  <span key={i}>
+                    {i > 0 && ` ${rule.conditions[i - 1].connecteur} `}
+                    {CONDITION_FIELD_LABELS[c.champ] ?? c.champ} {OPERATOR_LABELS[c.operateur] ?? c.operateur} {c.valeur}
+                  </span>
+                ))}
+              </p>
+            )}
             {rule.nextTaskTitre && (
               <p className="text-sm text-muted-foreground">
                 Tâche créée : « {rule.nextTaskTitre} »

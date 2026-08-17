@@ -8,6 +8,7 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { buildRecurrenceDates } from "@/lib/meeting-recurrence";
+import { runMeetingCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
 import {
   createMeetingSchema,
   updateCompteRenduSchema,
@@ -72,6 +73,13 @@ export async function createMeeting(input: CreateMeetingInput) {
       });
     }
   }
+
+  await runMeetingCreatedRules({
+    id: meeting.id,
+    titre: meeting.titre,
+    projectId: meeting.projectId,
+    createdById: meeting.createdById,
+  });
 
   revalidatePath("/reunions");
   return meeting;
@@ -158,6 +166,13 @@ export async function addDecision(input: AddDecisionInput) {
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       taskId: task.id,
     },
+  });
+
+  await runMeetingDecisionCreatedRules({
+    id: decision.id,
+    description: decision.description,
+    projectId: meeting.projectId,
+    responsableId: decision.responsableId,
   });
 
   revalidatePath(`/reunions/${data.meetingId}`);

@@ -8,6 +8,7 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { notifyMany } from "@/lib/notify";
 import { computeCriticite } from "@/lib/risk-matrix";
+import { runOrganizationalRiskCreatedRules } from "@/lib/automation";
 import {
   createOrganizationalRiskSchema,
   updateOrganizationalRiskSchema,
@@ -115,6 +116,13 @@ export async function createOrganizationalRisk(input: CreateOrganizationalRiskIn
   });
 
   await notifyRiskStakeholders(risk, session.user.id);
+
+  await runOrganizationalRiskCreatedRules({
+    id: risk.id,
+    titre: risk.titre,
+    responsableId: risk.responsableId,
+    criticite: risk.criticite,
+  });
 
   revalidatePath("/risques");
   return risk;

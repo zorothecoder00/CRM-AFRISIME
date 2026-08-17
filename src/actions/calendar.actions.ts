@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
+import { runEventCreatedRules } from "@/lib/automation";
 import {
   createLeaveSchema,
   decideLeaveSchema,
@@ -112,6 +113,13 @@ export async function createEvent(input: CreateEventInput) {
     entityType: "Event",
     entityId: event.id,
     changes: { titre: event.titre },
+  });
+
+  await runEventCreatedRules({
+    id: event.id,
+    titre: event.titre,
+    projectId: event.projectId,
+    createdById: event.createdById,
   });
 
   revalidatePath("/calendrier");

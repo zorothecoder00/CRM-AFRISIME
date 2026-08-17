@@ -39,6 +39,10 @@ enum RoleKey {
 
 enum ProjectStatus {
   PLANIFIE
+  // Ajoute (V2.2 §8 — orchestration) : declenche le playbook de mise en
+  // route (verification ressources/risques, creation taches, etc.) avant de
+  // passer en EN_COURS.
+  PRET_POUR_EXECUTION
   EN_COURS
   EN_PAUSE
   TERMINE
@@ -215,6 +219,19 @@ enum AutomationTrigger {
   PROJECT_OVERDUE
   BUDGET_EXCEEDED
   RISK_CRITICAL
+  // Ajoutes (V2.2 §7 — automatisation intelligente). Evenementiels, declenches
+  // en ligne depuis le point de creation/changement concerne (voir les
+  // appels run*Rules dans les actions serveur correspondantes) ; seul
+  // INDICATOR_OFF_TARGET rejoint le groupe evalue par le cron quotidien.
+  TASK_CREATED
+  TASK_STATUS_CHANGED
+  PROJECT_STATUS_CHANGED
+  OPPORTUNITY_CREATED
+  RISK_CREATED
+  DECISION_CREATED
+  MEETING_CREATED
+  EVENT_CREATED
+  INDICATOR_OFF_TARGET
 }
 
 enum AutomationActionType {
@@ -224,6 +241,78 @@ enum AutomationActionType {
   // Ajoutes (cahier des charges §22)
   ESCALATE_TO_MANAGER
   MARK_TASK_BLOCKED
+  // Ajoutes (V2.2 §7 — automatisation intelligente)
+  ASSIGN_USER
+  // Journalise l'intention uniquement (voir AutomationExecution.resultat) :
+  // aucun fournisseur d'email n'est cable dans ce MVP.
+  SEND_EMAIL
+  CHANGE_STATUS
+  CREATE_MEETING
+  CREATE_ADMIN_REQUEST
+  CREATE_RISK
+  GENERATE_REPORT
+  REQUEST_VALIDATION
+  TRIGGER_WORKFLOW
+  // Ajoutes (V2.2 §8 — orchestration), utilisees par le playbook type
+  // "Mise en route projet"
+  VERIFY_RESOURCES
+  VERIFY_RISKS
+  OPEN_TRACKING_BOARD
+}
+
+// Condition d'une regle d'automatisation (V2.2 §7.2 — IF/ELSE/AND/OR).
+// Evaluation sequentielle gauche->droite dans l'ordre (pas de parenthesage) :
+// voir evaluateConditions dans src/lib/automation-conditions.ts. `champ` est
+// une cle du registre de champs disponibles par type d'entite declenchante
+// (ex. "task.retardJours", "project.critique", "risk.criticite").
+enum AutomationConditionOperator {
+  EQUALS
+  NOT_EQUALS
+  GREATER_THAN
+  LESS_THAN
+  CONTAINS
+}
+
+enum AutomationConditionConnector {
+  ET
+  OU
+}
+
+model AutomationCondition {
+  id         String                        @id @default(cuid())
+  ruleId     String
+  rule       AutomationRule                @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  champ      String
+  operateur  AutomationConditionOperator
+  valeur     String
+  // S'applique entre cette condition et la suivante (ordre croissant) ;
+  // ignore pour la derniere condition de la regle.
+  connecteur AutomationConditionConnector @default(ET)
+  ordre      Int                           @default(0)
+
+  @@index([ruleId])
+}
+
+// Regroupement nomme de plusieurs AutomationRule executees dans l'ordre pour
+// un meme declencheur (V2.2 §8 — orchestration, ex. "Mise en route projet").
+// Une regle sans playbookId continue de fonctionner de maniere independante
+// comme avant ; une regle avec playbookId est une etape ordonnee du playbook.
+model OrchestrationPlaybook {
+  id          String            @id @default(cuid())
+  nom         String
+  description String?
+  trigger     AutomationTrigger
+  isActive    Boolean           @default(true)
+  projectId   String?
+  project     Project?          @relation(fields: [projectId], references: [id])
+  createdById String
+  createdBy   User              @relation("OrchestrationPlaybookCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+
+  steps AutomationRule[]
+
+  @@index([trigger])
+  @@index([projectId])
 }
 
 // Cahier des charges §21 — cadre générique de connexion à des systèmes
@@ -375,6 +464,8 @@ model User {
   notifications                    Notification[]
   automationRulesCreated           AutomationRule[]            @relation("AutomationRuleCreatedBy")
   automationNextTaskFor            AutomationRule[]            @relation("AutomationNextTaskResponsable")
+  automationAssignedFor            AutomationRule[]            @relation("AutomationAssignUser")
+  orchestrationPlaybooksCreated     OrchestrationPlaybook[]     @relation("OrchestrationPlaybookCreatedBy")
   dashboardPreference              DashboardWidgetPreference?
   integrationsCreated              Integration[]               @relation("IntegrationCreatedBy")
   passwordResetTokens              PasswordResetToken[]
@@ -807,6 +898,7 @@ model Project {
   events              Event[]
   objectives          Objective[]
   automationRules     AutomationRule[]
+  orchestrationPlaybooks OrchestrationPlaybook[]
   permissionOverrides PermissionOverride[]
   whiteboard          Whiteboard?
   conversation        Conversation?
@@ -1311,6 +1403,10 @@ model Task {
   courrier        Courrier?
   adminRequest    AdminRequest?
   indicators      Indicator[]
+  // Competences recherchees pour cette tache (V2.2 §9.2 — allocation
+  // intelligente). Optionnel : le scoring de suggestAssignees se degrade
+  // proprement (critere neutre) si aucune competence n'est renseignee.
+  competencesRequises Competence[] @relation("TaskCompetencesRequises")
 
   @@index([projectId])
   @@index([sectionId])
@@ -1861,6 +1957,7 @@ model Competence {
   createdAt   DateTime @default(now())
 
   users UserCompetence[]
+  tasksRequiring Task[] @relation("TaskCompetencesRequises")
 }
 
 model UserCompetence {
@@ -2217,18 +2314,26 @@ model Notification {
   @@index([userId, isRead])
 }
 
-// Règle d'automatisation (cahier des charges §15) — rattachée à un projet.
-// Les champs de configuration sont tous optionnels au niveau du modèle ;
-// seuls ceux pertinents pour `action` sont utilisés à l'exécution
-// (voir src/lib/automation.ts).
+// Règle d'automatisation (cahier des charges §15 ; étendue V2.2 §7-§8).
+// projectId optionnel depuis V2.2 : une règle peut être globale (déclencheurs
+// CRM/organisationnels non liés à un projet) ou scopée à un projet. Les
+// champs de configuration sont tous optionnels au niveau du modèle ; seuls
+// ceux pertinents pour `action` sont utilisés à l'exécution (voir
+// src/lib/automation.ts). playbookId/ordre : si renseignés, la règle est une
+// étape ordonnée d'un OrchestrationPlaybook (V2.2 §8) plutôt qu'une règle
+// indépendante.
 model AutomationRule {
   id        String               @id @default(cuid())
-  projectId String
-  project   Project              @relation(fields: [projectId], references: [id])
+  projectId String?
+  project   Project?             @relation(fields: [projectId], references: [id])
   nom       String
   trigger   AutomationTrigger
   action    AutomationActionType
   isActive  Boolean              @default(true)
+
+  playbookId String?
+  playbook   OrchestrationPlaybook? @relation(fields: [playbookId], references: [id])
+  ordre      Int                    @default(0)
 
   // Config action CREATE_NEXT_TASK
   nextTaskTitre         String?
@@ -2239,15 +2344,48 @@ model AutomationRule {
   // Config action SEND_REMINDER / déclencheur DEADLINE_APPROACHING
   reminderDelaiJours Int?
 
+  // Config action ASSIGN_USER (V2.2 §7.3)
+  assignUserId String?
+  assignUser   User?   @relation("AutomationAssignUser", fields: [assignUserId], references: [id])
+
+  // Config action CHANGE_STATUS (V2.2 §7.3) — valeur brute de l'enum cible
+  // (TaskStatus ou ProjectStatus selon entityType du contexte déclencheur).
+  changeStatusValue String?
+
+  // Config action CREATE_MEETING (V2.2 §7.3 / §8)
+  meetingTitre      String?
+  meetingDelaiJours Int?
+
+  // Config action CREATE_ADMIN_REQUEST (V2.2 §7.3)
+  adminRequestType  AdminRequestType?
+  adminRequestTitre String?
+
+  // Config action CREATE_RISK (V2.2 §7.3)
+  riskTitre       String?
+  riskProbabilite RiskProbability?
+  riskImpact      RiskImpact?
+
+  // Config action GENERATE_REPORT (V2.2 §7.3) — valeur de ReportType
+  // (src/lib/reports.ts), pas d'enum Prisma dédié pour rester aligné sur la
+  // liste déjà définie côté application.
+  reportType String?
+
+  // Config action TRIGGER_WORKFLOW (V2.2 §7.3) — rechaîne une autre règle.
+  targetRuleId String?
+  targetRule   AutomationRule?  @relation("AutomationTriggerWorkflow", fields: [targetRuleId], references: [id])
+  triggeredBy  AutomationRule[] @relation("AutomationTriggerWorkflow")
+
   createdById String
   createdBy   User     @relation("AutomationRuleCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  conditions AutomationCondition[]
   executions AutomationExecution[]
 
   @@index([projectId])
   @@index([trigger])
+  @@index([playbookId])
 }
 
 // Journal d'exécution — rend le moteur transparent (pas une boîte noire) :
@@ -3036,4 +3174,50 @@ model ChangeRequest {
   updatedAt         DateTime            @updatedAt
 
   @@index([statut])
+}
+
+// ===================== V2.2 §6 — Agents IA specialises =====================
+// Chaque agent est aujourd'hui une fonction deterministe (src/lib/ai-agents.ts,
+// appelee depuis le cron quotidien) qui ecrit des AiAgentInsight a partir des
+// donnees existantes (pilotage, workload, risques, opportunites, indicateurs,
+// validations) : pas d'appel LLM tant qu'aucune cle API n'est configuree.
+// `contenu` est du texte templete aujourd'hui, remplacable demain par un vrai
+// texte genere sans changer le schema.
+enum AiAgentType {
+  PROJECT_MANAGER
+  CRM_MANAGER
+  RISK_MANAGER
+  ANALYST
+  ADMINISTRATIVE_ASSISTANT
+  STRATEGY_ADVISOR
+}
+
+enum AiInsightType {
+  ALERTE
+  RECOMMANDATION
+  RAPPORT
+  ANOMALIE
+}
+
+enum AiInsightStatut {
+  NOUVEAU
+  VU
+  TRAITE
+  IGNORE
+}
+
+model AiAgentInsight {
+  id         String           @id @default(cuid())
+  agent      AiAgentType
+  type       AiInsightType
+  titre      String
+  contenu    String
+  entityType String?
+  entityId   String?
+  statut     AiInsightStatut  @default(NOUVEAU)
+  createdAt  DateTime         @default(now())
+
+  @@index([agent])
+  @@index([statut])
+  @@index([entityType, entityId])
 }

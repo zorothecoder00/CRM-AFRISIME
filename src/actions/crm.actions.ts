@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { runOpportunityCreatedRules } from "@/lib/automation";
 import {
   createOrganizationSchema,
   updateOrganizationSchema,
@@ -197,6 +198,14 @@ export async function createOpportunity(input: CreateOpportunityInput) {
     entityType: "CrmOpportunity",
     entityId: opportunity.id,
     changes: { nom: opportunity.nom },
+  });
+
+  await runOpportunityCreatedRules({
+    id: opportunity.id,
+    nom: opportunity.nom,
+    ownerId: opportunity.ownerId,
+    montantEstime: opportunity.montantEstime ? Number(opportunity.montantEstime) : null,
+    probabilite: opportunity.probabilite,
   });
 
   revalidatePath("/crm/pipeline");

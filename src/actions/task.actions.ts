@@ -10,8 +10,14 @@ import { createNotification, notifyMany } from "@/lib/notify";
 import { parseMentions } from "@/lib/mentions";
 import { logAudit } from "@/lib/audit";
 import { recomputeProjectProgress } from "@/lib/project-progress";
-import { runTaskCompletedRules, runValidationRejectedRules } from "@/lib/automation";
+import {
+  runTaskCompletedRules,
+  runValidationRejectedRules,
+  runTaskCreatedRules,
+  runTaskStatusChangedRules,
+} from "@/lib/automation";
 import { startValidationRun, decideCurrentStep } from "@/lib/validation-workflow";
+import { suggestAssignees, type CandidateScore } from "@/lib/resource-allocation";
 import {
   createTaskSchema,
   updateTaskStatusSchema,
@@ -82,9 +88,23 @@ export async function createTask(input: CreateTaskInput) {
     entityId: task.id,
   });
 
+  await runTaskCreatedRules({
+    id: task.id,
+    titre: task.titre,
+    projectId: task.projectId,
+    responsablePrincipalId: task.responsablePrincipalId,
+    priorite: task.priorite,
+  });
+
   revalidatePath("/taches");
   revalidatePath(`/projets/${data.projectId}`);
   return task;
+}
+
+/** V2.2 §9.2 — allocation intelligente : profils suggérés pour une tâche à créer. */
+export async function suggestTaskAssignees(projectId: string, echeance?: string): Promise<CandidateScore[]> {
+  await requireSession();
+  return suggestAssignees({ projectId, echeance: echeance ? new Date(echeance) : undefined });
 }
 
 export async function updateTaskStatus(taskId: string, statut: string) {
@@ -120,6 +140,13 @@ export async function updateTaskStatus(taskId: string, statut: string) {
       responsablePrincipalId: task.responsablePrincipalId,
     });
   }
+  await runTaskStatusChangedRules({
+    id: task.id,
+    titre: task.titre,
+    projectId: task.projectId,
+    responsablePrincipalId: task.responsablePrincipalId,
+    priorite: task.priorite,
+  });
 
   revalidatePath("/taches");
   revalidatePath(`/taches/${taskId}`);

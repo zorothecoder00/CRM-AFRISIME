@@ -22,6 +22,8 @@ export type ScopePilotage = {
   tachesEnRetard: number;
   tauxRespectDelais: number | null;
   tauxOccupationMoyen: number | null;
+  // V2.2 §10 — répartition à 4 niveaux, en plus de la moyenne ci-dessus.
+  chargeRepartition: { sousCharge: number; chargeNormale: number; surcharge: number };
   risquesCritiques: number;
   scoreEvaluationMoyen: number | null;
 };
@@ -111,6 +113,11 @@ export async function computeScopePilotage(params: {
   );
   const tauxOccupationMoyen =
     workload.length > 0 ? Math.round(workload.reduce((s, w) => s + w.tauxOccupation, 0) / workload.length) : null;
+  const chargeRepartition = {
+    sousCharge: workload.filter((w) => w.statut === "SOUS_CHARGE").length,
+    chargeNormale: workload.filter((w) => w.statut === "CHARGE_NORMALE").length,
+    surcharge: workload.filter((w) => w.statut === "SURCHARGE").length,
+  };
 
   const scoreEvaluationMoyen =
     evaluations.length > 0
@@ -129,6 +136,7 @@ export async function computeScopePilotage(params: {
     tachesEnRetard,
     tauxRespectDelais,
     tauxOccupationMoyen,
+    chargeRepartition,
     risquesCritiques: risks.length,
     scoreEvaluationMoyen,
   };

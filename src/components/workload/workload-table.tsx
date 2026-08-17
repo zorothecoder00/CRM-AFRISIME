@@ -40,6 +40,7 @@ export function WorkloadTable({
               <TableHead>Collaborateur</TableHead>
               <TableHead>Tâches actives</TableHead>
               <TableHead>Charge / Capacité</TableHead>
+              <TableHead>Heures consommées</TableHead>
               <TableHead>Taux d&apos;occupation</TableHead>
               <TableHead>Disponibilité</TableHead>
               <TableHead>Temps moyen de réalisation</TableHead>
@@ -64,6 +65,7 @@ export function WorkloadTable({
                     )}
                   </div>
                 </TableCell>
+                <TableCell>{row.heuresConsommeesTotal}h</TableCell>
                 <TableCell className="min-w-32">
                   <ProgressBar value={row.tauxOccupation} />
                   <span className="text-xs text-muted-foreground">{row.tauxOccupation}%</span>
@@ -76,11 +78,10 @@ export function WorkloadTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    {row.enSurcharge && <Badge variant="destructive">Surcharge</Badge>}
+                    {row.statut === "SURCHARGE" && <Badge variant="destructive">Surcharge</Badge>}
+                    {row.statut === "SOUS_CHARGE" && <Badge variant="outline">Sous-charge</Badge>}
+                    {row.statut === "CHARGE_NORMALE" && <Badge variant="secondary">Charge normale</Badge>}
                     {row.enCongeAujourdhui && <Badge variant="outline">En congé</Badge>}
-                    {!row.enSurcharge && !row.enCongeAujourdhui && (
-                      <Badge variant="secondary">Normal</Badge>
-                    )}
                   </div>
                 </TableCell>
               </TableRow>

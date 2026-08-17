@@ -67,6 +67,14 @@ export function ScopePilotagePanel({ pilotage }: { pilotage: ScopePilotage }) {
         value={pilotage.tauxOccupationMoyen !== null ? `${pilotage.tauxOccupationMoyen}%` : "—"}
         icon={Gauge}
         tone={pilotage.tauxOccupationMoyen !== null && pilotage.tauxOccupationMoyen > 100 ? "danger" : "info"}
+        description={
+          pilotage.chargeRepartition.sousCharge +
+            pilotage.chargeRepartition.chargeNormale +
+            pilotage.chargeRepartition.surcharge >
+          0
+            ? `${pilotage.chargeRepartition.sousCharge} sous-charge · ${pilotage.chargeRepartition.chargeNormale} normale · ${pilotage.chargeRepartition.surcharge} surcharge`
+            : undefined
+        }
       />
 
       <StatCard

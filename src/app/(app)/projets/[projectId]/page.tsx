@@ -120,8 +120,11 @@ export default async function ProjectDetailPage({
       orderBy: { createdAt: "desc" },
     }),
     prisma.automationRule.findMany({
-      where: { projectId },
-      include: { executions: { orderBy: { executedAt: "desc" }, take: 5 } },
+      where: { projectId, playbookId: null },
+      include: {
+        executions: { orderBy: { executedAt: "desc" }, take: 5 },
+        conditions: { orderBy: { ordre: "asc" } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.projectMember.findMany({
@@ -373,7 +376,14 @@ export default async function ProjectDetailPage({
     trigger: r.trigger,
     action: r.action,
     isActive: r.isActive,
+    projectId: r.projectId,
     nextTaskTitre: r.nextTaskTitre,
+    conditions: r.conditions.map((c) => ({
+      champ: c.champ,
+      operateur: c.operateur,
+      valeur: c.valeur,
+      connecteur: c.connecteur,
+    })),
     executions: r.executions.map((e) => ({
       id: e.id,
       resultat: e.resultat,
@@ -639,7 +649,11 @@ export default async function ProjectDetailPage({
               Règles « si... alors... » déclenchées automatiquement pour ce projet.
             </p>
             {canManageAutomation && (
-              <RuleFormDialog projectId={project.id} users={userOptions} />
+              <RuleFormDialog
+                projectId={project.id}
+                users={userOptions}
+                existingRules={rules.map((r) => ({ id: r.id, label: r.nom }))}
+              />
             )}
           </div>
           <RuleList rules={ruleData} canManage={canManageAutomation} />

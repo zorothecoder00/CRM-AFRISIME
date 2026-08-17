@@ -167,15 +167,17 @@ export default async function DepartmentPilotagePage({
           <h2 className="text-lg font-medium">Équipes de cette unité ({teams.length})</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {teams.map((t) => (
-              <Card key={t.id} size="sm">
-                <CardContent className="space-y-1 py-3">
-                  <div className="text-sm font-medium">{t.nom}</div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline">{t._count.members} membre(s)</Badge>
-                    {t.leader && <Badge variant="secondary">{t.leader.name}</Badge>}
-                  </div>
-                </CardContent>
-              </Card>
+              <Link key={t.id} href={`/pilotage/equipe/${t.id}`}>
+                <Card size="sm" className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+                  <CardContent className="space-y-1 py-3">
+                    <div className="text-sm font-medium">{t.nom}</div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Badge variant="outline">{t._count.members} membre(s)</Badge>
+                      {t.leader && <Badge variant="secondary">{t.leader.name}</Badge>}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>

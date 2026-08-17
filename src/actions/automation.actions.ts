@@ -22,15 +22,37 @@ export async function createRule(input: CreateRuleInput) {
 
   const rule = await prisma.automationRule.create({
     data: {
-      projectId: data.projectId,
+      projectId: data.projectId || undefined,
       nom: data.nom,
       trigger: data.trigger,
       action: data.action,
+      playbookId: data.playbookId || undefined,
+      ordre: data.ordre ? Number(data.ordre) : undefined,
       nextTaskTitre: data.nextTaskTitre,
       nextTaskResponsableId: data.nextTaskResponsableId || undefined,
       nextTaskDelaiJours: data.nextTaskDelaiJours ? Number(data.nextTaskDelaiJours) : undefined,
       reminderDelaiJours: data.reminderDelaiJours ? Number(data.reminderDelaiJours) : undefined,
+      assignUserId: data.assignUserId || undefined,
+      changeStatusValue: data.changeStatusValue || undefined,
+      meetingTitre: data.meetingTitre || undefined,
+      meetingDelaiJours: data.meetingDelaiJours ? Number(data.meetingDelaiJours) : undefined,
+      adminRequestType: data.adminRequestType || undefined,
+      adminRequestTitre: data.adminRequestTitre || undefined,
+      riskTitre: data.riskTitre || undefined,
+      riskProbabilite: data.riskProbabilite || undefined,
+      riskImpact: data.riskImpact || undefined,
+      reportType: data.reportType || undefined,
+      targetRuleId: data.targetRuleId || undefined,
       createdById: session.user.id,
+      conditions: {
+        create: data.conditions.map((c, index) => ({
+          champ: c.champ,
+          operateur: c.operateur,
+          valeur: c.valeur,
+          connecteur: c.connecteur,
+          ordre: index,
+        })),
+      },
     },
   });
 
@@ -43,7 +65,8 @@ export async function createRule(input: CreateRuleInput) {
   });
 
   revalidatePath("/automatisations");
-  revalidatePath(`/projets/${data.projectId}`);
+  revalidatePath("/orchestration");
+  if (data.projectId) revalidatePath(`/projets/${data.projectId}`);
   return rule;
 }
 
@@ -64,6 +87,7 @@ export async function toggleRuleActive(ruleId: string, isActive: boolean) {
   });
 
   revalidatePath("/automatisations");
-  revalidatePath(`/projets/${rule.projectId}`);
+  revalidatePath("/orchestration");
+  if (rule.projectId) revalidatePath(`/projets/${rule.projectId}`);
   return rule;
 }

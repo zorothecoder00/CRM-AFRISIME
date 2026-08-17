@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { createNotification } from "@/lib/notify";
+import { runGovernanceDecisionCreatedRules } from "@/lib/automation";
 import {
   createInstanceSchema,
   addInstanceMemberSchema,
@@ -192,6 +193,12 @@ export async function addGovernanceDecision(input: AddGovernanceDecisionInput) {
     entityType: "GovernanceDecision",
     entityId: decision.id,
     changes: { objet: decision.objet, meetingId: data.meetingId },
+  });
+
+  await runGovernanceDecisionCreatedRules({
+    id: decision.id,
+    objet: decision.objet,
+    responsableId: decision.responsableId,
   });
 
   if (data.responsableId !== session.user.id) {

@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
-import { createTask } from "@/actions/task.actions";
+import { createTask, suggestTaskAssignees } from "@/actions/task.actions";
+import type { CandidateScore } from "@/lib/resource-allocation";
 import { createTaskSchema, type CreateTaskInput } from "@/lib/validations/task.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,11 +46,13 @@ export function TaskFormDialog({
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<CandidateScore[] | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     reset,
     formState: { errors },
   } = useForm<CreateTaskInput>({
@@ -57,6 +60,13 @@ export function TaskFormDialog({
     defaultValues: { priorite: "MOYENNE" },
   });
   const { run: submit, isPending } = useAction(createTask, { successMessage: "Tâche créée." });
+  const { run: suggest, isPending: isSuggesting } = useAction(suggestTaskAssignees);
+
+  async function handleSuggest() {
+    if (!selectedProjectId) return;
+    const result = await suggest(selectedProjectId, getValues("echeance") || undefined);
+    if (result.ok) setSuggestions(result.data);
+  }
 
   const sectionsForProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId)?.sections ?? [],
@@ -69,6 +79,7 @@ export function TaskFormDialog({
       reset();
       setSelectedProjectId(undefined);
       setAssigneeIds([]);
+      setSuggestions(null);
       setOpen(false);
     }
   }
@@ -146,7 +157,21 @@ export function TaskFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Responsable principal</Label>
+              <div className="flex items-center justify-between">
+                <Label>Responsable principal</Label>
+                {selectedProjectId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={handleSuggest}
+                    disabled={isSuggesting}
+                  >
+                    {isSuggesting ? "Analyse..." : "Suggérer un responsable"}
+                  </Button>
+                )}
+              </div>
               <Select onValueChange={(v) => setValue("responsablePrincipalId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner" />
@@ -161,6 +186,32 @@ export function TaskFormDialog({
               </Select>
               {errors.responsablePrincipalId && (
                 <p className="text-sm text-destructive">{errors.responsablePrincipalId.message}</p>
+              )}
+              {suggestions && (
+                <div className="space-y-1 rounded-md border p-2">
+                  {suggestions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Aucun profil disponible.</p>
+                  ) : (
+                    suggestions.map((c) => (
+                      <button
+                        key={c.userId}
+                        type="button"
+                        onClick={() => {
+                          setValue("responsablePrincipalId", c.userId);
+                          setSuggestions(null);
+                        }}
+                        className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs hover:bg-muted"
+                      >
+                        <span>
+                          {c.name} <span className="text-muted-foreground">({c.roleLabel})</span>
+                        </span>
+                        <span className="text-muted-foreground">
+                          {c.scoreTotal}/100 · charge {c.tauxOccupation}%{c.enConge ? " · en congé" : ""}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
               )}
             </div>
 

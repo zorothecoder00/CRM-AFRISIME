@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { runProjectStatusChangedRules, runProjectRiskCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
 import {
   createProjectSchema,
   createSectionSchema,
@@ -200,6 +201,13 @@ export async function updateProjectStatus(projectId: string, statut: string) {
     changes: { statut: data.statut },
   });
 
+  await runProjectStatusChangedRules({
+    id: project.id,
+    nom: project.nom,
+    responsableId: project.responsableId,
+    statut: project.statut,
+  });
+
   revalidatePath("/projets");
   revalidatePath(`/projets/${data.projectId}`);
   return project;
@@ -286,6 +294,15 @@ export async function createProjectRisk(input: CreateProjectRiskInput) {
     entityType: "ProjectRisk",
     entityId: risk.id,
     changes: { titre: risk.titre, projectId: data.projectId },
+  });
+
+  await runProjectRiskCreatedRules({
+    id: risk.id,
+    titre: risk.titre,
+    projectId: risk.projectId,
+    responsableId: risk.responsableId,
+    probabilite: risk.probabilite,
+    impact: risk.impact,
   });
 
   revalidatePath(`/projets/${data.projectId}`);
@@ -584,6 +601,13 @@ export async function createProjectDecision(input: CreateProjectDecisionInput) {
     entityType: "MeetingDecision",
     entityId: decision.id,
     changes: { description: data.description, projectId: data.projectId },
+  });
+
+  await runMeetingDecisionCreatedRules({
+    id: decision.id,
+    description: decision.description,
+    projectId: decision.projectId,
+    responsableId: decision.responsableId,
   });
 
   if (data.responsableId !== session.user.id) {
