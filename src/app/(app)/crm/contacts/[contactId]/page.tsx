@@ -12,6 +12,8 @@ import { RelationshipGraphView } from "@/components/crm/relationship-graph-view"
 import { buildRelationshipGraph } from "@/lib/relationship-graph";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
 import { PortalAccessCard } from "@/components/crm/portal-access-card";
+import { ContactPortalMessagesCard } from "@/components/crm/contact-portal-messages-card";
+import { markPortalMessagesReadByInternal } from "@/actions/portal.actions";
 
 const TYPE_LABELS: Record<string, string> = {
   CLIENT: "Client",
@@ -60,6 +62,7 @@ export default async function CrmContactDetailPage({
         stakeholderOf: { include: { project: true } },
         documentsUploaded: { include: { project: true }, orderBy: { createdAt: "desc" }, take: 10 },
         missions: { include: { project: true }, orderBy: { updatedAt: "desc" } },
+        portalMessages: { orderBy: { createdAt: "asc" } },
       },
     }),
     prisma.crmOrganization.findMany({ orderBy: { nom: "asc" } }),
@@ -72,6 +75,9 @@ export default async function CrmContactDetailPage({
   }
 
   const graph = await buildRelationshipGraph("CrmContact", contact.id);
+  if (canManage) {
+    await markPortalMessagesReadByInternal(contact.id);
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -236,6 +242,18 @@ export default async function CrmContactDetailPage({
               )}
             </CardContent>
           </Card>
+        )}
+
+        {canManage && (
+          <ContactPortalMessagesCard
+            contactId={contact.id}
+            messages={contact.portalMessages.map((m) => ({
+              id: m.id,
+              authorType: m.authorType,
+              content: m.content,
+              createdAt: m.createdAt.toISOString(),
+            }))}
+          />
         )}
 
         {canManage && (

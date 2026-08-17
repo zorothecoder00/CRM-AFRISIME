@@ -9,6 +9,7 @@ import { DecisionsSection } from "@/components/meetings/decisions-section";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { documentUploaderName } from "@/lib/document-uploader";
+import { MeetingExternalParticipantsSection } from "@/components/meetings/meeting-external-participants-section";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -24,13 +25,14 @@ export default async function MeetingDetailPage({
 }) {
   const { meetingId } = await params;
 
-  const [meeting, users] = await Promise.all([
+  const [meeting, users, contacts] = await Promise.all([
     prisma.meeting.findUnique({
       where: { id: meetingId },
       include: {
         project: true,
         createdBy: true,
         participants: { include: { user: true } },
+        externalParticipants: { include: { contact: true }, orderBy: { invitedAt: "asc" } },
         decisions: { include: { responsable: true }, orderBy: { createdAt: "asc" } },
         documents: {
           include: { uploadedBy: true, uploadedByContact: true, task: true, _count: { select: { versions: true } } },
@@ -38,6 +40,7 @@ export default async function MeetingDetailPage({
       },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.crmContact.findMany({ orderBy: { nom: "asc" }, select: { id: true, prenom: true, nom: true } }),
   ]);
 
   if (!meeting) {
@@ -171,6 +174,24 @@ export default async function MeetingDetailPage({
             <CardTitle className="text-base">Organisateur</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">{meeting.createdBy.name}</CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Participants externes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MeetingExternalParticipantsSection
+              meetingId={meeting.id}
+              participants={meeting.externalParticipants.map((p) => ({
+                id: p.id,
+                contactId: p.contactId,
+                contactName: `${p.contact.prenom} ${p.contact.nom}`,
+                rsvp: p.rsvp,
+              }))}
+              contacts={contacts.map((c) => ({ id: c.id, label: `${c.prenom} ${c.nom}` }))}
+            />
+          </CardContent>
         </Card>
 
         {seriesMeetings.length > 1 && (

@@ -4,8 +4,9 @@ import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForOpportunityStatus, accentForOpportunityStatus } from "@/lib/status-tone";
-import { PortalHeader } from "@/components/portal/portal-header";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
+import { PortalShell } from "@/components/portal/portal-shell";
+import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
 import { Mail, Phone, MessageCircle, CalendarClock, MapPin, type LucideIcon } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,7 +47,10 @@ export default async function PortalOpportunityDetailPage({
   const session = await getPortalSession();
   if (!session) redirect("/portail/connexion");
 
-  const contact = await prisma.crmContact.findUnique({ where: { id: session.contactId } });
+  const contact = await prisma.crmContact.findUnique({
+    where: { id: session.contactId },
+    include: { organization: true },
+  });
   if (!contact) redirect("/portail/connexion");
 
   const opportunity = await prisma.crmOpportunity.findUnique({
@@ -70,15 +74,16 @@ export default async function PortalOpportunityDetailPage({
   // d'equipe) restent reservees au personnel, il n'y a pas de champ
   // "visible au client" dans le schema pour les distinguer autrement.
   const clientVisibleInteractions = opportunity.interactions.filter((i) => i.type !== "NOTE");
+  const visibility = await computePortalNavVisibility(contact.id);
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <PortalHeader
-        name={`${contact.prenom} ${contact.nom}`}
-        email={session.email}
-        label={portalLabelForContactType(contact.type)}
-      />
-      <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+    <PortalShell
+      name={`${contact.prenom} ${contact.nom}`}
+      email={session.email}
+      label={portalLabelForContactType(contact.type, contact.organization?.type)}
+      visibility={visibility}
+      maxWidthClassName="max-w-3xl"
+    >
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{opportunity.nom}</h1>
           <Badge variant={toneForOpportunityStatus(opportunity.statut)}>
@@ -138,8 +143,7 @@ export default async function PortalOpportunityDetailPage({
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </PortalShell>
   );
 }
 

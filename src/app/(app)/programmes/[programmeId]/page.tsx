@@ -18,6 +18,7 @@ import { ProgrammeRisksSection, type ProgrammeRiskRow } from "@/components/progr
 import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
 import { ProgressBar } from "@/components/objectives/progress-bar";
 import { ProjectRoadmapView, type RoadmapProjectRow } from "@/components/projects/project-roadmap-view";
+import { BeneficiairesSection } from "@/components/programmes/beneficiaires-section";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -53,6 +54,7 @@ export default async function ProgrammeDetailPage({
         projects: { include: { department: true }, orderBy: { createdAt: "desc" } },
         objectives: { include: { indicators: true }, orderBy: { createdAt: "desc" } },
         risks: { include: { responsable: true }, orderBy: { createdAt: "desc" } },
+        beneficiaires: { orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.project.findMany({
@@ -233,6 +235,19 @@ export default async function ProgrammeDetailPage({
                   projects={availableProjects.map((p) => ({ id: p.id, label: p.nom }))}
                 />
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Bénéficiaires</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BeneficiairesSection
+                programmeId={programme.id}
+                beneficiaires={programme.beneficiaires.map((b) => ({ id: b.id, nom: b.nom, description: b.description }))}
+                canManage={canManage}
+              />
             </CardContent>
           </Card>
         </TabsContent>

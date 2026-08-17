@@ -4,10 +4,11 @@ import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
-import { PortalHeader } from "@/components/portal/portal-header";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalDocumentUploadForm } from "@/components/portal/portal-document-upload-form";
 import { PortalDeliverableReview } from "@/components/portal/portal-deliverable-review";
+import { PortalShell } from "@/components/portal/portal-shell";
+import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
 import { FileText } from "lucide-react";
 
 const VALIDATION_LABELS: Record<string, string> = {
@@ -41,7 +42,10 @@ export default async function PortalMissionDetailPage({
   const session = await getPortalSession();
   if (!session) redirect("/portail/connexion");
 
-  const contact = await prisma.crmContact.findUnique({ where: { id: session.contactId } });
+  const contact = await prisma.crmContact.findUnique({
+    where: { id: session.contactId },
+    include: { organization: true },
+  });
   if (!contact) redirect("/portail/connexion");
 
   const task = await prisma.task.findUnique({
@@ -56,14 +60,16 @@ export default async function PortalMissionDetailPage({
     notFound();
   }
 
+  const visibility = await computePortalNavVisibility(contact.id);
+
   return (
-    <div className="min-h-screen bg-muted/20">
-      <PortalHeader
-        name={`${contact.prenom} ${contact.nom}`}
-        email={session.email}
-        label={portalLabelForContactType(contact.type)}
-      />
-      <main className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+    <PortalShell
+      name={`${contact.prenom} ${contact.nom}`}
+      email={session.email}
+      label={portalLabelForContactType(contact.type, contact.organization?.type)}
+      visibility={visibility}
+      maxWidthClassName="max-w-3xl"
+    >
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold">{task.titre}</h1>
           <Badge variant={toneForStatus(task.statut)}>{STATUS_LABELS[task.statut] ?? task.statut}</Badge>
@@ -140,8 +146,7 @@ export default async function PortalMissionDetailPage({
             <PortalDocumentUploadForm taskId={task.id} />
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </PortalShell>
   );
 }
 

@@ -10,6 +10,7 @@ import { AddVersionForm } from "@/components/documents/add-version-form";
 import { DocumentAccessManager } from "@/components/documents/document-access-manager";
 import { DocumentSignatureForm } from "@/components/documents/document-signature-form";
 import { DocumentArchiveButton } from "@/components/documents/document-archive-button";
+import { DocumentPartageExterneToggle } from "@/components/documents/document-partage-externe-toggle";
 import { RequestExternalValidationButton } from "@/components/documents/request-external-validation-button";
 import { documentUploaderName } from "@/lib/document-uploader";
 
@@ -222,6 +223,12 @@ export default async function DocumentDetailPage({
                   </p>
                 )}
                 <DocumentArchiveButton documentId={document.id} isArchived={document.estArchive} />
+              </div>
+              <div className="border-t pt-3">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Visibilité dans le portail externe (cahier des charges §19) — non partagé par défaut.
+                </p>
+                <DocumentPartageExterneToggle documentId={document.id} partageExterne={document.partageExterne} />
               </div>
               {document.task?.externalContactId && (
                 <div className="space-y-1 border-t pt-3">

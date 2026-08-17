@@ -286,16 +286,16 @@ enum AutomationConditionConnector {
 }
 
 model AutomationCondition {
-  id         String                        @id @default(cuid())
+  id         String                       @id @default(cuid())
   ruleId     String
-  rule       AutomationRule                @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  rule       AutomationRule               @relation(fields: [ruleId], references: [id], onDelete: Cascade)
   champ      String
   operateur  AutomationConditionOperator
   valeur     String
   // S'applique entre cette condition et la suivante (ordre croissant) ;
   // ignore pour la derniere condition de la regle.
   connecteur AutomationConditionConnector @default(ET)
-  ordre      Int                           @default(0)
+  ordre      Int                          @default(0)
 
   @@index([ruleId])
 }
@@ -386,130 +386,132 @@ model User {
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
-  projectsOwned                    Project[]                   @relation("ProjectResponsable")
-  projectsCreated                  Project[]                   @relation("ProjectCreatedBy")
-  projectsSponsored                Project[]                   @relation("ProjectSponsor")
+  projectsOwned                    Project[]                      @relation("ProjectResponsable")
+  projectsCreated                  Project[]                      @relation("ProjectCreatedBy")
+  projectsSponsored                Project[]                      @relation("ProjectSponsor")
   projectMemberships               ProjectMember[]
-  risksResponsable                 ProjectRisk[]               @relation("RiskResponsable")
-  risksCreated                     ProjectRisk[]               @relation("RiskCreatedBy")
-  stakeholderLinks                 ProjectStakeholder[]        @relation("StakeholderUser")
-  deliverablesResponsable          ProjectDeliverable[]        @relation("DeliverableResponsable")
-  deliverablesCreated              ProjectDeliverable[]        @relation("DeliverableCreatedBy")
-  programmeRisksResponsable        ProgrammeRisk[]             @relation("ProgrammeRiskResponsable")
-  programmeRisksCreated            ProgrammeRisk[]             @relation("ProgrammeRiskCreatedBy")
-  delegationsGiven                 Delegation[]                @relation("DelegationDelegant")
-  delegationsReceived              Delegation[]                @relation("DelegationDelegataire")
-  delegationsCreated               Delegation[]                @relation("DelegationCreatedBy")
+  risksResponsable                 ProjectRisk[]                  @relation("RiskResponsable")
+  risksCreated                     ProjectRisk[]                  @relation("RiskCreatedBy")
+  stakeholderLinks                 ProjectStakeholder[]           @relation("StakeholderUser")
+  deliverablesResponsable          ProjectDeliverable[]           @relation("DeliverableResponsable")
+  deliverablesCreated              ProjectDeliverable[]           @relation("DeliverableCreatedBy")
+  programmeRisksResponsable        ProgrammeRisk[]                @relation("ProgrammeRiskResponsable")
+  programmeRisksCreated            ProgrammeRisk[]                @relation("ProgrammeRiskCreatedBy")
+  delegationsGiven                 Delegation[]                   @relation("DelegationDelegant")
+  delegationsReceived              Delegation[]                   @relation("DelegationDelegataire")
+  delegationsCreated               Delegation[]                   @relation("DelegationCreatedBy")
   organizationProfilesUpdated      OrganizationProfile[]
   strategicAxesCreated             StrategicAxis[]
-  tasksOwned                       Task[]                      @relation("TaskResponsablePrincipal")
-  tasksCreated                     Task[]                      @relation("TaskCreatedBy")
-  checklistItemsResponsable        ChecklistItem[]             @relation("ChecklistItemResponsable")
+  tasksOwned                       Task[]                         @relation("TaskResponsablePrincipal")
+  tasksCreated                     Task[]                         @relation("TaskCreatedBy")
+  checklistItemsResponsable        ChecklistItem[]                @relation("ChecklistItemResponsable")
   taskAssignments                  TaskAssignee[]
   comments                         TaskComment[]
   auditLogs                        AuditLog[]
-  meetingsCreated                  Meeting[]                   @relation("MeetingCreatedBy")
+  meetingsCreated                  Meeting[]                      @relation("MeetingCreatedBy")
   meetingParticipations            MeetingParticipant[]
-  meetingDecisionsOwned            MeetingDecision[]           @relation("MeetingDecisionResponsable")
-  documentFoldersCreated           DocumentFolder[]            @relation("DocumentFolderCreatedBy")
-  documentsUploaded                Document[]                  @relation("DocumentUploadedBy")
-  documentsArchived                Document[]                  @relation("DocumentArchivedBy")
-  teamsLed                         Team[]                      @relation("TeamLeader")
-  teamsCreated                     Team[]                      @relation("TeamCreatedBy")
+  meetingDecisionsOwned            MeetingDecision[]              @relation("MeetingDecisionResponsable")
+  documentFoldersCreated           DocumentFolder[]               @relation("DocumentFolderCreatedBy")
+  documentsUploaded                Document[]                     @relation("DocumentUploadedBy")
+  documentsArchived                Document[]                     @relation("DocumentArchivedBy")
+  teamsLed                         Team[]                         @relation("TeamLeader")
+  teamsCreated                     Team[]                         @relation("TeamCreatedBy")
   teamMemberships                  TeamMember[]
-  projectResourcesCreated          ProjectResource[]           @relation("ProjectResourceCreatedBy")
+  projectResourcesCreated          ProjectResource[]              @relation("ProjectResourceCreatedBy")
   competences                      UserCompetence[]
-  competencesCreated                Competence[]               @relation("CompetenceCreatedBy")
-  documentVersionsCreated          DocumentVersion[]           @relation("DocumentVersionCreatedBy")
+  competencesCreated               Competence[]                   @relation("CompetenceCreatedBy")
+  documentVersionsCreated          DocumentVersion[]              @relation("DocumentVersionCreatedBy")
   // Extension v2.0 — Gouvernance
-  governanceInstancesCreated        GovernanceInstance[]            @relation("GovernanceInstanceCreatedBy")
-  governanceMemberships             GovernanceInstanceMember[]      @relation("GovernanceInstanceMemberUser")
-  governanceMeetingsCreated         GovernanceMeeting[]             @relation("GovernanceMeetingCreatedBy")
-  governanceMeetingParticipations   GovernanceMeetingParticipant[]  @relation("GovernanceMeetingParticipantUser")
-  governanceMeetingDocsUploaded     GovernanceMeetingDocument[]     @relation("GovernanceMeetingDocumentUploadedBy")
-  governanceDecisionsResponsable    GovernanceDecision[]            @relation("GovernanceDecisionResponsable")
+  governanceInstancesCreated       GovernanceInstance[]           @relation("GovernanceInstanceCreatedBy")
+  governanceMemberships            GovernanceInstanceMember[]     @relation("GovernanceInstanceMemberUser")
+  governanceMeetingsCreated        GovernanceMeeting[]            @relation("GovernanceMeetingCreatedBy")
+  governanceMeetingParticipations  GovernanceMeetingParticipant[] @relation("GovernanceMeetingParticipantUser")
+  governanceMeetingDocsUploaded    GovernanceMeetingDocument[]    @relation("GovernanceMeetingDocumentUploadedBy")
+  governanceDecisionsResponsable   GovernanceDecision[]           @relation("GovernanceDecisionResponsable")
   // Extension v2.0 — Processus
-  processusResponsable              Processus[]                    @relation("ProcessusResponsable")
-  processusCreated                  Processus[]                    @relation("ProcessusCreatedBy")
-  processusEtapesResponsable        ProcessusEtape[]                @relation("ProcessusEtapeResponsable")
-  processusVersionsCreated          ProcessusVersion[]              @relation("ProcessusVersionCreatedBy")
-  processusExecutionsCreated        ProcessusExecution[]            @relation("ProcessusExecutionCreatedBy")
-  processusDocumentsUploaded        ProcessusDocument[]             @relation("ProcessusDocumentUploadedBy")
+  processusResponsable             Processus[]                    @relation("ProcessusResponsable")
+  processusCreated                 Processus[]                    @relation("ProcessusCreatedBy")
+  processusEtapesResponsable       ProcessusEtape[]               @relation("ProcessusEtapeResponsable")
+  processusVersionsCreated         ProcessusVersion[]             @relation("ProcessusVersionCreatedBy")
+  processusExecutionsCreated       ProcessusExecution[]           @relation("ProcessusExecutionCreatedBy")
+  processusDocumentsUploaded       ProcessusDocument[]            @relation("ProcessusDocumentUploadedBy")
   // Extension v2.0 — Registre des risques organisationnel
-  organizationalRisksResponsable    OrganizationalRisk[]            @relation("OrganizationalRiskResponsable")
-  organizationalRisksCreated        OrganizationalRisk[]            @relation("OrganizationalRiskCreatedBy")
-  complianceObligationsResponsable  ComplianceObligation[]           @relation("ComplianceObligationResponsable")
-  complianceObligationsCreated      ComplianceObligation[]           @relation("ComplianceObligationCreatedBy")
-  complianceControlsPerformed       ComplianceControl[]              @relation("ComplianceControlControlePar")
-  complianceDocumentsUploaded       ComplianceObligationDocument[]   @relation("ComplianceObligationDocumentUploadedBy")
-  nonConformitesDetectees           NonConformite[]                  @relation("NonConformiteDetecteePar")
-  nonConformiteActionsResponsable   NonConformiteAction[]            @relation("NonConformiteActionResponsable")
-  qualityDocumentsResponsable       QualityDocument[]                @relation("QualityDocumentResponsable")
-  qualityDocumentsCreated           QualityDocument[]                @relation("QualityDocumentCreatedBy")
-  qualityControlsPerformed          QualityControl[]                 @relation("QualityControlControlePar")
-  qualityClaimsResponsable          QualityClaim[]                   @relation("QualityClaimResponsable")
-  qualityClaimsCreated              QualityClaim[]                   @relation("QualityClaimCreatedBy")
-  auditPlansCreated                 AuditPlan[]                      @relation("AuditPlanCreatedBy")
-  auditPlanMemberships              AuditPlanMember[]                @relation("AuditPlanMemberUser")
-  auditPlanDocumentsUploaded        AuditPlanDocument[]               @relation("AuditPlanDocumentUploadedBy")
-  auditMissionsCreated              AuditMission[]                    @relation("AuditMissionCreatedBy")
-  auditFindingsResponsable          AuditFinding[]                    @relation("AuditFindingResponsable")
-  incidentsAssigned                 Incident[]                        @relation("IncidentAssigne")
-  incidentsEscaladeA                Incident[]                        @relation("IncidentEscaladeA")
-  incidentsDeclares                 Incident[]                        @relation("IncidentDeclarePar")
-  changeRequestsDemandees           ChangeRequest[]                   @relation("ChangeRequestDemandePar")
-  changeRequestsValidees            ChangeRequest[]                   @relation("ChangeRequestValidatePar")
-  leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
-  leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
-  eventsCreated                    Event[]                     @relation("EventCreatedBy")
-  objectivesOwned                  Objective[]                 @relation("ObjectiveUser")
-  objectivesCreated                Objective[]                 @relation("ObjectiveCreatedBy")
-  conversationsCreated             Conversation[]              @relation("ConversationCreatedBy")
+  organizationalRisksResponsable   OrganizationalRisk[]           @relation("OrganizationalRiskResponsable")
+  organizationalRisksCreated       OrganizationalRisk[]           @relation("OrganizationalRiskCreatedBy")
+  complianceObligationsResponsable ComplianceObligation[]         @relation("ComplianceObligationResponsable")
+  complianceObligationsCreated     ComplianceObligation[]         @relation("ComplianceObligationCreatedBy")
+  complianceControlsPerformed      ComplianceControl[]            @relation("ComplianceControlControlePar")
+  complianceDocumentsUploaded      ComplianceObligationDocument[] @relation("ComplianceObligationDocumentUploadedBy")
+  nonConformitesDetectees          NonConformite[]                @relation("NonConformiteDetecteePar")
+  nonConformiteActionsResponsable  NonConformiteAction[]          @relation("NonConformiteActionResponsable")
+  qualityDocumentsResponsable      QualityDocument[]              @relation("QualityDocumentResponsable")
+  qualityDocumentsCreated          QualityDocument[]              @relation("QualityDocumentCreatedBy")
+  qualityControlsPerformed         QualityControl[]               @relation("QualityControlControlePar")
+  qualityClaimsResponsable         QualityClaim[]                 @relation("QualityClaimResponsable")
+  qualityClaimsCreated             QualityClaim[]                 @relation("QualityClaimCreatedBy")
+  auditPlansCreated                AuditPlan[]                    @relation("AuditPlanCreatedBy")
+  auditPlanMemberships             AuditPlanMember[]              @relation("AuditPlanMemberUser")
+  auditPlanDocumentsUploaded       AuditPlanDocument[]            @relation("AuditPlanDocumentUploadedBy")
+  auditMissionsCreated             AuditMission[]                 @relation("AuditMissionCreatedBy")
+  auditFindingsResponsable         AuditFinding[]                 @relation("AuditFindingResponsable")
+  incidentsAssigned                Incident[]                     @relation("IncidentAssigne")
+  incidentsEscaladeA               Incident[]                     @relation("IncidentEscaladeA")
+  incidentsDeclares                Incident[]                     @relation("IncidentDeclarePar")
+  changeRequestsDemandees          ChangeRequest[]                @relation("ChangeRequestDemandePar")
+  changeRequestsValidees           ChangeRequest[]                @relation("ChangeRequestValidatePar")
+  leaveRequests                    Leave[]                        @relation("LeaveRequestedBy")
+  leaveDecisions                   Leave[]                        @relation("LeaveDecidedBy")
+  eventsCreated                    Event[]                        @relation("EventCreatedBy")
+  objectivesOwned                  Objective[]                    @relation("ObjectiveUser")
+  objectivesCreated                Objective[]                    @relation("ObjectiveCreatedBy")
+  conversationsCreated             Conversation[]                 @relation("ConversationCreatedBy")
   conversationMemberships          ConversationParticipant[]
-  messagesSent                     Message[]                   @relation("MessageAuthor")
+  messagesSent                     Message[]                      @relation("MessageAuthor")
   reactions                        Reaction[]
   notifications                    Notification[]
-  automationRulesCreated           AutomationRule[]            @relation("AutomationRuleCreatedBy")
-  automationNextTaskFor            AutomationRule[]            @relation("AutomationNextTaskResponsable")
-  automationAssignedFor            AutomationRule[]            @relation("AutomationAssignUser")
-  orchestrationPlaybooksCreated     OrchestrationPlaybook[]     @relation("OrchestrationPlaybookCreatedBy")
-  dependenciesCreated               Dependency[]                @relation("DependencyCreatedBy")
-  scenariosCreated                  Scenario[]                  @relation("ScenarioCreatedBy")
-  contractsCreated                  Contract[]                  @relation("ContractCreatedBy")
+  automationRulesCreated           AutomationRule[]               @relation("AutomationRuleCreatedBy")
+  automationNextTaskFor            AutomationRule[]               @relation("AutomationNextTaskResponsable")
+  automationAssignedFor            AutomationRule[]               @relation("AutomationAssignUser")
+  orchestrationPlaybooksCreated    OrchestrationPlaybook[]        @relation("OrchestrationPlaybookCreatedBy")
+  dependenciesCreated              Dependency[]                   @relation("DependencyCreatedBy")
+  scenariosCreated                 Scenario[]                     @relation("ScenarioCreatedBy")
+  contractsCreated                 Contract[]                     @relation("ContractCreatedBy")
+  portalMessagesAuthored           PortalMessage[]                @relation("PortalMessageAuthor")
+  beneficiairesCreated             Beneficiaire[]                 @relation("BeneficiaireCreatedBy")
   dashboardPreference              DashboardWidgetPreference?
-  integrationsCreated              Integration[]               @relation("IntegrationCreatedBy")
+  integrationsCreated              Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens              PasswordResetToken[]
-  validationWorkflowsCreated       ValidationWorkflow[]        @relation("ValidationWorkflowCreatedBy")
-  taskValidationsSubmitted         TaskValidationRun[]         @relation("TaskValidationSubmittedBy")
-  taskApprovalsDecided             TaskApproval[]              @relation("TaskApprovalApprover")
-  permissionOverrides              PermissionOverride[]        @relation("PermissionOverrideTarget")
-  permissionOverridesCreated       PermissionOverride[]        @relation("PermissionOverrideCreatedBy")
-  sectionsResponsable              ProjectSection[]            @relation("SectionResponsable")
-  sectionComments                  SectionComment[]            @relation("SectionCommentAuthor")
-  whiteboardsUpdated               Whiteboard[]                @relation("WhiteboardUpdatedBy")
-  documentAccessGrants             DocumentAccess[]            @relation("DocumentAccessGrantee")
-  crmOrganizationsOwned            CrmOrganization[]           @relation("CrmOrganizationOwner")
-  crmOrganizationsCreated          CrmOrganization[]           @relation("CrmOrganizationCreatedBy")
-  crmContactsOwned                 CrmContact[]                @relation("CrmContactOwner")
-  crmContactsCreated               CrmContact[]                @relation("CrmContactCreatedBy")
-  crmOpportunitiesOwned            CrmOpportunity[]            @relation("CrmOpportunityOwner")
-  crmOpportunitiesCreated          CrmOpportunity[]            @relation("CrmOpportunityCreatedBy")
-  crmInteractionsAuthored          CrmInteraction[]            @relation("CrmInteractionAuthor")
-  programmesOwned                  Programme[]                 @relation("ProgrammeResponsable")
-  programmesCreated                Programme[]                 @relation("ProgrammeCreatedBy")
-  adminRequestsCreated             AdminRequest[]              @relation("AdminRequestDemandeur")
-  adminRequestValidationsSubmitted AdminRequestValidationRun[] @relation("AdminRequestValidationSubmittedBy")
-  adminRequestApprovalsDecided     AdminRequestApproval[]      @relation("AdminRequestApprovalApprover")
-  plansOwned                       Plan[]                      @relation("PlanOwner")
-  plansCreated                     Plan[]                      @relation("PlanCreatedBy")
-  evaluationsRecues                Evaluation[]                @relation("EvaluationEvalue")
-  evaluationsMenees                Evaluation[]                @relation("EvaluationEvaluateur")
-  evaluationsCreees                Evaluation[]                @relation("EvaluationCreatedBy")
-  knowledgeCategoriesCreated       KnowledgeCategory[]         @relation("KnowledgeCategoryCreatedBy")
-  knowledgeArticlesAuthored        KnowledgeArticle[]          @relation("KnowledgeArticleAuthor")
-  portalAccountsInvited            PortalAccount[]             @relation("PortalAccountInvitedBy")
-  courriersResponsable             Courrier[]                  @relation("CourrierResponsable")
-  courriersCreated                 Courrier[]                  @relation("CourrierCreatedBy")
+  validationWorkflowsCreated       ValidationWorkflow[]           @relation("ValidationWorkflowCreatedBy")
+  taskValidationsSubmitted         TaskValidationRun[]            @relation("TaskValidationSubmittedBy")
+  taskApprovalsDecided             TaskApproval[]                 @relation("TaskApprovalApprover")
+  permissionOverrides              PermissionOverride[]           @relation("PermissionOverrideTarget")
+  permissionOverridesCreated       PermissionOverride[]           @relation("PermissionOverrideCreatedBy")
+  sectionsResponsable              ProjectSection[]               @relation("SectionResponsable")
+  sectionComments                  SectionComment[]               @relation("SectionCommentAuthor")
+  whiteboardsUpdated               Whiteboard[]                   @relation("WhiteboardUpdatedBy")
+  documentAccessGrants             DocumentAccess[]               @relation("DocumentAccessGrantee")
+  crmOrganizationsOwned            CrmOrganization[]              @relation("CrmOrganizationOwner")
+  crmOrganizationsCreated          CrmOrganization[]              @relation("CrmOrganizationCreatedBy")
+  crmContactsOwned                 CrmContact[]                   @relation("CrmContactOwner")
+  crmContactsCreated               CrmContact[]                   @relation("CrmContactCreatedBy")
+  crmOpportunitiesOwned            CrmOpportunity[]               @relation("CrmOpportunityOwner")
+  crmOpportunitiesCreated          CrmOpportunity[]               @relation("CrmOpportunityCreatedBy")
+  crmInteractionsAuthored          CrmInteraction[]               @relation("CrmInteractionAuthor")
+  programmesOwned                  Programme[]                    @relation("ProgrammeResponsable")
+  programmesCreated                Programme[]                    @relation("ProgrammeCreatedBy")
+  adminRequestsCreated             AdminRequest[]                 @relation("AdminRequestDemandeur")
+  adminRequestValidationsSubmitted AdminRequestValidationRun[]    @relation("AdminRequestValidationSubmittedBy")
+  adminRequestApprovalsDecided     AdminRequestApproval[]         @relation("AdminRequestApprovalApprover")
+  plansOwned                       Plan[]                         @relation("PlanOwner")
+  plansCreated                     Plan[]                         @relation("PlanCreatedBy")
+  evaluationsRecues                Evaluation[]                   @relation("EvaluationEvalue")
+  evaluationsMenees                Evaluation[]                   @relation("EvaluationEvaluateur")
+  evaluationsCreees                Evaluation[]                   @relation("EvaluationCreatedBy")
+  knowledgeCategoriesCreated       KnowledgeCategory[]            @relation("KnowledgeCategoryCreatedBy")
+  knowledgeArticlesAuthored        KnowledgeArticle[]             @relation("KnowledgeArticleAuthor")
+  portalAccountsInvited            PortalAccount[]                @relation("PortalAccountInvitedBy")
+  courriersResponsable             Courrier[]                     @relation("CourrierResponsable")
+  courriersCreated                 Courrier[]                     @relation("CourrierCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -616,18 +618,18 @@ model Department {
 // profondeur de l'arbre Department) — une équipe est un groupe transverse
 // ou informel, pas un niveau organisationnel supplementaire.
 model Team {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   nom          String
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id])
   leaderId     String?
-  leader       User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  leader       User?      @relation("TeamLeader", fields: [leaderId], references: [id])
   createdById  String
-  createdBy    User     @relation("TeamCreatedBy", fields: [createdById], references: [id])
-  createdAt    DateTime @default(now())
+  createdBy    User       @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime   @default(now())
 
-  members      TeamMember[]
-  conversation Conversation?
+  members             TeamMember[]
+  conversation        Conversation?
   permissionOverrides PermissionOverride[]
 
   @@index([departmentId])
@@ -832,9 +834,10 @@ model Programme {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  projects   Project[]
-  objectives Objective[]
-  risks      ProgrammeRisk[]
+  projects      Project[]
+  objectives    Objective[]
+  risks         ProgrammeRisk[]
+  beneficiaires Beneficiaire[]
 
   @@index([responsableId])
 }
@@ -900,30 +903,31 @@ model Project {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  members             ProjectMember[]
-  sections            ProjectSection[]
-  tasks               Task[]
-  meetings            Meeting[]
-  documentFolders     DocumentFolder[]
-  documents           Document[]
-  events              Event[]
-  objectives          Objective[]
-  automationRules     AutomationRule[]
+  members                ProjectMember[]
+  sections               ProjectSection[]
+  tasks                  Task[]
+  meetings               Meeting[]
+  documentFolders        DocumentFolder[]
+  documents              Document[]
+  events                 Event[]
+  objectives             Objective[]
+  automationRules        AutomationRule[]
   orchestrationPlaybooks OrchestrationPlaybook[]
-  permissionOverrides PermissionOverride[]
-  whiteboard          Whiteboard?
-  conversation        Conversation?
-  risks               ProjectRisk[]
-  organizationalRisks OrganizationalRisk[]
-  stakeholders        ProjectStakeholder[]
-  milestones          ProjectMilestone[]
-  deliverables        ProjectDeliverable[]
-  autoTaskWorkflows   ValidationWorkflow[]
-  evaluations         Evaluation[]
-  decisions           MeetingDecision[]
-  indicators          Indicator[]
-  resources           ProjectResource[]
-  incidents           Incident[]
+  permissionOverrides    PermissionOverride[]
+  whiteboard             Whiteboard?
+  conversation           Conversation?
+  risks                  ProjectRisk[]
+  organizationalRisks    OrganizationalRisk[]
+  stakeholders           ProjectStakeholder[]
+  milestones             ProjectMilestone[]
+  deliverables           ProjectDeliverable[]
+  autoTaskWorkflows      ValidationWorkflow[]
+  evaluations            Evaluation[]
+  decisions              MeetingDecision[]
+  indicators             Indicator[]
+  resources              ProjectResource[]
+  incidents              Incident[]
+  beneficiaires          Beneficiaire[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1088,18 +1092,18 @@ model ProjectDeliverable {
 // prestation externe... Type libre plutot qu'un enum ferme, la nature des
 // ressources variant trop d'un projet a l'autre.
 model ProjectResource {
-  id            String   @id @default(cuid())
-  projectId     String
-  project       Project  @relation(fields: [projectId], references: [id])
-  nom           String
-  type          String?
-  quantite      Decimal? @db.Decimal(10, 2)
-  unite         String?
-  coutUnitaire  Decimal? @db.Decimal(14, 2)
-  notes         String?
-  createdById   String
-  createdBy     User     @relation("ProjectResourceCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  nom          String
+  type         String?
+  quantite     Decimal? @db.Decimal(10, 2)
+  unite        String?
+  coutUnitaire Decimal? @db.Decimal(14, 2)
+  notes        String?
+  createdById  String
+  createdBy    User     @relation("ProjectResourceCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
 
   @@index([projectId])
 }
@@ -1181,41 +1185,43 @@ model CrmOrganization {
 }
 
 model CrmContact {
-  id             String           @id @default(cuid())
-  prenom         String
-  nom            String
-  email          String?
-  telephone      String?
-  fonction       String?
-  type           CrmContactType   @default(PROSPECT)
-  source         String?
+  id               String           @id @default(cuid())
+  prenom           String
+  nom              String
+  email            String?
+  telephone        String?
+  fonction         String?
+  type             CrmContactType   @default(PROSPECT)
+  source           String?
   // Scoring/segmentation (cahier des charges §II, "Scoring / Segmentation").
   // score : 0-100, saisi manuellement (pas de modele de scoring automatique
   // dans ce MVP). segment : texte libre plutot qu'un enum ferme, les
   // segments d'une organisation variant trop pour etre figes en base.
-  score          Int?
-  segment        String?
+  score            Int?
+  segment          String?
   // Relance planifiee (cahier des charges §II, "Relances") — complete
   // l'alerte automatique "client sans suivi 30 jours" du cron quotidien par
   // une date de relance choisie manuellement par le proprietaire du contact.
   prochaineRelance DateTime?
-  organizationId String?
-  organization   CrmOrganization? @relation(fields: [organizationId], references: [id])
-  notes          String?
-  ownerId        String?
-  owner          User?            @relation("CrmContactOwner", fields: [ownerId], references: [id])
-  createdById    String
-  createdBy      User             @relation("CrmContactCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  organizationId   String?
+  organization     CrmOrganization? @relation(fields: [organizationId], references: [id])
+  notes            String?
+  ownerId          String?
+  owner            User?            @relation("CrmContactOwner", fields: [ownerId], references: [id])
+  createdById      String
+  createdBy        User             @relation("CrmContactCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  opportunities CrmOpportunity[]
-  interactions  CrmInteraction[]
-  portalAccount PortalAccount?
-  missions      Task[]
-  stakeholderOf ProjectStakeholder[]
-  documentsUploaded Document[] @relation("DocumentUploadedByContact")
-  qualityClaims QualityClaim[]
+  opportunities      CrmOpportunity[]
+  interactions       CrmInteraction[]
+  portalAccount      PortalAccount?
+  missions           Task[]
+  stakeholderOf      ProjectStakeholder[]
+  documentsUploaded  Document[]                   @relation("DocumentUploadedByContact")
+  qualityClaims      QualityClaim[]
+  portalMessages     PortalMessage[]
+  meetingInvitations MeetingExternalParticipant[]
 
   @@index([organizationId])
   @@index([ownerId])
@@ -1321,19 +1327,19 @@ enum ContractStatut {
 }
 
 model Contract {
-  id             String          @id @default(cuid())
+  id             String           @id @default(cuid())
   nom            String
   opportunityId  String?
-  opportunity    CrmOpportunity? @relation(fields: [opportunityId], references: [id])
+  opportunity    CrmOpportunity?  @relation(fields: [opportunityId], references: [id])
   organizationId String?
   organization   CrmOrganization? @relation(fields: [organizationId], references: [id])
-  montant        Decimal?        @db.Decimal(14, 2)
+  montant        Decimal?         @db.Decimal(14, 2)
   dateSignature  DateTime?
   dateExpiration DateTime?
-  statut         ContractStatut  @default(ACTIF)
+  statut         ContractStatut   @default(ACTIF)
   createdById    String
-  createdBy      User            @relation("ContractCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime        @default(now())
+  createdBy      User             @relation("ContractCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime         @default(now())
 
   @@index([opportunityId])
   @@index([organizationId])
@@ -1435,22 +1441,22 @@ model Task {
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
 
-  assignees       TaskAssignee[]
-  checklistItems  ChecklistItem[]
-  comments        TaskComment[]
-  documents       Document[]
-  dependsOn       TaskDependency[]   @relation("DependentTask")
-  blocking        TaskDependency[]   @relation("PrerequisiteTask")
-  meetingDecision    MeetingDecision?
-  governanceDecision GovernanceDecision?
-  validationRun      TaskValidationRun?
-  courrier        Courrier?
-  adminRequest    AdminRequest?
-  indicators      Indicator[]
+  assignees           TaskAssignee[]
+  checklistItems      ChecklistItem[]
+  comments            TaskComment[]
+  documents           Document[]
+  dependsOn           TaskDependency[]    @relation("DependentTask")
+  blocking            TaskDependency[]    @relation("PrerequisiteTask")
+  meetingDecision     MeetingDecision?
+  governanceDecision  GovernanceDecision?
+  validationRun       TaskValidationRun?
+  courrier            Courrier?
+  adminRequest        AdminRequest?
+  indicators          Indicator[]
   // Competences recherchees pour cette tache (V2.2 §9.2 — allocation
   // intelligente). Optionnel : le scoring de suggestAssignees se degrade
   // proprement (critere neutre) si aucune competence n'est renseignee.
-  competencesRequises Competence[] @relation("TaskCompetencesRequises")
+  competencesRequises Competence[]        @relation("TaskCompetencesRequises")
 
   @@index([projectId])
   @@index([sectionId])
@@ -1473,18 +1479,18 @@ model TaskAssignee {
 }
 
 model ChecklistItem {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   taskId        String
-  task          Task     @relation(fields: [taskId], references: [id])
+  task          Task      @relation(fields: [taskId], references: [id])
   label         String
-  isDone        Boolean  @default(false)
-  ordre         Int      @default(0)
+  isDone        Boolean   @default(false)
+  ordre         Int       @default(0)
   // Responsable/échéance propres (cahier des charges §5 : "chaque niveau
   // peut avoir son responsable, ses échéances" — jusqu'à la checklist).
   responsableId String?
-  responsable   User?    @relation("ChecklistItemResponsable", fields: [responsableId], references: [id])
+  responsable   User?     @relation("ChecklistItemResponsable", fields: [responsableId], references: [id])
   echeance      DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 }
 
 model TaskComment {
@@ -1570,8 +1576,8 @@ model ValidationWorkflowStep {
   // montant de la demande ne satisfait pas la condition, l'etape est
   // ignoree automatiquement (voir decideAdminRequestCurrentStep) plutot que
   // bloquer le circuit sur une etape qui n'a pas lieu d'etre.
-  montantMin    Decimal?             @db.Decimal(14, 2)
-  montantMax    Decimal?             @db.Decimal(14, 2)
+  montantMin    Decimal?           @db.Decimal(14, 2)
+  montantMax    Decimal?           @db.Decimal(14, 2)
 
   approvals             TaskApproval[]
   adminRequestApprovals AdminRequestApproval[]
@@ -1771,9 +1777,10 @@ model Meeting {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
-  participants MeetingParticipant[]
-  decisions    MeetingDecision[]
-  documents    Document[]
+  participants         MeetingParticipant[]
+  decisions            MeetingDecision[]
+  documents            Document[]
+  externalParticipants MeetingExternalParticipant[]
 
   @@index([projectId])
   @@index([dateHeure])
@@ -1882,45 +1889,51 @@ enum DocumentValidationStatus {
 }
 
 model Document {
-  id           String          @id @default(cuid())
-  projectId    String
-  project      Project         @relation(fields: [projectId], references: [id])
-  folderId     String?
-  folder       DocumentFolder? @relation(fields: [folderId], references: [id])
-  sectionId    String?
-  section      ProjectSection? @relation(fields: [sectionId], references: [id])
-  taskId       String?
-  task         Task?           @relation(fields: [taskId], references: [id])
-  meetingId    String?
-  meeting      Meeting?        @relation(fields: [meetingId], references: [id])
-  messageId    String?
-  message      Message?        @relation(fields: [messageId], references: [id])
-  nom          String
-  description  String?
-  url          String
-  mimeType     String?
-  sizeBytes    Int?
-  type             DocumentType            @default(AUTRE)
-  statutSignature  DocumentSignatureStatus @default(NON_REQUISE)
-  dateSignature    DateTime?
+  id                           String                   @id @default(cuid())
+  projectId                    String
+  project                      Project                  @relation(fields: [projectId], references: [id])
+  folderId                     String?
+  folder                       DocumentFolder?          @relation(fields: [folderId], references: [id])
+  sectionId                    String?
+  section                      ProjectSection?          @relation(fields: [sectionId], references: [id])
+  taskId                       String?
+  task                         Task?                    @relation(fields: [taskId], references: [id])
+  meetingId                    String?
+  meeting                      Meeting?                 @relation(fields: [meetingId], references: [id])
+  messageId                    String?
+  message                      Message?                 @relation(fields: [messageId], references: [id])
+  nom                          String
+  description                  String?
+  url                          String
+  mimeType                     String?
+  sizeBytes                    Int?
+  type                         DocumentType             @default(AUTRE)
+  statutSignature              DocumentSignatureStatus  @default(NON_REQUISE)
+  dateSignature                DateTime?
   // Archivage (cahier des charges §17) : un document archive reste consultable
   // mais disparait des listes par defaut (voir estArchive dans les filtres).
-  estArchive       Boolean                 @default(false)
-  dateArchivage    DateTime?
-  archivedById     String?
-  archivedBy       User?                   @relation("DocumentArchivedBy", fields: [archivedById], references: [id])
+  estArchive                   Boolean                  @default(false)
+  dateArchivage                DateTime?
+  archivedById                 String?
+  archivedBy                   User?                    @relation("DocumentArchivedBy", fields: [archivedById], references: [id])
   validationExterne            DocumentValidationStatus @default(NON_REQUISE)
   dateValidationExterne        DateTime?
   commentaireValidationExterne String?
+  // Isolation des portails externes (modules §16-20) : un document de projet
+  // n'apparait dans /portail/projets/[id] QUE s'il est explicitement marque
+  // partageable en plus d'appartenir a un projet autorise (ProjectStakeholder.
+  // contactId) — sans ce flag, "isole des donnees internes" (exigence §19)
+  // ne serait qu'une intention, pas une garantie.
+  partageExterne               Boolean                  @default(false)
   // Un document depose depuis le portail externe (cahier des charges §21) a
   // uploadedByContactId renseigne et uploadedById null ; l'inverse pour un
   // depot interne classique — jamais les deux a la fois.
-  uploadedById String?
-  uploadedBy   User?           @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
-  uploadedByContactId String?
-  uploadedByContact   CrmContact? @relation("DocumentUploadedByContact", fields: [uploadedByContactId], references: [id])
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  uploadedById                 String?
+  uploadedBy                   User?                    @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+  uploadedByContactId          String?
+  uploadedByContact            CrmContact?              @relation("DocumentUploadedByContact", fields: [uploadedByContactId], references: [id])
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
 
   versions     DocumentVersion[]
   accessGrants DocumentAccess[]
@@ -2000,8 +2013,8 @@ model Competence {
   createdBy   User     @relation("CompetenceCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
 
-  users UserCompetence[]
-  tasksRequiring Task[] @relation("TaskCompetencesRequises")
+  users          UserCompetence[]
+  tasksRequiring Task[]           @relation("TaskCompetencesRequises")
 }
 
 model UserCompetence {
@@ -3174,27 +3187,27 @@ enum IncidentStatut {
 }
 
 model Incident {
-  id              String            @id @default(cuid())
+  id              String         @id @default(cuid())
   type            IncidentType
   titre           String
   description     String?
   // Reutilise l'echelle a 5 niveaux deja definie pour les risques
   // organisationnels (§5) plutot que d'ajouter un enum de criticite de plus.
-  criticite       RiskCriticite     @default(MODERE)
-  statut          IncidentStatut    @default(DECLARE)
+  criticite       RiskCriticite  @default(MODERE)
+  statut          IncidentStatut @default(DECLARE)
   projectId       String?
-  project         Project?          @relation(fields: [projectId], references: [id])
+  project         Project?       @relation(fields: [projectId], references: [id])
   assigneId       String?
-  assigne         User?             @relation("IncidentAssigne", fields: [assigneId], references: [id])
+  assigne         User?          @relation("IncidentAssigne", fields: [assigneId], references: [id])
   analyseCause    String?
-  estEscalade     Boolean           @default(false)
+  estEscalade     Boolean        @default(false)
   escaladeAId     String?
-  escaladeA       User?             @relation("IncidentEscaladeA", fields: [escaladeAId], references: [id])
+  escaladeA       User?          @relation("IncidentEscaladeA", fields: [escaladeAId], references: [id])
   declareParId    String
-  declarePar      User              @relation("IncidentDeclarePar", fields: [declareParId], references: [id])
-  dateDeclaration DateTime          @default(now())
+  declarePar      User           @relation("IncidentDeclarePar", fields: [declareParId], references: [id])
+  dateDeclaration DateTime       @default(now())
   dateCloture     DateTime?
-  createdAt       DateTime          @default(now())
+  createdAt       DateTime       @default(now())
 
   @@index([statut])
   @@index([type])
@@ -3265,15 +3278,15 @@ enum AiInsightStatut {
 }
 
 model AiAgentInsight {
-  id         String           @id @default(cuid())
+  id         String          @id @default(cuid())
   agent      AiAgentType
   type       AiInsightType
   titre      String
   contenu    String
   entityType String?
   entityId   String?
-  statut     AiInsightStatut  @default(NOUVEAU)
-  createdAt  DateTime         @default(now())
+  statut     AiInsightStatut @default(NOUVEAU)
+  createdAt  DateTime        @default(now())
 
   @@index([agent])
   @@index([statut])
@@ -3343,21 +3356,92 @@ enum ScenarioType {
 }
 
 model Scenario {
-  id                     String       @id @default(cuid())
-  nom                    String
-  description            String?
-  type                   ScenarioType
-  deltaEffectifPercent   Decimal?     @db.Decimal(6, 2)
-  deltaRessourcesPercent Decimal?     @db.Decimal(6, 2)
-  deltaProjetsPercent    Decimal?     @db.Decimal(6, 2)
+  id                      String       @id @default(cuid())
+  nom                     String
+  description             String?
+  type                    ScenarioType
+  deltaEffectifPercent    Decimal?     @db.Decimal(6, 2)
+  deltaRessourcesPercent  Decimal?     @db.Decimal(6, 2)
+  deltaProjetsPercent     Decimal?     @db.Decimal(6, 2)
   // Cas NOUVELLE_FILIALE : effectif/ressources/projets ajoutes en absolu.
   nouvelleFilialeEffectif Int?
   nouvelleFilialeProjets  Int?
-  departmentId           String?
-  department             Department?  @relation(fields: [departmentId], references: [id])
-  createdById            String
-  createdBy              User         @relation("ScenarioCreatedBy", fields: [createdById], references: [id])
-  createdAt              DateTime     @default(now())
+  departmentId            String?
+  department              Department?  @relation(fields: [departmentId], references: [id])
+  createdById             String
+  createdBy               User         @relation("ScenarioCreatedBy", fields: [createdById], references: [id])
+  createdAt               DateTime     @default(now())
 
   @@index([departmentId])
+}
+
+// ===================== §16-20 — Portails externes (Client/Partenaire/ =====================
+// ===================== Fournisseur-Prestataire/Investisseur/Institution) ==================
+// Le portail existant (PortalAccount/PortalInviteToken, deja en place) est
+// reutilise tel quel pour l'authentification ; ces modeles ajoutent
+// uniquement les fonctionnalites qui manquaient (messagerie, participation
+// aux reunions, beneficiaires de programme).
+
+// Fil de discussion unique par contact (pas par projet/opportunite) — suffit
+// pour "communiquer"/"echanges" tel que demande dans les 4 modules concernes.
+enum PortalMessageAuthorType {
+  CONTACT
+  INTERNAL
+}
+
+model PortalMessage {
+  id               String                  @id @default(cuid())
+  contactId        String
+  contact          CrmContact              @relation(fields: [contactId], references: [id])
+  authorType       PortalMessageAuthorType
+  authorUserId     String?
+  authorUser       User?                   @relation("PortalMessageAuthor", fields: [authorUserId], references: [id])
+  content          String
+  isReadByContact  Boolean                 @default(false)
+  isReadByInternal Boolean                 @default(false)
+  createdAt        DateTime                @default(now())
+
+  @@index([contactId, createdAt])
+}
+
+// Participation externe a une reunion (V2.2 §17 "participer aux reunions") —
+// parallele a MeetingParticipant (interne, cle composite sur User) plutot
+// qu'une extension de ce modele, meme principe que Dependency a cote de
+// TaskDependency : ne pas alourdir un modele interne deja tres utilise.
+enum MeetingExternalRsvp {
+  EN_ATTENTE
+  CONFIRME
+  DECLINE
+}
+
+model MeetingExternalParticipant {
+  id          String              @id @default(cuid())
+  meetingId   String
+  meeting     Meeting             @relation(fields: [meetingId], references: [id])
+  contactId   String
+  contact     CrmContact          @relation(fields: [contactId], references: [id])
+  rsvp        MeetingExternalRsvp @default(EN_ATTENTE)
+  invitedAt   DateTime            @default(now())
+  respondedAt DateTime?
+
+  @@unique([meetingId, contactId])
+  @@index([contactId])
+}
+
+// Beneficiaire d'un programme/projet (V2.2 §20, portail Institution/Bailleur)
+// — registre minimal, pas de gestion beneficiaire complete (hors perimetre).
+model Beneficiaire {
+  id          String     @id @default(cuid())
+  nom         String
+  description String?
+  programmeId String?
+  programme   Programme? @relation(fields: [programmeId], references: [id])
+  projectId   String?
+  project     Project?   @relation(fields: [projectId], references: [id])
+  createdById String
+  createdBy   User       @relation("BeneficiaireCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime   @default(now())
+
+  @@index([programmeId])
+  @@index([projectId])
 }
