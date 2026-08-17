@@ -342,6 +342,27 @@ model User {
   // Extension v2.0 — Registre des risques organisationnel
   organizationalRisksResponsable    OrganizationalRisk[]            @relation("OrganizationalRiskResponsable")
   organizationalRisksCreated        OrganizationalRisk[]            @relation("OrganizationalRiskCreatedBy")
+  complianceObligationsResponsable  ComplianceObligation[]           @relation("ComplianceObligationResponsable")
+  complianceObligationsCreated      ComplianceObligation[]           @relation("ComplianceObligationCreatedBy")
+  complianceControlsPerformed       ComplianceControl[]              @relation("ComplianceControlControlePar")
+  complianceDocumentsUploaded       ComplianceObligationDocument[]   @relation("ComplianceObligationDocumentUploadedBy")
+  nonConformitesDetectees           NonConformite[]                  @relation("NonConformiteDetecteePar")
+  nonConformiteActionsResponsable   NonConformiteAction[]            @relation("NonConformiteActionResponsable")
+  qualityDocumentsResponsable       QualityDocument[]                @relation("QualityDocumentResponsable")
+  qualityDocumentsCreated           QualityDocument[]                @relation("QualityDocumentCreatedBy")
+  qualityControlsPerformed          QualityControl[]                 @relation("QualityControlControlePar")
+  qualityClaimsResponsable          QualityClaim[]                   @relation("QualityClaimResponsable")
+  qualityClaimsCreated              QualityClaim[]                   @relation("QualityClaimCreatedBy")
+  auditPlansCreated                 AuditPlan[]                      @relation("AuditPlanCreatedBy")
+  auditPlanMemberships              AuditPlanMember[]                @relation("AuditPlanMemberUser")
+  auditPlanDocumentsUploaded        AuditPlanDocument[]               @relation("AuditPlanDocumentUploadedBy")
+  auditMissionsCreated              AuditMission[]                    @relation("AuditMissionCreatedBy")
+  auditFindingsResponsable          AuditFinding[]                    @relation("AuditFindingResponsable")
+  incidentsAssigned                 Incident[]                        @relation("IncidentAssigne")
+  incidentsEscaladeA                Incident[]                        @relation("IncidentEscaladeA")
+  incidentsDeclares                 Incident[]                        @relation("IncidentDeclarePar")
+  changeRequestsDemandees           ChangeRequest[]                   @relation("ChangeRequestDemandePar")
+  changeRequestsValidees            ChangeRequest[]                   @relation("ChangeRequestValidatePar")
   leaveRequests                    Leave[]                     @relation("LeaveRequestedBy")
   leaveDecisions                   Leave[]                     @relation("LeaveDecidedBy")
   eventsCreated                    Event[]                     @relation("EventCreatedBy")
@@ -799,6 +820,7 @@ model Project {
   decisions           MeetingDecision[]
   indicators          Indicator[]
   resources           ProjectResource[]
+  incidents           Incident[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1089,6 +1111,7 @@ model CrmContact {
   missions      Task[]
   stakeholderOf ProjectStakeholder[]
   documentsUploaded Document[] @relation("DocumentUploadedByContact")
+  qualityClaims QualityClaim[]
 
   @@index([organizationId])
   @@index([ownerId])
@@ -2625,5 +2648,392 @@ model OrganizationalRisk {
 
   @@index([projectId])
   @@index([processusId])
+  @@index([statut])
+}
+
+// ===================== v2.0 §6 — Conformite =====================
+
+enum ComplianceObligationType {
+  REGLEMENTAIRE
+  CONTRACTUELLE
+}
+
+enum ComplianceObligationStatut {
+  A_VENIR
+  A_JOUR
+  EN_RETARD
+  NON_CONFORME
+}
+
+enum ComplianceControlResultat {
+  CONFORME
+  NON_CONFORME
+}
+
+model ComplianceObligation {
+  id            String                     @id @default(cuid())
+  code          String?
+  titre         String
+  description   String?
+  type          ComplianceObligationType   @default(REGLEMENTAIRE)
+  echeance      DateTime?
+  responsableId String?
+  responsable   User?                      @relation("ComplianceObligationResponsable", fields: [responsableId], references: [id])
+  statut        ComplianceObligationStatut @default(A_VENIR)
+  createdById   String
+  createdBy     User                       @relation("ComplianceObligationCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  controles      ComplianceControl[]
+  documents      ComplianceObligationDocument[]
+  nonConformites NonConformite[]
+
+  @@index([statut])
+  @@index([echeance])
+}
+
+model ComplianceControl {
+  id            String                    @id @default(cuid())
+  obligationId  String
+  obligation    ComplianceObligation      @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  dateControle  DateTime                  @default(now())
+  resultat      ComplianceControlResultat
+  preuveUrl     String?
+  commentaire   String?
+  controleParId String
+  controlePar   User                      @relation("ComplianceControlControlePar", fields: [controleParId], references: [id])
+  createdAt     DateTime                  @default(now())
+
+  @@index([obligationId])
+}
+
+model ComplianceObligationDocument {
+  id           String               @id @default(cuid())
+  obligationId String
+  obligation   ComplianceObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  nom          String
+  url          String
+  mimeType     String?
+  sizeBytes    Int?
+  uploadedById String
+  uploadedBy   User                 @relation("ComplianceObligationDocumentUploadedBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime             @default(now())
+
+  @@index([obligationId])
+}
+
+// Non-conformites partagees entre Conformite et Qualite (§6/§7) : meme cycle
+// Detection -> Analyse -> Action corrective -> Verification -> Cloture, donc
+// un seul modele plutot que deux presque identiques. `obligationId` n'est
+// renseigne que pour source=CONFORMITE ; une NC qualite reste autonome.
+enum NonConformiteSource {
+  CONFORMITE
+  QUALITE
+}
+
+enum NonConformiteStatut {
+  OUVERTE
+  EN_ANALYSE
+  EN_TRAITEMENT
+  CLOTUREE
+}
+
+model NonConformite {
+  id            String                @id @default(cuid())
+  source        NonConformiteSource
+  titre         String
+  description   String?
+  obligationId  String?
+  obligation    ComplianceObligation? @relation(fields: [obligationId], references: [id])
+  analyse       String?
+  statut        NonConformiteStatut   @default(OUVERTE)
+  detecteeParId String
+  detecteePar   User                  @relation("NonConformiteDetecteePar", fields: [detecteeParId], references: [id])
+  createdAt     DateTime              @default(now())
+
+  actions NonConformiteAction[]
+
+  @@index([source])
+  @@index([obligationId])
+  @@index([statut])
+}
+
+enum NonConformiteActionType {
+  CORRECTIVE
+  PREVENTIVE
+}
+
+enum NonConformiteActionStatut {
+  A_FAIRE
+  EN_COURS
+  FAITE
+  VERIFIEE
+}
+
+model NonConformiteAction {
+  id              String                    @id @default(cuid())
+  nonConformiteId String
+  nonConformite   NonConformite             @relation(fields: [nonConformiteId], references: [id], onDelete: Cascade)
+  type            NonConformiteActionType   @default(CORRECTIVE)
+  description     String
+  responsableId   String?
+  responsable     User?                     @relation("NonConformiteActionResponsable", fields: [responsableId], references: [id])
+  echeance        DateTime?
+  statut          NonConformiteActionStatut @default(A_FAIRE)
+  createdAt       DateTime                  @default(now())
+
+  @@index([nonConformiteId])
+}
+
+// ===================== v2.0 §7 — Qualite =====================
+
+enum QualityDocumentType {
+  POLITIQUE
+  PROCEDURE
+  STANDARD
+}
+
+enum QualityDocumentStatut {
+  BROUILLON
+  PUBLIE
+  ARCHIVE
+}
+
+model QualityDocument {
+  id            String                @id @default(cuid())
+  type          QualityDocumentType
+  titre         String
+  contenu       String?
+  version       Int                   @default(1)
+  statut        QualityDocumentStatut @default(BROUILLON)
+  responsableId String?
+  responsable   User?                 @relation("QualityDocumentResponsable", fields: [responsableId], references: [id])
+  createdById   String
+  createdBy     User                  @relation("QualityDocumentCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([type])
+}
+
+model QualityControl {
+  id            String                    @id @default(cuid())
+  titre         String
+  dateControle  DateTime                  @default(now())
+  resultat      ComplianceControlResultat
+  commentaire   String?
+  controleParId String
+  controlePar   User                      @relation("QualityControlControlePar", fields: [controleParId], references: [id])
+  createdAt     DateTime                  @default(now())
+
+  checklist QualityChecklistItem[]
+}
+
+model QualityChecklistItem {
+  id        String         @id @default(cuid())
+  controlId String
+  control   QualityControl @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  label     String
+  isDone    Boolean        @default(false)
+  ordre     Int            @default(0)
+
+  @@index([controlId])
+}
+
+enum QualityClaimStatut {
+  OUVERTE
+  EN_TRAITEMENT
+  CLOTUREE
+}
+
+model QualityClaim {
+  id            String             @id @default(cuid())
+  titre         String
+  description   String
+  contactId     String?
+  contact       CrmContact?        @relation(fields: [contactId], references: [id])
+  responsableId String?
+  responsable   User?              @relation("QualityClaimResponsable", fields: [responsableId], references: [id])
+  statut        QualityClaimStatut @default(OUVERTE)
+  createdById   String
+  createdBy     User               @relation("QualityClaimCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime           @default(now())
+
+  @@index([statut])
+  @@index([contactId])
+}
+
+// ===================== v2.0 §8 — Audit interne =====================
+
+enum AuditMissionStatut {
+  PREPARATION
+  COLLECTE
+  VERIFICATION
+  RAPPORT
+  CLOTUREE
+}
+
+enum AuditFindingStatut {
+  OUVERT
+  EN_COURS
+  TRAITE
+  CLOS
+}
+
+model AuditPlan {
+  id          String   @id @default(cuid())
+  titre       String
+  dateDebut   DateTime
+  dateFin     DateTime
+  perimetre   String?
+  objectifs   String?
+  criteres    String?
+  createdById String
+  createdBy   User     @relation("AuditPlanCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  equipe    AuditPlanMember[]
+  documents AuditPlanDocument[]
+  missions  AuditMission[]
+}
+
+model AuditPlanMember {
+  id     String    @id @default(cuid())
+  planId String
+  plan   AuditPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  userId String
+  user   User      @relation("AuditPlanMemberUser", fields: [userId], references: [id])
+
+  @@unique([planId, userId])
+  @@index([planId])
+}
+
+model AuditPlanDocument {
+  id           String    @id @default(cuid())
+  planId       String
+  plan         AuditPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  nom          String
+  url          String
+  mimeType     String?
+  sizeBytes    Int?
+  uploadedById String
+  uploadedBy   User      @relation("AuditPlanDocumentUploadedBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime  @default(now())
+
+  @@index([planId])
+}
+
+model AuditMission {
+  id          String             @id @default(cuid())
+  planId      String
+  plan        AuditPlan          @relation(fields: [planId], references: [id])
+  titre       String
+  statut      AuditMissionStatut @default(PREPARATION)
+  rapport     String?
+  createdById String
+  createdBy   User               @relation("AuditMissionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  constats AuditFinding[]
+
+  @@index([planId])
+}
+
+model AuditFinding {
+  id             String             @id @default(cuid())
+  missionId      String
+  mission        AuditMission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  constat        String
+  recommandation String?
+  responsableId  String?
+  responsable    User?              @relation("AuditFindingResponsable", fields: [responsableId], references: [id])
+  echeance       DateTime?
+  statut         AuditFindingStatut @default(OUVERT)
+  createdAt      DateTime           @default(now())
+
+  @@index([missionId])
+}
+
+// ===================== v2.0 §9 — Incidents =====================
+
+enum IncidentType {
+  ORGANISATIONNEL
+  INFORMATIQUE
+  CLIENT
+  PROJET
+  QUALITE
+  SECURITE
+  OPERATIONNEL
+}
+
+enum IncidentStatut {
+  DECLARE
+  QUALIFIE
+  AFFECTE
+  EN_TRAITEMENT
+  VALIDE
+  CLOTURE
+}
+
+model Incident {
+  id              String            @id @default(cuid())
+  type            IncidentType
+  titre           String
+  description     String?
+  // Reutilise l'echelle a 5 niveaux deja definie pour les risques
+  // organisationnels (§5) plutot que d'ajouter un enum de criticite de plus.
+  criticite       RiskCriticite     @default(MODERE)
+  statut          IncidentStatut    @default(DECLARE)
+  projectId       String?
+  project         Project?          @relation(fields: [projectId], references: [id])
+  assigneId       String?
+  assigne         User?             @relation("IncidentAssigne", fields: [assigneId], references: [id])
+  analyseCause    String?
+  estEscalade     Boolean           @default(false)
+  escaladeAId     String?
+  escaladeA       User?             @relation("IncidentEscaladeA", fields: [escaladeAId], references: [id])
+  declareParId    String
+  declarePar      User              @relation("IncidentDeclarePar", fields: [declareParId], references: [id])
+  dateDeclaration DateTime          @default(now())
+  dateCloture     DateTime?
+  createdAt       DateTime          @default(now())
+
+  @@index([statut])
+  @@index([type])
+  @@index([projectId])
+}
+
+// ===================== v2.0 §10 — Gestion des changements =====================
+
+enum ChangeRequestStatut {
+  DEMANDE
+  ANALYSE
+  VALIDATION
+  PLANIFICATION
+  DEPLOIEMENT
+  CLOTURE
+  REJETE
+}
+
+model ChangeRequest {
+  id                String              @id @default(cuid())
+  titre             String
+  description       String?
+  analyseImpact     String?
+  statut            ChangeRequestStatut @default(DEMANDE)
+  demandeParId      String
+  demandePar        User                @relation("ChangeRequestDemandePar", fields: [demandeParId], references: [id])
+  validateParId     String?
+  validatePar       User?               @relation("ChangeRequestValidatePar", fields: [validateParId], references: [id])
+  dateValidation    DateTime?
+  datePlanifiee     DateTime?
+  dateDeploiement   DateTime?
+  planCommunication String?
+  planFormation     String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
   @@index([statut])
 }
