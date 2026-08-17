@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForOpportunityStatus, accentForContactType } from "@/lib/status-tone";
 import { InteractionLog } from "@/components/crm/interaction-log";
+import { RelationshipGraphView } from "@/components/crm/relationship-graph-view";
+import { buildRelationshipGraph } from "@/lib/relationship-graph";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
 import { PortalAccessCard } from "@/components/crm/portal-access-card";
 
@@ -69,6 +71,8 @@ export default async function CrmContactDetailPage({
     notFound();
   }
 
+  const graph = await buildRelationshipGraph("CrmContact", contact.id);
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
@@ -128,6 +132,15 @@ export default async function CrmContactDetailPage({
                 authorName: i.author.name,
               }))}
             />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cartographie des relations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RelationshipGraphView nodes={graph.nodes} edges={graph.edges} />
           </CardContent>
         </Card>
       </div>

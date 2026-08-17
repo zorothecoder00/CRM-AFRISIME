@@ -18,7 +18,7 @@ const BLOCKED_VALIDATION_THRESHOLD_MS = 3 * MS_PER_DAY;
  * que l'insight précédent n'a pas été traité/ignoré, pour ne pas ré-empiler
  * la même alerte chaque jour.
  */
-async function recordInsight(params: {
+export async function recordInsight(params: {
   agent: AiAgentType;
   type: AiInsightType;
   titre: string;

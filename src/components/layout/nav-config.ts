@@ -31,6 +31,8 @@ import {
   ShieldAlert,
   Workflow,
   BrainCircuit,
+  TrendingUp,
+  FlaskConical,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -101,6 +103,9 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Automatisations", href: "/automatisations", icon: Zap, permission: PERMISSIONS.AUTOMATION_READ },
       { title: "Orchestration", href: "/orchestration", icon: Workflow, permission: PERMISSIONS.AUTOMATION_READ },
       { title: "Agents IA", href: "/agents-ia", icon: BrainCircuit, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Prédictions", href: "/predictions", icon: TrendingUp, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Dépendances", href: "/dependances", icon: GitBranch, permission: PERMISSIONS.PROJECT_READ },
+      { title: "Scénarios", href: "/scenarios", icon: FlaskConical, permission: PERMISSIONS.REPORT_EXPORT },
       { title: "Rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },
     ],
   },

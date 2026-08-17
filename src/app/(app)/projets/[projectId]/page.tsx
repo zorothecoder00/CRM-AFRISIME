@@ -27,6 +27,10 @@ import { ProjectMilestonesSection, type MilestoneRow } from "@/components/projec
 import { ProjectDeliverablesSection, type DeliverableRow } from "@/components/projects/project-deliverables-section";
 import { ProjectPilotagePanel } from "@/components/projects/project-pilotage-panel";
 import { computeProjectPilotage } from "@/lib/project-pilotage";
+import { computeProjectPrediction } from "@/lib/predictive-scoring";
+import { getDependenciesFor, checkDependencyRisk, resolveDependencyLabels } from "@/lib/dependencies";
+import { DependencyFormDialog } from "@/components/dependencies/dependency-form-dialog";
+import { DependencyList, type DependencyRow } from "@/components/dependencies/dependency-list";
 import { ensureProjectConversation } from "@/lib/project-conversation";
 import { MessageThread, type MessageData } from "@/components/messages/message-thread";
 import { documentUploaderName } from "@/lib/document-uploader";
@@ -233,6 +237,37 @@ export default async function ProjectDetailPage({
     deliverables: deliverables.map((d) => ({ statut: d.statut })),
     validationRuns,
   });
+
+  const prediction = project.statut === "EN_COURS" ? await computeProjectPrediction(project.id) : null;
+
+  const { upstream: projectDependsOn } = await getDependenciesFor("Project", project.id);
+  const dependencyLabels = await resolveDependencyLabels(
+    projectDependsOn.map((d) => ({ type: d.targetType, id: d.targetId }))
+  );
+  const dependencyRows: DependencyRow[] = await Promise.all(
+    projectDependsOn.map(async (d) => {
+      const risk = await checkDependencyRisk(d);
+      return {
+        id: d.id,
+        sourceLabel: project.nom,
+        targetLabel: dependencyLabels.get(`${d.targetType}:${d.targetId}`) ?? `${d.targetType} (introuvable)`,
+        type: d.type,
+        atRisk: risk.atRisk,
+        riskMessage: risk.message,
+      };
+    })
+  );
+  const otherProjects = await prisma.project.findMany({
+    where: { id: { not: project.id } },
+    orderBy: { nom: "asc" },
+    select: { id: true, nom: true },
+  });
+  const dependencyOptionsByType = {
+    Project: otherProjects.map((p) => ({ id: p.id, label: p.nom })),
+    Team: [],
+    User: [],
+    Processus: [],
+  };
 
   const responsableById = new Map(users.map((u) => [u.id, u.name]));
 
@@ -497,6 +532,45 @@ export default async function ProjectDetailPage({
             Voir le pilotage du département {project.department.name} →
           </Link>
           <ProjectPilotagePanel pilotage={pilotage} />
+          {prediction && (
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Intelligence prédictive</h3>
+                <Link href="/predictions" className="text-xs text-primary hover:underline">
+                  Voir toutes les prédictions →
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <Badge variant={prediction.risqueEchec >= 60 ? "destructive" : prediction.risqueEchec >= 30 ? "secondary" : "outline"}>
+                  Risque d&apos;échec : {prediction.risqueEchec}%
+                </Badge>
+                <Badge variant="outline">Retard : {prediction.probabiliteRetard}%</Badge>
+                <Badge variant="outline">Dépassement : {prediction.probabiliteDepassement}%</Badge>
+              </div>
+              {prediction.facteurs.length > 0 && (
+                <ul className="text-xs text-muted-foreground">
+                  {prediction.facteurs.map((f, i) => (
+                    <li key={i}>• {f}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground">Estimation heuristique, pas un modèle prédictif entraîné.</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Dépendances</h3>
+              {canUpdateProject && (
+                <DependencyFormDialog
+                  optionsByType={dependencyOptionsByType}
+                  defaultSourceType="Project"
+                  defaultSourceId={project.id}
+                />
+              )}
+            </div>
+            <DependencyList dependencies={dependencyRows} canManage={canUpdateProject} />
+          </div>
         </TabsContent>
 
         <TabsContent value="hierarchie" className="mt-4">

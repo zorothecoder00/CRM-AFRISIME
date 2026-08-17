@@ -466,6 +466,8 @@ model User {
   automationNextTaskFor            AutomationRule[]            @relation("AutomationNextTaskResponsable")
   automationAssignedFor            AutomationRule[]            @relation("AutomationAssignUser")
   orchestrationPlaybooksCreated     OrchestrationPlaybook[]     @relation("OrchestrationPlaybookCreatedBy")
+  dependenciesCreated               Dependency[]                @relation("DependencyCreatedBy")
+  scenariosCreated                  Scenario[]                  @relation("ScenarioCreatedBy")
   dashboardPreference              DashboardWidgetPreference?
   integrationsCreated              Integration[]               @relation("IntegrationCreatedBy")
   passwordResetTokens              PasswordResetToken[]
@@ -596,6 +598,7 @@ model Department {
   postes              Poste[]
   sites               Site[]
   teams               Team[]
+  scenarios           Scenario[]
   createdAt           DateTime             @default(now())
 }
 
@@ -3220,4 +3223,86 @@ model AiAgentInsight {
   @@index([agent])
   @@index([statut])
   @@index([entityType, entityId])
+}
+
+// ===================== V2.2 §11 — Intelligence predictive =====================
+// Aucune serie temporelle n'existait dans l'app avant ce module (juste des
+// snapshots "valeur actuelle") : ce modele generique capture un point par
+// jour pour chaque (entite, metrique) suivie, alimente par
+// src/lib/metric-snapshots.ts (cron quotidien). Generique (entityType/metric
+// en String, pas une colonne par metrique) pour ne pas migrer a chaque
+// nouvelle metrique suivie plus tard.
+model MetricSnapshot {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  metric     String
+  valeur     Decimal  @db.Decimal(12, 4)
+  capturedAt DateTime @default(now())
+
+  @@unique([entityType, entityId, metric, capturedAt])
+  @@index([entityType, entityId, metric, capturedAt])
+}
+
+// ===================== V2.2 §13 — Cartographie des dependances =====================
+// Generique (sourceType/targetType en String) plutot qu'une table par paire
+// de types d'entite : le cahier des charges cite 8 types (personnes,
+// equipes, projets, taches, processus, decisions, ressources, partenaires),
+// et de nouveaux types pourront s'ajouter sans migration. Ne remplace PAS
+// TaskDependency (deja existant, UI dediee) qui reste la source de verite
+// pour les dependances tache-a-tache ; ce modele couvre les autres paires
+// (a commencer par Projet -> Projet, le seul exemple detaille du cahier des
+// charges — voir src/lib/dependencies.ts).
+model Dependency {
+  id          String         @id @default(cuid())
+  sourceType  String
+  sourceId    String
+  targetType  String
+  targetId    String
+  type        DependencyType @default(BLOQUE)
+  notes       String?
+  createdById String
+  createdBy   User           @relation("DependencyCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now())
+
+  @@unique([sourceType, sourceId, targetType, targetId])
+  @@index([sourceType, sourceId])
+  @@index([targetType, targetId])
+}
+
+// ===================== V2.2 §14-§15 — Scenario planning & simulation =====================
+// Un seul modele pour les deux modules : §15 ("simulation organisationnelle")
+// est explicitement une comparaison de plusieurs instances de §14
+// ("scenario planning"). Parametres a plat (pas de Json) : chaque scenario du
+// cahier des charges ne combine qu'un seul levier a la fois (sauf
+// NOUVELLE_FILIALE, cas particulier gere en delta absolu plutot qu'en %).
+// Estimation par regle de proportionnalite simple (src/lib/
+// scenario-simulation.ts), pas une simulation ML — presente comme telle a
+// l'affichage.
+enum ScenarioType {
+  EFFECTIF
+  RESSOURCES
+  PROJETS
+  NOUVELLE_FILIALE
+  PERSONNALISE
+}
+
+model Scenario {
+  id                     String       @id @default(cuid())
+  nom                    String
+  description            String?
+  type                   ScenarioType
+  deltaEffectifPercent   Decimal?     @db.Decimal(6, 2)
+  deltaRessourcesPercent Decimal?     @db.Decimal(6, 2)
+  deltaProjetsPercent    Decimal?     @db.Decimal(6, 2)
+  // Cas NOUVELLE_FILIALE : effectif/ressources/projets ajoutes en absolu.
+  nouvelleFilialeEffectif Int?
+  nouvelleFilialeProjets  Int?
+  departmentId           String?
+  department             Department?  @relation(fields: [departmentId], references: [id])
+  createdById            String
+  createdBy              User         @relation("ScenarioCreatedBy", fields: [createdById], references: [id])
+  createdAt              DateTime     @default(now())
+
+  @@index([departmentId])
 }

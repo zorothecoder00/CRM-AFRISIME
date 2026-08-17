@@ -10,6 +10,8 @@ import {
   runIndicatorOffTargetRules,
 } from "@/lib/automation";
 import { runDailyAiAgents } from "@/lib/ai-agents";
+import { captureDailySnapshots } from "@/lib/metric-snapshots";
+import { runDependencyRiskChecks } from "@/lib/dependencies";
 
 // Numéro de semaine ISO — utilisé pour que l'alerte de surcharge (§14) ne se
 // répète qu'une fois par semaine par utilisateur (idempotence via la
@@ -296,10 +298,18 @@ export async function GET(request: NextRequest) {
     runIndicatorOffTargetRules(),
   ]);
 
+  // Snapshots quotidiens (V2.2 §11) — avant les agents IA pour qu'ils
+  // puissent s'appuyer sur des tendances à jour le jour même.
+  await captureDailySnapshots();
+
   // Agents IA (V2.2 §6) — analyse quotidienne déterministe, après les
   // automatisations ci-dessus pour pouvoir s'appuyer sur les mêmes données
   // déjà à jour (retards, risques, charge...).
   await runDailyAiAgents();
+
+  // Dépendances à risque (V2.2 §13) — après les agents IA, réutilise
+  // l'agent PROJECT_MANAGER pour la remontée d'alerte.
+  await runDependencyRiskChecks();
 
   return NextResponse.json({
     usersChecked: users.length,
