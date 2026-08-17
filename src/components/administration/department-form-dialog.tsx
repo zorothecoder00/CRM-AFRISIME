@@ -23,16 +23,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Pencil } from "lucide-react";
 
 type Option = { id: string; label: string };
-type DepartmentEdit = { id: string; name: string; code: string; parentId: string | null };
+type DepartmentEdit = { id: string; name: string; code: string; parentId: string | null; entityId?: string | null };
 
 export function DepartmentFormDialog({
   parentOptions,
+  entities,
   department,
   defaultParentId,
   triggerLabel,
 }: {
   /** Departements eligibles comme parent (deja indentes par profondeur dans le label). */
   parentOptions: Option[];
+  /** Entites disponibles pour le rattachement (uniquement affiche pour un departement racine). */
+  entities?: Option[];
   /** Present = mode edition (renommer, recoder, reparenter). Absent = creation. */
   department?: DepartmentEdit;
   /** Pre-remplit le parent en creation (bouton "Ajouter un sous-departement" depuis l'arbre). */
@@ -45,14 +48,21 @@ export function DepartmentFormDialog({
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<CreateDepartmentInput>({
     resolver: zodResolver(createDepartmentSchema),
     defaultValues: department
-      ? { name: department.name, code: department.code, parentId: department.parentId ?? undefined }
+      ? {
+          name: department.name,
+          code: department.code,
+          parentId: department.parentId ?? undefined,
+          entityId: department.entityId ?? undefined,
+        }
       : { parentId: defaultParentId },
   });
+  const currentParentId = watch("parentId");
   const { run: createRun, isPending: isCreating } = useAction(createDepartment, {
     successMessage: "Département créé.",
   });
@@ -124,6 +134,27 @@ export function DepartmentFormDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {!currentParentId && entities && entities.length > 0 && (
+            <div className="space-y-2">
+              <Label>Entité de rattachement (cahier des charges §22)</Label>
+              <Select defaultValue={department?.entityId ?? undefined} onValueChange={(v) => setValue("entityId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent>
+                  {entities.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Uniquement pour un département racine — détermine le périmètre de consolidation/isolation.
+              </p>
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Enregistrement..." : isEdit ? "Enregistrer" : "Créer"}

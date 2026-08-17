@@ -50,6 +50,9 @@ export async function createDepartment(input: CreateDepartmentInput) {
       name: data.name,
       code: data.code,
       parentId: data.parentId || undefined,
+      // entityId n'est significatif que sur un departement racine — voir
+      // src/lib/entity-scope.ts qui remonte l'arbre jusqu'a la racine.
+      entityId: !data.parentId ? data.entityId || undefined : undefined,
     },
   });
 
@@ -80,6 +83,7 @@ export async function updateDepartment(input: UpdateDepartmentInput) {
       name: data.name,
       code: data.code,
       parentId: data.parentId || null,
+      entityId: !data.parentId ? data.entityId || null : null,
     },
   });
 

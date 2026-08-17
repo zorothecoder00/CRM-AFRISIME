@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { accentForContactType } from "@/lib/status-tone";
 import { ContactFormDialog } from "@/components/crm/contact-form-dialog";
+import { getUserEntityScope, crmContactScopeWhere } from "@/lib/entity-scope";
 
 const TYPE_LABELS: Record<string, string> = {
   CLIENT: "Client",
@@ -25,8 +26,12 @@ export default async function CrmContactsPage() {
   const session = await getServerSession(authOptions);
   const canManage = session!.user.permissions.includes(PERMISSIONS.CRM_MANAGE);
 
+  // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
+  const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);
+
   const [contacts, organizations] = await Promise.all([
     prisma.crmContact.findMany({
+      where: crmContactScopeWhere(entityScope),
       include: { organization: true },
       orderBy: { createdAt: "desc" },
     }),

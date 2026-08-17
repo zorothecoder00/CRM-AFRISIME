@@ -91,24 +91,9 @@ export const deleteProjectRiskSchema = z.object({ riskId: z.string().min(1) });
 
 export type DeleteProjectRiskInput = z.infer<typeof deleteProjectRiskSchema>;
 
-// ---- Parties prenantes (cahier des charges §VI) ----
-
-export const createProjectStakeholderSchema = z.object({
-  projectId: z.string().min(1),
-  nom: z.string().min(2, "Le nom est requis."),
-  role: z.string().optional(),
-  userId: z.string().optional(),
-  contactId: z.string().optional(),
-  influence: z.enum(["FAIBLE", "MOYEN", "ELEVE"]),
-  interet: z.enum(["FAIBLE", "MOYEN", "ELEVE"]),
-  notes: z.string().optional(),
-});
-
-export type CreateProjectStakeholderInput = z.infer<typeof createProjectStakeholderSchema>;
-
-export const deleteProjectStakeholderSchema = z.object({ stakeholderId: z.string().min(1) });
-
-export type DeleteProjectStakeholderInput = z.infer<typeof deleteProjectStakeholderSchema>;
+// Parties prenantes (cahier des charges §VI, etendu V2.2 §21) : voir
+// src/lib/validations/stakeholder.schema.ts et src/actions/stakeholder.actions.ts
+// — plus un profil per-projet, remplace par le modele Stakeholder/StakeholderProject.
 
 // ---- Jalons (cahier des charges §VI) ----
 

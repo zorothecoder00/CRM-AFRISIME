@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
+import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +78,13 @@ export default async function TaskDetailPage({
   });
 
   if (!task) {
+    notFound();
+  }
+
+  // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
+  const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);
+  const allowedDepartmentIds = await getAllowedDepartmentIds(entityScope);
+  if (allowedDepartmentIds && !allowedDepartmentIds.includes(task.project.departmentId)) {
     notFound();
   }
 

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { accentForOrganizationType } from "@/lib/status-tone";
 import { OrganizationFormDialog } from "@/components/crm/organization-form-dialog";
+import { getUserEntityScope, crmOrganizationScopeWhere } from "@/lib/entity-scope";
 
 const TYPE_LABELS: Record<string, string> = {
   ENTREPRISE: "Entreprise",
@@ -21,7 +22,9 @@ export default async function CrmOrganizationsPage() {
   const session = await getServerSession(authOptions);
   const canManage = session!.user.permissions.includes(PERMISSIONS.CRM_MANAGE);
 
+  const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);
   const organizations = await prisma.crmOrganization.findMany({
+    where: crmOrganizationScopeWhere(entityScope),
     include: { _count: { select: { contacts: true, opportunities: true } } },
     orderBy: { createdAt: "desc" },
   });

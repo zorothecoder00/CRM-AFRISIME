@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
+import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
@@ -54,6 +55,12 @@ export default async function ProjetsPage({
   if (scope) andClauses.push(scope);
   if (onlyMine) {
     andClauses.push({ OR: [{ responsableId: userId }, { members: { some: { userId } } }] });
+  }
+  // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
+  const entityScope = await getUserEntityScope(userId, session!.user.permissions);
+  const allowedDepartmentIds = await getAllowedDepartmentIds(entityScope);
+  if (allowedDepartmentIds) {
+    andClauses.push({ departmentId: { in: allowedDepartmentIds } });
   }
   const where: Prisma.ProjectWhereInput | undefined = andClauses.length > 0 ? { AND: andClauses } : undefined;
 

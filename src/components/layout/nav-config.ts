@@ -33,6 +33,9 @@ import {
   BrainCircuit,
   TrendingUp,
   FlaskConical,
+  UserCog,
+  Globe2,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -83,6 +86,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Charge de travail", href: "/charge-de-travail", icon: Gauge, permission: PERMISSIONS.WORKLOAD_READ },
       { title: "Objectifs & KPI", href: "/objectifs", icon: Target, permission: PERMISSIONS.OBJECTIVE_READ },
       { title: "Évaluations", href: "/evaluations", icon: ClipboardCheck, permission: PERMISSIONS.EVALUATION_READ },
+      { title: "Parties prenantes", href: "/parties-prenantes", icon: UserCog, permission: PERMISSIONS.PROJECT_READ },
     ],
   },
   {
@@ -107,6 +111,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Dépendances", href: "/dependances", icon: GitBranch, permission: PERMISSIONS.PROJECT_READ },
       { title: "Scénarios", href: "/scenarios", icon: FlaskConical, permission: PERMISSIONS.REPORT_EXPORT },
       { title: "Rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },
+      { title: "Consolidation Groupe", href: "/consolidation", icon: Globe2, permission: PERMISSIONS.ENTITY_VIEW_ALL },
+      { title: "Benchmarking", href: "/benchmarking", icon: BarChart3, permission: PERMISSIONS.DASHBOARD_READ },
     ],
   },
   {

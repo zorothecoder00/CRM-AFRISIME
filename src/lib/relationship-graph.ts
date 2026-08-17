@@ -129,7 +129,10 @@ export async function buildRelationshipGraph(
         },
         interactions: { take: MAX_ITEMS_PER_BRANCH, orderBy: { dateInteraction: "desc" } },
         missions: { take: MAX_ITEMS_PER_BRANCH, select: { id: true, titre: true } },
-        stakeholderOf: { take: MAX_ITEMS_PER_BRANCH, include: { project: { select: { id: true, nom: true } } } },
+        stakeholderOf: {
+          take: MAX_ITEMS_PER_BRANCH,
+          include: { projects: { take: MAX_ITEMS_PER_BRANCH, include: { project: { select: { id: true, nom: true } } } } },
+        },
       },
     });
 
@@ -168,20 +171,22 @@ export async function buildRelationshipGraph(
       g.addEdge(contactKey, key, "interaction");
     }
     for (const stakeholder of contact.stakeholderOf) {
-      const projKey = g.addNode("Project", stakeholder.project.id, stakeholder.project.nom, `/projets/${stakeholder.project.id}`);
-      g.addEdge(contactKey, projKey, "partie prenante");
+      for (const link of stakeholder.projects) {
+        const projKey = g.addNode("Project", link.project.id, link.project.nom, `/projets/${link.project.id}`);
+        g.addEdge(contactKey, projKey, "partie prenante");
 
-      // Réunion (comble V2.2 §12) : aucun lien direct Meeting<->Contact
-      // n'existe — chemin indirect via le projet où le contact est partie
-      // prenante, le seul qui existe réellement dans le modèle de données.
-      const meetings = await prisma.meeting.findMany({
-        where: { projectId: stakeholder.project.id },
-        take: MAX_ITEMS_PER_BRANCH,
-        select: { id: true, titre: true },
-      });
-      for (const meeting of meetings) {
-        const meetingKey = g.addNode("Meeting", meeting.id, meeting.titre, `/reunions/${meeting.id}`);
-        g.addEdge(projKey, meetingKey, "réunion");
+        // Réunion (comble V2.2 §12) : aucun lien direct Meeting<->Contact
+        // n'existe — chemin indirect via le projet où le contact est partie
+        // prenante, le seul qui existe réellement dans le modèle de données.
+        const meetings = await prisma.meeting.findMany({
+          where: { projectId: link.project.id },
+          take: MAX_ITEMS_PER_BRANCH,
+          select: { id: true, titre: true },
+        });
+        for (const meeting of meetings) {
+          const meetingKey = g.addNode("Meeting", meeting.id, meeting.titre, `/reunions/${meeting.id}`);
+          g.addEdge(projKey, meetingKey, "réunion");
+        }
       }
     }
     for (const task of contact.missions) {

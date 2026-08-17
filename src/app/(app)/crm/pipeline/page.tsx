@@ -4,14 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { OpportunityKanban, type OpportunityRow } from "@/components/crm/opportunity-kanban";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
+import { getUserEntityScope, crmOpportunityScopeWhere } from "@/lib/entity-scope";
 
 export default async function CrmPipelinePage() {
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canManage = session!.user.permissions.includes(PERMISSIONS.CRM_MANAGE);
 
+  const entityScope = await getUserEntityScope(userId, session!.user.permissions);
   const [opportunities, contacts, organizations, users] = await Promise.all([
     prisma.crmOpportunity.findMany({
+      where: crmOpportunityScopeWhere(entityScope),
       include: { contact: true, organization: true, owner: true },
       orderBy: { createdAt: "desc" },
     }),

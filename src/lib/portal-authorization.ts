@@ -2,18 +2,18 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Autorisation unique pour tout le portail externe (cahier des charges
- * §16-20) : une ligne ProjectStakeholder.contactId determine qu'un contact
- * CRM peut voir un projet donne (le modele existe deja, supporte contactId
- * ET userId separement). Sert Partenaire ("projets communs"), Investisseur
- * ("projets autorises"/"portefeuille") et, via la chaine programme -> projet,
+ * §16-20) : un Stakeholder (V2.2 §21) rattache a ce CrmContact et lie a un
+ * projet (StakeholderProject) determine qu'un contact CRM peut voir ce
+ * projet. Sert Partenaire ("projets communs"), Investisseur ("projets
+ * autorises"/"portefeuille") et, via la chaine programme -> projet,
  * Institution ("programmes") — pas trois mecanismes differents.
  */
 export async function getAuthorizedProjectIds(contactId: string): Promise<string[]> {
-  const stakeholders = await prisma.projectStakeholder.findMany({
-    where: { contactId },
+  const links = await prisma.stakeholderProject.findMany({
+    where: { stakeholder: { contactId } },
     select: { projectId: true },
   });
-  return Array.from(new Set(stakeholders.map((s) => s.projectId)));
+  return Array.from(new Set(links.map((l) => l.projectId)));
 }
 
 /** Un programme est visible au portail des qu'au moins un de ses projets l'est. */
@@ -28,7 +28,7 @@ export async function getAuthorizedProgrammeIds(contactId: string): Promise<stri
 }
 
 export async function isProjectAuthorized(contactId: string, projectId: string): Promise<boolean> {
-  const count = await prisma.projectStakeholder.count({ where: { contactId, projectId } });
+  const count = await prisma.stakeholderProject.count({ where: { projectId, stakeholder: { contactId } } });
   return count > 0;
 }
 

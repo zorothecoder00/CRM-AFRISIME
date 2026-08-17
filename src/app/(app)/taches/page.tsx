@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere, taskVisibilityWhere } from "@/lib/portal-scope";
+import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { Button } from "@/components/ui/button";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { TaskListView, type TaskRow } from "@/components/tasks/task-list-view";
@@ -46,6 +47,12 @@ export default async function TachesPage({
   if (taskScope) andClauses.push(taskScope);
   if (onlyMine) {
     andClauses.push({ OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] });
+  }
+  // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
+  const entityScope = await getUserEntityScope(userId, session!.user.permissions);
+  const allowedDepartmentIds = await getAllowedDepartmentIds(entityScope);
+  if (allowedDepartmentIds) {
+    andClauses.push({ project: { departmentId: { in: allowedDepartmentIds } } });
   }
 
   const [tasks, projects, users, objectives, plans, competences, whiteboard] = await Promise.all([

@@ -14,6 +14,7 @@ import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog"
 import { PortalAccessCard } from "@/components/crm/portal-access-card";
 import { ContactPortalMessagesCard } from "@/components/crm/contact-portal-messages-card";
 import { markPortalMessagesReadByInternal } from "@/actions/portal.actions";
+import { getUserEntityScope } from "@/lib/entity-scope";
 
 const TYPE_LABELS: Record<string, string> = {
   CLIENT: "Client",
@@ -59,7 +60,7 @@ export default async function CrmContactDetailPage({
           orderBy: { dateInteraction: "desc" },
         },
         portalAccount: true,
-        stakeholderOf: { include: { project: true } },
+        stakeholderOf: { include: { projects: { include: { project: true } } } },
         documentsUploaded: { include: { project: true }, orderBy: { createdAt: "desc" }, take: 10 },
         missions: { include: { project: true }, orderBy: { updatedAt: "desc" } },
         portalMessages: { orderBy: { createdAt: "asc" } },
@@ -72,6 +73,17 @@ export default async function CrmContactDetailPage({
 
   if (!contact) {
     notFound();
+  }
+
+  // Isolation multi-entites (cahier des charges V2.2 §22) — un contact/org
+  // sans entityId (pas encore rattache) reste visible par tous, voir
+  // entity-scope.ts.
+  const entityScope = await getUserEntityScope(userId, session!.user.permissions);
+  if (!entityScope.canViewAll) {
+    const effectiveEntityId = contact.entityId ?? contact.organization?.entityId ?? null;
+    if (effectiveEntityId !== null && !entityScope.scopeEntityIds.includes(effectiveEntityId)) {
+      notFound();
+    }
   }
 
   const graph = await buildRelationshipGraph("CrmContact", contact.id);
@@ -195,18 +207,20 @@ export default async function CrmContactDetailPage({
               <CardTitle className="text-base">Fiche 360°</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              {contact.stakeholderOf.length > 0 && (
+              {contact.stakeholderOf.some((s) => s.projects.length > 0) && (
                 <div>
-                  <div className="mb-1 text-xs font-medium text-muted-foreground">Projets liés</div>
+                  <div className="mb-1 text-xs font-medium text-muted-foreground">Projets liés (partie prenante)</div>
                   <ul className="space-y-1">
-                    {contact.stakeholderOf.map((s) => (
-                      <li key={s.id}>
-                        <Link href={`/projets/${s.project.id}`} className="text-primary hover:underline">
-                          {s.project.nom}
-                        </Link>
-                        {s.role && <span className="text-muted-foreground"> — {s.role}</span>}
-                      </li>
-                    ))}
+                    {contact.stakeholderOf.flatMap((s) =>
+                      s.projects.map((link) => (
+                        <li key={link.id}>
+                          <Link href={`/projets/${link.project.id}`} className="text-primary hover:underline">
+                            {link.project.nom}
+                          </Link>
+                          {link.role && <span className="text-muted-foreground"> — {link.role}</span>}
+                        </li>
+                      ))
+                    )}
                   </ul>
                 </div>
               )}

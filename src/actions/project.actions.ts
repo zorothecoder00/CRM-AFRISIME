@@ -18,8 +18,6 @@ import {
   createProjectRiskSchema,
   updateProjectRiskStatusSchema,
   deleteProjectRiskSchema,
-  createProjectStakeholderSchema,
-  deleteProjectStakeholderSchema,
   createProjectMilestoneSchema,
   updateProjectMilestoneStatusSchema,
   deleteProjectMilestoneSchema,
@@ -40,8 +38,6 @@ import {
   type CreateProjectRiskInput,
   type UpdateProjectRiskStatusInput,
   type DeleteProjectRiskInput,
-  type CreateProjectStakeholderInput,
-  type DeleteProjectStakeholderInput,
   type CreateProjectMilestoneInput,
   type UpdateProjectMilestoneStatusInput,
   type DeleteProjectMilestoneInput,
@@ -352,61 +348,6 @@ export async function deleteProjectRisk(input: DeleteProjectRiskInput) {
 
   revalidatePath(`/projets/${risk.projectId}`);
   return risk;
-}
-
-// ---- Parties prenantes (cahier des charges §VI) ----
-
-export async function createProjectStakeholder(input: CreateProjectStakeholderInput) {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Non authentifié");
-  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
-
-  const data = createProjectStakeholderSchema.parse(input);
-
-  const stakeholder = await prisma.projectStakeholder.create({
-    data: {
-      projectId: data.projectId,
-      nom: data.nom,
-      role: data.role,
-      userId: data.userId || undefined,
-      contactId: data.contactId || undefined,
-      influence: data.influence,
-      interet: data.interet,
-      notes: data.notes,
-    },
-  });
-
-  await logAudit({
-    userId: session.user.id,
-    action: "project.stakeholder_created",
-    entityType: "ProjectStakeholder",
-    entityId: stakeholder.id,
-    changes: { nom: stakeholder.nom, projectId: data.projectId },
-  });
-
-  revalidatePath(`/projets/${data.projectId}`);
-  return stakeholder;
-}
-
-export async function deleteProjectStakeholder(input: DeleteProjectStakeholderInput) {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Non authentifié");
-  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
-
-  const data = deleteProjectStakeholderSchema.parse(input);
-
-  const stakeholder = await prisma.projectStakeholder.delete({ where: { id: data.stakeholderId } });
-
-  await logAudit({
-    userId: session.user.id,
-    action: "project.stakeholder_deleted",
-    entityType: "ProjectStakeholder",
-    entityId: stakeholder.id,
-    changes: { nom: stakeholder.nom },
-  });
-
-  revalidatePath(`/projets/${stakeholder.projectId}`);
-  return stakeholder;
 }
 
 // ---- Jalons (cahier des charges §VI) ----

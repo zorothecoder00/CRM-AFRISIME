@@ -40,6 +40,7 @@ import { AddProjectIndicatorDialog } from "@/components/projects/add-project-ind
 import { ProjectResourcesSection, type ProjectResourceData } from "@/components/projects/project-resources-section";
 import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
 import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-view";
+import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -89,6 +90,7 @@ export default async function ProjectDetailPage({
     decisions,
     indicators,
     resources,
+    availableStakeholdersRaw,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -141,9 +143,9 @@ export default async function ProjectDetailPage({
       include: { responsable: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.projectStakeholder.findMany({
+    prisma.stakeholderProject.findMany({
       where: { projectId },
-      include: { user: true, contact: true },
+      include: { stakeholder: { include: { user: true, contact: true } } },
       orderBy: { createdAt: "asc" },
     }),
     prisma.projectMilestone.findMany({ where: { projectId }, orderBy: { dateCible: "asc" } }),
@@ -164,9 +166,21 @@ export default async function ProjectDetailPage({
     }),
     prisma.indicator.findMany({ where: { projectId }, orderBy: { createdAt: "asc" } }),
     prisma.projectResource.findMany({ where: { projectId }, orderBy: { createdAt: "asc" } }),
+    prisma.stakeholder.findMany({
+      where: { projects: { none: { projectId } } },
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true },
+    }),
   ]);
 
   if (!project) {
+    notFound();
+  }
+
+  // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
+  const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);
+  const allowedDepartmentIds = await getAllowedDepartmentIds(entityScope);
+  if (allowedDepartmentIds && !allowedDepartmentIds.includes(project.departmentId)) {
     notFound();
   }
 
@@ -311,16 +325,18 @@ export default async function ProjectDetailPage({
     responsableName: r.responsable?.name ?? null,
   }));
 
-  const stakeholderRows: StakeholderRow[] = stakeholders.map((s) => ({
-    id: s.id,
-    nom: s.nom,
-    role: s.role,
-    influence: s.influence,
-    interet: s.interet,
-    notes: s.notes,
-    userName: s.user?.name ?? null,
-    contactName: s.contact ? `${s.contact.prenom} ${s.contact.nom}` : null,
+  const stakeholderRows: StakeholderRow[] = stakeholders.map((link) => ({
+    linkId: link.id,
+    stakeholderId: link.stakeholder.id,
+    nom: link.stakeholder.nom,
+    role: link.role,
+    influence: link.stakeholder.influence,
+    interet: link.stakeholder.interet,
+    niveauEngagement: link.stakeholder.niveauEngagement,
+    userName: link.stakeholder.user?.name ?? null,
+    contactName: link.stakeholder.contact ? `${link.stakeholder.contact.prenom} ${link.stakeholder.contact.nom}` : null,
   }));
+  const availableStakeholders = availableStakeholdersRaw.map((s) => ({ id: s.id, label: s.nom }));
 
   const decisionRows: ProjectDecisionData[] = decisions.map((d) => ({
     id: d.id,
@@ -635,6 +651,7 @@ export default async function ProjectDetailPage({
             stakeholders={stakeholderRows}
             users={userOptions}
             contacts={contactOptions}
+            availableStakeholders={availableStakeholders}
             canManage={canUpdateProject}
           />
         </TabsContent>

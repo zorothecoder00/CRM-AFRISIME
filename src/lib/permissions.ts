@@ -99,6 +99,10 @@ export const PERMISSIONS = {
 
   RISK_READ: "risk.read",
   RISK_MANAGE: "risk.manage",
+
+  // Extension V2.2 §22-25 — Multi-entites / Consolidation
+  ENTITY_MANAGE: "entity.manage",
+  ENTITY_VIEW_ALL: "entity.view_all",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -205,6 +209,9 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.RISK_READ, label: "Consulter le registre des risques organisationnel", category: "Risques" },
   { key: PERMISSIONS.RISK_MANAGE, label: "Créer et gérer les risques organisationnels", category: "Risques" },
+
+  { key: PERMISSIONS.ENTITY_MANAGE, label: "Gérer les entités du groupe (sociétés, filiales, agences) et les jours fériés", category: "Multi-entités" },
+  { key: PERMISSIONS.ENTITY_VIEW_ALL, label: "Voir toutes les entités du groupe, sans restriction de périmètre", category: "Multi-entités" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -283,6 +290,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
+    PERMISSIONS.ENTITY_MANAGE,
+    PERMISSIONS.ENTITY_VIEW_ALL,
   ],
 
   DIRECTEUR: [

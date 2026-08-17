@@ -8,7 +8,15 @@ import { DepartmentTree, type DepartmentNode } from "@/components/administration
 import { DepartmentFormDialog } from "@/components/administration/department-form-dialog";
 
 function buildDepartmentTree(
-  departments: { id: string; name: string; code: string; parentId: string | null; _count: { users: number } }[]
+  departments: {
+    id: string;
+    name: string;
+    code: string;
+    parentId: string | null;
+    entityId: string | null;
+    entity: { nom: string } | null;
+    _count: { users: number };
+  }[]
 ): DepartmentNode[] {
   const nodeById = new Map<string, DepartmentNode>();
   for (const d of departments) {
@@ -17,6 +25,8 @@ function buildDepartmentTree(
       name: d.name,
       code: d.code,
       parentId: d.parentId,
+      entityId: d.entityId,
+      entityNom: d.entity?.nom ?? null,
       userCount: d._count.users,
       children: [],
     });
@@ -47,13 +57,17 @@ export default async function DepartementsPage() {
     redirect("/dashboard");
   }
 
-  const departments = await prisma.department.findMany({
-    include: { _count: { select: { users: true } } },
-    orderBy: { name: "asc" },
-  });
+  const [departments, entities] = await Promise.all([
+    prisma.department.findMany({
+      include: { entity: true, _count: { select: { users: true } } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.entity.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+  ]);
 
   const tree = buildDepartmentTree(departments);
   const parentOptions = flattenForOptions(tree);
+  const entityOptions = entities.map((e) => ({ id: e.id, label: e.nom }));
 
   return (
     <div className="space-y-6">
@@ -66,10 +80,10 @@ export default async function DepartementsPage() {
             département parent (Direction → Département → Service → Équipe).
           </p>
         </div>
-        {departments.length > 0 && <DepartmentFormDialog parentOptions={parentOptions} />}
+        {departments.length > 0 && <DepartmentFormDialog parentOptions={parentOptions} entities={entityOptions} />}
       </div>
 
-      <DepartmentTree nodes={tree} parentOptions={parentOptions} />
+      <DepartmentTree nodes={tree} parentOptions={parentOptions} entities={entityOptions} />
     </div>
   );
 }

@@ -392,7 +392,11 @@ model User {
   projectMemberships               ProjectMember[]
   risksResponsable                 ProjectRisk[]                  @relation("RiskResponsable")
   risksCreated                     ProjectRisk[]                  @relation("RiskCreatedBy")
-  stakeholderLinks                 ProjectStakeholder[]           @relation("StakeholderUser")
+  stakeholderLinks                 Stakeholder[]                  @relation("StakeholderUser")
+  stakeholderResponsableFor        Stakeholder[]                  @relation("StakeholderResponsable")
+  stakeholdersCreated              Stakeholder[]                  @relation("StakeholderCreatedBy")
+  stakeholderCommunicationsLogged  StakeholderCommunication[]     @relation("StakeholderCommunicationAuthor")
+  holidaysCreated                  Holiday[]                      @relation("HolidayCreatedBy")
   deliverablesResponsable          ProjectDeliverable[]           @relation("DeliverableResponsable")
   deliverablesCreated              ProjectDeliverable[]           @relation("DeliverableCreatedBy")
   programmeRisksResponsable        ProgrammeRisk[]                @relation("ProgrammeRiskResponsable")
@@ -597,6 +601,12 @@ model Department {
   parentId            String?
   parent              Department?          @relation("DeptHierarchy", fields: [parentId], references: [id])
   children            Department[]         @relation("DeptHierarchy")
+  // Rattachement multi-entites (cahier des charges V2.2 §22) — uniquement
+  // significatif sur un departement racine (parentId null) : un departement
+  // enfant herite de l'entite de sa racine (voir getDepartmentEntityId dans
+  // src/lib/entity-scope.ts), pas de denormalisation sur chaque noeud.
+  entityId            String?
+  entity              Entity?              @relation(fields: [entityId], references: [id])
   users               User[]
   projects            Project[]
   objectives          Objective[]
@@ -610,6 +620,8 @@ model Department {
   teams               Team[]
   scenarios           Scenario[]
   createdAt           DateTime             @default(now())
+
+  @@index([entityId])
 }
 
 // Équipe (cahier des charges §I "Structures... Équipes" et niveau 5 du
@@ -918,7 +930,7 @@ model Project {
   conversation           Conversation?
   risks                  ProjectRisk[]
   organizationalRisks    OrganizationalRisk[]
-  stakeholders           ProjectStakeholder[]
+  stakeholders           StakeholderProject[]
   milestones             ProjectMilestone[]
   deliverables           ProjectDeliverable[]
   autoTaskWorkflows      ValidationWorkflow[]
@@ -1011,26 +1023,84 @@ enum StakeholderNiveau {
   ELEVE
 }
 
-// Partie prenante (cahier des charges §VI) — distincte de ProjectMember :
-// une partie prenante n'est pas forcement sur l'equipe (sponsor externe,
-// direction, client), et peut etre interne (User) ou externe (CrmContact),
-// ou ni l'un ni l'autre (simple nom/role en texte libre).
-model ProjectStakeholder {
-  id        String            @id @default(cuid())
-  projectId String
-  project   Project           @relation(fields: [projectId], references: [id])
-  nom       String
-  role      String?
-  userId    String?
-  user      User?             @relation("StakeholderUser", fields: [userId], references: [id])
-  contactId String?
-  contact   CrmContact?       @relation(fields: [contactId], references: [id])
-  influence StakeholderNiveau @default(MOYEN)
-  interet   StakeholderNiveau @default(MOYEN)
-  notes     String?
-  createdAt DateTime          @default(now())
+// Position d'une partie prenante vis-a-vis du projet/de l'organisation
+// (cahier des charges V2.2 §21) — echelle a 3 valeurs, meme esprit que
+// StakeholderNiveau mais un axe distinct (posture, pas intensite).
+enum StakeholderPosition {
+  FAVORABLE
+  NEUTRE
+  OPPOSANT
+}
 
+// Partie prenante (cahier des charges §VI, etendu V2.2 §21) — profil
+// personne unique, independant du projet : une meme partie prenante peut
+// etre associee a plusieurs projets (voir StakeholderProject) au lieu
+// d'une ligne dupliquee par projet. Peut etre interne (User), externe
+// (CrmContact), ou ni l'un ni l'autre (simple nom en texte libre).
+model Stakeholder {
+  id                  String               @id @default(cuid())
+  nom                 String
+  userId              String?
+  user                User?                @relation("StakeholderUser", fields: [userId], references: [id])
+  contactId           String?
+  contact             CrmContact?          @relation(fields: [contactId], references: [id])
+  influence           StakeholderNiveau    @default(MOYEN)
+  interet             StakeholderNiveau    @default(MOYEN)
+  niveauEngagement    StakeholderNiveau    @default(MOYEN)
+  position            StakeholderPosition?
+  // Nature de la relation (ex. "Client historique", "Sponsor politique",
+  // "Bailleur") — texte libre, trop variable pour un enum ferme.
+  relation            String?
+  responsableId       String?
+  responsable         User?                @relation("StakeholderResponsable", fields: [responsableId], references: [id])
+  risquesRelationnels String?
+  notes               String?
+  createdById         String
+  createdBy           User                 @relation("StakeholderCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  projects       StakeholderProject[]
+  communications StakeholderCommunication[]
+
+  @@index([userId])
+  @@index([contactId])
+  @@index([responsableId])
+}
+
+// Table de liaison Stakeholder <-> Project (cahier des charges V2.2 §21,
+// "projets associes" au pluriel) — role reste contextuel au projet (une
+// meme personne peut avoir un role different d'un projet a l'autre), les
+// autres attributs (influence/engagement/position/...) vivent sur Stakeholder.
+model StakeholderProject {
+  id            String      @id @default(cuid())
+  stakeholderId String
+  stakeholder   Stakeholder @relation(fields: [stakeholderId], references: [id], onDelete: Cascade)
+  projectId     String
+  project       Project     @relation(fields: [projectId], references: [id])
+  role          String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([stakeholderId, projectId])
   @@index([projectId])
+}
+
+// Fil de communications avec une partie prenante (cahier des charges V2.2
+// §21, "communications") — uniforme que la personne soit liee a un
+// User/CrmContact ou non, plutot que de dependre de CrmInteraction qui
+// suppose un CrmContact.
+model StakeholderCommunication {
+  id            String      @id @default(cuid())
+  stakeholderId String
+  stakeholder   Stakeholder @relation(fields: [stakeholderId], references: [id], onDelete: Cascade)
+  date          DateTime    @default(now())
+  canal         String?
+  resume        String
+  authorId      String
+  author        User        @relation("StakeholderCommunicationAuthor", fields: [authorId], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([stakeholderId, date])
 }
 
 enum MilestoneStatus {
@@ -1175,6 +1245,11 @@ model CrmOrganization {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
+  // Rattachement multi-entites (cahier des charges V2.2 §22-23) — direct,
+  // voir le meme champ sur CrmContact.
+  entityId String?
+  entity   Entity? @relation(fields: [entityId], references: [id])
+
   contacts      CrmContact[]
   opportunities CrmOpportunity[]
   interactions  CrmInteraction[]
@@ -1182,6 +1257,7 @@ model CrmOrganization {
 
   @@index([ownerId])
   @@index([nom])
+  @@index([entityId])
 }
 
 model CrmContact {
@@ -1213,11 +1289,19 @@ model CrmContact {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
+  // Rattachement multi-entites (cahier des charges V2.2 §22-23) — direct
+  // (pas derive d'un Department comme pour User/Project) : un contact CRM
+  // n'appartient a aucune arborescence departement interne. L'entite
+  // effective d'un contact est entityId si renseigne, sinon celle de son
+  // organisation (voir src/lib/entity-scope.ts).
+  entityId String?
+  entity   Entity? @relation(fields: [entityId], references: [id])
+
   opportunities      CrmOpportunity[]
   interactions       CrmInteraction[]
   portalAccount      PortalAccount?
   missions           Task[]
-  stakeholderOf      ProjectStakeholder[]
+  stakeholderOf      Stakeholder[]
   documentsUploaded  Document[]                   @relation("DocumentUploadedByContact")
   qualityClaims      QualityClaim[]
   portalMessages     PortalMessage[]
@@ -1226,6 +1310,7 @@ model CrmContact {
   @@index([organizationId])
   @@index([ownerId])
   @@index([nom])
+  @@index([entityId])
 }
 
 // Portail client (cahier des charges §II) — un contact CRM externe (un
@@ -3444,4 +3529,60 @@ model Beneficiaire {
 
   @@index([programmeId])
   @@index([projectId])
+}
+
+// ===================== V2.2 §22-25 — Multi-entites / Multi-pays / =====================
+// ===================== Consolidation Groupe / Benchmarking =============================
+// Entity est un arbre auto-reference au-dessus de Department, exactement le
+// meme pattern (parentId/children, label calcule par profondeur — voir
+// src/lib/entity-tree.ts) : Groupe/Societe/Filiale/Agence ne sont PAS des
+// types stockes, seulement des libelles derives de la profondeur, pour
+// rester coherent avec Direction/Departement/Service sur Department qui
+// suivent deja cette convention. Un Department racine (parentId null) porte
+// optionnellement un entityId ; les departements enfants heritent de
+// l'entite de leur racine (pas de denormalisation, voir entity-scope.ts).
+model Entity {
+  id       String   @id @default(cuid())
+  nom      String
+  code     String   @unique
+  parentId String?
+  parent   Entity?  @relation("EntityHierarchy", fields: [parentId], references: [id])
+  children Entity[] @relation("EntityHierarchy")
+
+  // Champs de configuration multi-pays (cahier des charges §23) — donnees
+  // affichees/heritees dans la hierarchie, sans reformattage dynamique des
+  // montants ni traduction d'UI (hors perimetre de ce lot, voir le plan).
+  pays             String?
+  devise           String?
+  fuseauHoraire    String?
+  langue           String?
+  reglementations  String?
+  parametresLocaux String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments      Department[]
+  holidays         Holiday[]
+  crmOrganizations CrmOrganization[]
+  crmContacts      CrmContact[]
+
+  @@index([parentId])
+}
+
+// Jour ferie (cahier des charges §23) — rattache a une Entity (pays/societe),
+// recurrenceAnnuelle=true signifie que le jour/mois se repete chaque annee
+// (ex. fete nationale), false pour une date ponctuelle.
+model Holiday {
+  id                 String   @id @default(cuid())
+  entityId           String
+  entity             Entity   @relation(fields: [entityId], references: [id])
+  nom                String
+  date               DateTime
+  recurrenceAnnuelle Boolean  @default(true)
+  createdById        String
+  createdBy          User     @relation("HolidayCreatedBy", fields: [createdById], references: [id])
+  createdAt          DateTime @default(now())
+
+  @@index([entityId])
 }

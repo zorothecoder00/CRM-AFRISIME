@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { accentForOpportunityStatus } from "@/lib/status-tone";
@@ -7,6 +9,7 @@ import { InteractionLog } from "@/components/crm/interaction-log";
 import { OpportunityStatusSelect } from "@/components/crm/opportunity-status-select";
 import { ContractFormDialog } from "@/components/crm/contract-form-dialog";
 import { Badge } from "@/components/ui/badge";
+import { getUserEntityScope } from "@/lib/entity-scope";
 
 export default async function CrmOpportunityDetailPage({
   params,
@@ -31,6 +34,17 @@ export default async function CrmOpportunityDetailPage({
 
   if (!opportunity) {
     notFound();
+  }
+
+  const session = await getServerSession(authOptions);
+  const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);
+  if (!entityScope.canViewAll) {
+    // Meme priorite que crmOpportunityScopeWhere : entite du contact si
+    // renseignee, sinon entite de l'organisation.
+    const effectiveEntityId = opportunity.contact ? opportunity.contact.entityId : (opportunity.organization?.entityId ?? null);
+    if (effectiveEntityId !== null && !entityScope.scopeEntityIds.includes(effectiveEntityId)) {
+      notFound();
+    }
   }
 
   const montant =

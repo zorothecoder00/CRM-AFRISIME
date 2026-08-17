@@ -12,6 +12,7 @@ import { RelationshipGraphView } from "@/components/crm/relationship-graph-view"
 import { buildRelationshipGraph } from "@/lib/relationship-graph";
 import { ContactFormDialog } from "@/components/crm/contact-form-dialog";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
+import { getUserEntityScope } from "@/lib/entity-scope";
 
 const TYPE_LABELS: Record<string, string> = {
   ENTREPRISE: "Entreprise",
@@ -60,6 +61,11 @@ export default async function CrmOrganizationDetailPage({
   ]);
 
   if (!organization) {
+    notFound();
+  }
+
+  const entityScope = await getUserEntityScope(userId, session!.user.permissions);
+  if (!entityScope.canViewAll && organization.entityId !== null && !entityScope.scopeEntityIds.includes(organization.entityId)) {
     notFound();
   }
 
