@@ -18,6 +18,7 @@ export const TRIGGER_VALUES = [
   "MEETING_CREATED",
   "EVENT_CREATED",
   "INDICATOR_OFF_TARGET",
+  "CONTRACT_CREATED",
 ] as const;
 
 export const ACTION_VALUES = [
@@ -38,6 +39,7 @@ export const ACTION_VALUES = [
   "VERIFY_RESOURCES",
   "VERIFY_RISKS",
   "OPEN_TRACKING_BOARD",
+  "CREATE_DEADLINE",
 ] as const;
 
 const conditionSchema = z.object({
@@ -73,6 +75,11 @@ export const createRuleSchema = z
     riskImpact: z.enum(["FAIBLE", "MOYEN", "ELEVE"]).optional(),
     reportType: z.string().optional(),
     targetRuleId: z.string().optional(),
+    deadlineTitre: z.string().optional(),
+    deadlineDelaiJours: z.string().optional(),
+
+    // Branche ELSE (V2.2 §7.2) — regle a executer si les conditions echouent.
+    elseRuleId: z.string().optional(),
 
     // Regroupement d'orchestration (V2.2 §8) — une règle avec playbookId est
     // une étape ordonnée, pas une règle indépendante.

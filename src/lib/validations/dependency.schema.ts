@@ -2,8 +2,19 @@ import { z } from "zod";
 
 // Sélecteurs UI limités aux types déjà pourvus d'une page de sélection dans
 // l'app (V2.2 §13) — le modèle Dependency reste ouvert à d'autres types
-// plus tard sans migration.
-export const DEPENDENCY_ENTITY_TYPES = ["Project", "Team", "User", "Processus"] as const;
+// plus tard sans migration. MeetingDecision/GovernanceDecision (décisions),
+// ProjectResource (ressources) et CrmOrganization de type PARTENAIRE
+// (partenaires) ajoutés pour combler les trous identifiés à l'audit.
+export const DEPENDENCY_ENTITY_TYPES = [
+  "Project",
+  "Team",
+  "User",
+  "Processus",
+  "MeetingDecision",
+  "GovernanceDecision",
+  "ProjectResource",
+  "CrmOrganization",
+] as const;
 
 export const createDependencySchema = z
   .object({

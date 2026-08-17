@@ -119,6 +119,26 @@ async function runCrmManagerAgent() {
       notifyUserId: o.ownerId,
     });
   }
+
+  // Comble "analyse les prospects" / "détecte les opportunités" (V2.2 §6) :
+  // jusqu'ici l'agent ne réagissait qu'aux CrmOpportunity déjà créées, sans
+  // jamais en suggérer de nouvelles à partir des prospects.
+  const promisingProspects = await prisma.crmContact.findMany({
+    where: { type: "PROSPECT", opportunities: { none: {} } },
+    select: { id: true, prenom: true, nom: true, ownerId: true, score: true },
+  });
+  for (const c of promisingProspects) {
+    if ((c.score ?? 0) < 50) continue;
+    await recordInsight({
+      agent: "CRM_MANAGER",
+      type: "RECOMMANDATION",
+      titre: `Opportunité potentielle détectée : ${c.prenom} ${c.nom}`,
+      contenu: `${c.prenom} ${c.nom} est un prospect avec un score de ${c.score}/100 mais aucune opportunité n'a encore été créée. Recommandation : qualifier et créer une opportunité.`,
+      entityType: "CrmContact",
+      entityId: c.id,
+      notifyUserId: c.ownerId,
+    });
+  }
 }
 
 /** AI Risk Manager — analyse les risques, identifie les nouveaux risques, surveille les plans de mitigation. */
@@ -154,6 +174,25 @@ async function runRiskManagerAgent() {
       entityType: "OrganizationalRisk",
       entityId: r.id,
       notifyUserId: r.responsableId,
+    });
+  }
+
+  // Comble "identifie les nouveaux risques" (V2.2 §6) : jusqu'ici l'agent ne
+  // relisait que les risques déjà enregistrés sans plan — aucune détection
+  // proactive d'un projet prioritaire n'ayant encore aucun risque déclaré.
+  const unassessedProjects = await prisma.project.findMany({
+    where: { statut: "EN_COURS", priorite: { in: ["CRITIQUE", "HAUTE"] }, risks: { none: {} } },
+    select: { id: true, nom: true, responsableId: true },
+  });
+  for (const p of unassessedProjects) {
+    await recordInsight({
+      agent: "RISK_MANAGER",
+      type: "RECOMMANDATION",
+      titre: `Risques non identifiés : ${p.nom}`,
+      contenu: `${p.nom} est un projet prioritaire sans aucun risque enregistré. Recommandation : réaliser une identification des risques avant qu'un problème ne se matérialise sans alerte préalable.`,
+      entityType: "Project",
+      entityId: p.id,
+      notifyUserId: p.responsableId,
     });
   }
 }
@@ -216,6 +255,27 @@ async function runAdministrativeAssistantAgent() {
       entityId: run.id,
     });
   }
+
+  // Comble "prépare les documents" (V2.2 §6) : jusqu'ici rien n'était
+  // implémenté. Faute d'un vrai moteur de génération documentaire, l'agent
+  // prépare une checklist/rappel plutôt qu'un document réel — reste
+  // remplaçable plus tard sans changer le schéma (même esprit que le champ
+  // `contenu` templaté des autres agents).
+  const approvedRequests = await prisma.adminRequestValidationRun.findMany({
+    where: { statut: "APPROUVE" },
+    include: { adminRequest: { select: { id: true, titre: true, type: true, demandeurId: true } } },
+  });
+  for (const run of approvedRequests) {
+    await recordInsight({
+      agent: "ADMINISTRATIVE_ASSISTANT",
+      type: "RECOMMANDATION",
+      titre: `Document à préparer : ${run.adminRequest.titre}`,
+      contenu: `La demande « ${run.adminRequest.titre} » (${run.adminRequest.type}) a été approuvée. Document à préparer selon le type de demande (ex. ordre de mission, bon pour accord). Lien : /demandes/${run.adminRequest.id}.`,
+      entityType: "AdminRequest",
+      entityId: run.adminRequest.id,
+      notifyUserId: run.adminRequest.demandeurId,
+    });
+  }
 }
 
 /** AI Strategy Advisor — analyse les objectifs, mesure les écarts, propose des scénarios. */
@@ -230,7 +290,7 @@ async function runStrategyAdvisorAgent() {
       agent: "STRATEGY_ADVISOR",
       type: "RECOMMANDATION",
       titre: `Objectif en écart : ${o.titre}`,
-      contenu: `${o.titre} a dépassé son échéance sans être clôturé. Scénarios proposés : prolonger l'échéance si l'objectif reste pertinent, ou le clore en NON_ATTEINT et capitaliser sur les enseignements.`,
+      contenu: `${o.titre} a dépassé son échéance sans être clôturé. Scénarios proposés : prolonger l'échéance si l'objectif reste pertinent, ou le clore en NON_ATTEINT et capitaliser sur les enseignements. Explorer l'impact chiffré d'un scénario correctif : /scenarios.`,
       entityType: "Objective",
       entityId: o.id,
       // Déjà notifié directement par le cron ("objectif en retard") —

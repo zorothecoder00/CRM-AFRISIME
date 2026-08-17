@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { ReactFlow, Background, Controls, Handle, Position, type Node, type Edge, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { GraphNode, GraphEdge } from "@/lib/relationship-graph";
-import { Building2, User, Handshake, MessageSquare, FolderKanban, ListChecks } from "lucide-react";
+import { Building2, User, Handshake, MessageSquare, FolderKanban, ListChecks, FileText, CalendarDays } from "lucide-react";
 
 const TYPE_META: Record<string, { label: string; icon: typeof Building2; className: string }> = {
   CrmOrganization: { label: "Organisation", icon: Building2, className: "border-info bg-info/10" },
@@ -15,6 +15,8 @@ const TYPE_META: Record<string, { label: string; icon: typeof Building2; classNa
   CrmInteraction: { label: "Interaction", icon: MessageSquare, className: "border-muted-foreground/40 bg-muted" },
   Project: { label: "Projet", icon: FolderKanban, className: "border-info bg-info/10" },
   Task: { label: "Tâche", icon: ListChecks, className: "border-muted-foreground/40 bg-muted" },
+  Contract: { label: "Contrat", icon: FileText, className: "border-success bg-success/10" },
+  Meeting: { label: "Réunion", icon: CalendarDays, className: "border-muted-foreground/40 bg-muted" },
 };
 
 type EntityNodeData = { label: string; entityType: string; href?: string };

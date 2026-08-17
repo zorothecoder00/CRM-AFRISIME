@@ -44,6 +44,7 @@ const TRIGGER_OPTIONS = [
   { value: "MEETING_CREATED", label: "Une réunion est créée" },
   { value: "EVENT_CREATED", label: "Un événement est créé" },
   { value: "INDICATOR_OFF_TARGET", label: "Un indicateur s'écarte de sa cible (évalué chaque jour)" },
+  { value: "CONTRACT_CREATED", label: "Un nouveau contrat est créé" },
 ];
 
 const ACTION_OPTIONS = [
@@ -61,6 +62,7 @@ const ACTION_OPTIONS = [
   { value: "GENERATE_REPORT", label: "Générer un rapport" },
   { value: "REQUEST_VALIDATION", label: "Demander une validation" },
   { value: "TRIGGER_WORKFLOW", label: "Déclencher une autre règle" },
+  { value: "CREATE_DEADLINE", label: "Créer une échéance" },
 ];
 
 const CONDITION_FIELD_OPTIONS = [
@@ -249,6 +251,21 @@ export function RuleFormDialog({
                   <Plus className="mr-1 h-4 w-4" />
                   Ajouter une condition
                 </Button>
+                <div className="space-y-2 border-t pt-2">
+                  <Label>Sinon (ELSE) — déclencher une autre règle (facultatif)</Label>
+                  <Select onValueChange={(v) => setValue("elseRuleId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Aucune" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {existingRules.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </div>

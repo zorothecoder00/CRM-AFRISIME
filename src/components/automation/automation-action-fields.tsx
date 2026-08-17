@@ -133,6 +133,21 @@ export function AutomationActionFields({
     );
   }
 
+  if (action === "CREATE_DEADLINE") {
+    return (
+      <div className="space-y-4 rounded-md border p-3">
+        <div className="space-y-2">
+          <Label>Titre de l&apos;échéance</Label>
+          <Input {...register(name("deadlineTitre"))} />
+        </div>
+        <div className="space-y-2">
+          <Label>Dans (jours après déclenchement)</Label>
+          <Input type="number" defaultValue={7} {...register(name("deadlineDelaiJours"))} />
+        </div>
+      </div>
+    );
+  }
+
   if (action === "CHANGE_STATUS") {
     return (
       <div className="space-y-2 rounded-md border p-3">

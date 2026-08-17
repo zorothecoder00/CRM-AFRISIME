@@ -49,6 +49,25 @@ export async function resolveDependencyLabels(entities: { type: string; id: stri
     const rows = await prisma.processus.findMany({ where: { id: { in: idsByType.get("Processus")! } }, select: { id: true, nom: true } });
     for (const r of rows) labels.set(`Processus:${r.id}`, r.nom);
   }
+  // Comble V2.2 §13 : "décisions", "ressources", "partenaires" absents du
+  // sélecteur jusqu'ici alors que les modèles sous-jacents existaient déjà
+  // (MeetingDecision/GovernanceDecision, ProjectResource, CrmOrganization).
+  if (idsByType.has("MeetingDecision")) {
+    const rows = await prisma.meetingDecision.findMany({ where: { id: { in: idsByType.get("MeetingDecision")! } }, select: { id: true, description: true } });
+    for (const r of rows) labels.set(`MeetingDecision:${r.id}`, r.description);
+  }
+  if (idsByType.has("GovernanceDecision")) {
+    const rows = await prisma.governanceDecision.findMany({ where: { id: { in: idsByType.get("GovernanceDecision")! } }, select: { id: true, objet: true } });
+    for (const r of rows) labels.set(`GovernanceDecision:${r.id}`, r.objet);
+  }
+  if (idsByType.has("ProjectResource")) {
+    const rows = await prisma.projectResource.findMany({ where: { id: { in: idsByType.get("ProjectResource")! } }, select: { id: true, nom: true } });
+    for (const r of rows) labels.set(`ProjectResource:${r.id}`, r.nom);
+  }
+  if (idsByType.has("CrmOrganization")) {
+    const rows = await prisma.crmOrganization.findMany({ where: { id: { in: idsByType.get("CrmOrganization")! } }, select: { id: true, nom: true } });
+    for (const r of rows) labels.set(`CrmOrganization:${r.id}`, r.nom);
+  }
 
   return labels;
 }

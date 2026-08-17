@@ -78,7 +78,21 @@ async function executeAction(
   });
   if (already) return;
 
-  if (!evaluateConditions(rule.conditions, context.conditionData ?? {})) return;
+  if (!evaluateConditions(rule.conditions, context.conditionData ?? {})) {
+    // Branche ELSE (V2.2 §7.2) : conditions fausses -> execute elseRule
+    // (une regle complete, avec sa propre action) au lieu de ne rien faire.
+    if (rule.elseRuleId && !visited.has(rule.elseRuleId)) {
+      const elseRule = await prisma.automationRule.findUnique({
+        where: { id: rule.elseRuleId },
+        include: { conditions: true },
+      });
+      if (elseRule?.isActive) {
+        visited.add(rule.id);
+        await executeAction(elseRule, context, visited);
+      }
+    }
+    return;
+  }
 
   switch (rule.action) {
     case "CREATE_NEXT_TASK": {
@@ -439,6 +453,21 @@ async function executeAction(
       await logExecution(rule.id, context, "Tableau de suivi ouvert.");
       return;
     }
+
+    case "CREATE_DEADLINE": {
+      // Comble V2.2 §7.3 : pas de nouveau modele dedie, reutilise Event
+      // (deja consolide au calendrier avec taches/reunions/conges).
+      const event = await prisma.event.create({
+        data: {
+          titre: rule.deadlineTitre || `Échéance (automatisation « ${rule.nom} ») : ${context.label}`,
+          dateDebut: new Date(Date.now() + (rule.deadlineDelaiJours ?? 7) * 24 * 60 * 60 * 1000),
+          projectId: context.projectId ?? undefined,
+          createdById: rule.createdById,
+        },
+      });
+      await logExecution(rule.id, context, `Échéance créée : « ${event.titre} ».`);
+      return;
+    }
   }
 }
 
@@ -714,6 +743,25 @@ export async function runProjectStatusChangedRules(project: {
       projectId: project.id,
       targetUserId: project.responsableId,
       conditionData: { "project.statut": project.statut },
+    });
+  }
+}
+
+/** Comble V2.2 §7.1 "nouveau contrat" (modèle Contract ajouté pour combler ce trou). */
+export async function runContractCreatedRules(contract: {
+  id: string;
+  nom: string;
+  createdById: string;
+  montant: number | null;
+}) {
+  const rules = await findActiveRules("CONTRACT_CREATED");
+  for (const rule of rules) {
+    await executeAction(rule, {
+      entityType: "Contract",
+      entityId: contract.id,
+      label: contract.nom,
+      targetUserId: contract.createdById,
+      conditionData: { "contract.montant": contract.montant ?? 0 },
     });
   }
 }

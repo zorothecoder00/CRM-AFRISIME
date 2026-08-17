@@ -6,6 +6,11 @@ import type { Scenario } from "@/generated/prisma/client";
 
 const RESSOURCES_SEUIL_FRAGILE = 2;
 
+function estimatePlanningRetard(tauxOccupationMoyen: number | null): number {
+  if (tauxOccupationMoyen === null || tauxOccupationMoyen <= 100) return 0;
+  return Math.round(((tauxOccupationMoyen - 100) / 100) * 30);
+}
+
 export type ScenarioImpact = {
   headcount: number;
   projectsTotal: number;
@@ -15,6 +20,11 @@ export type ScenarioImpact = {
   risquesCritiques: number;
   besoinsCompetences: { competenceId: string; competenceNom: string; demande: number; disponible: number }[];
   projetsSousDotes: string[];
+  // Comble V2.2 §14 "planning", absent du calcul jusqu'ici. Estimation
+  // grossière : jours de glissement moyen au-delà de 100% d'occupation
+  // (chaque tranche de 100 points d'occupation en trop ~ 30 jours de
+  // glissement), 0 si la charge reste soutenable.
+  planningRetardEstimeJours: number;
 };
 
 /**
@@ -55,6 +65,7 @@ export async function computeBaseline(departmentId?: string | null): Promise<Sce
     risquesCritiques: pilotage.risquesCritiques,
     besoinsCompetences: teamPrediction.besoinsCompetences,
     projetsSousDotes: [],
+    planningRetardEstimeJours: estimatePlanningRetard(pilotage.tauxOccupationMoyen),
   };
 }
 
@@ -131,6 +142,17 @@ export async function computeScenarioImpact(
     projetsSousDotes = projects.filter((p) => p._count.resources <= RESSOURCES_SEUIL_FRAGILE).map((p) => p.nom);
   }
 
+  // Comble V2.2 §14-15 : jusqu'ici besoinsCompetences était recopié tel quel
+  // depuis la baseline, sans tenir compte du scénario. Demande mise à
+  // l'échelle du nombre de projets, disponibilité à l'échelle des effectifs
+  // — reste une approximation (pas de vraie répartition par compétence),
+  // mais réagit désormais réellement aux paramètres du scénario.
+  const besoinsCompetences = baseline.besoinsCompetences.map((b) => ({
+    ...b,
+    demande: Math.round(b.demande * projetsFactor),
+    disponible: Math.round(b.disponible * effectifFactor),
+  }));
+
   return {
     headcount,
     projectsTotal,
@@ -138,7 +160,8 @@ export async function computeScenarioImpact(
     tauxOccupationMoyen,
     chargeRepartition,
     risquesCritiques,
-    besoinsCompetences: baseline.besoinsCompetences,
+    besoinsCompetences,
     projetsSousDotes,
+    planningRetardEstimeJours: estimatePlanningRetard(tauxOccupationMoyen),
   };
 }

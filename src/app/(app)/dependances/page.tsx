@@ -16,13 +16,18 @@ export default async function DependenciesPage() {
   const session = await getServerSession(authOptions);
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const [dependencies, projects, teams, users, processus] = await Promise.all([
-    prisma.dependency.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.project.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
-    prisma.team.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
-    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.processus.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
-  ]);
+  const [dependencies, projects, teams, users, processus, meetingDecisions, governanceDecisions, resources, partners] =
+    await Promise.all([
+      prisma.dependency.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.project.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+      prisma.team.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+      prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+      prisma.processus.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+      prisma.meetingDecision.findMany({ orderBy: { createdAt: "desc" }, take: 100, select: { id: true, description: true } }),
+      prisma.governanceDecision.findMany({ orderBy: { createdAt: "desc" }, take: 100, select: { id: true, objet: true } }),
+      prisma.projectResource.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+      prisma.crmOrganization.findMany({ where: { type: "PARTENAIRE" }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    ]);
 
   const labels = await resolveDependencyLabels(
     dependencies.flatMap((d) => [
@@ -50,6 +55,10 @@ export default async function DependenciesPage() {
     Team: teams.map((t) => ({ id: t.id, label: t.nom })),
     User: users.map((u) => ({ id: u.id, label: u.name })),
     Processus: processus.map((p) => ({ id: p.id, label: p.nom })),
+    MeetingDecision: meetingDecisions.map((d) => ({ id: d.id, label: d.description })),
+    GovernanceDecision: governanceDecisions.map((d) => ({ id: d.id, label: d.objet })),
+    ProjectResource: resources.map((r) => ({ id: r.id, label: r.nom })),
+    CrmOrganization: partners.map((p) => ({ id: p.id, label: p.nom })),
   };
 
   return (

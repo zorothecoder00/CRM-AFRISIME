@@ -19,7 +19,9 @@ const COLUMN_X: Record<string, number> = {
   CrmOpportunity: 560,
   Project: 840,
   CrmInteraction: 840,
+  Contract: 840,
   Task: 1120,
+  Meeting: 1120,
 };
 const ROW_HEIGHT = 90;
 const MAX_ITEMS_PER_BRANCH = 10;
@@ -54,11 +56,12 @@ class GraphBuilder {
 
 /**
  * Relationship Intelligence (V2.2 §12) — parcourt les relations Prisma
- * existantes (aucun modele Contrat/Partenaire n'existe, Meeting n'a aucun
- * lien vers un contact CRM : perimetre limite a ce qui existe reellement,
- * voir la decision de scope validee avec l'utilisateur). Racine =
- * Organisation OU Contact ; format de sortie directement consommable par
- * @xyflow/react.
+ * existantes. Racine = Organisation OU Contact ; format de sortie
+ * directement consommable par @xyflow/react. Contrat (modele `Contract`,
+ * ajoute pour combler ce trou) et Partenaire (`CrmOrganizationType.
+ * PARTENAIRE`, deja existant) sont representes ; Reunion l'est indirectement
+ * via les projets ou le contact est partie prenante (Meeting n'a toujours
+ * aucun lien direct vers un contact CRM).
  */
 export async function buildRelationshipGraph(
   rootType: "CrmOrganization" | "CrmContact",
@@ -77,10 +80,15 @@ export async function buildRelationshipGraph(
           include: { owner: { select: { id: true, name: true } } },
         },
         interactions: { take: MAX_ITEMS_PER_BRANCH, orderBy: { dateInteraction: "desc" } },
+        contracts: { take: MAX_ITEMS_PER_BRANCH, select: { id: true, nom: true } },
       },
     });
 
-    const orgKey = g.addNode("CrmOrganization", org.id, org.nom, `/crm/organisations/${org.id}`);
+    // Partenaire (comble V2.2 §12) : CrmOrganizationType.PARTENAIRE existe
+    // deja, aucun nouveau modele necessaire — juste un libelle de noeud
+    // distinct pour le rendre visible dans le graphe.
+    const orgLabel = org.type === "PARTENAIRE" ? `${org.nom} (partenaire)` : org.nom;
+    const orgKey = g.addNode("CrmOrganization", org.id, orgLabel, `/crm/organisations/${org.id}`);
     if (org.owner) {
       const ownerKey = g.addNode("User", org.owner.id, org.owner.name);
       g.addEdge(orgKey, ownerKey, "commercial");
@@ -105,13 +113,20 @@ export async function buildRelationshipGraph(
       const key = g.addNode("CrmInteraction", interaction.id, interactionLabel(interaction));
       g.addEdge(orgKey, key, "interaction");
     }
+    for (const contract of org.contracts) {
+      const contractKey = g.addNode("Contract", contract.id, contract.nom);
+      g.addEdge(orgKey, contractKey, "contrat");
+    }
   } else {
     const contact = await prisma.crmContact.findUniqueOrThrow({
       where: { id: rootId },
       include: {
-        organization: { select: { id: true, nom: true } },
+        organization: { select: { id: true, nom: true, type: true } },
         owner: { select: { id: true, name: true } },
-        opportunities: { take: MAX_ITEMS_PER_BRANCH, include: { owner: { select: { id: true, name: true } } } },
+        opportunities: {
+          take: MAX_ITEMS_PER_BRANCH,
+          include: { owner: { select: { id: true, name: true } }, contracts: { take: MAX_ITEMS_PER_BRANCH, select: { id: true, nom: true } } },
+        },
         interactions: { take: MAX_ITEMS_PER_BRANCH, orderBy: { dateInteraction: "desc" } },
         missions: { take: MAX_ITEMS_PER_BRANCH, select: { id: true, titre: true } },
         stakeholderOf: { take: MAX_ITEMS_PER_BRANCH, include: { project: { select: { id: true, nom: true } } } },
@@ -120,8 +135,16 @@ export async function buildRelationshipGraph(
 
     const contactKey = g.addNode("CrmContact", contact.id, `${contact.prenom} ${contact.nom}`, `/crm/contacts/${contact.id}`);
     if (contact.organization) {
-      const orgKey = g.addNode("CrmOrganization", contact.organization.id, contact.organization.nom, `/crm/organisations/${contact.organization.id}`);
-      g.addEdge(contactKey, orgKey, "organisation");
+      // Partenaire (comble V2.2 §12) : CrmOrganizationType.PARTENAIRE
+      // existe deja — juste un libelle distinct, pas de nouveau modele.
+      const isPartner = contact.organization.type === "PARTENAIRE";
+      const orgKey = g.addNode(
+        "CrmOrganization",
+        contact.organization.id,
+        isPartner ? `${contact.organization.nom} (partenaire)` : contact.organization.nom,
+        `/crm/organisations/${contact.organization.id}`
+      );
+      g.addEdge(contactKey, orgKey, isPartner ? "partenaire" : "organisation");
     }
     if (contact.owner) {
       const ownerKey = g.addNode("User", contact.owner.id, contact.owner.name);
@@ -134,6 +157,11 @@ export async function buildRelationshipGraph(
         const ownerKey = g.addNode("User", opp.owner.id, opp.owner.name);
         g.addEdge(oppKey, ownerKey, "commercial");
       }
+      // Contrat (comble V2.2 §12 — modele Contract ajoute pour ce trou).
+      for (const contract of opp.contracts) {
+        const contractKey = g.addNode("Contract", contract.id, contract.nom);
+        g.addEdge(oppKey, contractKey, "contrat");
+      }
     }
     for (const interaction of contact.interactions) {
       const key = g.addNode("CrmInteraction", interaction.id, interactionLabel(interaction));
@@ -142,6 +170,19 @@ export async function buildRelationshipGraph(
     for (const stakeholder of contact.stakeholderOf) {
       const projKey = g.addNode("Project", stakeholder.project.id, stakeholder.project.nom, `/projets/${stakeholder.project.id}`);
       g.addEdge(contactKey, projKey, "partie prenante");
+
+      // Réunion (comble V2.2 §12) : aucun lien direct Meeting<->Contact
+      // n'existe — chemin indirect via le projet où le contact est partie
+      // prenante, le seul qui existe réellement dans le modèle de données.
+      const meetings = await prisma.meeting.findMany({
+        where: { projectId: stakeholder.project.id },
+        take: MAX_ITEMS_PER_BRANCH,
+        select: { id: true, titre: true },
+      });
+      for (const meeting of meetings) {
+        const meetingKey = g.addNode("Meeting", meeting.id, meeting.titre, `/reunions/${meeting.id}`);
+        g.addEdge(projKey, meetingKey, "réunion");
+      }
     }
     for (const task of contact.missions) {
       const taskKey = g.addNode("Task", task.id, task.titre, `/taches/${task.id}`);

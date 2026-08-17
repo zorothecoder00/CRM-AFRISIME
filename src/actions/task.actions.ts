@@ -68,6 +68,7 @@ export async function createTask(input: CreateTaskInput) {
       assignees: {
         create: assigneeIds.map((userId) => ({ userId })),
       },
+      competencesRequises: data.competenceIds.length > 0 ? { connect: data.competenceIds.map((id) => ({ id })) } : undefined,
     },
   });
 
@@ -102,9 +103,19 @@ export async function createTask(input: CreateTaskInput) {
 }
 
 /** V2.2 §9.2 — allocation intelligente : profils suggérés pour une tâche à créer. */
-export async function suggestTaskAssignees(projectId: string, echeance?: string): Promise<CandidateScore[]> {
+export async function suggestTaskAssignees(
+  projectId: string,
+  echeance?: string,
+  competenceIds?: string[],
+  priorite?: string
+): Promise<CandidateScore[]> {
   await requireSession();
-  return suggestAssignees({ projectId, echeance: echeance ? new Date(echeance) : undefined });
+  return suggestAssignees({
+    projectId,
+    echeance: echeance ? new Date(echeance) : undefined,
+    competenceIds,
+    priorite,
+  });
 }
 
 export async function updateTaskStatus(taskId: string, statut: string) {

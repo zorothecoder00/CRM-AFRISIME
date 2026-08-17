@@ -30,13 +30,18 @@ export type CandidateScore = {
  * (src/lib/workload.ts, déjà utilisé par la charge de travail/le pilotage)
  * pour la charge, plutôt que de recalculer la même chose différemment.
  */
+const URGENT_PRIORITIES = new Set(["TRES_HAUTE", "HAUTE"]);
+
 export async function suggestAssignees(params: {
   projectId: string;
   competenceIds?: string[];
   echeance?: Date;
+  /** V2.2 §9.1 "priorités" — une tâche urgente pèse plus sur charge/disponibilité que sur l'expérience. */
+  priorite?: string;
   limit?: number;
 }): Promise<CandidateScore[]> {
-  const { projectId, competenceIds = [], echeance, limit = 5 } = params;
+  const { projectId, competenceIds = [], echeance, priorite, limit = 5 } = params;
+  const urgent = priorite ? URGENT_PRIORITIES.has(priorite) : false;
 
   const [users, tasks, leaves, projectMembers, evaluations] = await Promise.all([
     prisma.user.findMany({
@@ -122,8 +127,18 @@ export async function suggestAssignees(params: {
 
     const projet = memberIds.has(u.id) ? 100 : 0;
 
+    // Priorité urgente : la disponibilité immédiate et la marge de charge
+    // comptent davantage que l'expérience passée — reste 1.0 au total.
+    const weights = urgent
+      ? { competence: 0.25, disponibilite: 0.3, charge: 0.3, experience: 0.05, projet: 0.1 }
+      : { competence: 0.3, disponibilite: 0.2, charge: 0.25, experience: 0.15, projet: 0.1 };
+
     const scoreTotal = Math.round(
-      competence * 0.3 + disponibilite * 0.2 + charge * 0.25 + experience * 0.15 + projet * 0.1
+      competence * weights.competence +
+        disponibilite * weights.disponibilite +
+        charge * weights.charge +
+        experience * weights.experience +
+        projet * weights.projet
     );
 
     return {

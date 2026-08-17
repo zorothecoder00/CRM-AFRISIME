@@ -13,6 +13,10 @@ export const createTaskSchema = z.object({
   // Origines supplementaires (cahier des charges §IX), toutes optionnelles.
   objectiveId: z.string().optional(),
   planId: z.string().optional(),
+  // Comble V2.2 §9.2 : jusqu'ici Task.competencesRequises n'était rempli
+  // nulle part, donc le critère "compétence" de suggestAssignees restait
+  // toujours neutre en pratique.
+  competenceIds: z.array(z.string()).optional().default([]),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;

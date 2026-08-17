@@ -267,6 +267,10 @@ export default async function ProjectDetailPage({
     Team: [],
     User: [],
     Processus: [],
+    MeetingDecision: [],
+    GovernanceDecision: [],
+    ProjectResource: [],
+    CrmOrganization: [],
   };
 
   const responsableById = new Map(users.map((u) => [u.id, u.name]));

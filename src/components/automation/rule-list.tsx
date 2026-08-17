@@ -20,6 +20,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   MEETING_CREATED: "Une réunion est créée",
   EVENT_CREATED: "Un événement est créé",
   INDICATOR_OFF_TARGET: "Un indicateur s'écarte de sa cible",
+  CONTRACT_CREATED: "Un nouveau contrat est créé",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -40,6 +41,7 @@ const ACTION_LABELS: Record<string, string> = {
   VERIFY_RESOURCES: "Vérifier les ressources",
   VERIFY_RISKS: "Vérifier les risques",
   OPEN_TRACKING_BOARD: "Ouvrir le tableau de suivi",
+  CREATE_DEADLINE: "Créer une échéance",
 };
 
 const CONDITION_FIELD_LABELS: Record<string, string> = {

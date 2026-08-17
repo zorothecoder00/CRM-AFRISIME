@@ -232,6 +232,9 @@ enum AutomationTrigger {
   MEETING_CREATED
   EVENT_CREATED
   INDICATOR_OFF_TARGET
+  // Ajoute (comble V2.2 §7.1 — "nouveau contrat" necessitait un modele
+  // Contract, absent jusqu'ici). Evenementiel, comme OPPORTUNITY_CREATED.
+  CONTRACT_CREATED
 }
 
 enum AutomationActionType {
@@ -258,6 +261,10 @@ enum AutomationActionType {
   VERIFY_RESOURCES
   VERIFY_RISKS
   OPEN_TRACKING_BOARD
+  // Ajoute (comble V2.2 §7.3 — "créer échéance" n'avait pas d'action
+  // dédiée, seulement l'échéance implicite de CREATE_NEXT_TASK). Crée un
+  // Event de type échéance plutôt qu'un nouveau modèle dédié.
+  CREATE_DEADLINE
 }
 
 // Condition d'une regle d'automatisation (V2.2 §7.2 — IF/ELSE/AND/OR).
@@ -468,6 +475,7 @@ model User {
   orchestrationPlaybooksCreated     OrchestrationPlaybook[]     @relation("OrchestrationPlaybookCreatedBy")
   dependenciesCreated               Dependency[]                @relation("DependencyCreatedBy")
   scenariosCreated                  Scenario[]                  @relation("ScenarioCreatedBy")
+  contractsCreated                  Contract[]                  @relation("ContractCreatedBy")
   dashboardPreference              DashboardWidgetPreference?
   integrationsCreated              Integration[]               @relation("IntegrationCreatedBy")
   passwordResetTokens              PasswordResetToken[]
@@ -1166,6 +1174,7 @@ model CrmOrganization {
   contacts      CrmContact[]
   opportunities CrmOpportunity[]
   interactions  CrmInteraction[]
+  contracts     Contract[]
 
   @@index([ownerId])
   @@index([nom])
@@ -1271,6 +1280,7 @@ model CrmOpportunity {
   updatedAt          DateTime             @updatedAt
 
   interactions CrmInteraction[]
+  contracts    Contract[]
 
   @@index([contactId])
   @@index([organizationId])
@@ -1296,6 +1306,37 @@ model CrmInteraction {
   @@index([contactId])
   @@index([organizationId])
   @@index([opportunityId])
+}
+
+// Contrat (comble V2.2 §7.1 "nouveau contrat" — aucun modèle Contrat
+// n'existait, ni ici ni dans le chantier v2.0 §12 encore ouvert). Portée
+// volontairement minimale : juste assez pour rattacher un contrat à une
+// opportunité/organisation et déclencher CONTRACT_CREATED — une gestion
+// contractuelle complète (avenants, échéancier de paiement...) reste le
+// travail du futur v2.0 §12, pas de ce module.
+enum ContractStatut {
+  ACTIF
+  EXPIRE
+  RESILIE
+}
+
+model Contract {
+  id             String          @id @default(cuid())
+  nom            String
+  opportunityId  String?
+  opportunity    CrmOpportunity? @relation(fields: [opportunityId], references: [id])
+  organizationId String?
+  organization   CrmOrganization? @relation(fields: [organizationId], references: [id])
+  montant        Decimal?        @db.Decimal(14, 2)
+  dateSignature  DateTime?
+  dateExpiration DateTime?
+  statut         ContractStatut  @default(ACTIF)
+  createdById    String
+  createdBy      User            @relation("ContractCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime        @default(now())
+
+  @@index([opportunityId])
+  @@index([organizationId])
 }
 
 // Phase / Sous-phase / Lot — un seul modèle auto-référencé, discriminé par
@@ -2377,6 +2418,20 @@ model AutomationRule {
   targetRuleId String?
   targetRule   AutomationRule?  @relation("AutomationTriggerWorkflow", fields: [targetRuleId], references: [id])
   triggeredBy  AutomationRule[] @relation("AutomationTriggerWorkflow")
+
+  // Config action CREATE_DEADLINE (comble V2.2 §7.3) — crée un Event
+  // marquant une échéance plutôt qu'un nouveau modèle dédié.
+  deadlineTitre      String?
+  deadlineDelaiJours Int?
+
+  // Branche ELSE (comble V2.2 §7.2 — IF/ELSE/AND/OR) : si les conditions de
+  // cette règle échouent, exécute elseRule (une règle complète, avec sa
+  // propre action) au lieu de ne rien faire. Réutilise entièrement le
+  // moteur existant plutôt que de dupliquer tous les champs de config pour
+  // une "action sinon" séparée.
+  elseRuleId String?
+  elseRule   AutomationRule?  @relation("AutomationElseRule", fields: [elseRuleId], references: [id])
+  isElseFor  AutomationRule[] @relation("AutomationElseRule")
 
   createdById String
   createdBy   User     @relation("AutomationRuleCreatedBy", fields: [createdById], references: [id])

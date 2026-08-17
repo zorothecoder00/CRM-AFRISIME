@@ -48,7 +48,7 @@ export default async function TachesPage({
     andClauses.push({ OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] });
   }
 
-  const [tasks, projects, users, objectives, plans, whiteboard] = await Promise.all([
+  const [tasks, projects, users, objectives, plans, competences, whiteboard] = await Promise.all([
     prisma.task.findMany({
       where: {
         projectId: projetId || undefined,
@@ -70,6 +70,9 @@ export default async function TachesPage({
       : Promise.resolve([]),
     canCreate
       ? prisma.plan.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
+      : Promise.resolve([]),
+    canCreate
+      ? prisma.competence.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
       : Promise.resolve([]),
     vue === "blanc" && projetId
       ? prisma.whiteboard.findUnique({ where: { projectId: projetId } })
@@ -142,6 +145,7 @@ export default async function TachesPage({
               users={userOptions}
               objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
               plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
+              competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
             />
           )}
         </div>

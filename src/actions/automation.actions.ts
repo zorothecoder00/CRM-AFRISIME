@@ -43,6 +43,9 @@ export async function createRule(input: CreateRuleInput) {
       riskImpact: data.riskImpact || undefined,
       reportType: data.reportType || undefined,
       targetRuleId: data.targetRuleId || undefined,
+      deadlineTitre: data.deadlineTitre || undefined,
+      deadlineDelaiJours: data.deadlineDelaiJours ? Number(data.deadlineDelaiJours) : undefined,
+      elseRuleId: data.elseRuleId || undefined,
       createdById: session.user.id,
       conditions: {
         create: data.conditions.map((c, index) => ({

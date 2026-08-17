@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { accentForOpportunityStatus } from "@/lib/status-tone";
 import { InteractionLog } from "@/components/crm/interaction-log";
 import { OpportunityStatusSelect } from "@/components/crm/opportunity-status-select";
+import { ContractFormDialog } from "@/components/crm/contract-form-dialog";
+import { Badge } from "@/components/ui/badge";
 
 export default async function CrmOpportunityDetailPage({
   params,
@@ -23,6 +25,7 @@ export default async function CrmOpportunityDetailPage({
         include: { author: true },
         orderBy: { dateInteraction: "desc" },
       },
+      contracts: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -99,6 +102,36 @@ export default async function CrmOpportunityDetailPage({
                 authorName: i.author.name,
               }))}
             />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Contrats</CardTitle>
+            <ContractFormDialog defaultOpportunityId={opportunity.id} defaultOrganizationId={opportunity.organization?.id} />
+          </CardHeader>
+          <CardContent>
+            {opportunity.contracts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun contrat lié.</p>
+            ) : (
+              <ul className="space-y-2">
+                {opportunity.contracts.map((c) => (
+                  <li key={c.id} className="rounded-md border p-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{c.nom}</span>
+                      <Badge variant="outline">{c.statut}</Badge>
+                    </div>
+                    {c.montant !== null && (
+                      <div className="text-xs text-muted-foreground">
+                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number(c.montant))} FCFA
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -68,6 +68,19 @@ export function ScenarioComparisonTable({ baseline, columns }: { baseline: Scena
               ))}
             </TableRow>
             <TableRow>
+              <TableCell className="font-medium">Planning</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {baseline.planningRetardEstimeJours > 0 ? `~${baseline.planningRetardEstimeJours} j de glissement estimé` : "Soutenable"}
+              </TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label} className="text-xs text-muted-foreground">
+                  {c.impact.planningRetardEstimeJours > 0
+                    ? `~${c.impact.planningRetardEstimeJours} j de glissement estimé`
+                    : "Soutenable"}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
               <TableCell className="font-medium">Répartition charge</TableCell>
               <TableCell className="text-xs text-muted-foreground">{formatRepartition(baseline.chargeRepartition)}</TableCell>
               {columns.map((c) => (

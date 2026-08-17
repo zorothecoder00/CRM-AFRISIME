@@ -36,16 +36,20 @@ export function TaskFormDialog({
   users,
   objectives,
   plans,
+  competences,
 }: {
   projects: ProjectWithSections[];
   users: Option[];
   /** Origines optionnelles (cahier des charges §IX). */
   objectives?: Option[];
   plans?: Option[];
+  /** Compétences requises (V2.2 §9.2) — alimente la suggestion de responsable. */
+  competences?: Option[];
 }) {
   const [open, setOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [competenceIds, setCompetenceIds] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<CandidateScore[] | null>(null);
 
   const {
@@ -64,7 +68,12 @@ export function TaskFormDialog({
 
   async function handleSuggest() {
     if (!selectedProjectId) return;
-    const result = await suggest(selectedProjectId, getValues("echeance") || undefined);
+    const result = await suggest(
+      selectedProjectId,
+      getValues("echeance") || undefined,
+      competenceIds,
+      getValues("priorite")
+    );
     if (result.ok) setSuggestions(result.data);
   }
 
@@ -74,11 +83,12 @@ export function TaskFormDialog({
   );
 
   async function onSubmit(data: CreateTaskInput) {
-    const result = await submit({ ...data, assigneeIds });
+    const result = await submit({ ...data, assigneeIds, competenceIds });
     if (result.ok) {
       reset();
       setSelectedProjectId(undefined);
       setAssigneeIds([]);
+      setCompetenceIds([]);
       setSuggestions(null);
       setOpen(false);
     }
@@ -86,6 +96,10 @@ export function TaskFormDialog({
 
   function toggleAssignee(userId: string, checked: boolean) {
     setAssigneeIds((prev) => (checked ? [...prev, userId] : prev.filter((id) => id !== userId)));
+  }
+
+  function toggleCompetence(competenceId: string, checked: boolean) {
+    setCompetenceIds((prev) => (checked ? [...prev, competenceId] : prev.filter((id) => id !== competenceId)));
   }
 
   return (
@@ -248,6 +262,26 @@ export function TaskFormDialog({
               ))}
             </div>
           </div>
+
+          {competences && competences.length > 0 && (
+            <div className="space-y-2">
+              <Label>Compétences requises (optionnel)</Label>
+              <p className="text-xs text-muted-foreground">
+                Utilisées par « Suggérer un responsable » pour évaluer la correspondance.
+              </p>
+              <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
+                {competences.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={competenceIds.includes(c.id)}
+                      onCheckedChange={(checked) => toggleCompetence(c.id, checked === true)}
+                    />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
