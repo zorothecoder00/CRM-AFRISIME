@@ -19,6 +19,7 @@ export const TRIGGER_VALUES = [
   "EVENT_CREATED",
   "INDICATOR_OFF_TARGET",
   "CONTRACT_CREATED",
+  "INTEGRATION_EVENT_RECEIVED",
 ] as const;
 
 export const ACTION_VALUES = [
@@ -56,6 +57,8 @@ export const createRuleSchema = z
     nom: z.string().min(2, "Le nom est requis."),
     trigger: z.enum(TRIGGER_VALUES),
     action: z.enum(ACTION_VALUES),
+    // Gouvernance IA (V2.2 §42) — defaut au comportement historique.
+    niveauIA: z.enum(["SUGGESTION", "VALIDATION", "AUTOMATISATION"]).default("AUTOMATISATION"),
 
     nextTaskTitre: z.string().optional(),
     nextTaskResponsableId: z.string().optional(),

@@ -74,6 +74,7 @@ export default async function AutomatisationsPage({
     nom: r.nom,
     trigger: r.trigger,
     action: r.action,
+    niveauIA: r.niveauIA,
     isActive: r.isActive,
     projectId: r.projectId,
     nextTaskTitre: r.nextTaskTitre,

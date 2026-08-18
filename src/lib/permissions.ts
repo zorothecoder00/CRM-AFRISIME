@@ -115,6 +115,10 @@ export const PERMISSIONS = {
   SESSION_MANAGE: "session.manage",
   DATA_BACKUP_MANAGE: "data.backup_manage",
   TRASH_MANAGE: "trash.manage",
+
+  // Extension V2.2 §41-43 — Matrice de decision, gouvernance IA
+  DECISION_MATRIX_MANAGE: "decision_matrix.manage",
+  AI_GOVERNANCE_APPROVE: "ai_governance.approve",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -233,6 +237,9 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.SESSION_MANAGE, label: "Voir et révoquer les sessions actives des utilisateurs", category: "Sécurité" },
   { key: PERMISSIONS.DATA_BACKUP_MANAGE, label: "Exporter/importer une sauvegarde applicative", category: "Gestion des données" },
   { key: PERMISSIONS.TRASH_MANAGE, label: "Consulter et restaurer les éléments de la corbeille", category: "Gestion des données" },
+
+  { key: PERMISSIONS.DECISION_MATRIX_MANAGE, label: "Créer et gérer des matrices de décision", category: "Décisions" },
+  { key: PERMISSIONS.AI_GOVERNANCE_APPROVE, label: "Approuver ou rejeter les actions IA en attente de validation", category: "Gouvernance IA" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -322,6 +329,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.SESSION_MANAGE,
     PERMISSIONS.DATA_BACKUP_MANAGE,
     PERMISSIONS.TRASH_MANAGE,
+    PERMISSIONS.DECISION_MATRIX_MANAGE,
+    PERMISSIONS.AI_GOVERNANCE_APPROVE,
   ],
 
   DIRECTEUR: [
@@ -510,6 +519,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.TASK_DELETE,
     PERMISSIONS.DOCUMENT_DELETE,
     PERMISSIONS.TRASH_MANAGE,
+    PERMISSIONS.DECISION_MATRIX_MANAGE,
   ],
 
   RESPONSABLE: [

@@ -506,6 +506,8 @@ model User {
   projectsDeleted                  Project[]                      @relation("ProjectDeletedBy")
   tasksDeleted                     Task[]                         @relation("TaskDeletedBy")
   documentsDeleted                 Document[]                     @relation("DocumentDeletedBy")
+  pendingAiActionsDecided          PendingAiAction[]              @relation("PendingAiActionDecidedBy")
+  decisionMatricesCreated          DecisionMatrix[]               @relation("DecisionMatrixCreatedBy")
   scenariosCreated                 Scenario[]                     @relation("ScenarioCreatedBy")
   contractsCreated                 Contract[]                     @relation("ContractCreatedBy")
   portalMessagesAuthored           PortalMessage[]                @relation("PortalMessageAuthor")
@@ -974,6 +976,7 @@ model Project {
   resources              ProjectResource[]
   incidents              Incident[]
   beneficiaires          Beneficiaire[]
+  decisionMatrices       DecisionMatrix[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -2520,6 +2523,12 @@ model AutomationRule {
   trigger   AutomationTrigger
   action    AutomationActionType
   isActive  Boolean              @default(true)
+  // Gouvernance IA (cahier des charges V2.2 §42) — palier par regle ;
+  // AUTOMATISATION preserve le comportement historique (toutes les regles
+  // existantes s'y retrouvent par defaut, aucune regression). Les types
+  // d'action sensibles (§43) forcent VALIDATION independamment de ce champ
+  // (voir SENSITIVE_ACTION_TYPES dans src/lib/automation.ts).
+  niveauIA  AiGovernanceNiveau   @default(AUTOMATISATION)
 
   playbookId String?
   playbook   OrchestrationPlaybook? @relation(fields: [playbookId], references: [id])
@@ -2586,6 +2595,7 @@ model AutomationRule {
 
   conditions AutomationCondition[]
   executions AutomationExecution[]
+  pendingAiActions PendingAiAction[]
 
   @@index([projectId])
   @@index([trigger])
@@ -2604,6 +2614,100 @@ model AutomationExecution {
   executedAt DateTime       @default(now())
 
   @@index([ruleId])
+}
+
+// ===================== V2.2 §41-43 — Matrice de decision, gouvernance IA, human-in-the-loop =====================
+enum AiGovernanceNiveau {
+  SUGGESTION
+  VALIDATION
+  AUTOMATISATION
+}
+
+enum PendingAiActionStatut {
+  EN_ATTENTE
+  APPROUVE
+  REJETE
+}
+
+// Action IA en attente de validation humaine (cahier §42 niveau 2, §43
+// "human in the loop"). Cree par runIntegrationEventRules/run*Rules quand
+// la regle declenchee est en niveau VALIDATION (ou que son AutomationActionType
+// est dans SENSITIVE_ACTION_TYPES, voir automation.ts) au lieu d'executer
+// l'action immediatement. `conditionData` est re-serialise tel quel pour que
+// l'approbation puisse rejouer exactement le meme contexte via performAction().
+model PendingAiAction {
+  id            String                @id @default(cuid())
+  ruleId        String
+  rule          AutomationRule        @relation(fields: [ruleId], references: [id])
+  entityType    String
+  entityId      String
+  label         String
+  projectId     String?
+  conditionData Json?
+  statut        PendingAiActionStatut @default(EN_ATTENTE)
+  createdAt     DateTime              @default(now())
+  decidedById   String?
+  decidedBy     User?                 @relation("PendingAiActionDecidedBy", fields: [decidedById], references: [id])
+  decidedAt     DateTime?
+  motifRejet    String?
+
+  @@index([ruleId])
+  @@index([statut])
+}
+
+enum NiveauQualitatif {
+  FAIBLE
+  MOYEN
+  ELEVE
+}
+
+// Matrice de decision (cahier §41) — un manager compare plusieurs options
+// selon 7 criteres ; la recommandation (option la mieux notee) est calculee,
+// jamais saisie manuellement, via computeDecisionRecommendation
+// (src/lib/decision-matrix.ts). Cout/delai/ressources : plus bas = mieux ;
+// ROI : plus haut = mieux ; risque/impact/faisabilite : echelle qualitative
+// a 3 niveaux (impact = benefice attendu de l'option, pas un risque).
+model DecisionMatrix {
+  id          String   @id @default(cuid())
+  titre       String
+  contexte    String?
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
+  // Ponderation par critere (0-100, defaut egal) — permet a un manager de
+  // prioriser p.ex. le risque sur le cout selon le contexte de la decision.
+  poidsCout        Int @default(50)
+  poidsDelai       Int @default(50)
+  poidsRisque      Int @default(50)
+  poidsImpact      Int @default(50)
+  poidsRessources  Int @default(50)
+  poidsRoi         Int @default(50)
+  poidsFaisabilite Int @default(50)
+  createdById String
+  createdBy   User     @relation("DecisionMatrixCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  options DecisionOption[]
+
+  @@index([projectId])
+}
+
+model DecisionOption {
+  id           String           @id @default(cuid())
+  matrixId     String
+  matrix       DecisionMatrix   @relation(fields: [matrixId], references: [id], onDelete: Cascade)
+  nom          String
+  description  String?
+  cout         Decimal?         @db.Decimal(14, 2)
+  delaiJours   Int?
+  risque       NiveauQualitatif @default(MOYEN)
+  impact       NiveauQualitatif @default(MOYEN)
+  ressources   Decimal?         @db.Decimal(10, 2)
+  roiPercent   Decimal?         @db.Decimal(6, 2)
+  faisabilite  NiveauQualitatif @default(MOYEN)
+  createdAt    DateTime         @default(now())
+
+  @@index([matrixId])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.

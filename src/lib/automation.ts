@@ -1,11 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification, notifyMany } from "@/lib/notify";
-import { TaskStatus, ProjectStatus, type AutomationTrigger } from "@/generated/prisma/enums";
+import { TaskStatus, ProjectStatus, type AutomationTrigger, type AutomationActionType } from "@/generated/prisma/enums";
 import type { AutomationRule, AutomationCondition } from "@/generated/prisma/client";
 import { evaluateConditions, type ConditionData } from "@/lib/automation-conditions";
 import { startValidationRun } from "@/lib/validation-workflow";
 import { startAdminRequestValidationRun } from "@/lib/admin-request-workflow";
 import { REPORT_TYPES } from "@/lib/reports";
+
+// Gouvernance IA (V2.2 §42-43) — types d'action correspondant aux 6
+// categories "sensibles" du cahier des charges (changement de statut
+// critique -> CHANGE_STATUS, validation contractuelle -> REQUEST_VALIDATION,
+// communication externe -> SEND_EMAIL). "Suppression", "decision
+// strategique" et "modification de permissions" n'ont aujourd'hui aucun
+// AutomationActionType correspondant (aucune regle ne peut les declencher),
+// la contrainte est donc satisfaite par construction pour ces trois-la —
+// a revoir si un futur type d'action couvre l'un d'eux.
+const SENSITIVE_ACTION_TYPES = new Set<AutomationActionType>(["CHANGE_STATUS", "REQUEST_VALIDATION", "SEND_EMAIL"]);
 
 const ACTIVE_TASK_STATUSES: TaskStatus[] = [
   TaskStatus.A_FAIRE,
@@ -94,6 +104,30 @@ async function executeAction(
     return;
   }
 
+  // Gouvernance IA (V2.2 §42-43) : chaque regle porte un niveau
+  // (SUGGESTION/VALIDATION/AUTOMATISATION) ; les types d'action sensibles
+  // (SENSITIVE_ACTION_TYPES ci-dessus) forcent VALIDATION quel que soit le
+  // niveau configure sur la regle. AUTOMATISATION (defaut historique)
+  // execute directement, comme avant l'introduction de ce palier.
+  const niveauIA = SENSITIVE_ACTION_TYPES.has(rule.action) ? "VALIDATION" : rule.niveauIA;
+
+  if (niveauIA === "SUGGESTION") {
+    await recordAiSuggestion(rule, context);
+    return;
+  }
+  if (niveauIA === "VALIDATION") {
+    await createPendingAiAction(rule, context);
+    return;
+  }
+
+  await performAction(rule, context, visited);
+}
+
+async function performAction(
+  rule: AutomationRuleWithConditions,
+  context: AutomationContext,
+  visited: Set<string>
+) {
   switch (rule.action) {
     case "CREATE_NEXT_TASK": {
       if (!rule.nextTaskTitre || !rule.nextTaskResponsableId || !context.projectId) {
@@ -475,6 +509,96 @@ async function logExecution(ruleId: string, context: AutomationContext, resultat
   await prisma.automationExecution.create({
     data: { ruleId, entityType: context.entityType, entityId: context.entityId, resultat },
   });
+}
+
+/**
+ * Gouvernance IA niveau 1 — "Suggestion" (cahier §42). Ne modifie rien :
+ * journalise l'intention (traçabilité, réutilise AutomationExecution plutôt
+ * qu'un nouveau modèle) et notifie le créateur de la règle qu'une action a
+ * été suggérée sans être exécutée.
+ */
+async function recordAiSuggestion(rule: AutomationRuleWithConditions, context: AutomationContext) {
+  await logExecution(rule.id, context, `Suggestion IA (non exécutée, niveau Suggestion) : ${context.label}`);
+  await createNotification({
+    userId: rule.createdById,
+    type: "MODIFICATION",
+    titre: `Suggestion IA (automatisation « ${rule.nom} ») : ${context.label}`,
+    lien: context.projectId ? `/projets/${context.projectId}` : "/gouvernance-ia",
+    entityType: context.entityType,
+    entityId: context.entityId,
+  });
+}
+
+/**
+ * Gouvernance IA niveau 2 — "Validation humaine" (cahier §42-43). Crée une
+ * PendingAiAction plutôt que d'exécuter l'action ; approvePendingAiAction
+ * rejoue performAction() avec le contexte capturé ici si un humain valide.
+ */
+async function createPendingAiAction(rule: AutomationRuleWithConditions, context: AutomationContext) {
+  await prisma.pendingAiAction.create({
+    data: {
+      ruleId: rule.id,
+      entityType: context.entityType,
+      entityId: context.entityId,
+      label: context.label,
+      projectId: context.projectId ?? undefined,
+      conditionData: context.conditionData ?? undefined,
+    },
+  });
+  await logExecution(rule.id, context, `En attente de validation humaine : ${context.label}`);
+  await createNotification({
+    userId: rule.createdById,
+    type: "VALIDATION",
+    titre: `Action IA en attente de validation (« ${rule.nom} ») : ${context.label}`,
+    lien: "/gouvernance-ia",
+    entityType: context.entityType,
+    entityId: context.entityId,
+  });
+}
+
+/**
+ * Approuve une PendingAiAction — exécute réellement l'action différée
+ * (cahier §43 : IA → Proposition → Validation humaine → Exécution).
+ */
+export async function approvePendingAiAction(pendingId: string, decidedById: string) {
+  const pending = await prisma.pendingAiAction.findUniqueOrThrow({
+    where: { id: pendingId },
+    include: { rule: { include: { conditions: true } } },
+  });
+  if (pending.statut !== "EN_ATTENTE") return;
+
+  await prisma.pendingAiAction.update({
+    where: { id: pendingId },
+    data: { statut: "APPROUVE", decidedById, decidedAt: new Date() },
+  });
+
+  await performAction(
+    pending.rule,
+    {
+      entityType: pending.entityType,
+      entityId: pending.entityId,
+      label: pending.label,
+      projectId: pending.projectId,
+      conditionData: (pending.conditionData as ConditionData | null) ?? undefined,
+    },
+    new Set()
+  );
+}
+
+/** Rejette une PendingAiAction — aucune exécution, motif journalisé pour traçabilité (cahier §42). */
+export async function rejectPendingAiAction(pendingId: string, decidedById: string, motif?: string) {
+  const pending = await prisma.pendingAiAction.findUniqueOrThrow({ where: { id: pendingId } });
+  if (pending.statut !== "EN_ATTENTE") return;
+
+  await prisma.pendingAiAction.update({
+    where: { id: pendingId },
+    data: { statut: "REJETE", decidedById, decidedAt: new Date(), motifRejet: motif },
+  });
+  await logExecution(
+    pending.ruleId,
+    { entityType: pending.entityType, entityId: pending.entityId, label: pending.label },
+    `Rejetée par un humain${motif ? ` : ${motif}` : "."}`
+  );
 }
 
 export async function runTaskCompletedRules(task: {

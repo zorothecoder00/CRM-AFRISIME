@@ -296,6 +296,27 @@ export function RuleFormDialog({
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label>Niveau de gouvernance IA</Label>
+            <Select
+              defaultValue="AUTOMATISATION"
+              onValueChange={(v) => setValue("niveauIA", v as CreateRuleInput["niveauIA"])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SUGGESTION">Suggestion — recommande sans agir</SelectItem>
+                <SelectItem value="VALIDATION">Validation humaine — propose, attend une approbation</SelectItem>
+                <SelectItem value="AUTOMATISATION">Automatisation autorisée — exécute directement</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Certaines actions (changement de statut, validation, communication externe) exigent toujours une
+              validation humaine, quel que soit ce réglage.
+            </p>
+          </div>
+
           <AutomationActionFields
             action={action}
             register={register}

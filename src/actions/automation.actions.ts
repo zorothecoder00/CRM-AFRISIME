@@ -26,6 +26,7 @@ export async function createRule(input: CreateRuleInput) {
       nom: data.nom,
       trigger: data.trigger,
       action: data.action,
+      niveauIA: data.niveauIA,
       playbookId: data.playbookId || undefined,
       ordre: data.ordre ? Number(data.ordre) : undefined,
       nextTaskTitre: data.nextTaskTitre,

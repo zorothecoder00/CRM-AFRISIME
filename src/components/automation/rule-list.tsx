@@ -68,11 +68,18 @@ const OPERATOR_LABELS: Record<string, string> = {
   CONTAINS: "contient",
 };
 
+const NIVEAU_IA_LABELS: Record<string, string> = {
+  SUGGESTION: "Suggestion",
+  VALIDATION: "Validation humaine",
+  AUTOMATISATION: "Automatisation",
+};
+
 export type RuleData = {
   id: string;
   nom: string;
   trigger: string;
   action: string;
+  niveauIA: string;
   isActive: boolean;
   projectId: string | null;
   nextTaskTitre: string | null;
@@ -97,6 +104,9 @@ export function RuleList({ rules, canManage }: { rules: RuleData[]; canManage: b
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Badge variant="outline">Si : {TRIGGER_LABELS[rule.trigger] ?? rule.trigger}</Badge>
               <Badge variant="secondary">Alors : {ACTION_LABELS[rule.action] ?? rule.action}</Badge>
+              <Badge variant={rule.niveauIA === "AUTOMATISATION" ? "outline" : "info"}>
+                {NIVEAU_IA_LABELS[rule.niveauIA] ?? rule.niveauIA}
+              </Badge>
               {!rule.projectId && <Badge variant="outline">Globale</Badge>}
               {!rule.isActive && <Badge variant="destructive">Désactivée</Badge>}
             </div>
