@@ -13,6 +13,10 @@ export type CreateProcessusInput = z.infer<typeof createProcessusSchema>;
 export const updateProcessusStatutSchema = z.object({
   processusId: z.string().min(1),
   statut: z.enum(["BROUILLON", "ACTIF", "ARCHIVE"]),
+  // Motif d'archivage (V3.0 §17/§18 — mémoire organisationnelle) : conservé
+  // dans OrganizationalMemoryEntry pour répondre plus tard à "pourquoi
+  // avons-nous arrêté cette procédure ?". Ignoré si statut !== "ARCHIVE".
+  motif: z.string().optional(),
 });
 
 // Une nouvelle version incrémente Processus.version et journalise un

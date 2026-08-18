@@ -119,6 +119,10 @@ export const PERMISSIONS = {
   // Extension V2.2 §41-43 — Matrice de decision, gouvernance IA
   DECISION_MATRIX_MANAGE: "decision_matrix.manage",
   AI_GOVERNANCE_APPROVE: "ai_governance.approve",
+
+  // Extension V3.0 §17-18 — Memoire organisationnelle
+  MEMORY_READ: "memory.read",
+  MEMORY_MANAGE: "memory.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -240,6 +244,9 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.DECISION_MATRIX_MANAGE, label: "Créer et gérer des matrices de décision", category: "Décisions" },
   { key: PERMISSIONS.AI_GOVERNANCE_APPROVE, label: "Approuver ou rejeter les actions IA en attente de validation", category: "Gouvernance IA" },
+
+  { key: PERMISSIONS.MEMORY_READ, label: "Consulter la mémoire organisationnelle (archives, décisions, retours d'expérience)", category: "Mémoire organisationnelle" },
+  { key: PERMISSIONS.MEMORY_MANAGE, label: "Ajouter des entrées à la mémoire organisationnelle", category: "Mémoire organisationnelle" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -316,6 +323,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
     PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.MEMORY_MANAGE,
+    PERMISSIONS.MEMORY_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
     PERMISSIONS.ENTITY_MANAGE,
@@ -394,6 +403,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
     PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.MEMORY_MANAGE,
+    PERMISSIONS.MEMORY_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
   ],
@@ -456,6 +467,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
     PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.MEMORY_MANAGE,
+    PERMISSIONS.MEMORY_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
   ],
@@ -513,6 +526,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
     PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.MEMORY_MANAGE,
+    PERMISSIONS.MEMORY_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
     PERMISSIONS.PROJECT_DELETE,
@@ -564,6 +579,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.MEMORY_READ,
     PERMISSIONS.RISK_READ,
   ],
 
@@ -605,6 +621,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.PROCESS_READ,
+    PERMISSIONS.MEMORY_READ,
     PERMISSIONS.RISK_READ,
   ],
 

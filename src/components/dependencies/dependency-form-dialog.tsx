@@ -42,6 +42,7 @@ const TYPE_LABELS: Record<EntityType, string> = {
   ProjectResource: "Ressource",
   CrmOrganization: "Partenaire",
   CrmContact: "Prestataire",
+  Transformation: "Transformation",
 };
 
 export function DependencyFormDialog({

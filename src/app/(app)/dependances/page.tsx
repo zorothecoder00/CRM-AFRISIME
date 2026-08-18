@@ -16,7 +16,7 @@ export default async function DependenciesPage() {
   const session = await getServerSession(authOptions);
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const [dependencies, projects, teams, users, processus, meetingDecisions, governanceDecisions, resources, partners, providers] =
+  const [dependencies, projects, teams, users, processus, meetingDecisions, governanceDecisions, resources, partners, providers, transformations] =
     await Promise.all([
       prisma.dependency.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.project.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
@@ -28,6 +28,7 @@ export default async function DependenciesPage() {
       prisma.projectResource.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
       prisma.crmOrganization.findMany({ where: { type: "PARTENAIRE" }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
       prisma.crmContact.findMany({ where: { type: "PRESTATAIRE" }, orderBy: { nom: "asc" }, select: { id: true, prenom: true, nom: true } }),
+      prisma.transformation.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
     ]);
 
   const labels = await resolveDependencyLabels(
@@ -61,6 +62,7 @@ export default async function DependenciesPage() {
     ProjectResource: resources.map((r) => ({ id: r.id, label: r.nom })),
     CrmOrganization: partners.map((p) => ({ id: p.id, label: p.nom })),
     CrmContact: providers.map((p) => ({ id: p.id, label: `${p.prenom} ${p.nom}` })),
+    Transformation: transformations.map((t) => ({ id: t.id, label: t.nom })),
   };
 
   return (

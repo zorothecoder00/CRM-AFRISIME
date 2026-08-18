@@ -58,11 +58,15 @@ export async function createProcessus(input: CreateProcessusInput) {
   return processus;
 }
 
-export async function updateProcessusStatut(processusId: string, statut: "BROUILLON" | "ACTIF" | "ARCHIVE") {
+export async function updateProcessusStatut(
+  processusId: string,
+  statut: "BROUILLON" | "ACTIF" | "ARCHIVE",
+  motif?: string
+) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.PROCESS_MANAGE);
 
-  const data = updateProcessusStatutSchema.parse({ processusId, statut });
+  const data = updateProcessusStatutSchema.parse({ processusId, statut, motif });
 
   const processus = await prisma.processus.update({
     where: { id: data.processusId },
@@ -77,7 +81,23 @@ export async function updateProcessusStatut(processusId: string, statut: "BROUIL
     changes: { statut: data.statut },
   });
 
+  // Mémoire organisationnelle (V3.0 §17/§18) — trace le motif d'archivage
+  // pour que "pourquoi avons-nous arrêté cette procédure ?" reste répondable.
+  if (data.statut === "ARCHIVE") {
+    await prisma.organizationalMemoryEntry.create({
+      data: {
+        type: "PROCEDURE",
+        titre: `Procédure archivée : ${processus.nom}`,
+        contenu: data.motif?.trim() || "Aucun motif renseigné.",
+        entityType: "Processus",
+        entityId: processus.id,
+        createdById: session.user.id,
+      },
+    });
+  }
+
   revalidatePath(`/processus/${processusId}`);
+  revalidatePath("/memoire-organisationnelle");
   return processus;
 }
 

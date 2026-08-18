@@ -8,6 +8,8 @@ import { z } from "zod";
 // CrmContact ajouté pour le Graphe organisationnel (V3.0 §5) — les
 // prestataires (CrmContact.type=PRESTATAIRE) n'ont pas de FK native vers
 // Team/Project, la chaîne Équipe->Prestataire->Projet passe par Dependency.
+// Transformation ajouté pour le Change Impact Analysis (V3.0 §20) — relier
+// une transformation aux processus/projets qu'elle affecte.
 export const DEPENDENCY_ENTITY_TYPES = [
   "Project",
   "Team",
@@ -18,6 +20,7 @@ export const DEPENDENCY_ENTITY_TYPES = [
   "ProjectResource",
   "CrmOrganization",
   "CrmContact",
+  "Transformation",
 ] as const;
 
 export const createDependencySchema = z

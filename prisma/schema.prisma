@@ -507,6 +507,9 @@ model User {
   automationNextTaskFor            AutomationRule[]               @relation("AutomationNextTaskResponsable")
   automationAssignedFor            AutomationRule[]               @relation("AutomationAssignUser")
   automationOrchestrationFor       AutomationRule[]               @relation("AutomationOrchestrationResponsable")
+  transformationsResponsable       Transformation[]               @relation("TransformationResponsable")
+  transformationsCreated           Transformation[]               @relation("TransformationCreatedBy")
+  organizationalMemoryEntriesCreated OrganizationalMemoryEntry[]   @relation("OrganizationalMemoryCreatedBy")
   orchestrationPlaybooksCreated    OrchestrationPlaybook[]        @relation("OrchestrationPlaybookCreatedBy")
   dependenciesCreated              Dependency[]                   @relation("DependencyCreatedBy")
   tagsCreated                      Tag[]                          @relation("TagCreatedBy")
@@ -661,6 +664,7 @@ model Department {
   teams               Team[]
   scenarios           Scenario[]
   orchestrationRules  AutomationRule[]
+  transformations     Transformation[]
   createdAt           DateTime             @default(now())
 
   @@index([entityId])
@@ -2725,6 +2729,98 @@ model HealthScoreWeight {
   poids     Int                  @default(10)
   isActive  Boolean              @default(true)
   updatedAt DateTime             @updatedAt
+}
+
+// ===================== V3.0 §19 — Digital Transformation Management =====================
+enum TransformationType {
+  DIGITALE
+  RESTRUCTURATION
+  EXPANSION_GEOGRAPHIQUE
+  CHANGEMENT_ORGANISATIONNEL
+  FUSION
+  ACQUISITION
+  LANCEMENT_ACTIVITE
+}
+
+// Cycle du cahier des charges §19 : Diagnostic -> Plan -> Transformation ->
+// Adoption -> Mesure -> Amelioration. Avancee manuellement (pas de logique
+// d'auto-avancement) — une transformation majeure se valide etape par etape.
+enum TransformationPhase {
+  DIAGNOSTIC
+  PLAN
+  TRANSFORMATION
+  ADOPTION
+  MESURE
+  AMELIORATION
+}
+
+enum TransformationStatut {
+  EN_COURS
+  TERMINEE
+  ANNULEE
+}
+
+// L'analyse d'impact (V3.0 §20 — Change Impact Analysis) est calculee a la
+// volee a partir des Dependency enregistrees sur cette transformation (voir
+// src/lib/change-impact.ts), pas stockee ici, meme principe que l'analyse
+// d'impact §6.
+model Transformation {
+  id            String                @id @default(cuid())
+  nom           String
+  type          TransformationType
+  description   String?
+  phase         TransformationPhase   @default(DIAGNOSTIC)
+  statut        TransformationStatut  @default(EN_COURS)
+  departmentId  String?
+  department    Department?           @relation(fields: [departmentId], references: [id])
+  responsableId String
+  responsable   User                  @relation("TransformationResponsable", fields: [responsableId], references: [id])
+  dateDebut     DateTime?
+  dateFin       DateTime?
+  createdById   String
+  createdBy     User                  @relation("TransformationCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([departmentId])
+  @@index([statut])
+}
+
+// ===================== V3.0 §17-18 — AI Memory Organisationnelle / Organizational Memory =====================
+// §18 cree l'archive ; §17 est la capacite de recherche dessus
+// (src/lib/organizational-memory.ts) — pas un modele separe, une simple
+// requete deterministe (comme les autres agents IA, cf. AiAgentInsight).
+// Deux facons d'alimenter l'archive : automatiquement a des transitions de
+// cycle de vie deja modelisees (archivage d'un Processus, cloture d'une
+// Transformation — voir processus.actions.ts/transformation.actions.ts), ou
+// manuellement via createMemoryEntry pour les succes/echecs/experiences qui
+// n'ont pas d'entite dediee. entityType/entityId (comme AiAgentInsight) relie
+// une entree a l'entite d'origine sans dupliquer ses donnees.
+enum OrganizationalMemoryType {
+  DECISION
+  PROJET
+  SUCCES
+  ECHEC
+  INCIDENT
+  RECOMMANDATION
+  PROCEDURE
+  EXPERIENCE
+  TRANSFORMATION
+}
+
+model OrganizationalMemoryEntry {
+  id          String                    @id @default(cuid())
+  type        OrganizationalMemoryType
+  titre       String
+  contenu     String
+  entityType  String?
+  entityId    String?
+  createdById String
+  createdBy   User                      @relation("OrganizationalMemoryCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime                  @default(now())
+
+  @@index([type])
+  @@index([entityType, entityId])
 }
 
 enum NiveauQualitatif {
