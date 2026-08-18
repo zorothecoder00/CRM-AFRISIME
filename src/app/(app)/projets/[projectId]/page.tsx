@@ -43,6 +43,8 @@ import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
+import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
+import { TrashItemActions } from "@/components/trash/trash-item-actions";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -72,6 +74,7 @@ export default async function ProjectDetailPage({
   const canReadWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
   const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
+  const canDeleteProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_DELETE);
 
   const [
     project,
@@ -107,7 +110,7 @@ export default async function ProjectDetailPage({
       orderBy: { ordre: "asc" },
     }),
     prisma.task.findMany({
-      where: { projectId },
+      where: { projectId, deletedAt: null },
       include: { responsablePrincipal: true, assignees: { select: { userId: true } } },
       orderBy: { createdAt: "asc" },
     }),
@@ -118,7 +121,7 @@ export default async function ProjectDetailPage({
       orderBy: { nom: "asc" },
     }),
     prisma.document.findMany({
-      where: { projectId, folderId: null, estArchive: false },
+      where: { projectId, folderId: null, estArchive: false, deletedAt: null },
       include: {
         uploadedBy: true,
         uploadedByContact: true,
@@ -452,10 +455,17 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="space-y-6">
+      {project.deletedAt && (
+        <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
+          <p className="text-sm text-destructive">Ce projet a été supprimé et se trouve dans la corbeille.</p>
+          {canDeleteProject && <TrashItemActions entityType="Project" id={project.id} canPurge={false} />}
+        </div>
+      )}
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{project.nom}</h1>
           <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
+          {canDeleteProject && !project.deletedAt && <DeleteToTrashButton entityType="Project" id={project.id} />}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {project.description || "Pas de description."}

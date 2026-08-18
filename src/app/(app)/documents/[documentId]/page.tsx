@@ -15,6 +15,8 @@ import { RequestExternalValidationButton } from "@/components/documents/request-
 import { documentUploaderName } from "@/lib/document-uploader";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
+import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
+import { TrashItemActions } from "@/components/trash/trash-item-actions";
 
 const VALIDATION_LABELS: Record<string, string> = {
   NON_REQUISE: "Non requise",
@@ -87,6 +89,7 @@ export default async function DocumentDetailPage({
   }
 
   const canManageAccess = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_UPDATE);
+  const canDeleteDocument = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_DELETE);
   const allUsers = canManageAccess
     ? await prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
     : [];
@@ -95,10 +98,17 @@ export default async function DocumentDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        {document.deletedAt && (
+          <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">Ce document a été supprimé et se trouve dans la corbeille.</p>
+            {canDeleteDocument && <TrashItemActions entityType="Document" id={document.id} canPurge={false} />}
+          </div>
+        )}
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold">{document.nom}</h1>
             <Badge variant="secondary">{TYPE_LABELS[document.type]}</Badge>
+            {canDeleteDocument && !document.deletedAt && <DeleteToTrashButton entityType="Document" id={document.id} />}
             {document.validationExterne !== "NON_REQUISE" && (
               <Badge
                 variant={

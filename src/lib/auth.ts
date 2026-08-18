@@ -9,7 +9,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  pages: {
+  pages: {      
     signIn: "/login",
   },
   providers: [
@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Mot de passe", type: "password" },
         totp: { label: "Code de vérification", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
@@ -67,6 +67,18 @@ export const authOptions: NextAuthOptions = {
           data: { userId: user.id, action: "auth.login_success", entityType: "User", entityId: user.id },
         });
 
+        // Registre de sessions/appareils (cahier des charges V2.2 §36) —
+        // parallele au JWT sans etat : chaque connexion cree une ligne,
+        // correlee via sessionId embarque dans le token (voir callback jwt
+        // ci-dessous), pour permettre une revocation admin reelle.
+        const userSession = await prisma.userSession.create({
+          data: {
+            userId: user.id,
+            userAgent: req?.headers?.["user-agent"] ?? undefined,
+            ipAddress: (req?.headers?.["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? undefined,
+          },
+        });
+
         return {
           id: user.id,
           name: user.name,
@@ -76,6 +88,7 @@ export const authOptions: NextAuthOptions = {
           roleLabel: user.role.label,
           departmentId: user.departmentId,
           permissions: user.role.permissions.map((rp) => rp.permission.key),
+          sessionId: userSession.id,
         };
       },
     }),
@@ -88,6 +101,7 @@ export const authOptions: NextAuthOptions = {
         token.roleLabel = user.roleLabel;
         token.departmentId = user.departmentId;
         token.permissions = user.permissions;
+        token.sessionId = user.sessionId;
       }
       // Permet a useSession().update(...) (voir ProfileForm) de rafraichir
       // immediatement le JWT apres une modification du profil, sans quoi la
@@ -105,6 +119,30 @@ export const authOptions: NextAuthOptions = {
       session.user.roleLabel = token.roleLabel;
       session.user.departmentId = token.departmentId;
       session.user.permissions = token.permissions;
+      session.user.sessionId = token.sessionId;
+
+      // Revocation de session (V2.2 §36) — verifiee a chaque lecture de
+      // session (getServerSession appelle ce callback a chaque requete,
+      // contrairement au callback jwt qui ne s'execute qu'a la connexion).
+      // Une session revoquee perd toutes ses permissions immediatement (bloque
+      // toute action serveur gardee par requirePermission) et
+      // src/app/(app)/layout.tsx force la redirection vers /login au prochain
+      // rendu de page — sans abandonner la strategie JWT sans etat.
+      if (token.sessionId) {
+        const userSession = await prisma.userSession.findUnique({
+          where: { id: token.sessionId },
+          select: { revokedAt: true, lastSeenAt: true },
+        });
+        if (!userSession || userSession.revokedAt) {
+          session.revoked = true;
+          session.user.permissions = [];
+        } else if (Date.now() - userSession.lastSeenAt.getTime() > 5 * 60 * 1000) {
+          // Throttle : n'ecrit lastSeenAt qu'au plus une fois toutes les 5
+          // minutes par session, pas a chaque page vue.
+          await prisma.userSession.update({ where: { id: token.sessionId }, data: { lastSeenAt: new Date() } });
+        }
+      }
+
       return session;
     },
   },

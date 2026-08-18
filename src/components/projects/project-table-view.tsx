@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toneForStatus, toneForPriority } from "@/lib/status-tone";
+import { ExportXlsxButton } from "@/components/ui/export-xlsx-button";
+import type { XlsxColumn } from "@/lib/xlsx-export";
 
 export type ProjectRow = {
   id: string;
@@ -36,6 +40,18 @@ function formatMontant(montant: number | null) {
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} FCFA`;
 }
 
+const EXPORT_COLUMNS: XlsxColumn<ProjectRow>[] = [
+  { label: "Nom", key: "nom" },
+  { label: "Statut", key: "statut", format: (v) => STATUS_LABELS[v as string] ?? String(v) },
+  { label: "Priorité", key: "priorite", format: (v) => PRIORITY_LABELS[v as string] ?? String(v) },
+  { label: "Département", key: "departmentNom" },
+  { label: "Responsable", key: "responsableNom" },
+  { label: "Avancement (%)", key: "avancement", type: "number" },
+  { label: "Budget", key: "budget", type: "currency" },
+  { label: "Coût réel", key: "coutReel", type: "currency" },
+  { label: "Échéance", key: "dateFin", type: "date", format: (v) => (v ? new Date(v as string) : null) },
+];
+
 /** Vue Table (cahier des charges §VI) — tri lisible en un coup d'oeil, complementaire a la vue Liste en cartes. */
 export function ProjectTableView({ projects }: { projects: ProjectRow[] }) {
   if (projects.length === 0) {
@@ -43,7 +59,11 @@ export function ProjectTableView({ projects }: { projects: ProjectRow[] }) {
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <ExportXlsxButton rows={projects} columns={EXPORT_COLUMNS} filename="projets.xlsx" sheetName="Projets" title="Projets" />
+      </div>
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -92,6 +112,7 @@ export function ProjectTableView({ projects }: { projects: ProjectRow[] }) {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

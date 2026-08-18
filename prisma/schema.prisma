@@ -400,6 +400,10 @@ model User {
   mfaEnabled                 Boolean     @default(false)
   mfaSecret                  String?
   mfaBackupCodes             Json?
+  // V2.2 §39 — canaux preferes pour les notifications externes (EMAIL/SMS/
+  // PUSH/MESSAGERIE_EXTERNE) ; createNotification() les croise avec les
+  // canaux demandes par l'appelant avant de journaliser une tentative.
+  notificationChannelsPreferred NotificationChannel[] @default([INTERNE])
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
 
@@ -497,6 +501,11 @@ model User {
   dependenciesCreated              Dependency[]                   @relation("DependencyCreatedBy")
   tagsCreated                      Tag[]                          @relation("TagCreatedBy")
   apiKeysCreated                   ApiKey[]                       @relation("ApiKeyCreatedBy")
+  sessions                         UserSession[]                  @relation("UserSessionOwner")
+  sessionsRevoked                  UserSession[]                  @relation("UserSessionRevokedBy")
+  projectsDeleted                  Project[]                      @relation("ProjectDeletedBy")
+  tasksDeleted                     Task[]                         @relation("TaskDeletedBy")
+  documentsDeleted                 Document[]                     @relation("DocumentDeletedBy")
   scenariosCreated                 Scenario[]                     @relation("ScenarioCreatedBy")
   contractsCreated                 Contract[]                     @relation("ContractCreatedBy")
   portalMessagesAuthored           PortalMessage[]                @relation("PortalMessageAuthor")
@@ -933,6 +942,12 @@ model Project {
   createdBy     User            @relation("ProjectCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  // Corbeille (cahier des charges V2.2 §37 — "suppression controlee") :
+  // "supprimer" un projet le marque au lieu de l'effacer ; purge definitive
+  // apres un delai (voir purgeTrash dans src/lib/trash.ts).
+  deletedAt     DateTime?
+  deletedById   String?
+  deletedBy     User?           @relation("ProjectDeletedBy", fields: [deletedById], references: [id])
 
   members                ProjectMember[]
   sections               ProjectSection[]
@@ -1544,6 +1559,10 @@ model Task {
   ordre                  Int             @default(0)
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
+  // Corbeille (V2.2 §37) — voir Project.deletedAt.
+  deletedAt              DateTime?
+  deletedById            String?
+  deletedBy              User?           @relation("TaskDeletedBy", fields: [deletedById], references: [id])
 
   assignees           TaskAssignee[]
   checklistItems      ChecklistItem[]
@@ -2038,6 +2057,11 @@ model Document {
   uploadedByContact            CrmContact?              @relation("DocumentUploadedByContact", fields: [uploadedByContactId], references: [id])
   createdAt                    DateTime                 @default(now())
   updatedAt                    DateTime                 @updatedAt
+  // Corbeille (V2.2 §37) — distinct d'estArchive (archivage : le document
+  // reste consultable) : deletedAt le retire de toutes les listes.
+  deletedAt                    DateTime?
+  deletedById                  String?
+  deletedBy                    User?                    @relation("DocumentDeletedBy", fields: [deletedById], references: [id])
 
   versions     DocumentVersion[]
   accessGrants DocumentAccess[]
@@ -2470,6 +2494,11 @@ model Notification {
   entityId   String?
   isRead     Boolean          @default(false)
   createdAt  DateTime         @default(now())
+  // V2.2 §39 — canaux vises (INTERNE toujours present) et niveau abstrait,
+  // derives automatiquement de `type` dans createNotification() plutot que
+  // sur chaque site d'appel (voir NOTIFICATION_NIVEAU_BY_TYPE dans notify.ts).
+  channels   NotificationChannel[] @default([INTERNE])
+  niveau     NotificationNiveau     @default(INFORMATION)
 
   @@unique([userId, type, entityType, entityId])
   @@index([userId, isRead])
@@ -3693,4 +3722,49 @@ model AppCatalogEntry {
   statut      AppCatalogStatut  @default(PLANIFIE)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+}
+
+// ===================== V2.2 §36-40 — Securite, gestion des donnees, dashboards, notifications 2.0, priorisation IA =====================
+// Sessions/appareils (cahier §36 — "sessions" + "controle des appareils").
+// L'app reste en JWT sans etat (pas de session DB NextAuth classique) : ce
+// modele est un registre PARALLELE, peuple a la connexion (voir auth.ts,
+// callback jwt) et verifie a chaque lecture de session (callback session) —
+// une revocation admin met immediatement session.user.permissions a vide et
+// force la redirection vers /login au prochain rendu de page (voir
+// src/app/(app)/layout.tsx), sans abandonner la strategie JWT.
+model UserSession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("UserSessionOwner", fields: [userId], references: [id])
+  userAgent   String?
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  revokedAt   DateTime?
+  revokedById String?
+  revokedBy   User?     @relation("UserSessionRevokedBy", fields: [revokedById], references: [id])
+
+  @@index([userId])
+}
+
+// Canaux et niveaux de notification (cahier §39 — "Notification 2.0").
+// EMAIL/SMS/PUSH/MESSAGERIE_EXTERNE restent journalises sans envoi reel
+// (aucun fournisseur configure — meme statut que l'IA/l'email deja
+// documente comme bloque, voir memoire projet) : createNotification()
+// consigne l'intention plutot que d'echouer silencieusement.
+enum NotificationChannel {
+  INTERNE
+  EMAIL
+  SMS
+  PUSH
+  MESSAGERIE_EXTERNE
+}
+
+enum NotificationNiveau {
+  INFORMATION
+  RAPPEL
+  VALIDATION
+  ALERTE
+  URGENCE
+  ESCALADE
 }

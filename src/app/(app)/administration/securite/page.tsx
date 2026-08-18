@@ -16,14 +16,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SessionList } from "@/components/security/session-list";
 
 export default async function SecuritePage() {
   const session = await getServerSession(authOptions);
   if (!session!.user.permissions.includes(PERMISSIONS.SECURITY_AUDIT_READ)) {
     redirect("/dashboard");
   }
+  const canManageSessions = session!.user.permissions.includes(PERMISSIONS.SESSION_MANAGE);
 
-  const [logs, users] = await Promise.all([
+  const [logs, users, activeSessions] = await Promise.all([
     prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -34,6 +36,14 @@ export default async function SecuritePage() {
       select: { id: true, name: true, mfaEnabled: true, role: { select: { label: true } } },
       orderBy: { name: "asc" },
     }),
+    canManageSessions
+      ? prisma.userSession.findMany({
+          where: { revokedAt: null },
+          include: { user: { select: { name: true } } },
+          orderBy: { lastSeenAt: "desc" },
+          take: 100,
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -75,6 +85,27 @@ export default async function SecuritePage() {
           </Table>
         </CardContent>
       </Card>
+
+      {canManageSessions && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sessions actives ({activeSessions.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SessionList
+              sessions={activeSessions.map((s) => ({
+                id: s.id,
+                userName: s.user.name,
+                userAgent: s.userAgent,
+                ipAddress: s.ipAddress,
+                createdAt: s.createdAt.toISOString(),
+                lastSeenAt: s.lastSeenAt.toISOString(),
+              }))}
+              currentSessionId={session!.user.sessionId}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

@@ -22,6 +22,7 @@ const TABS = [
   { href: "/administration/audit", label: "Audit" },
   { href: "/administration/integrations", label: "Intégrations" },
   { href: "/administration/api-keys", label: "Clés API" },
+  { href: "/administration/donnees", label: "Sauvegarde & données" },
 ];
 
 export function AdminTabs() {

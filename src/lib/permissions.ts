@@ -110,6 +110,11 @@ export const PERMISSIONS = {
   // Extension V2.2 §33-34 — Marketplace / cles API
   MARKETPLACE_MANAGE: "marketplace.manage",
   API_MANAGE: "api.manage",
+
+  // Extension V2.2 §36-37 — Sessions/appareils, sauvegarde/restauration, corbeille
+  SESSION_MANAGE: "session.manage",
+  DATA_BACKUP_MANAGE: "data.backup_manage",
+  TRASH_MANAGE: "trash.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -224,6 +229,10 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.MARKETPLACE_MANAGE, label: "Gérer le catalogue d'applications (marketplace)", category: "Marketplace" },
   { key: PERMISSIONS.API_MANAGE, label: "Créer et révoquer des clés API", category: "API & intégrations" },
+
+  { key: PERMISSIONS.SESSION_MANAGE, label: "Voir et révoquer les sessions actives des utilisateurs", category: "Sécurité" },
+  { key: PERMISSIONS.DATA_BACKUP_MANAGE, label: "Exporter/importer une sauvegarde applicative", category: "Gestion des données" },
+  { key: PERMISSIONS.TRASH_MANAGE, label: "Consulter et restaurer les éléments de la corbeille", category: "Gestion des données" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -307,6 +316,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.EXECUTIVE_VIEW,
     PERMISSIONS.MARKETPLACE_MANAGE,
     PERMISSIONS.API_MANAGE,
+    PERMISSIONS.PROJECT_DELETE,
+    PERMISSIONS.TASK_DELETE,
+    PERMISSIONS.DOCUMENT_DELETE,
+    PERMISSIONS.SESSION_MANAGE,
+    PERMISSIONS.DATA_BACKUP_MANAGE,
+    PERMISSIONS.TRASH_MANAGE,
   ],
 
   DIRECTEUR: [
@@ -491,6 +506,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
+    PERMISSIONS.PROJECT_DELETE,
+    PERMISSIONS.TASK_DELETE,
+    PERMISSIONS.DOCUMENT_DELETE,
+    PERMISSIONS.TRASH_MANAGE,
   ],
 
   RESPONSABLE: [

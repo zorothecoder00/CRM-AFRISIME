@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { toneForAdminRequestStatus } from "@/lib/status-tone";
 import { generateDailyBriefing } from "@/lib/daily-briefing";
 import { DailyBriefingCard } from "@/components/dashboard/daily-briefing-card";
+import { computeTop5Actions } from "@/lib/task-priority";
+import { TopPriorityActionsCard } from "@/components/dashboard/top-priority-actions-card";
 
 // Ligne cliquable des widgets du dashboard : fond legerement teinte (au lieu
 // de blanc sur blanc) + effet de survol anime (leger soulevement, halo
@@ -68,6 +70,7 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const briefing = await generateDailyBriefing(userId);
+  const topActions = await computeTop5Actions(userId);
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -250,7 +253,10 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <DailyBriefingCard userName={session!.user.name} briefing={briefing} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DailyBriefingCard userName={session!.user.name} briefing={briefing} />
+        <TopPriorityActionsCard actions={topActions} />
+      </div>
 
       <DashboardSection title="Aujourd'hui">
         <div className="grid gap-4 md:grid-cols-3">

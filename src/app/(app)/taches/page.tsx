@@ -59,6 +59,8 @@ export default async function TachesPage({
     prisma.task.findMany({
       where: {
         projectId: projetId || undefined,
+        // Corbeille (V2.2 §37) : une tache supprimee n'apparait plus ici.
+        deletedAt: null,
         ...(andClauses.length > 0 ? { AND: andClauses } : {}),
       },
       include: { project: true, responsablePrincipal: true },

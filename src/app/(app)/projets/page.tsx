@@ -62,7 +62,10 @@ export default async function ProjetsPage({
   if (allowedDepartmentIds) {
     andClauses.push({ departmentId: { in: allowedDepartmentIds } });
   }
-  const where: Prisma.ProjectWhereInput | undefined = andClauses.length > 0 ? { AND: andClauses } : undefined;
+  // Corbeille (V2.2 §37) : un projet supprime n'apparait plus dans la liste
+  // (reste consultable via /corbeille et sa page de detail directe).
+  andClauses.push({ deletedAt: null });
+  const where: Prisma.ProjectWhereInput = { AND: andClauses };
 
   const [projects, departments, users] = await Promise.all([
     prisma.project.findMany({

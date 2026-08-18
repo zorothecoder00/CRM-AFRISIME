@@ -92,6 +92,9 @@ export default async function DocumentsPage({
       mimeType: type && MIME_GROUPS[type] ? { in: MIME_GROUPS[type] } : undefined,
       type: docType && DOC_TYPE_LABELS[docType] ? (docType as DocumentType) : undefined,
       estArchive: showArchives ? undefined : false,
+      // Corbeille (V2.2 §37) : un document supprime n'apparait jamais ici,
+      // meme avec "afficher les archives" active — deletion l'emporte.
+      deletedAt: null,
     };
     if (q) where.nom = { contains: q, mode: "insensitive" };
     if (dateFrom || dateTo) {
@@ -183,7 +186,7 @@ export default async function DocumentsPage({
       orderBy: { nom: "asc" },
     }),
     prisma.document.findMany({
-      where: { projectId: projetId, folderId: folderId || null, estArchive: false },
+      where: { projectId: projetId, folderId: folderId || null, estArchive: false, deletedAt: null },
       include: {
         uploadedBy: true,
         uploadedByContact: true,

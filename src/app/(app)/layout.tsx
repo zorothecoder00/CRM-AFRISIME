@@ -11,6 +11,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) {
     redirect("/login");
   }
+  // Session revoquee par un admin (V2.2 §36) — force la reconnexion.
+  if (session.revoked) {
+    redirect("/login");
+  }
 
   const [recentNotifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
