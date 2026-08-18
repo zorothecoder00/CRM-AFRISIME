@@ -427,6 +427,7 @@ model User {
   delegationsCreated               Delegation[]                   @relation("DelegationCreatedBy")
   organizationProfilesUpdated      OrganizationProfile[]
   strategicAxesCreated             StrategicAxis[]
+  swotItemsCreated                 SwotItem[]
   tasksOwned                       Task[]                         @relation("TaskResponsablePrincipal")
   tasksCreated                     Task[]                         @relation("TaskCreatedBy")
   checklistItemsResponsable        ChecklistItem[]                @relation("ChecklistItemResponsable")
@@ -813,6 +814,28 @@ model StrategicAxis {
 
   plans      Plan[]
   objectives Objective[]
+}
+
+enum SwotCategory {
+  FORCE
+  FAIBLESSE
+  OPPORTUNITE
+  MENACE
+}
+
+// Analyse SWOT (cahier des charges V3.0 §10 "Strategy Copilot" — "analyse
+// SWOT"). Organisation entiere, pas rattachee a un axe strategique precis :
+// le cahier ne demande pas de granularite plus fine et StrategicAxis reste
+// deja rattachable aux Plans/Objectifs independamment de ce module.
+model SwotItem {
+  id          String       @id @default(cuid())
+  categorie   SwotCategory
+  contenu     String
+  createdById String
+  createdBy   User         @relation(fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+
+  @@index([categorie])
 }
 
 model Plan {

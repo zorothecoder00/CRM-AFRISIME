@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { analyzeTeamDeletionImpact } from "@/lib/impact-analysis";
 import {
   createTeamSchema,
   updateTeamSchema,
@@ -67,6 +68,14 @@ export async function updateTeam(input: UpdateTeamInput) {
 
   revalidatePath("/administration/equipes");
   return team;
+}
+
+// V3.0 §6 — Analyse d'impact avant suppression d'une equipe (l'exemple
+// detaille par le cahier des charges).
+export async function getTeamImpactAnalysis(id: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+  return analyzeTeamDeletionImpact(id);
 }
 
 export async function deleteTeam(id: string) {

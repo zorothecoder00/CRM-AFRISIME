@@ -7,11 +7,22 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { createScenarioSchema, type CreateScenarioInput } from "@/lib/validations/scenario.schema";
+import { computeBaseline, computeWhatIfImpact, type WhatIfInput } from "@/lib/scenario-simulation";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
   return session;
+}
+
+// V3.0 §8 — What-If Engine : simulation ad-hoc, non persistee (contrairement
+// aux scenarios de §14 ci-dessus). Retourne baseline + impact simule pour
+// que le client affiche les deux colonnes via ScenarioComparisonTable.
+export async function runWhatIfSimulation(input: WhatIfInput) {
+  await requireSession();
+  const baseline = await computeBaseline(input.departmentId);
+  const impact = await computeWhatIfImpact(baseline, input);
+  return { baseline, impact };
 }
 
 export async function createScenario(input: CreateScenarioInput) {

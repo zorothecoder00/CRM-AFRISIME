@@ -8,8 +8,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ScenarioImpact } from "@/lib/scenario-simulation";
+import { toneForNiveau } from "@/lib/status-tone";
 
 export type ScenarioColumn = { label: string; impact: ScenarioImpact };
+
+const IMPACT_LEVEL_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
 
 function formatRepartition(r: ScenarioImpact["chargeRepartition"]) {
   return `${r.sousCharge} sous-charge · ${r.chargeNormale} normale · ${r.surcharge} surcharge`;
@@ -122,6 +125,73 @@ export function ScenarioComparisonTable({ baseline, columns }: { baseline: Scena
                 <TableCell key={c.label} className="text-xs text-muted-foreground">
                   {c.impact.besoinsCompetences.length > 0
                     ? c.impact.besoinsCompetences.map((b) => `${b.competenceNom} (${b.demande}/${b.disponible})`).join(", ")
+                    : "—"}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Charge des managers</TableCell>
+              <TableCell>{baseline.chargeManagersMoyen !== null ? `${baseline.chargeManagersMoyen}%` : "—"}</TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label}>
+                  {c.impact.chargeManagersMoyen !== null ? `${c.impact.chargeManagersMoyen}%` : "—"}
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Partenaires impactés</TableCell>
+              <TableCell>{baseline.partenairesImpactes}</TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label}>{c.impact.partenairesImpactes}</TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Processus impactés</TableCell>
+              <TableCell>{baseline.processusImpactes}</TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label}>{c.impact.processusImpactes}</TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Impact organisationnel</TableCell>
+              <TableCell>
+                <Badge variant={toneForNiveau(baseline.impactOrganisationnel)}>
+                  {IMPACT_LEVEL_LABELS[baseline.impactOrganisationnel]}
+                </Badge>
+              </TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label}>
+                  <Badge variant={toneForNiveau(c.impact.impactOrganisationnel)}>
+                    {IMPACT_LEVEL_LABELS[c.impact.impactOrganisationnel]}
+                  </Badge>
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Budget total</TableCell>
+              <TableCell>{baseline.budgetTotal.toLocaleString("fr-FR")}</TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label}>{c.impact.budgetTotal.toLocaleString("fr-FR")}</TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Objectifs</TableCell>
+              <TableCell>{baseline.objectifsTotal}</TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label}>{c.impact.objectifsTotal}</TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Indicateurs prévisionnels</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {baseline.indicateursPrevisionnels.length > 0
+                  ? baseline.indicateursPrevisionnels.map((i) => `${i.nom} (${i.valeurActuelle}/${i.valeurCible})`).join(", ")
+                  : "—"}
+              </TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.label} className="text-xs text-muted-foreground">
+                  {c.impact.indicateursPrevisionnels.length > 0
+                    ? c.impact.indicateursPrevisionnels.map((i) => `${i.nom} : ${i.valeurPrevue}/${i.valeurCible}`).join(", ")
                     : "—"}
                 </TableCell>
               ))}
