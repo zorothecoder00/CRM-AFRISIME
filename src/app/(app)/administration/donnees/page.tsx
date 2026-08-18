@@ -1,14 +1,25 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { BackupImportForm } from "@/components/administration/backup-import-form";
+import { RetentionPolicyRow } from "@/components/administration/retention-policy-row";
 import { cn } from "@/lib/utils";
 import { BACKUP_TABLES } from "@/lib/backup";
 import { Download } from "lucide-react";
+
+const RETENTION_LABELS: Record<string, { label: string; description: string }> = {
+  AUDIT_LOG: { label: "Journal d'audit", description: "Actions journalisées (connexions, modifications) — purge automatique au-delà du seuil." },
+  NOTIFICATION: { label: "Notifications", description: "Notifications déjà lues uniquement — les non lues ne sont jamais purgées." },
+  INTEGRATION_EVENT: { label: "Événements d'intégration", description: "Webhooks entrants journalisés (voir Intégrations)." },
+  METRIC_SNAPSHOT: { label: "Historique de métriques", description: "Points de tendance (§11 intelligence prédictive) — conservé plus longtemps par défaut." },
+  TRASH: { label: "Corbeille (rappel uniquement)", description: "Aucune suppression automatique — envoie un rappel aux gestionnaires de la corbeille au-delà du seuil." },
+};
+const RETENTION_ORDER = ["AUDIT_LOG", "NOTIFICATION", "INTEGRATION_EVENT", "METRIC_SNAPSHOT", "TRASH"] as const;
 
 const TABLE_LABELS: Record<string, string> = {
   project: "Projets",
@@ -27,6 +38,9 @@ export default async function DonneesPage() {
   if (!session!.user.permissions.includes(PERMISSIONS.DATA_BACKUP_MANAGE)) {
     redirect("/dashboard");
   }
+
+  const policies = await prisma.retentionPolicy.findMany();
+  const policyByType = new Map(policies.map((p) => [p.dataType, p]));
 
   return (
     <div className="space-y-6">
@@ -70,6 +84,32 @@ export default async function DonneesPage() {
         </CardHeader>
         <CardContent>
           <BackupImportForm />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Rétention</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Purge automatique quotidienne des journaux/événements au-delà du seuil — jamais des projets, tâches ou
+            documents, qui restent une suppression manuelle (voir Corbeille).
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {RETENTION_ORDER.map((dataType) => {
+            const policy = policyByType.get(dataType);
+            const meta = RETENTION_LABELS[dataType];
+            return (
+              <RetentionPolicyRow
+                key={dataType}
+                dataType={dataType}
+                label={meta.label}
+                description={meta.description}
+                initialDays={policy?.retentionDays ?? 90}
+                initialActive={policy?.isActive ?? true}
+              />
+            );
+          })}
         </CardContent>
       </Card>
     </div>

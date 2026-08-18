@@ -12,6 +12,7 @@ import {
 import { runDailyAiAgents } from "@/lib/ai-agents";
 import { captureDailySnapshots } from "@/lib/metric-snapshots";
 import { runDependencyRiskChecks } from "@/lib/dependencies";
+import { enforceRetentionPolicies, notifyTrashOverdue } from "@/lib/retention";
 
 // Numéro de semaine ISO — utilisé pour que l'alerte de surcharge (§14) ne se
 // répète qu'une fois par semaine par utilisateur (idempotence via la
@@ -311,6 +312,11 @@ export async function GET(request: NextRequest) {
   // l'agent PROJECT_MANAGER pour la remontée d'alerte.
   await runDependencyRiskChecks();
 
+  // Rétention (V2.2 §37) — purge automatique des journaux/événements sans
+  // risque de cascade ; rappel (pas de suppression) pour la corbeille.
+  const retentionResult = await enforceRetentionPolicies();
+  await notifyTrashOverdue();
+
   return NextResponse.json({
     usersChecked: users.length,
     overloadedCount: overloaded.length,
@@ -321,5 +327,6 @@ export async function GET(request: NextRequest) {
     dueRelancesCount: dueRelances.length,
     overBudgetCount: overBudget.length,
     criticalTasksCount: criticalTasks.length,
+    retention: retentionResult,
   });
 }

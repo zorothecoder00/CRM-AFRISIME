@@ -508,6 +508,7 @@ model User {
   documentsDeleted                 Document[]                     @relation("DocumentDeletedBy")
   pendingAiActionsDecided          PendingAiAction[]              @relation("PendingAiActionDecidedBy")
   decisionMatricesCreated          DecisionMatrix[]               @relation("DecisionMatrixCreatedBy")
+  retentionPoliciesUpdated         RetentionPolicy[]              @relation("RetentionPolicyUpdatedBy")
   scenariosCreated                 Scenario[]                     @relation("ScenarioCreatedBy")
   contractsCreated                 Contract[]                     @relation("ContractCreatedBy")
   portalMessagesAuthored           PortalMessage[]                @relation("PortalMessageAuthor")
@@ -3871,4 +3872,32 @@ enum NotificationNiveau {
   ALERTE
   URGENCE
   ESCALADE
+}
+
+// ===================== V2.2 §37 — Retention =====================
+// Politique de retention (cahier des charges §37 — "retention"). Bornee aux
+// donnees SANS risque de cascade FK (journaux/evenements/notifications) —
+// purge automatique, contrairement a la corbeille (Project/Task/Document)
+// qui reste une action manuelle explicite (voir le commentaire en tete de
+// src/actions/trash.actions.ts : aucune relation en onDelete: Cascade,
+// purger automatiquement echouerait ou detruirait un sous-arbre entier
+// selon le cas). Une entree separee (retentionDays sur TRASH) sert
+// uniquement de seuil de RAPPEL — jamais de suppression automatique.
+enum RetentionDataType {
+  AUDIT_LOG
+  NOTIFICATION
+  INTEGRATION_EVENT
+  METRIC_SNAPSHOT
+  TRASH
+}
+
+model RetentionPolicy {
+  id            String            @id @default(cuid())
+  dataType      RetentionDataType @unique
+  retentionDays Int
+  isActive      Boolean           @default(true)
+  updatedById   String?
+  updatedBy     User?             @relation("RetentionPolicyUpdatedBy", fields: [updatedById], references: [id])
+  updatedAt     DateTime          @updatedAt
+  createdAt     DateTime          @default(now())
 }

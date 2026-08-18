@@ -802,6 +802,24 @@ async function main() {
     });
   }
 
+  // Politiques de rétention par défaut (V2.2 §37) — bornées aux données
+  // sans risque de cascade FK ; TRASH n'est qu'un seuil de rappel, jamais
+  // une suppression automatique (voir src/lib/retention.ts).
+  const RETENTION_DEFAULTS: { dataType: string; retentionDays: number }[] = [
+    { dataType: "AUDIT_LOG", retentionDays: 365 },
+    { dataType: "NOTIFICATION", retentionDays: 90 },
+    { dataType: "INTEGRATION_EVENT", retentionDays: 180 },
+    { dataType: "METRIC_SNAPSHOT", retentionDays: 730 },
+    { dataType: "TRASH", retentionDays: 30 },
+  ];
+  for (const policy of RETENTION_DEFAULTS) {
+    await prisma.retentionPolicy.upsert({
+      where: { dataType: policy.dataType as never },
+      update: {},
+      create: { dataType: policy.dataType as never, retentionDays: policy.retentionDays },
+    });
+  }
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {
