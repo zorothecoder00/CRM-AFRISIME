@@ -8,7 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/search/search-input";
 import { SearchFilters } from "@/components/search/search-filters";
 
-const TYPE_ORDER: SearchResultType[] = ["Projet", "Tâche", "Commentaire", "Réunion", "Document", "Utilisateur"];
+const TYPE_ORDER: SearchResultType[] = [
+  "Projet",
+  "Tâche",
+  "Commentaire",
+  "Réunion",
+  "Document",
+  "Contrat",
+  "Décision",
+  "Processus",
+  "Risque",
+  "Article",
+  "Courrier",
+  "Contact CRM",
+  "Organisation CRM",
+  "Utilisateur",
+];
 
 export default async function RecherchePage({
   searchParams,
@@ -23,11 +38,15 @@ export default async function RecherchePage({
     projectStatut?: string;
     projectPriorite?: string;
     departmentId?: string;
+    tags?: string;
   }>;
 }) {
   const params = await searchParams;
   const session = await getServerSession(authOptions);
   const query = params.q?.trim() ?? "";
+  const tags = params.tags
+    ? params.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : undefined;
 
   const [results, users, departments] = await Promise.all([
     query.length >= 2
@@ -40,6 +59,7 @@ export default async function RecherchePage({
           projectStatut: params.projectStatut,
           projectPriorite: params.projectPriorite,
           departmentId: params.departmentId,
+          tags,
         })
       : Promise.resolve([]),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -56,7 +76,8 @@ export default async function RecherchePage({
       <div>
         <h1 className="text-2xl font-semibold">Recherche</h1>
         <p className="text-sm text-muted-foreground">
-          Recherche globale à travers les projets, tâches, réunions, documents et utilisateurs.
+          Recherche globale : personnes, projets, tâches, documents, contrats, décisions, réunions, partenaires,
+          processus, risques et connaissances.
         </p>
       </div>
 

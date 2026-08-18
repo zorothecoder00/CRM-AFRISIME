@@ -72,6 +72,7 @@ export function SearchFilters({ users, departments }: { users: Option[]; departm
     "projectStatut",
     "projectPriorite",
     "departmentId",
+    "tags",
   ].filter((k) => searchParams.get(k)).length;
 
   return (
@@ -214,6 +215,18 @@ export function SearchFilters({ users, departments }: { users: Option[]; departm
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Tags (séparés par des virgules)</Label>
+          <Input
+            defaultValue={searchParams.get("tags") ?? ""}
+            placeholder="ex: prioritaire, bailleur"
+            onBlur={(e) => setParam("tags", e.target.value.trim() || undefined)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setParam("tags", e.currentTarget.value.trim() || undefined);
+            }}
+          />
         </div>
 
         {activeCount > 0 && (

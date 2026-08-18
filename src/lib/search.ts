@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
+import { findEntitiesByTagNames } from "@/lib/tags";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type SearchResultType =
@@ -12,7 +13,11 @@ export type SearchResultType =
   | "Commentaire"
   | "Utilisateur"
   | "Contact CRM"
-  | "Organisation CRM";
+  | "Organisation CRM"
+  | "Contrat"
+  | "Processus"
+  | "Risque"
+  | "Décision";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -21,6 +26,11 @@ export type SearchResult = {
   subtitle: string | null;
   href: string;
 };
+
+// Etendu d'un `_entityType` interne (nom du modele Prisma, utilise par
+// EntityTag) — jamais expose dans le SearchResult public, seulement pour le
+// filtre par tag ci-dessous.
+type Hit = SearchResult & { _entityType: string };
 
 export type SearchFilters = {
   dateFrom?: string;
@@ -33,16 +43,25 @@ export type SearchFilters = {
   projectStatut?: string;
   projectPriorite?: string;
   departmentId?: string;
+  // Tags (cahier des charges V2.2 §28) — recherche par nom de tag,
+  // s'applique a TOUS les types de resultats (via EntityTag, generique).
+  tags?: string[];
 };
 
 /**
- * Recherche globale (cahier des charges §17) : chaque type d'entité n'est
- * cherché que si l'utilisateur a la permission de lecture correspondante.
- * Les filtres avancés (date/responsable/statut/priorité/département)
- * s'appliquent aux Tâches ET aux Projets (les deux types qui portent un
- * statut et une priorité, avec des enums distincts — ProjectStatus/
- * ProjectPriority vs TaskStatus/TaskPriority) ; Réunions n'applique que les
- * filtres qui lui correspondent (pas de statut/priorité sur une réunion).
+ * Recherche globale (cahier des charges §17, etendue V2.2 §28) : chaque
+ * type d'entité n'est cherché que si l'utilisateur a la permission de
+ * lecture correspondante. Les filtres avancés (date/responsable/statut/
+ * priorité/département) s'appliquent aux Tâches ET aux Projets (les deux
+ * types qui portent un statut et une priorité, avec des enums distincts —
+ * ProjectStatus/ProjectPriority vs TaskStatus/TaskPriority) ; Réunions
+ * n'applique que les filtres qui lui correspondent (pas de statut/priorité
+ * sur une réunion). Contrat/Processus/Risque/Décision ajoutés pour combler
+ * §28 (personnes/projets/tâches/documents/contrats/décisions/réunions/
+ * partenaires/processus/risques déjà tous représentés par un modèle
+ * existant — voir memoire project_afriflow_v2_2_extension). "Recherche
+ * sémantique"/"recherche IA" restent hors périmètre (pas de clé API LLM —
+ * choix explicite de différer, voir memoire).
  */
 export async function globalSearch(
   query: string,
@@ -64,7 +83,7 @@ export async function globalSearch(
     !!filters.projectPriorite ||
     !!filters.departmentId;
 
-  const searches: Promise<SearchResult[]>[] = [];
+  const searches: Promise<Hit[]>[] = [];
 
   if (hasPermission(permissions, PERMISSIONS.PROJECT_READ)) {
     const where: Prisma.ProjectWhereInput = { nom: { contains: q, mode: "insensitive" } };
@@ -85,6 +104,7 @@ export async function globalSearch(
             title: p.nom,
             subtitle: p.statut,
             href: `/projets/${p.id}`,
+            _entityType: "Project",
           }))
         )
     );
@@ -113,6 +133,7 @@ export async function globalSearch(
             title: t.titre,
             subtitle: `${t.project.nom} · ${t.statut}`,
             href: `/taches/${t.id}`,
+            _entityType: "Task",
           }))
         )
     );
@@ -133,6 +154,7 @@ export async function globalSearch(
             title: c.content.length > 80 ? `${c.content.slice(0, 80)}…` : c.content,
             subtitle: c.task.titre,
             href: `/taches/${c.taskId}`,
+            _entityType: "TaskComment",
           }))
         )
     );
@@ -153,6 +175,47 @@ export async function globalSearch(
             title: m.titre,
             subtitle: m.dateHeure.toLocaleDateString("fr-FR"),
             href: `/reunions/${m.id}`,
+            _entityType: "Meeting",
+          }))
+        )
+    );
+
+    searches.push(
+      prisma.meetingDecision
+        .findMany({
+          where: { description: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, description: true, meetingId: true, projectId: true },
+        })
+        .then((rows) =>
+          rows.map((d) => ({
+            type: "Décision" as const,
+            id: d.id,
+            title: d.description.length > 80 ? `${d.description.slice(0, 80)}…` : d.description,
+            subtitle: "Décision de réunion",
+            href: d.meetingId ? `/reunions/${d.meetingId}` : d.projectId ? `/projets/${d.projectId}` : "/reunions",
+            _entityType: "MeetingDecision",
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.GOVERNANCE_READ)) {
+    searches.push(
+      prisma.governanceDecision
+        .findMany({
+          where: { objet: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, objet: true, meetingId: true },
+        })
+        .then((rows) =>
+          rows.map((d) => ({
+            type: "Décision" as const,
+            id: d.id,
+            title: d.objet,
+            subtitle: "Décision de gouvernance",
+            href: `/gouvernance/reunions/${d.meetingId}`,
+            _entityType: "GovernanceDecision",
           }))
         )
     );
@@ -173,6 +236,7 @@ export async function globalSearch(
             title: d.nom,
             subtitle: d.project.nom,
             href: `/documents/${d.id}`,
+            _entityType: "Document",
           }))
         )
     );
@@ -196,6 +260,7 @@ export async function globalSearch(
             title: a.titre,
             subtitle: a.category?.nom ?? null,
             href: `/base-de-connaissances/${a.id}`,
+            _entityType: "KnowledgeArticle",
           }))
         )
     );
@@ -222,6 +287,7 @@ export async function globalSearch(
             title: c.objet,
             subtitle: c.reference,
             href: `/courrier/${c.id}`,
+            _entityType: "Courrier",
           }))
         )
     );
@@ -248,6 +314,7 @@ export async function globalSearch(
             title: `${c.prenom} ${c.nom}`,
             subtitle: c.organization?.nom ?? c.fonction ?? null,
             href: `/crm/contacts/${c.id}`,
+            _entityType: "CrmContact",
           }))
         )
     );
@@ -257,15 +324,102 @@ export async function globalSearch(
         .findMany({
           where: { nom: { contains: q, mode: "insensitive" } },
           take: 8,
-          select: { id: true, nom: true, secteur: true },
+          select: { id: true, nom: true, secteur: true, type: true },
         })
         .then((rows) =>
           rows.map((o) => ({
             type: "Organisation CRM" as const,
             id: o.id,
-            title: o.nom,
+            title: o.type === "PARTENAIRE" ? `${o.nom} (partenaire)` : o.nom,
             subtitle: o.secteur,
             href: `/crm/organisations/${o.id}`,
+            _entityType: "CrmOrganization",
+          }))
+        )
+    );
+
+    searches.push(
+      prisma.contract
+        .findMany({
+          where: { nom: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, nom: true, statut: true, opportunityId: true, organizationId: true },
+        })
+        .then((rows) =>
+          rows.map((c) => ({
+            type: "Contrat" as const,
+            id: c.id,
+            title: c.nom,
+            subtitle: c.statut,
+            href: c.opportunityId
+              ? `/crm/opportunites/${c.opportunityId}`
+              : c.organizationId
+                ? `/crm/organisations/${c.organizationId}`
+                : "/crm",
+            _entityType: "Contract",
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.PROCESS_READ)) {
+    searches.push(
+      prisma.processus
+        .findMany({
+          where: { nom: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, nom: true, statut: true },
+        })
+        .then((rows) =>
+          rows.map((p) => ({
+            type: "Processus" as const,
+            id: p.id,
+            title: p.nom,
+            subtitle: p.statut,
+            href: `/processus/${p.id}`,
+            _entityType: "Processus",
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.RISK_READ)) {
+    searches.push(
+      prisma.organizationalRisk
+        .findMany({
+          where: { titre: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, titre: true, criticite: true },
+        })
+        .then((rows) =>
+          rows.map((r) => ({
+            type: "Risque" as const,
+            id: r.id,
+            title: r.titre,
+            subtitle: `Risque organisationnel · ${r.criticite}`,
+            href: `/risques/${r.id}`,
+            _entityType: "OrganizationalRisk",
+          }))
+        )
+    );
+  }
+
+  if (hasPermission(permissions, PERMISSIONS.PROJECT_READ)) {
+    searches.push(
+      prisma.projectRisk
+        .findMany({
+          where: { titre: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, titre: true, statut: true, projectId: true, project: { select: { nom: true } } },
+        })
+        .then((rows) =>
+          rows.map((r) => ({
+            type: "Risque" as const,
+            id: r.id,
+            title: r.titre,
+            subtitle: `Risque projet (${r.project.nom}) · ${r.statut}`,
+            href: `/projets/${r.projectId}`,
+            _entityType: "ProjectRisk",
           }))
         )
     );
@@ -289,11 +443,20 @@ export async function globalSearch(
             title: u.name,
             subtitle: u.role.label,
             href: `/administration/utilisateurs`,
+            _entityType: "User",
           }))
         )
     );
   }
 
-  const results = await Promise.all(searches);
-  return results.flat();
+  const results = (await Promise.all(searches)).flat();
+  const toPublic = (r: Hit): SearchResult => ({ type: r.type, id: r.id, title: r.title, subtitle: r.subtitle, href: r.href });
+
+  if (!filters.tags || filters.tags.length === 0) {
+    return results.map(toPublic);
+  }
+
+  const tagged = await findEntitiesByTagNames(filters.tags);
+  const taggedKeys = new Set(tagged.map((t) => `${t.entityType}:${t.entityId}`));
+  return results.filter((r) => taggedKeys.has(`${r._entityType}:${r.id}`)).map(toPublic);
 }

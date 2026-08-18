@@ -13,6 +13,8 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { computeWorkload } from "@/lib/workload";
 import { cn } from "@/lib/utils";
 import { toneForAdminRequestStatus } from "@/lib/status-tone";
+import { generateDailyBriefing } from "@/lib/daily-briefing";
+import { DailyBriefingCard } from "@/components/dashboard/daily-briefing-card";
 
 // Ligne cliquable des widgets du dashboard : fond legerement teinte (au lieu
 // de blanc sur blanc) + effet de survol anime (leger soulevement, halo
@@ -65,6 +67,7 @@ const ACTIVE_STATUSES: TaskStatus[] = [
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
+  const briefing = await generateDailyBriefing(userId);
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -246,6 +249,8 @@ export default async function DashboardPage() {
           Bienvenue, {session!.user.name} — {session!.user.roleLabel}
         </p>
       </div>
+
+      <DailyBriefingCard userName={session!.user.name} briefing={briefing} />
 
       <DashboardSection title="Aujourd'hui">
         <div className="grid gap-4 md:grid-cols-3">

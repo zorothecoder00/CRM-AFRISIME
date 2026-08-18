@@ -41,6 +41,8 @@ import { ProjectResourcesSection, type ProjectResourceData } from "@/components/
 import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
 import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-view";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -91,6 +93,7 @@ export default async function ProjectDetailPage({
     indicators,
     resources,
     availableStakeholdersRaw,
+    tags,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -171,6 +174,7 @@ export default async function ProjectDetailPage({
       orderBy: { nom: "asc" },
       select: { id: true, nom: true },
     }),
+    getTagsFor("Project", projectId),
   ]);
 
   if (!project) {
@@ -456,6 +460,9 @@ export default async function ProjectDetailPage({
         <p className="mt-1 text-sm text-muted-foreground">
           {project.description || "Pas de description."}
         </p>
+        <div className="mt-2">
+          <EntityTagsEditor entityType="Project" entityId={project.id} initialTags={tags} canManage={canUpdateProject} />
+        </div>
       </div>
 
       <Tabs defaultValue="apercu">

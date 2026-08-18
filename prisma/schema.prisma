@@ -478,6 +478,7 @@ model User {
   automationAssignedFor            AutomationRule[]               @relation("AutomationAssignUser")
   orchestrationPlaybooksCreated    OrchestrationPlaybook[]        @relation("OrchestrationPlaybookCreatedBy")
   dependenciesCreated              Dependency[]                   @relation("DependencyCreatedBy")
+  tagsCreated                      Tag[]                          @relation("TagCreatedBy")
   scenariosCreated                 Scenario[]                     @relation("ScenarioCreatedBy")
   contractsCreated                 Contract[]                     @relation("ContractCreatedBy")
   portalMessagesAuthored           PortalMessage[]                @relation("PortalMessageAuthor")
@@ -3585,4 +3586,35 @@ model Holiday {
   createdAt          DateTime @default(now())
 
   @@index([entityId])
+}
+
+// ===================== V2.2 §26-30 — Digital twin, knowledge graph, recherche, command center, briefing =====================
+// Tags (cahier §28 — "recherche universelle ... avec tags"). Modele reel
+// (choix explicite de l'utilisateur plutot qu'un champ texte libre par
+// entite) : un Tag nomme + couleur, rattache a n'importe quelle entite via
+// EntityTag (meme convention polymorphe que Dependency/MetricSnapshot —
+// entityType/entityId en String plutot qu'une FK typee par paire de
+// modeles). N'affecte pas KnowledgeArticle.tags (champ texte libre deja en
+// place et deja cherche dans globalSearch) : les deux mecanismes coexistent.
+model Tag {
+  id          String   @id @default(cuid())
+  nom         String   @unique
+  couleur     String?
+  createdById String
+  createdBy   User     @relation("TagCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  entities EntityTag[]
+}
+
+model EntityTag {
+  id         String   @id @default(cuid())
+  tagId      String
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  createdAt  DateTime @default(now())
+
+  @@unique([tagId, entityType, entityId])
+  @@index([entityType, entityId])
 }

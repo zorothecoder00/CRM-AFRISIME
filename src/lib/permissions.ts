@@ -103,6 +103,9 @@ export const PERMISSIONS = {
   // Extension V2.2 §22-25 — Multi-entites / Consolidation
   ENTITY_MANAGE: "entity.manage",
   ENTITY_VIEW_ALL: "entity.view_all",
+
+  // Extension V2.2 §29 — Centre de commande executif (reserve aux dirigeants)
+  EXECUTIVE_VIEW: "executive.view",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -212,6 +215,8 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.ENTITY_MANAGE, label: "Gérer les entités du groupe (sociétés, filiales, agences) et les jours fériés", category: "Multi-entités" },
   { key: PERMISSIONS.ENTITY_VIEW_ALL, label: "Voir toutes les entités du groupe, sans restriction de périmètre", category: "Multi-entités" },
+
+  { key: PERMISSIONS.EXECUTIVE_VIEW, label: "Accéder au centre de commande exécutif (vue dirigeants)", category: "Centre de commande" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -292,6 +297,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.RISK_READ,
     PERMISSIONS.ENTITY_MANAGE,
     PERMISSIONS.ENTITY_VIEW_ALL,
+    PERMISSIONS.EXECUTIVE_VIEW,
   ],
 
   DIRECTEUR: [

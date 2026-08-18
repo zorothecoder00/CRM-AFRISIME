@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +13,8 @@ import { DocumentFormDialog } from "@/components/documents/document-form-dialog"
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { documentUploaderName } from "@/lib/document-uploader";
 import { MeetingExternalParticipantsSection } from "@/components/meetings/meeting-external-participants-section";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -46,6 +51,10 @@ export default async function MeetingDetailPage({
   if (!meeting) {
     notFound();
   }
+
+  const session = await getServerSession(authOptions);
+  const canTag = session!.user.permissions.includes(PERMISSIONS.MEETING_UPDATE);
+  const tags = await getTagsFor("Meeting", meeting.id);
 
   // Serie recurrente (cahier des charges §XI) : racine + toutes les
   // occurrences qui pointent vers elle, quel que soit le membre consulte.
@@ -86,6 +95,9 @@ export default async function MeetingDetailPage({
           <Link href={`/projets/${meeting.projectId}`} className="text-sm text-muted-foreground hover:underline">
             {meeting.project.nom}
           </Link>
+          <div className="mt-2">
+            <EntityTagsEditor entityType="Meeting" entityId={meeting.id} initialTags={tags} canManage={canTag} />
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {new Date(meeting.dateHeure).toLocaleString("fr-FR", {
               dateStyle: "full",

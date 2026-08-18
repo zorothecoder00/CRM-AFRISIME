@@ -36,6 +36,9 @@ import {
   UserCog,
   Globe2,
   BarChart3,
+  Boxes,
+  Share2,
+  Radar,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -60,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Aperçu",
     items: [
       { title: "Espace personnel", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Centre de commande", href: "/centre-de-commande", icon: Radar, permission: PERMISSIONS.EXECUTIVE_VIEW },
       { title: "Mon planning", href: "/planning", icon: CalendarRange },
       { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Niveaux de pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
@@ -113,6 +117,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },
       { title: "Consolidation Groupe", href: "/consolidation", icon: Globe2, permission: PERMISSIONS.ENTITY_VIEW_ALL },
       { title: "Benchmarking", href: "/benchmarking", icon: BarChart3, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Jumeau organisationnel", href: "/jumeau-organisationnel", icon: Boxes, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Graphe de connaissances", href: "/graphe-de-connaissances", icon: Share2, permission: PERMISSIONS.DASHBOARD_READ },
     ],
   },
   {

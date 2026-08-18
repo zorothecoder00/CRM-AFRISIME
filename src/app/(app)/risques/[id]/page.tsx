@@ -9,6 +9,8 @@ import { toneForCriticite, toneForRiskStatus, toneForNiveau } from "@/lib/status
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskFormDialog } from "@/components/risques/risk-form-dialog";
 import { TriggerAlertButton } from "@/components/risques/trigger-alert-button";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const STATUT_LABELS: Record<string, string> = {
   IDENTIFIE: "Identifié",
@@ -52,6 +54,8 @@ export default async function RiskDetailPage({
     notFound();
   }
 
+  const tags = await getTagsFor("OrganizationalRisk", risk.id);
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -62,6 +66,9 @@ export default async function RiskDetailPage({
             <Badge variant={toneForCriticite(risk.criticite)}>{CRITICITE_LABELS[risk.criticite]}</Badge>
             <Badge variant={toneForRiskStatus(risk.statut)}>{STATUT_LABELS[risk.statut]}</Badge>
             {risk.categorie && <Badge variant="outline">{risk.categorie}</Badge>}
+          </div>
+          <div className="mt-2">
+            <EntityTagsEditor entityType="OrganizationalRisk" entityId={risk.id} initialTags={tags} canManage={canManage} />
           </div>
         </div>
         {canManage && (

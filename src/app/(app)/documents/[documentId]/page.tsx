@@ -13,6 +13,8 @@ import { DocumentArchiveButton } from "@/components/documents/document-archive-b
 import { DocumentPartageExterneToggle } from "@/components/documents/document-partage-externe-toggle";
 import { RequestExternalValidationButton } from "@/components/documents/request-external-validation-button";
 import { documentUploaderName } from "@/lib/document-uploader";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const VALIDATION_LABELS: Record<string, string> = {
   NON_REQUISE: "Non requise",
@@ -88,6 +90,7 @@ export default async function DocumentDetailPage({
   const allUsers = canManageAccess
     ? await prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
     : [];
+  const tags = await getTagsFor("Document", document.id);
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -117,6 +120,9 @@ export default async function DocumentDetailPage({
           {document.folder && (
             <span className="text-sm text-muted-foreground"> · {document.folder.nom}</span>
           )}
+          <div className="mt-2">
+            <EntityTagsEditor entityType="Document" entityId={document.id} initialTags={tags} canManage={canManageAccess} />
+          </div>
         </div>
 
         {document.description && (

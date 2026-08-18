@@ -13,6 +13,8 @@ import { buildRelationshipGraph } from "@/lib/relationship-graph";
 import { ContactFormDialog } from "@/components/crm/contact-form-dialog";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
 import { getUserEntityScope } from "@/lib/entity-scope";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const TYPE_LABELS: Record<string, string> = {
   ENTREPRISE: "Entreprise",
@@ -64,6 +66,8 @@ export default async function CrmOrganizationDetailPage({
     notFound();
   }
 
+  const tags = await getTagsFor("CrmOrganization", organization.id);
+
   const entityScope = await getUserEntityScope(userId, session!.user.permissions);
   if (!entityScope.canViewAll && organization.entityId !== null && !entityScope.scopeEntityIds.includes(organization.entityId)) {
     notFound();
@@ -80,6 +84,9 @@ export default async function CrmOrganizationDetailPage({
             <Badge variant="outline">{TYPE_LABELS[organization.type]}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">{organization.secteur || "Secteur non renseigné"}</p>
+          <div className="mt-2">
+            <EntityTagsEditor entityType="CrmOrganization" entityId={organization.id} initialTags={tags} canManage={canManage} />
+          </div>
         </div>
 
         <Card accent={accentForOrganizationType(organization.type)}>

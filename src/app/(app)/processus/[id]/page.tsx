@@ -13,6 +13,8 @@ import { ExecutionPanel } from "@/components/processus/execution-panel";
 import { ProcessusStatutForm } from "@/components/processus/processus-statut-form";
 import { ProcessusDocumentFormDialog } from "@/components/processus/processus-document-form-dialog";
 import { ProcessusDocumentsSection } from "@/components/processus/processus-documents-section";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const STATUT_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -49,6 +51,8 @@ export default async function ProcessusDetailPage({
     notFound();
   }
 
+  const tags = await getTagsFor("Processus", processus.id);
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
@@ -62,6 +66,9 @@ export default async function ProcessusDetailPage({
           {processus.responsable && (
             <p className="mt-1 text-sm text-muted-foreground">Responsable : {processus.responsable.name}</p>
           )}
+          <div className="mt-2">
+            <EntityTagsEditor entityType="Processus" entityId={processus.id} initialTags={tags} canManage={canManage} />
+          </div>
         </div>
 
         <Card>

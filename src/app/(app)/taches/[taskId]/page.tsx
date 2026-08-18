@@ -20,6 +20,8 @@ import { TaskHistory } from "@/components/tasks/task-history";
 import { LinkMissionForm } from "@/components/tasks/link-mission-form";
 import { IndicatorList, type IndicatorData } from "@/components/objectives/indicator-list";
 import { AddTaskIndicatorDialog } from "@/components/tasks/add-task-indicator-dialog";
+import { getTagsFor } from "@/lib/tags";
+import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -87,6 +89,9 @@ export default async function TaskDetailPage({
   if (allowedDepartmentIds && !allowedDepartmentIds.includes(task.project.departmentId)) {
     notFound();
   }
+
+  const canTag = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);
+  const tags = await getTagsFor("Task", task.id);
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
 
@@ -174,6 +179,9 @@ export default async function TaskDetailPage({
             {task.project.nom}
             {task.section ? ` · ${task.section.nom}` : ""}
           </Link>
+          <div className="mt-2">
+            <EntityTagsEditor entityType="Task" entityId={task.id} initialTags={tags} canManage={canTag} />
+          </div>
         </div>
 
         {task.description && (
