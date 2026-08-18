@@ -39,6 +39,7 @@ import {
   Boxes,
   Share2,
   Radar,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -119,6 +120,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Benchmarking", href: "/benchmarking", icon: BarChart3, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Jumeau organisationnel", href: "/jumeau-organisationnel", icon: Boxes, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Graphe de connaissances", href: "/graphe-de-connaissances", icon: Share2, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Marketplace", href: "/marketplace", icon: Store },
     ],
   },
   {

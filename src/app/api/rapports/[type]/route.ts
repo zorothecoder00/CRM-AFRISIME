@@ -4,14 +4,15 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { REPORT_TYPES, getReportData, type ReportType } from "@/lib/reports";
-import { renderExcel, renderPdf, renderWord } from "@/lib/report-renderers";
+import { renderExcel, renderPdf, renderPresentation, renderWord } from "@/lib/report-renderers";
 
 const MIME_TYPES: Record<string, string> = {
   pdf: "application/pdf",
   excel: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   word: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  presentation: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
-const EXTENSIONS: Record<string, string> = { pdf: "pdf", excel: "xlsx", word: "docx" };
+const EXTENSIONS: Record<string, string> = { pdf: "pdf", excel: "xlsx", word: "docx", presentation: "pptx" };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ type: string }> }) {
   const session = await getServerSession(authOptions);
@@ -32,9 +33,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Format inconnu" }, { status: 400 });
   }
 
-  const report = await getReportData(type as ReportType);
+  const targetId = request.nextUrl.searchParams.get("targetId") ?? undefined;
+  const report = await getReportData(type as ReportType, { targetId });
   const buffer =
-    format === "excel" ? await renderExcel(report) : format === "word" ? await renderWord(report) : await renderPdf(report);
+    format === "excel"
+      ? await renderExcel(report)
+      : format === "word"
+        ? await renderWord(report)
+        : format === "presentation"
+          ? await renderPresentation(report)
+          : await renderPdf(report);
 
   await prisma.auditLog.create({
     data: {

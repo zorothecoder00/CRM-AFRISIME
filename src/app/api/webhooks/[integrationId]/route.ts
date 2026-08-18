@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { runIntegrationEventRules } from "@/lib/automation";
 
 /**
  * Webhook entrant générique (cahier des charges §21). Validé par clé
@@ -28,13 +29,23 @@ export async function POST(
   const payload = await request.json().catch(() => ({}));
   const eventType = request.headers.get("x-event-type") ?? "unknown";
 
-  await prisma.integrationEvent.create({
+  const event = await prisma.integrationEvent.create({
     data: { integrationId, eventType, payload },
   });
 
   await prisma.integration.update({
     where: { id: integrationId },
     data: { statut: "CONNECTE", lastSyncAt: new Date() },
+  });
+
+  // Automatisation inter-systèmes (V2.2 §35) — l'événement reçu peut
+  // déclencher une vraie action (tâche, notification, KPI), pas seulement
+  // être journalisé. Voir src/lib/automation.ts.
+  await runIntegrationEventRules({
+    id: event.id,
+    integrationId,
+    integrationType: integration.type,
+    eventType,
   });
 
   return NextResponse.json({ ok: true });

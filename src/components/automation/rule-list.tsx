@@ -21,6 +21,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   EVENT_CREATED: "Un événement est créé",
   INDICATOR_OFF_TARGET: "Un indicateur s'écarte de sa cible",
   CONTRACT_CREATED: "Un nouveau contrat est créé",
+  INTEGRATION_EVENT_RECEIVED: "Un événement est reçu d'un système externe",
 };
 
 const ACTION_LABELS: Record<string, string> = {

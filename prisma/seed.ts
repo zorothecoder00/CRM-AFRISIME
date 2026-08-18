@@ -779,6 +779,29 @@ async function main() {
     ],
   });
 
+  // Catalogue Work-Flow Apps (V2.2 §33 — "préparer une architecture") : les
+  // 10 apps citées par le cahier des charges, toutes PLANIFIE par défaut —
+  // aucune n'est réellement installable dans cette version.
+  const APP_CATALOG: { nom: string; categorie: string; description: string }[] = [
+    { nom: "Work-Flow RH", categorie: "RH", description: "Gestion RH — recrutement, congés, évaluations." },
+    { nom: "Work-Flow Juridique", categorie: "JURIDIQUE", description: "Suivi contractuel et contentieux." },
+    { nom: "Work-Flow ONG", categorie: "ONG", description: "Gestion de projets associatifs et humanitaires." },
+    { nom: "Work-Flow BTP", categorie: "BTP", description: "Suivi de chantiers et de corps de métier." },
+    { nom: "Work-Flow Cabinet Conseil", categorie: "CABINET_CONSEIL", description: "Missions, livrables et facturation client." },
+    { nom: "Work-Flow Incubateur", categorie: "INCUBATEUR", description: "Suivi de startups et de programmes d'accélération." },
+    { nom: "Work-Flow Formation", categorie: "FORMATION", description: "Sessions, apprenants et certifications." },
+    { nom: "Work-Flow Gestion Associative", categorie: "GESTION_ASSOCIATIVE", description: "Membres, cotisations et assemblées." },
+    { nom: "Work-Flow Gestion de Programmes", categorie: "GESTION_PROGRAMMES", description: "Portefeuilles de programmes multi-projets." },
+    { nom: "Work-Flow Projets Financés", categorie: "GESTION_PROJETS_FINANCES", description: "Bailleurs, décaissements et conformité de financement." },
+  ];
+  for (const app of APP_CATALOG) {
+    await prisma.appCatalogEntry.upsert({
+      where: { nom: app.nom },
+      update: {},
+      create: { nom: app.nom, categorie: app.categorie as never, description: app.description },
+    });
+  }
+
   console.log("\nSeed terminé avec succès.\n");
   console.log("Comptes de démonstration (mot de passe pour tous : Password123!) :");
   for (const u of demoUsers) {

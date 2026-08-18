@@ -106,6 +106,10 @@ export const PERMISSIONS = {
 
   // Extension V2.2 §29 — Centre de commande executif (reserve aux dirigeants)
   EXECUTIVE_VIEW: "executive.view",
+
+  // Extension V2.2 §33-34 — Marketplace / cles API
+  MARKETPLACE_MANAGE: "marketplace.manage",
+  API_MANAGE: "api.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -193,7 +197,7 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.DASHBOARD_READ, label: "Consulter les tableaux de bord", category: "Tableaux de bord" },
 
-  { key: PERMISSIONS.REPORT_EXPORT, label: "Exporter des rapports (PDF/Excel/Word)", category: "Rapports" },
+  { key: PERMISSIONS.REPORT_EXPORT, label: "Exporter des rapports (PDF/Excel/Word/présentation)", category: "Rapports" },
 
   { key: PERMISSIONS.SECURITY_AUDIT_READ, label: "Consulter le journal d'audit et l'état MFA", category: "Sécurité" },
 
@@ -217,6 +221,9 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.ENTITY_VIEW_ALL, label: "Voir toutes les entités du groupe, sans restriction de périmètre", category: "Multi-entités" },
 
   { key: PERMISSIONS.EXECUTIVE_VIEW, label: "Accéder au centre de commande exécutif (vue dirigeants)", category: "Centre de commande" },
+
+  { key: PERMISSIONS.MARKETPLACE_MANAGE, label: "Gérer le catalogue d'applications (marketplace)", category: "Marketplace" },
+  { key: PERMISSIONS.API_MANAGE, label: "Créer et révoquer des clés API", category: "API & intégrations" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -298,6 +305,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.ENTITY_MANAGE,
     PERMISSIONS.ENTITY_VIEW_ALL,
     PERMISSIONS.EXECUTIVE_VIEW,
+    PERMISSIONS.MARKETPLACE_MANAGE,
+    PERMISSIONS.API_MANAGE,
   ],
 
   DIRECTEUR: [

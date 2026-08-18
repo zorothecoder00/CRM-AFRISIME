@@ -45,6 +45,7 @@ const TRIGGER_OPTIONS = [
   { value: "EVENT_CREATED", label: "Un événement est créé" },
   { value: "INDICATOR_OFF_TARGET", label: "Un indicateur s'écarte de sa cible (évalué chaque jour)" },
   { value: "CONTRACT_CREATED", label: "Un nouveau contrat est créé" },
+  { value: "INTEGRATION_EVENT_RECEIVED", label: "Un événement est reçu d'un système externe (webhook)" },
 ];
 
 const ACTION_OPTIONS = [
@@ -78,6 +79,8 @@ const CONDITION_FIELD_OPTIONS = [
   { value: "opportunity.probabilite", label: "Probabilité de l'opportunité (%)" },
   { value: "opportunity.montantEstime", label: "Montant estimé de l'opportunité" },
   { value: "indicator.ecartPourcent", label: "Écart cible/actuel de l'indicateur (%)" },
+  { value: "integration.eventType", label: "Type d'événement (webhook)" },
+  { value: "integration.type", label: "Type d'intégration (webhook)" },
 ];
 
 const OPERATOR_OPTIONS = [

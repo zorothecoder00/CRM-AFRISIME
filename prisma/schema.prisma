@@ -155,6 +155,10 @@ enum NotificationType {
   BUDGET_DEPASSE
   RELANCE_PLANIFIEE
   TACHE_CRITIQUE
+  // V2.2 §31 — Weekly Business Review generee automatiquement chaque semaine
+  // (cron), notifie plutot que de stocker le fichier genere (recalcule a la
+  // demande au clic, voir /rapports?type=REVUE_HEBDOMADAIRE).
+  RAPPORT_HEBDOMADAIRE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -235,6 +239,10 @@ enum AutomationTrigger {
   // Ajoute (comble V2.2 §7.1 — "nouveau contrat" necessitait un modele
   // Contract, absent jusqu'ici). Evenementiel, comme OPPORTUNITY_CREATED.
   CONTRACT_CREATED
+  // Ajoute (V2.2 §35 — automatisation inter-systemes). Declenche depuis la
+  // route webhook entrante (/api/webhooks/[integrationId]) des qu'un
+  // IntegrationEvent est journalise, pas depuis le cron quotidien.
+  INTEGRATION_EVENT_RECEIVED
 }
 
 enum AutomationActionType {
@@ -333,6 +341,15 @@ enum IntegrationType {
   SLACK
   VISIOCONFERENCE
   WHATSAPP
+  // Ajoutes (V2.2 §34) — completent la liste du cahier des charges
+  // (messagerie/calendrier deja couverts par SLACK/WHATSAPP/M365/
+  // GOOGLE_WORKSPACE ci-dessus).
+  EMAIL
+  CALENDRIER
+  STOCKAGE_DOCUMENTAIRE
+  SYSTEME_FINANCIER
+  OUTIL_MARKETING
+  OUTIL_BI
   AUTRE
 }
 
@@ -479,6 +496,7 @@ model User {
   orchestrationPlaybooksCreated    OrchestrationPlaybook[]        @relation("OrchestrationPlaybookCreatedBy")
   dependenciesCreated              Dependency[]                   @relation("DependencyCreatedBy")
   tagsCreated                      Tag[]                          @relation("TagCreatedBy")
+  apiKeysCreated                   ApiKey[]                       @relation("ApiKeyCreatedBy")
   scenariosCreated                 Scenario[]                     @relation("ScenarioCreatedBy")
   contractsCreated                 Contract[]                     @relation("ContractCreatedBy")
   portalMessagesAuthored           PortalMessage[]                @relation("PortalMessageAuthor")
@@ -3617,4 +3635,62 @@ model EntityTag {
 
   @@unique([tagId, entityType, entityId])
   @@index([entityType, entityId])
+}
+
+// ===================== V2.2 §31-35 — Weekly review, rapports, marketplace, API, automatisation inter-systemes =====================
+// Cle API (cahier §34 — "cles API" ; OAuth2 complet reste un gap documente,
+// disproportionne par rapport au reste de l'app). Seul le hash est stocke
+// (meme principe que User.password) ; keyPrefix (8 premiers caracteres en
+// clair) sert uniquement a identifier visuellement une cle dans la liste
+// admin sans jamais pouvoir reconstituer la cle complete. `permissions` est
+// un sous-ensemble libre de PermissionKey (String[], pas de relation
+// typee — une cle API peut avoir un perimetre plus etroit que n'importe
+// quel role) verifie manuellement dans chaque route /api/v1/*.
+model ApiKey {
+  id          String    @id @default(cuid())
+  nom         String
+  keyPrefix   String
+  keyHash     String
+  permissions String[]
+  createdById String
+  createdBy   User      @relation("ApiKeyCreatedBy", fields: [createdById], references: [id])
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+enum AppCategory {
+  RH
+  JURIDIQUE
+  ONG
+  BTP
+  CABINET_CONSEIL
+  INCUBATEUR
+  FORMATION
+  GESTION_ASSOCIATIVE
+  GESTION_PROGRAMMES
+  GESTION_PROJETS_FINANCES
+}
+
+enum AppCatalogStatut {
+  PLANIFIE
+  BIENTOT
+  DISPONIBLE
+}
+
+// Catalogue "Work-Flow Apps" (cahier §33 — "preparer une architecture
+// permettant a terme d'ajouter des applications"). Registre reel, pas une
+// page statique : chaque entree est admin-gerable (statut modifiable a
+// mesure qu'une app avance de PLANIFIE a DISPONIBLE), mais aucune app
+// n'est reellement installable dans cette version — le catalogue prepare
+// l'architecture sans construire les apps elles-memes, conformement au
+// perimetre explicite du cahier des charges.
+model AppCatalogEntry {
+  id          String            @id @default(cuid())
+  nom         String            @unique
+  categorie   AppCategory
+  description String?
+  statut      AppCatalogStatut  @default(PLANIFIE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }

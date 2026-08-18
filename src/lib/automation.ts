@@ -925,3 +925,49 @@ export async function runIndicatorOffTargetRules() {
     }
   }
 }
+
+/**
+ * Automatisation inter-systèmes (V2.2 §35) — déclenchée depuis la route
+ * webhook entrante (/api/webhooks/[integrationId]) juste après la
+ * journalisation de l'IntegrationEvent, pas depuis le cron quotidien.
+ * `entityId` = event.id (unique par appel) : contrairement aux autres
+ * déclencheurs, un même type d'événement peut donc redéclencher la règle à
+ * chaque réception, ce qui est le comportement attendu pour un flux
+ * d'événements répétés (ex. plusieurs factures créées côté AfriGes). Une
+ * règle scopée à un projet (rule.projectId) reçoit ce projet comme
+ * context.projectId — c'est ce qui permet à CREATE_NEXT_TASK de fonctionner
+ * ("→ création d'une tâche" dans l'exemple du cahier des charges) ; une
+ * règle globale (projectId null) ne peut déclencher que les actions qui
+ * n'exigent pas de projet (SEND_EMAIL, etc.).
+ *
+ * "→ mise à jour KPI" est satisfaite indépendamment des règles configurées :
+ * chaque événement reçu incrémente un MetricSnapshot (entityType=
+ * "Integration", metric=eventType), déjà consommé par le module prédictif
+ * (§11) et surfacé sur les dashboards existants — pas de nouveau widget.
+ */
+export async function runIntegrationEventRules(event: {
+  id: string;
+  integrationId: string;
+  integrationType: string;
+  eventType: string;
+}) {
+  await prisma.metricSnapshot.create({
+    data: { entityType: "Integration", entityId: event.integrationId, metric: event.eventType, valeur: 1 },
+  });
+
+  const rules = await prisma.automationRule.findMany({
+    where: { trigger: "INTEGRATION_EVENT_RECEIVED", isActive: true },
+    include: { conditions: true },
+    orderBy: { ordre: "asc" },
+  });
+
+  for (const rule of rules) {
+    await executeAction(rule, {
+      entityType: "IntegrationEvent",
+      entityId: event.id,
+      label: `${event.eventType} (${event.integrationType})`,
+      projectId: rule.projectId,
+      conditionData: { "integration.eventType": event.eventType, "integration.type": event.integrationType },
+    });
+  }
+}

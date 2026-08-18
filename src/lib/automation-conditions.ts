@@ -77,4 +77,11 @@ export const CONDITION_FIELDS_BY_ENTITY: Record<string, { value: string; label: 
   Indicator: [
     { value: "indicator.ecartPourcent", label: "Écart cible/actuel (%)" },
   ],
+  // V2.2 §35 — automatisation inter-systèmes : conditionData construit dans
+  // runIntegrationEventRules (src/lib/automation.ts) à partir du
+  // IntegrationEvent brut, pas d'une entité métier chargée.
+  IntegrationEvent: [
+    { value: "integration.eventType", label: "Type d'événement (ex: invoice.created)" },
+    { value: "integration.type", label: "Type d'intégration (AFRIGES, EMAIL...)" },
+  ],
 };
