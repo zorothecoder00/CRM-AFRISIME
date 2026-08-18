@@ -60,13 +60,14 @@ export default async function AutomatisationsPage({
 
   const isGlobal = projetId === GLOBAL_SCOPE;
 
-  const [rules, users] = await Promise.all([
+  const [rules, users, departments] = await Promise.all([
     prisma.automationRule.findMany({
       where: { projectId: isGlobal ? null : projetId, playbookId: null },
       include: { executions: { orderBy: { executedAt: "desc" }, take: 5 }, conditions: { orderBy: { ordre: "asc" } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const ruleData: RuleData[] = rules.map((r) => ({
@@ -121,6 +122,7 @@ export default async function AutomatisationsPage({
           <RuleFormDialog
             projectId={isGlobal ? undefined : projetId}
             users={users.map((u) => ({ id: u.id, label: u.name }))}
+            departments={departments.map((d) => ({ id: d.id, label: d.name }))}
             existingRules={rules.map((r) => ({ id: r.id, label: r.nom }))}
           />
         )}

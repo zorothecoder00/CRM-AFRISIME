@@ -41,6 +41,7 @@ export const ACTION_VALUES = [
   "VERIFY_RISKS",
   "OPEN_TRACKING_BOARD",
   "CREATE_DEADLINE",
+  "ORCHESTRATE_NOUVEAU_CONTRAT",
 ] as const;
 
 const conditionSchema = z.object({
@@ -80,6 +81,8 @@ export const createRuleSchema = z
     targetRuleId: z.string().optional(),
     deadlineTitre: z.string().optional(),
     deadlineDelaiJours: z.string().optional(),
+    orchestrationDepartmentId: z.string().optional(),
+    orchestrationResponsableId: z.string().optional(),
 
     // Branche ELSE (V2.2 §7.2) — regle a executer si les conditions echouent.
     elseRuleId: z.string().optional(),
@@ -120,6 +123,14 @@ export const createRuleSchema = z
   .refine((data) => data.action !== "TRIGGER_WORKFLOW" || !!data.targetRuleId, {
     message: "Une règle cible est requise pour cette action.",
     path: ["targetRuleId"],
+  })
+  .refine((data) => data.action !== "ORCHESTRATE_NOUVEAU_CONTRAT" || !!data.orchestrationDepartmentId, {
+    message: "Un département est requis pour cette action.",
+    path: ["orchestrationDepartmentId"],
+  })
+  .refine((data) => data.action !== "ORCHESTRATE_NOUVEAU_CONTRAT" || !!data.orchestrationResponsableId, {
+    message: "Un responsable est requis pour cette action.",
+    path: ["orchestrationResponsableId"],
   });
 
 export type CreateRuleInput = z.infer<typeof createRuleSchema>;

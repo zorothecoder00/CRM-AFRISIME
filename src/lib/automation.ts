@@ -15,7 +15,17 @@ import { REPORT_TYPES } from "@/lib/reports";
 // AutomationActionType correspondant (aucune regle ne peut les declencher),
 // la contrainte est donc satisfaite par construction pour ces trois-la —
 // a revoir si un futur type d'action couvre l'un d'eux.
-const SENSITIVE_ACTION_TYPES = new Set<AutomationActionType>(["CHANGE_STATUS", "REQUEST_VALIDATION", "SEND_EMAIL"]);
+// ORCHESTRATE_NOUVEAU_CONTRAT (V3.0 §15) ajoutee : cree simultanement projet,
+// equipe, tache de staffing, jalons, risque, KPI, reunion, dossier
+// documentaire — toujours sensible, validation humaine obligatoire quel que
+// soit le niveauIA configure sur la regle (consigne explicite : "les actions
+// sensibles restent soumises a validation humaine").
+const SENSITIVE_ACTION_TYPES = new Set<AutomationActionType>([
+  "CHANGE_STATUS",
+  "REQUEST_VALIDATION",
+  "SEND_EMAIL",
+  "ORCHESTRATE_NOUVEAU_CONTRAT",
+]);
 
 const ACTIVE_TASK_STATUSES: TaskStatus[] = [
   TaskStatus.A_FAIRE,
@@ -500,6 +510,111 @@ async function performAction(
         },
       });
       await logExecution(rule.id, context, `Échéance créée : « ${event.titre} ».`);
+      return;
+    }
+
+    // ---- V3.0 §15 — orchestration autonome de workflows ----
+
+    case "ORCHESTRATE_NOUVEAU_CONTRAT": {
+      if (!rule.orchestrationDepartmentId || !rule.orchestrationResponsableId) {
+        await logExecution(rule.id, context, "Ignorée : département ou responsable non configuré.");
+        return;
+      }
+      const departmentId = rule.orchestrationDepartmentId;
+      const responsableId = rule.orchestrationResponsableId;
+      const label = context.label;
+
+      // 1. Projet
+      const project = await prisma.project.create({
+        data: { nom: `Projet — ${label}`, departmentId, responsableId, createdById: rule.createdById },
+      });
+
+      // 2. Équipe
+      const team = await prisma.team.create({
+        data: { nom: `Équipe — ${label}`, departmentId, leaderId: responsableId, createdById: rule.createdById },
+      });
+      await prisma.teamMember.create({ data: { teamId: team.id, userId: responsableId } });
+
+      // 3. Identifier les compétences : tâche de staffing initial, portant
+      // les compétences les plus représentées au sein du département — pas
+      // de nouveau modèle, réutilise Task.competencesRequises (déjà exploité
+      // par suggestAssignees).
+      const competenceCounts = await prisma.userCompetence.groupBy({
+        by: ["competenceId"],
+        where: { user: { departmentId } },
+        _count: { competenceId: true },
+        orderBy: { _count: { competenceId: "desc" } },
+        take: 5,
+      });
+      await prisma.task.create({
+        data: {
+          projectId: project.id,
+          titre: `Staffing initial — ${label}`,
+          responsablePrincipalId: responsableId,
+          createdById: rule.createdById,
+          creeParWorkflow: true,
+          competencesRequises: { connect: competenceCounts.map((c) => ({ id: c.competenceId })) },
+        },
+      });
+
+      // 4. Planning (jalons de démarrage)
+      await prisma.projectMilestone.createMany({
+        data: [
+          { projectId: project.id, nom: "Lancement", dateCible: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), ordre: 0 },
+          { projectId: project.id, nom: "Revue à mi-parcours", dateCible: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), ordre: 1 },
+        ],
+      });
+
+      // 5. Risque initial
+      await prisma.projectRisk.create({
+        data: { projectId: project.id, titre: `Risque initial — ${label}`, probabilite: "MOYENNE", impact: "MOYEN", createdById: rule.createdById },
+      });
+
+      // 6. KPI
+      await prisma.indicator.create({
+        data: { projectId: project.id, nom: "Avancement global", valeurCible: 100, valeurActuelle: 0 },
+      });
+
+      // 7. Réunion de lancement
+      await prisma.meeting.create({
+        data: {
+          projectId: project.id,
+          titre: `Réunion de lancement — ${label}`,
+          dateHeure: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          createdById: rule.createdById,
+          participants: { create: [{ userId: responsableId }] },
+        },
+      });
+
+      // 8. Informer les parties prenantes
+      await notifyMany([responsableId, rule.createdById], "", {
+        type: "MODIFICATION",
+        titre: `Nouveau projet lancé (orchestration « ${rule.nom} ») : ${project.nom}`,
+        lien: `/projets/${project.id}`,
+        entityType: "Project",
+        entityId: project.id,
+      });
+
+      // 9. Documents
+      await prisma.documentFolder.create({
+        data: { projectId: project.id, nom: `Documents — ${label}`, createdById: rule.createdById },
+      });
+
+      // 10. Lancer le processus de suivi
+      await createNotification({
+        userId: responsableId,
+        type: "MODIFICATION",
+        titre: `Tableau de suivi disponible : ${project.nom}`,
+        lien: `/projets/${project.id}`,
+        entityType: "Project",
+        entityId: project.id,
+      });
+
+      await logExecution(
+        rule.id,
+        context,
+        `Orchestration terminée : projet « ${project.nom} » créé avec équipe, staffing, planning, risque, KPI, réunion et documents.`
+      );
       return;
     }
   }

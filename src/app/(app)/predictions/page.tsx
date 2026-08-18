@@ -6,10 +6,11 @@ import {
   computeTeamPrediction,
   computeOpportunityPrediction,
 } from "@/lib/predictive-scoring";
+import { detectEmergentRisk } from "@/lib/early-warning";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/objectives/progress-bar";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ShieldAlert } from "lucide-react";
 
 const TOP_N = 10;
 
@@ -27,7 +28,7 @@ function toneForRisk(score: number): "destructive" | "secondary" | "outline" {
  * actifs reste modeste dans cette app.
  */
 export default async function PredictionsPage() {
-  const [projects, objectives, teams, opportunities] = await Promise.all([
+  const [projects, objectives, teams, opportunities, earlyWarning] = await Promise.all([
     prisma.project.findMany({ where: { statut: "EN_COURS" }, select: { id: true, nom: true } }),
     prisma.objective.findMany({ where: { statut: "EN_COURS" }, select: { id: true, titre: true } }),
     prisma.team.findMany({ select: { id: true, nom: true, members: { select: { userId: true } } } }),
@@ -35,6 +36,7 @@ export default async function PredictionsPage() {
       where: { statut: { notIn: ["GAGNEE", "PERDUE"] } },
       select: { id: true, nom: true },
     }),
+    detectEmergentRisk(),
   ]);
 
   const [projectScores, objectiveScores, teamScores, opportunityScores] = await Promise.all([
@@ -66,6 +68,31 @@ export default async function PredictionsPage() {
           d&apos;interactions) — pas un modèle prédictif entraîné.
         </p>
       </div>
+
+      <Card accent={earlyWarning.risqueEmergent ? "destructive" : "none"}>
+        <CardHeader className="flex flex-row items-center gap-2">
+          <ShieldAlert className="size-4 text-muted-foreground" />
+          <CardTitle className="text-base">Signaux faibles (Early Warning System)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {earlyWarning.risqueEmergent && (
+            <p className="text-sm font-medium text-destructive">
+              ⚠️ Risque organisationnel émergent détecté — {earlyWarning.signauxActifs} signaux combinés.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {earlyWarning.signaux.map((s) => (
+              <Badge key={s.cle} variant={s.actif ? "destructive" : "outline"} title={s.detail}>
+                {s.label}
+              </Badge>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Individuellement, aucun de ces signaux n&apos;est nécessairement critique — combinés (3 ou plus), ils
+            signalent un risque émergent à analyser.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

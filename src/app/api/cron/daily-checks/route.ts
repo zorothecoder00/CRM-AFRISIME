@@ -13,6 +13,7 @@ import { runDailyAiAgents } from "@/lib/ai-agents";
 import { captureDailySnapshots } from "@/lib/metric-snapshots";
 import { runDependencyRiskChecks } from "@/lib/dependencies";
 import { enforceRetentionPolicies, notifyTrashOverdue } from "@/lib/retention";
+import { runEarlyWarningCheck } from "@/lib/early-warning";
 
 // Numéro de semaine ISO — utilisé pour que l'alerte de surcharge (§14) ne se
 // répète qu'une fois par semaine par utilisateur (idempotence via la
@@ -311,6 +312,11 @@ export async function GET(request: NextRequest) {
   // Dépendances à risque (V2.2 §13) — après les agents IA, réutilise
   // l'agent PROJECT_MANAGER pour la remontée d'alerte.
   await runDependencyRiskChecks();
+
+  // Early Warning System (V3.0 §14) — signaux faibles combinés (retards,
+  // incidents, surcharge, KPI en baisse, retards fournisseurs) : après les
+  // vérifications ci-dessus, dont il réutilise certains des mêmes seuils.
+  await runEarlyWarningCheck();
 
   // Rétention (V2.2 §37) — purge automatique des journaux/événements sans
   // risque de cascade ; rappel (pas de suppression) pour la corbeille.

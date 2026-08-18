@@ -61,6 +61,7 @@ export function AutomationActionFields({
   register,
   setValue,
   users,
+  departments = [],
   existingRules,
 }: {
   action: string;
@@ -70,6 +71,7 @@ export function AutomationActionFields({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setValue: UseFormSetValue<any>;
   users: Option[];
+  departments?: Option[];
   existingRules?: Option[];
 }) {
   const name = (field: string) => `${namePrefix}${field}` as const;
@@ -257,6 +259,48 @@ export function AutomationActionFields({
             ))}
           </SelectContent>
         </Select>
+      </div>
+    );
+  }
+
+  if (action === "ORCHESTRATE_NOUVEAU_CONTRAT") {
+    return (
+      <div className="space-y-4 rounded-md border p-3">
+        <p className="text-xs text-muted-foreground">
+          Crée automatiquement projet, équipe, tâche de staffing, planning, risque, KPI, réunion, notifications et
+          dossier documentaire — toujours soumis à validation humaine avant exécution. Pour limiter aux contrats «
+          importants », ajoutez une condition sur « Montant du contrat » ci-dessus.
+        </p>
+        <div className="space-y-2">
+          <Label>Département (projet et équipe créés ici)</Label>
+          <Select onValueChange={(v) => setValue(name("orchestrationDepartmentId"), v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Responsable (projet, équipe, staffing)</Label>
+          <Select onValueChange={(v) => setValue(name("orchestrationResponsableId"), v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     );
   }

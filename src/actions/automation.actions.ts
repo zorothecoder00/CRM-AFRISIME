@@ -46,6 +46,8 @@ export async function createRule(input: CreateRuleInput) {
       targetRuleId: data.targetRuleId || undefined,
       deadlineTitre: data.deadlineTitre || undefined,
       deadlineDelaiJours: data.deadlineDelaiJours ? Number(data.deadlineDelaiJours) : undefined,
+      orchestrationDepartmentId: data.orchestrationDepartmentId || undefined,
+      orchestrationResponsableId: data.orchestrationResponsableId || undefined,
       elseRuleId: data.elseRuleId || undefined,
       createdById: session.user.id,
       conditions: {

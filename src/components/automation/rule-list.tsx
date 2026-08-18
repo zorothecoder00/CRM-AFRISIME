@@ -43,6 +43,7 @@ const ACTION_LABELS: Record<string, string> = {
   VERIFY_RISKS: "Vérifier les risques",
   OPEN_TRACKING_BOARD: "Ouvrir le tableau de suivi",
   CREATE_DEADLINE: "Créer une échéance",
+  ORCHESTRATE_NOUVEAU_CONTRAT: "Orchestrer un nouveau contrat",
 };
 
 const CONDITION_FIELD_LABELS: Record<string, string> = {

@@ -64,6 +64,7 @@ const ACTION_OPTIONS = [
   { value: "REQUEST_VALIDATION", label: "Demander une validation" },
   { value: "TRIGGER_WORKFLOW", label: "Déclencher une autre règle" },
   { value: "CREATE_DEADLINE", label: "Créer une échéance" },
+  { value: "ORCHESTRATE_NOUVEAU_CONTRAT", label: "Orchestrer un nouveau contrat (créer projet, équipe, planning...)" },
 ];
 
 const CONDITION_FIELD_OPTIONS = [
@@ -81,6 +82,7 @@ const CONDITION_FIELD_OPTIONS = [
   { value: "indicator.ecartPourcent", label: "Écart cible/actuel de l'indicateur (%)" },
   { value: "integration.eventType", label: "Type d'événement (webhook)" },
   { value: "integration.type", label: "Type d'intégration (webhook)" },
+  { value: "contract.montant", label: "Montant du contrat" },
 ];
 
 const OPERATOR_OPTIONS = [
@@ -101,11 +103,13 @@ const emptyCondition = () => ({
 export function RuleFormDialog({
   projectId,
   users,
+  departments = [],
   existingRules = [],
 }: {
   /** Omis = règle globale (V2.2 §7), non liée à un projet. */
   projectId?: string;
   users: Option[];
+  departments?: Option[];
   existingRules?: Option[];
 }) {
   const [open, setOpen] = useState(false);
@@ -322,6 +326,7 @@ export function RuleFormDialog({
             register={register}
             setValue={setValue}
             users={users}
+            departments={departments}
             existingRules={existingRules}
           />
 

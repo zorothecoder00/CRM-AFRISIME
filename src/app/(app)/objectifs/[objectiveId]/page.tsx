@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { objectiveProgress } from "@/lib/objective-progress";
+import { predictObjectivePerformance } from "@/lib/performance-prediction";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/objectives/progress-bar";
@@ -73,6 +74,8 @@ export default async function ObjectiveDetailPage({
     }))
   );
 
+  const prediction = objective.statut === "EN_COURS" ? await predictObjectivePerformance(objective.id) : null;
+
   const target =
     objective.scope === "INDIVIDUEL"
       ? objective.user?.name
@@ -136,6 +139,35 @@ export default async function ObjectiveDetailPage({
             />
           </CardContent>
         </Card>
+
+        {prediction && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Prévision de performance</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-lg font-semibold">{prediction.progressionActuelle}%</div>
+                  <div className="text-xs text-muted-foreground">Progression actuelle</div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-info">{prediction.previsionIA}%</div>
+                  <div className="text-xs text-muted-foreground">Prévision IA</div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-success">{prediction.probabiliteAtteinte}%</div>
+                  <div className="text-xs text-muted-foreground">Probabilité d&apos;atteinte</div>
+                </div>
+              </div>
+              <ul className="space-y-1 border-t pt-2 text-xs text-muted-foreground">
+                {prediction.facteurs.map((f, i) => (
+                  <li key={i}>• {f}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="space-y-6">

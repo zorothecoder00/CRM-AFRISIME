@@ -273,6 +273,14 @@ enum AutomationActionType {
   // dédiée, seulement l'échéance implicite de CREATE_NEXT_TASK). Crée un
   // Event de type échéance plutôt qu'un nouveau modèle dédié.
   CREATE_DEADLINE
+  // Ajoute (V3.0 §15 — orchestration autonome de workflows). Action
+  // composite unique (pas 10 AutomationRule chaînées : la cible du chaînage,
+  // le projet, n'existe pas encore avant l'étape 1) qui exécute d'un coup
+  // les 10 étapes de l'exemple du cahier (créer projet/équipe, identifier
+  // compétences, planning, risque, KPI, réunion, notifier, documents, suivi)
+  // — voir orchestrateNouveauContrat dans src/lib/automation.ts. Toujours
+  // dans SENSITIVE_ACTION_TYPES : validation humaine obligatoire.
+  ORCHESTRATE_NOUVEAU_CONTRAT
 }
 
 // Condition d'une regle d'automatisation (V2.2 §7.2 — IF/ELSE/AND/OR).
@@ -498,6 +506,7 @@ model User {
   automationRulesCreated           AutomationRule[]               @relation("AutomationRuleCreatedBy")
   automationNextTaskFor            AutomationRule[]               @relation("AutomationNextTaskResponsable")
   automationAssignedFor            AutomationRule[]               @relation("AutomationAssignUser")
+  automationOrchestrationFor       AutomationRule[]               @relation("AutomationOrchestrationResponsable")
   orchestrationPlaybooksCreated    OrchestrationPlaybook[]        @relation("OrchestrationPlaybookCreatedBy")
   dependenciesCreated              Dependency[]                   @relation("DependencyCreatedBy")
   tagsCreated                      Tag[]                          @relation("TagCreatedBy")
@@ -651,6 +660,7 @@ model Department {
   sites               Site[]
   teams               Team[]
   scenarios           Scenario[]
+  orchestrationRules  AutomationRule[]
   createdAt           DateTime             @default(now())
 
   @@index([entityId])
@@ -2603,6 +2613,15 @@ model AutomationRule {
   deadlineTitre      String?
   deadlineDelaiJours Int?
 
+  // Config action ORCHESTRATE_NOUVEAU_CONTRAT (V3.0 §15) — departement et
+  // responsable du projet/equipe crees ; "contrat important" se configure
+  // via une Condition existante (contract.montant GREATER_THAN seuil),
+  // aucun champ dedie necessaire pour ce seuil.
+  orchestrationDepartmentId String?
+  orchestrationDepartment   Department? @relation(fields: [orchestrationDepartmentId], references: [id])
+  orchestrationResponsableId String?
+  orchestrationResponsable   User?      @relation("AutomationOrchestrationResponsable", fields: [orchestrationResponsableId], references: [id])
+
   // Branche ELSE (comble V2.2 §7.2 — IF/ELSE/AND/OR) : si les conditions de
   // cette règle échouent, exécute elseRule (une règle complète, avec sa
   // propre action) au lieu de ne rien faire. Réutilise entièrement le
@@ -2677,6 +2696,35 @@ model PendingAiAction {
 
   @@index([ruleId])
   @@index([statut])
+}
+
+// ===================== V3.0 §13 — Organizational Health Score =====================
+enum HealthScoreDimension {
+  PERFORMANCE
+  CHARGE
+  RISQUES
+  PROJETS
+  PROCESSUS
+  QUALITE
+  GOUVERNANCE
+  // Aucune donnee de depart/turnover dans ce MVP (pas de modele RH dedie) —
+  // ligne presente pour rester configurable/explicable (cahier : "lorsque
+  // les donnees pertinentes sont disponibles"), isActive=false par defaut,
+  // exclue du calcul de la moyenne ponderee tant qu'aucune donnee n'existe.
+  TURNOVER
+  SATISFACTION
+  ECHEANCES
+}
+
+// Poids configurable par dimension (cahier §13 : "le score doit etre
+// configurable et explicable") — chaque score de dimension est toujours
+// calcule dynamiquement a partir des donnees existantes, jamais stocke ici
+// (voir src/lib/health-score.ts) ; seul le poids relatif est persiste.
+model HealthScoreWeight {
+  dimension HealthScoreDimension @id
+  poids     Int                  @default(10)
+  isActive  Boolean              @default(true)
+  updatedAt DateTime             @updatedAt
 }
 
 enum NiveauQualitatif {
