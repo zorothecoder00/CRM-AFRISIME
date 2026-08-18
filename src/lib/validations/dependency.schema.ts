@@ -5,6 +5,9 @@ import { z } from "zod";
 // plus tard sans migration. MeetingDecision/GovernanceDecision (décisions),
 // ProjectResource (ressources) et CrmOrganization de type PARTENAIRE
 // (partenaires) ajoutés pour combler les trous identifiés à l'audit.
+// CrmContact ajouté pour le Graphe organisationnel (V3.0 §5) — les
+// prestataires (CrmContact.type=PRESTATAIRE) n'ont pas de FK native vers
+// Team/Project, la chaîne Équipe->Prestataire->Projet passe par Dependency.
 export const DEPENDENCY_ENTITY_TYPES = [
   "Project",
   "Team",
@@ -14,6 +17,7 @@ export const DEPENDENCY_ENTITY_TYPES = [
   "GovernanceDecision",
   "ProjectResource",
   "CrmOrganization",
+  "CrmContact",
 ] as const;
 
 export const createDependencySchema = z

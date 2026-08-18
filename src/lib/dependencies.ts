@@ -68,6 +68,10 @@ export async function resolveDependencyLabels(entities: { type: string; id: stri
     const rows = await prisma.crmOrganization.findMany({ where: { id: { in: idsByType.get("CrmOrganization")! } }, select: { id: true, nom: true } });
     for (const r of rows) labels.set(`CrmOrganization:${r.id}`, r.nom);
   }
+  if (idsByType.has("CrmContact")) {
+    const rows = await prisma.crmContact.findMany({ where: { id: { in: idsByType.get("CrmContact")! } }, select: { id: true, prenom: true, nom: true } });
+    for (const r of rows) labels.set(`CrmContact:${r.id}`, `${r.prenom} ${r.nom}`);
+  }
 
   return labels;
 }

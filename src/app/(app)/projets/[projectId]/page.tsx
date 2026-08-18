@@ -292,6 +292,7 @@ export default async function ProjectDetailPage({
     GovernanceDecision: [],
     ProjectResource: [],
     CrmOrganization: [],
+    CrmContact: [],
   };
 
   const responsableById = new Map(users.map((u) => [u.id, u.name]));
