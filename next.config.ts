@@ -53,6 +53,14 @@ const nextConfig: NextConfig = {
 // Principes d'architecture (cahier des charges V3.0 §54) — état réel,
 // même esprit que §45 (zero-trust, voir src/lib/permissions.ts) :
 //   Modularité       : ✅ un fichier lib par domaine, actions séparées des pages.
+//   Scalabilité      : 🟡 Next.js (serverless-compatible, sans état partagé
+//     en mémoire entre requêtes) + Neon Postgres (pooler de connexions,
+//     autoscaling du compute côté fournisseur) absorbent une croissance de
+//     trafic sans changement de code ; pas encore éprouvé en charge réelle
+//     (pas de tests de charge effectués), et certains calculs lourds
+//     (health-score, maturity-assessment...) recalculent tout à la demande
+//     plutôt que d'être mis en cache/pré-agrégés — à revisiter si le volume
+//     de données grossit fortement.
 //   API-first        : ✅ toute mutation passe par une server action typée
 //     (jamais de logique métier directement dans un composant serveur).
 //   Sécurité         : ✅ permissions granulaires + MFA + audit (§18/§22/§44).
