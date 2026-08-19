@@ -8,6 +8,7 @@ import { WorkflowFormDialog } from "@/components/administration/workflow-form-di
 import { ToggleWorkflowButton } from "@/components/administration/toggle-workflow-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getOrganizationDevise } from "@/lib/currency";
 
 export default async function WorkflowsPage() {
   const session = await getServerSession(authOptions);
@@ -15,7 +16,7 @@ export default async function WorkflowsPage() {
     redirect("/dashboard");
   }
 
-  const [taskWorkflows, adminRequestWorkflows, roles, projects] = await Promise.all([
+  const [taskWorkflows, adminRequestWorkflows, roles, projects, devise] = await Promise.all([
     prisma.validationWorkflow.findMany({
       where: { entityType: "TASK" },
       include: { steps: { orderBy: { ordre: "asc" } } },
@@ -28,6 +29,7 @@ export default async function WorkflowsPage() {
     }),
     prisma.role.findMany({ select: { key: true, label: true }, orderBy: { label: "asc" } }),
     prisma.project.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    getOrganizationDevise(),
   ]);
 
   return (
@@ -44,8 +46,8 @@ export default async function WorkflowsPage() {
         <WorkflowFormDialog roles={roles} projects={projects.map((p) => ({ id: p.id, label: p.nom }))} />
       </div>
 
-      <WorkflowSection title="Tâches" workflows={taskWorkflows} />
-      <WorkflowSection title="Demandes administratives" workflows={adminRequestWorkflows} />
+      <WorkflowSection title="Tâches" workflows={taskWorkflows} devise={devise} />
+      <WorkflowSection title="Demandes administratives" workflows={adminRequestWorkflows} devise={devise} />
     </div>
   );
 }
@@ -80,7 +82,7 @@ type WorkflowRow = {
   }[];
 };
 
-function WorkflowSection({ title, workflows }: { title: string; workflows: WorkflowRow[] }) {
+function WorkflowSection({ title, workflows, devise }: { title: string; workflows: WorkflowRow[]; devise: string }) {
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h2>
@@ -104,7 +106,7 @@ function WorkflowSection({ title, workflows }: { title: string; workflows: Workf
                       <Badge variant="outline">{ADMIN_REQUEST_TYPE_LABELS[workflow.adminRequestType]}</Badge>
                     )}
                     {workflow.montantMin != null && (
-                      <Badge variant="outline">≥ {Number(workflow.montantMin).toLocaleString("fr-FR")} FCFA</Badge>
+                      <Badge variant="outline">≥ {Number(workflow.montantMin).toLocaleString("fr-FR")} {devise}</Badge>
                     )}
                   </div>
                 )}
@@ -119,7 +121,7 @@ function WorkflowSection({ title, workflows }: { title: string; workflows: Workf
                         <span className="ml-1 text-xs">
                           (condition :
                           {step.montantMin != null ? ` ≥ ${Number(step.montantMin).toLocaleString("fr-FR")}` : ""}
-                          {step.montantMax != null ? ` ≤ ${Number(step.montantMax).toLocaleString("fr-FR")}` : ""} FCFA)
+                          {step.montantMax != null ? ` ≤ ${Number(step.montantMax).toLocaleString("fr-FR")}` : ""} {devise})
                         </span>
                       )}
                     </li>

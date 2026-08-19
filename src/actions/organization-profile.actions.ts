@@ -31,6 +31,7 @@ export async function updateOrganizationProfile(input: UpdateOrganizationProfile
       mission: data.mission || null,
       valeurs: data.valeurs || null,
       siteWeb: data.siteWeb || null,
+      devise: data.devise,
       updatedById: session.user.id,
     },
     create: {
@@ -42,6 +43,7 @@ export async function updateOrganizationProfile(input: UpdateOrganizationProfile
       mission: data.mission || null,
       valeurs: data.valeurs || null,
       siteWeb: data.siteWeb || null,
+      devise: data.devise,
       updatedById: session.user.id,
     },
   });

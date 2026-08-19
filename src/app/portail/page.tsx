@@ -9,6 +9,7 @@ import { toneForOpportunityStatus, accentForOpportunityStatus, toneForStatus, ac
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
+import { getOrganizationDevise } from "@/lib/currency";
 import { getAuthorizedProjectIds } from "@/lib/portal-authorization";
 import { CalendarClock, Sparkles } from "lucide-react";
 
@@ -46,6 +47,8 @@ export default async function PortalDashboardPage() {
     include: { organization: true },
   });
   if (!contact) redirect("/portail/connexion");
+
+  const devise = await getOrganizationDevise();
 
   const orConditions: Prisma.CrmOpportunityWhereInput[] = [{ contactId: contact.id }];
   if (contact.organizationId) {
@@ -249,7 +252,7 @@ export default async function PortalDashboardPage() {
                 </Badge>
                 {opportunity.montantEstime !== null && (
                   <p className="text-sm text-muted-foreground">
-                    {formatMontant(Number(opportunity.montantEstime))} FCFA
+                    {formatMontant(Number(opportunity.montantEstime))} {devise}
                   </p>
                 )}
                 {opportunity.dateClotureEstimee && (

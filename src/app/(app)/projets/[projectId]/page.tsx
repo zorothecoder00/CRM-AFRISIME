@@ -17,6 +17,7 @@ import { DocumentList, type DocumentRow } from "@/components/documents/document-
 import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
 import { RuleList, type RuleData } from "@/components/automation/rule-list";
 import { computeWorkload } from "@/lib/workload";
+import { getOrganizationDevise } from "@/lib/currency";
 import { WorkloadTable } from "@/components/workload/workload-table";
 import { ProjectCoutReelForm } from "@/components/projects/project-cout-reel-form";
 import { ProjectSponsorForm } from "@/components/projects/project-sponsor-form";
@@ -75,6 +76,7 @@ export default async function ProjectDetailPage({
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
   const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
   const canDeleteProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_DELETE);
+  const devise = await getOrganizationDevise();
 
   const [
     project,
@@ -518,7 +520,7 @@ export default async function ProjectDetailPage({
                 label="Date de fin"
                 value={project.dateFin ? new Date(project.dateFin).toLocaleDateString("fr-FR") : "—"}
               />
-              <Info label="Budget" value={project.budget ? `${project.budget} FCFA` : "—"} />
+              <Info label="Budget" value={project.budget ? `${project.budget} ${devise}` : "—"} />
               <Info label="Avancement" value={`${project.avancement}%`} />
             </CardContent>
             <CardContent className="pt-0">
@@ -549,10 +551,11 @@ export default async function ProjectDetailPage({
                   projectId={project.id}
                   budget={project.budget ? Number(project.budget) : null}
                   initialValue={project.coutReel ? Number(project.coutReel) : null}
+                  devise={devise}
                 />
               ) : (
                 <p className="text-sm font-medium">
-                  {project.coutReel ? `${project.coutReel} FCFA` : "—"}
+                  {project.coutReel ? `${project.coutReel} ${devise}` : "—"}
                   {project.budget && project.coutReel && Number(project.coutReel) > Number(project.budget) && (
                     <Badge variant="destructive" className="ml-2">
                       Budget dépassé
@@ -571,7 +574,7 @@ export default async function ProjectDetailPage({
           >
             Voir le pilotage du département {project.department.name} →
           </Link>
-          <ProjectPilotagePanel pilotage={pilotage} />
+          <ProjectPilotagePanel pilotage={pilotage} devise={devise} />
           {prediction && (
             <div className="space-y-2 rounded-md border p-3">
               <div className="flex items-center justify-between">
@@ -689,7 +692,7 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="ressources" className="mt-4">
-          <ProjectResourcesSection projectId={project.id} resources={resourceRows} />
+          <ProjectResourcesSection projectId={project.id} resources={resourceRows} devise={devise} />
         </TabsContent>
 
         {canReadWorkload && (

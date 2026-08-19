@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForAdminRequestStatus, accentForAdminRequestStatus } from "@/lib/status-tone";
 import { AdminRequestDecisionActions } from "@/components/admin-requests/admin-request-decision-actions";
+import { getOrganizationDevise } from "@/lib/currency";
 
 const TYPE_LABELS: Record<string, string> = {
   ACHAT: "Achat",
@@ -31,6 +32,7 @@ export default async function AdminRequestDetailPage({
 }) {
   const { requestId } = await params;
   const session = await getServerSession(authOptions);
+  const devise = await getOrganizationDevise();
 
   const request = await prisma.adminRequest.findUnique({
     where: { id: requestId },
@@ -74,7 +76,7 @@ export default async function AdminRequestDetailPage({
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm md:grid-cols-2">
-            <Info label="Montant estimé" value={request.montant ? `${Number(request.montant).toLocaleString("fr-FR")} FCFA` : "—"} />
+            <Info label="Montant estimé" value={request.montant ? `${Number(request.montant).toLocaleString("fr-FR")} ${devise}` : "—"} />
             <Info label="Département" value={request.department?.name ?? "—"} />
             <Info label="Date de début" value={request.dateDebut ? request.dateDebut.toLocaleDateString("fr-FR") : "—"} />
             <Info label="Date de fin" value={request.dateFin ? request.dateFin.toLocaleDateString("fr-FR") : "—"} />

@@ -10,6 +10,7 @@ import { OpportunityStatusSelect } from "@/components/crm/opportunity-status-sel
 import { ContractFormDialog } from "@/components/crm/contract-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { getUserEntityScope } from "@/lib/entity-scope";
+import { getOrganizationDevise } from "@/lib/currency";
 
 export default async function CrmOpportunityDetailPage({
   params,
@@ -51,6 +52,7 @@ export default async function CrmOpportunityDetailPage({
     opportunity.montantEstime !== null
       ? new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number(opportunity.montantEstime))
       : null;
+  const devise = await getOrganizationDevise();
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -80,7 +82,7 @@ export default async function CrmOpportunityDetailPage({
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm md:grid-cols-2">
-            <Info label="Montant estimé" value={montant ? `${montant} FCFA` : "—"} />
+            <Info label="Montant estimé" value={montant ? `${montant} ${devise}` : "—"} />
             <Info label="Probabilité" value={opportunity.probabilite !== null ? `${opportunity.probabilite}%` : "—"} />
             <Info label="Responsable" value={opportunity.owner.name} />
             <Info label="Source" value={opportunity.source || "—"} />
@@ -139,7 +141,7 @@ export default async function CrmOpportunityDetailPage({
                     </div>
                     {c.montant !== null && (
                       <div className="text-xs text-muted-foreground">
-                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number(c.montant))} FCFA
+                        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number(c.montant))} {devise}
                       </div>
                     )}
                   </li>

@@ -8,6 +8,7 @@ import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
 import { isProjectAuthorized } from "@/lib/portal-authorization";
+import { getOrganizationDevise } from "@/lib/currency";
 import { FileText, CalendarClock } from "lucide-react";
 
 const DELIVERABLE_LABELS: Record<string, string> = {
@@ -39,6 +40,7 @@ export default async function PortalProjectDetailPage({
   const { projectId } = await params;
   const session = await getPortalSession();
   if (!session) redirect("/portail/connexion");
+  const devise = await getOrganizationDevise();
 
   const contact = await prisma.crmContact.findUnique({
     where: { id: session.contactId },
@@ -84,7 +86,7 @@ export default async function PortalProjectDetailPage({
           <Info label="Avancement" value={`${project.avancement}%`} />
           <Info label="Échéance" value={project.dateFin ? project.dateFin.toLocaleDateString("fr-FR") : "—"} />
           {project.budget !== null && (
-            <Info label="Budget" value={`${formatMontant(Number(project.budget))} FCFA`} />
+            <Info label="Budget" value={`${formatMontant(Number(project.budget))} ${devise}`} />
           )}
         </CardContent>
       </Card>

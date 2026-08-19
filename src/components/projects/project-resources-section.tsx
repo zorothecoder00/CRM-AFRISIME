@@ -16,7 +16,7 @@ export type ProjectResourceData = {
   coutUnitaire: number | null;
 };
 
-function ResourceRow({ resource }: { resource: ProjectResourceData }) {
+function ResourceRow({ resource, devise }: { resource: ProjectResourceData; devise: string }) {
   const { run, isPending } = useAction(deleteProjectResource);
 
   return (
@@ -30,7 +30,7 @@ function ResourceRow({ resource }: { resource: ProjectResourceData }) {
               {resource.quantite} {resource.unite ?? ""}
             </span>
           )}
-          {resource.coutUnitaire !== null && <span>{resource.coutUnitaire} FCFA / unité</span>}
+          {resource.coutUnitaire !== null && <span>{resource.coutUnitaire} {devise} / unité</span>}
         </div>
       </div>
       <Button
@@ -50,9 +50,11 @@ function ResourceRow({ resource }: { resource: ProjectResourceData }) {
 export function ProjectResourcesSection({
   projectId,
   resources,
+  devise,
 }: {
   projectId: string;
   resources: ProjectResourceData[];
+  devise: string;
 }) {
   const [nom, setNom] = useState("");
   const [type, setType] = useState("");
@@ -78,7 +80,7 @@ export function ProjectResourcesSection({
       ) : (
         <div className="space-y-2">
           {resources.map((r) => (
-            <ResourceRow key={r.id} resource={r} />
+            <ResourceRow key={r.id} resource={r} devise={devise} />
           ))}
         </div>
       )}

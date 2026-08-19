@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { toneForOpportunityStatus } from "@/lib/status-tone";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Users, Building2, TrendingUp, Percent, UserPlus, Activity, Repeat, Wallet, BellRing } from "lucide-react";
 
 const OPPORTUNITY_STATUS_LABELS: Record<string, string> = {
@@ -35,6 +36,7 @@ export default async function CrmHomePage() {
     clients,
     clientsWithRecentInteraction,
     dueRelances,
+    devise,
   ] = await Promise.all([
     prisma.crmContact.count(),
     prisma.crmOrganization.count(),
@@ -62,6 +64,7 @@ export default async function CrmHomePage() {
       take: 10,
       select: { id: true, prenom: true, nom: true, prochaineRelance: true },
     }),
+    getOrganizationDevise(),
   ]);
 
   const acquisitionTrend =
@@ -139,7 +142,7 @@ export default async function CrmHomePage() {
             tone={retentionRate !== null && retentionRate >= 50 ? "success" : "warning"}
             description={`${clientsWithRecentInteraction}/${clients} client(s) actif(s)`}
           />
-          <StatCard label="Valeur relationnelle" value={`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(valeurRelationnelle)} FCFA`} icon={Wallet} tone="success" description="Total des opportunités gagnées" />
+          <StatCard label="Valeur relationnelle" value={`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(valeurRelationnelle)} ${devise}`} icon={Wallet} tone="success" description="Total des opportunités gagnées" />
         </div>
       </div>
 

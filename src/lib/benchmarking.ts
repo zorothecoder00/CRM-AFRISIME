@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { computeEntityScopePilotage } from "@/lib/consolidation";
+import { getOrganizationDevise } from "@/lib/currency";
 
 const ACTIVE_TASK_STATUSES = ["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"];
 
@@ -8,10 +9,13 @@ export type BenchmarkColumn = { label: string; rows: { label: string; value: str
 
 /** Comparaison entre projets (cahier des charges V2.2 §25). */
 export async function benchmarkProjects(projectIds: string[]): Promise<BenchmarkColumn[]> {
-  const projects = await prisma.project.findMany({
-    where: { id: { in: projectIds } },
-    include: { tasks: { select: { statut: true, echeance: true } } },
-  });
+  const [projects, devise] = await Promise.all([
+    prisma.project.findMany({
+      where: { id: { in: projectIds } },
+      include: { tasks: { select: { statut: true, echeance: true } } },
+    }),
+    getOrganizationDevise(),
+  ]);
   const now = new Date();
 
   return projectIds
@@ -27,8 +31,8 @@ export async function benchmarkProjects(projectIds: string[]): Promise<Benchmark
         rows: [
           { label: "Statut", value: p.statut.replace(/_/g, " ") },
           { label: "Avancement", value: `${p.avancement}%` },
-          { label: "Budget", value: p.budget !== null ? `${Number(p.budget).toLocaleString("fr-FR")} FCFA` : "—" },
-          { label: "Coût réel", value: p.coutReel !== null ? `${Number(p.coutReel).toLocaleString("fr-FR")} FCFA` : "—" },
+          { label: "Budget", value: p.budget !== null ? `${Number(p.budget).toLocaleString("fr-FR")} ${devise}` : "—" },
+          { label: "Coût réel", value: p.coutReel !== null ? `${Number(p.coutReel).toLocaleString("fr-FR")} ${devise}` : "—" },
           { label: "Tâches en cours", value: `${enCours}` },
           { label: "Tâches en retard", value: `${enRetard}` },
         ],
@@ -103,7 +107,10 @@ export async function benchmarkTeams(teamIds: string[]): Promise<BenchmarkColumn
 
 /** Comparaison entre entités (cahier des charges V2.2 §25, ex. "Togo vs Bénin") — réutilise computeEntityScopePilotage (§24). */
 export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkColumn[]> {
-  const entities = await prisma.entity.findMany({ where: { id: { in: entityIds } } });
+  const [entities, devise] = await Promise.all([
+    prisma.entity.findMany({ where: { id: { in: entityIds } } }),
+    getOrganizationDevise(),
+  ]);
 
   const results: BenchmarkColumn[] = [];
   for (const id of entityIds) {
@@ -116,7 +123,7 @@ export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkC
         { label: "Effectif", value: `${pilotage.headcount}` },
         { label: "Projets actifs", value: `${pilotage.projectsActifs} / ${pilotage.projectsTotal}` },
         { label: "Avancement moyen", value: pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—" },
-        { label: "Budget total", value: `${pilotage.budgetTotal.toLocaleString("fr-FR")} FCFA` },
+        { label: "Budget total", value: `${pilotage.budgetTotal.toLocaleString("fr-FR")} ${devise}` },
         {
           label: "Taux d'occupation moyen",
           value: pilotage.tauxOccupationMoyen !== null ? `${pilotage.tauxOccupationMoyen}%` : "—",

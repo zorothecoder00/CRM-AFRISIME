@@ -33,6 +33,7 @@ export default async function OrganizationProfilePage() {
           mission: profile?.mission ?? null,
           valeurs: profile?.valeurs ?? null,
           siteWeb: profile?.siteWeb ?? null,
+          devise: profile?.devise ?? "FCFA",
         }}
       />
     </div>

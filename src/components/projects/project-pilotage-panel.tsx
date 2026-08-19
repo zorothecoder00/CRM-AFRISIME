@@ -2,9 +2,9 @@ import { StatCard, type StatCardTone } from "@/components/ui/stat-card";
 import type { ProjectPilotage } from "@/lib/project-pilotage";
 import { TrendingUp, Wallet, Clock, Users, AlertTriangle, BadgeCheck, Gauge, Package } from "lucide-react";
 
-function formatMontant(montant: number | null) {
+function formatMontant(montant: number | null, devise: string) {
   if (montant === null) return "—";
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} FCFA`;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} ${devise}`;
 }
 
 function toneForRate(rate: number | null): StatCardTone {
@@ -15,7 +15,7 @@ function toneForRate(rate: number | null): StatCardTone {
 }
 
 /** Panneau des 8 indicateurs de pilotage attendus par le projet (cahier des charges §VI). */
-export function ProjectPilotagePanel({ pilotage }: { pilotage: ProjectPilotage }) {
+export function ProjectPilotagePanel({ pilotage, devise }: { pilotage: ProjectPilotage; devise: string }) {
   const delaisLabel =
     pilotage.delais.statut === "en_retard"
       ? `En retard (${pilotage.delais.joursRetard} j)`
@@ -29,10 +29,10 @@ export function ProjectPilotagePanel({ pilotage }: { pilotage: ProjectPilotage }
 
       <StatCard
         label="Budget"
-        value={formatMontant(pilotage.budget.coutReel)}
+        value={formatMontant(pilotage.budget.coutReel, devise)}
         icon={Wallet}
         tone={pilotage.budget.depasse ? "danger" : "success"}
-        description={pilotage.budget.montant !== null ? `Budget : ${formatMontant(pilotage.budget.montant)}` : "Aucun budget renseigné"}
+        description={pilotage.budget.montant !== null ? `Budget : ${formatMontant(pilotage.budget.montant, devise)}` : "Aucun budget renseigné"}
       />
 
       <StatCard

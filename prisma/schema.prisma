@@ -777,6 +777,13 @@ model OrganizationProfile {
   mission     String?
   valeurs     String?
   siteWeb     String?
+  // Devise d'affichage des montants (cahier des charges V3.0 §3, objectif
+  // "préparer la plateforme à fonctionner à l'échelle internationale") —
+  // remplace le "FCFA" jusque-là codé en dur dans ~20 fichiers (voir
+  // src/lib/currency.ts). Code libre (pas un enum fermé) : les devises
+  // qu'une organisation manipule varient trop pour être figées en base,
+  // même principe que CrmContact.segment.
+  devise      String   @default("FCFA")
   updatedById String?
   updatedBy   User?    @relation(fields: [updatedById], references: [id])
   updatedAt   DateTime @updatedAt

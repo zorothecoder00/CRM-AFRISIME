@@ -19,6 +19,7 @@ import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dial
 import { ProgressBar } from "@/components/objectives/progress-bar";
 import { ProjectRoadmapView, type RoadmapProjectRow } from "@/components/projects/project-roadmap-view";
 import { BeneficiairesSection } from "@/components/programmes/beneficiaires-section";
+import { getOrganizationDevise } from "@/lib/currency";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -46,7 +47,7 @@ export default async function ProgrammeDetailPage({
   const canReadWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
 
-  const [programme, availableProjects, users, departments, allProjects, allProgrammes] = await Promise.all([
+  const [programme, availableProjects, users, departments, allProjects, allProgrammes, devise] = await Promise.all([
     prisma.programme.findUnique({
       where: { id: programmeId },
       include: {
@@ -66,6 +67,7 @@ export default async function ProgrammeDetailPage({
     prisma.department.findMany({ orderBy: { name: "asc" } }),
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.programme.findMany({ orderBy: { nom: "asc" } }),
+    getOrganizationDevise(),
   ]);
 
   if (!programme) {
@@ -168,7 +170,7 @@ export default async function ProgrammeDetailPage({
               <Info label="Responsable" value={programme.responsable.name} />
               <Info
                 label="Budget programme"
-                value={programme.budget ? `${Number(programme.budget).toLocaleString("fr-FR")} FCFA` : "—"}
+                value={programme.budget ? `${Number(programme.budget).toLocaleString("fr-FR")} ${devise}` : "—"}
               />
               <Info
                 label="Date de début"
@@ -179,7 +181,7 @@ export default async function ProgrammeDetailPage({
                 value={programme.dateFin ? programme.dateFin.toLocaleDateString("fr-FR") : "—"}
               />
               <Info label="Avancement moyen des projets" value={`${avancementMoyen}%`} />
-              <Info label="Budget cumulé des projets" value={`${budgetProjets.toLocaleString("fr-FR")} FCFA`} />
+              <Info label="Budget cumulé des projets" value={`${budgetProjets.toLocaleString("fr-FR")} ${devise}`} />
             </CardContent>
             <CardContent className="pt-0">
               <div className="mb-1 text-xs text-muted-foreground">Coût réel</div>
@@ -188,10 +190,11 @@ export default async function ProgrammeDetailPage({
                   programmeId={programme.id}
                   budget={programme.budget ? Number(programme.budget) : null}
                   initialValue={programme.coutReel ? Number(programme.coutReel) : null}
+                  devise={devise}
                 />
               ) : (
                 <p className="text-sm font-medium">
-                  {programme.coutReel ? `${programme.coutReel} FCFA` : "—"}
+                  {programme.coutReel ? `${programme.coutReel} ${devise}` : "—"}
                   {programme.budget && programme.coutReel && Number(programme.coutReel) > Number(programme.budget) && (
                     <Badge variant="destructive" className="ml-2">
                       Budget dépassé

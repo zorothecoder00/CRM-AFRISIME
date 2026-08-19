@@ -8,6 +8,7 @@ import { computeScopePilotage, getDepartmentScope } from "@/lib/pilotage-levels"
 import { ScopePilotagePanel } from "@/components/pilotage/scope-pilotage-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Building2 } from "lucide-react";
 
 /**
@@ -23,10 +24,11 @@ export default async function PilotagePage() {
     redirect("/dashboard");
   }
 
-  const [users, projects, allDepartments] = await Promise.all([
+  const [users, projects, allDepartments, devise] = await Promise.all([
     prisma.user.findMany({ where: { isActive: true }, select: { id: true } }),
     prisma.project.findMany({ select: { id: true } }),
     prisma.department.findMany({ select: { id: true, name: true, parentId: true }, orderBy: { name: "asc" } }),
+    getOrganizationDevise(),
   ]);
 
   const orgPilotage = await computeScopePilotage({
@@ -53,7 +55,7 @@ export default async function PilotagePage() {
         </p>
       </div>
 
-      <ScopePilotagePanel pilotage={orgPilotage} />
+      <ScopePilotagePanel pilotage={orgPilotage} devise={devise} />
 
       <div className="space-y-3">
         <h2 className="text-lg font-medium">Directions ({directions.length})</h2>

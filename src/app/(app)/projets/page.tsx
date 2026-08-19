@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
@@ -47,6 +48,7 @@ export default async function ProjetsPage({
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
   const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
   const onlyMine = mine === "1";
+  const devise = await getOrganizationDevise();
 
   // Filtre "Mes projets" : responsable OU membre, combiné avec le scope des
   // rôles externes qui a déjà son propre filtre (déjà restreint aux projets
@@ -155,7 +157,7 @@ export default async function ProjetsPage({
         </div>
       </div>
 
-      {vue === "table" && <ProjectTableView projects={projectRows} />}
+      {vue === "table" && <ProjectTableView projects={projectRows} devise={devise} />}
       {vue === "kanban" && <ProjectKanbanView projects={projectRows} />}
       {vue === "liste" && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

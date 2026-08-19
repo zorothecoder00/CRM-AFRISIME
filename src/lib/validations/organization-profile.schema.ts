@@ -8,6 +8,7 @@ export const updateOrganizationProfileSchema = z.object({
   mission: z.string().optional(),
   valeurs: z.string().optional(),
   siteWeb: z.string().optional(),
+  devise: z.string().min(1, "La devise est requise.").max(10),
 });
 
 export type UpdateOrganizationProfileInput = z.infer<typeof updateOrganizationProfileSchema>;

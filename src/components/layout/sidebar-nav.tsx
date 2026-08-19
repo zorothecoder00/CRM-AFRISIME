@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS, getContextualNavItems, type NavItem } from "./nav-config";
 
@@ -18,21 +19,23 @@ export function SidebarNav({
   className?: string;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const contextualItems = getContextualNavItems(roleKey, permissions);
 
   function renderItem(item: NavItem) {
     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
     const Icon = item.icon;
+    const title = t(`items.${item.titleKey}`);
 
     if (item.disabled) {
       return (
         <div
           key={item.href}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50"
-          title="Module à venir"
+          title={t("moduleAVenir")}
         >
           <Icon className="h-4 w-4" />
-          {item.title}
+          {title}
         </div>
       );
     }
@@ -50,7 +53,7 @@ export function SidebarNav({
         )}
       >
         <Icon className="h-4 w-4" />
-        {item.title}
+        {title}
       </Link>
     );
   }
@@ -59,7 +62,7 @@ export function SidebarNav({
     <nav className={cn("flex-1 space-y-5 overflow-y-auto p-3", className)}>
       {contextualItems.length > 0 && (
         <div className="space-y-1">
-          <div className="px-3 text-xs font-semibold tracking-wide text-primary/80 uppercase">Pour vous</div>
+          <div className="px-3 text-xs font-semibold tracking-wide text-primary/80 uppercase">{t("pourVous")}</div>
           {contextualItems.map(renderItem)}
         </div>
       )}
@@ -68,9 +71,9 @@ export function SidebarNav({
         if (items.length === 0) return null;
 
         return (
-          <div key={group.label} className="space-y-1">
+          <div key={group.labelKey} className="space-y-1">
             <div className="px-3 text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase">
-              {group.label}
+              {t(`groups.${group.labelKey}`)}
             </div>
             {items.map(renderItem)}
           </div>

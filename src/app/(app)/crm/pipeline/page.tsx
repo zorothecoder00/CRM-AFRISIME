@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { OpportunityKanban, type OpportunityRow } from "@/components/crm/opportunity-kanban";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
 import { getUserEntityScope, crmOpportunityScopeWhere } from "@/lib/entity-scope";
+import { getOrganizationDevise } from "@/lib/currency";
 
 export default async function CrmPipelinePage() {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,7 @@ export default async function CrmPipelinePage() {
   const canManage = session!.user.permissions.includes(PERMISSIONS.CRM_MANAGE);
 
   const entityScope = await getUserEntityScope(userId, session!.user.permissions);
-  const [opportunities, contacts, organizations, users] = await Promise.all([
+  const [opportunities, contacts, organizations, users, devise] = await Promise.all([
     prisma.crmOpportunity.findMany({
       where: crmOpportunityScopeWhere(entityScope),
       include: { contact: true, organization: true, owner: true },
@@ -21,6 +22,7 @@ export default async function CrmPipelinePage() {
     prisma.crmContact.findMany({ orderBy: { nom: "asc" } }),
     prisma.crmOrganization.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    getOrganizationDevise(),
   ]);
 
   const rows: OpportunityRow[] = opportunities.map((o) => ({
@@ -50,7 +52,7 @@ export default async function CrmPipelinePage() {
         )}
       </div>
 
-      <OpportunityKanban opportunities={rows} />
+      <OpportunityKanban opportunities={rows} devise={devise} />
     </div>
   );
 }

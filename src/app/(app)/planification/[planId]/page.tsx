@@ -11,6 +11,7 @@ import { PlanFormDialog } from "@/components/planning/plan-form-dialog";
 import { LinkObjectiveForm } from "@/components/planning/link-objective-form";
 import { LinkProgrammeForm } from "@/components/planning/link-programme-form";
 import { UnlinkObjectiveButton, UnlinkProgrammeButton } from "@/components/planning/unlink-buttons";
+import { getOrganizationDevise } from "@/lib/currency";
 
 const NIVEAU_LABELS: Record<string, string> = {
   STRATEGIQUE: "Stratégique",
@@ -42,7 +43,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
   }
   const canManage = session!.user.permissions.includes(PERMISSIONS.PLAN_MANAGE);
 
-  const [plan, departments, users, axes, parentCandidates, availableObjectives, availableProgrammes] =
+  const [plan, departments, users, axes, parentCandidates, availableObjectives, availableProgrammes, devise] =
     await Promise.all([
       prisma.plan.findUnique({
         where: { id: planId },
@@ -70,6 +71,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
         orderBy: { nom: "asc" },
         select: { id: true, nom: true },
       }),
+      getOrganizationDevise(),
     ]);
 
   if (!plan) {
@@ -129,7 +131,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
             <Info label="Date de fin" value={plan.dateFin.toLocaleDateString("fr-FR")} />
             <Info
               label="Budget indicatif"
-              value={plan.budgetIndicatif ? `${Number(plan.budgetIndicatif).toLocaleString("fr-FR")} FCFA` : "—"}
+              value={plan.budgetIndicatif ? `${Number(plan.budgetIndicatif).toLocaleString("fr-FR")} ${devise}` : "—"}
             />
             <Info label="Sous-plans" value={String(plan.children.length)} />
             <Info label="Axe stratégique" value={plan.axis?.nom ?? "—"} />

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { computeEntityScopePilotage, getRootDepartmentsForEntity } from "@/lib/consolidation";
 import { entityLevelLabel, buildEntityBreadcrumb, computeEntityDepth } from "@/lib/entity-tree";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Building2 } from "lucide-react";
 
 /**
@@ -38,9 +39,10 @@ export default async function ConsolidationEntitePage({
   const depth = computeEntityDepth(entityId, byId);
   const children = allEntities.filter((e) => e.parentId === entityId);
 
-  const [pilotage, rootDepartments] = await Promise.all([
+  const [pilotage, rootDepartments, devise] = await Promise.all([
     computeEntityScopePilotage(entityId),
     getRootDepartmentsForEntity(entityId),
+    getOrganizationDevise(),
   ]);
 
   return (
@@ -75,7 +77,7 @@ export default async function ConsolidationEntitePage({
           <Info label="Effectif" value={`${pilotage.headcount}`} />
           <Info label="Projets actifs" value={`${pilotage.projectsActifs} / ${pilotage.projectsTotal}`} />
           <Info label="Avancement moyen" value={pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—"} />
-          <Info label="Budget total" value={`${pilotage.budgetTotal.toLocaleString("fr-FR")} FCFA`} />
+          <Info label="Budget total" value={`${pilotage.budgetTotal.toLocaleString("fr-FR")} ${devise}`} />
           <Info label="Tâches en cours" value={`${pilotage.tachesEnCours}`} />
           <Info label="Tâches en retard" value={`${pilotage.tachesEnRetard}`} />
           <Info label="Risques critiques" value={`${pilotage.risquesCritiques}`} />

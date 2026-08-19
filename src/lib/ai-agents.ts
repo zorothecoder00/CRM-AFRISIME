@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
+import { getOrganizationDevise } from "@/lib/currency";
 import type { AiAgentType, AiInsightType } from "@/generated/prisma/enums";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -93,6 +94,7 @@ async function runProjectManagerAgent() {
 
 /** AI CRM Manager — analyse les prospects, identifie les relances, détecte les opportunités, propose les priorités. */
 async function runCrmManagerAgent() {
+  const devise = await getOrganizationDevise();
   const stagnationCutoff = new Date(Date.now() - CRM_STAGNATION_DAYS * MS_PER_DAY);
   const opportunities = await prisma.crmOpportunity.findMany({
     where: { statut: { notIn: ["GAGNEE", "PERDUE"] } },
@@ -112,7 +114,7 @@ async function runCrmManagerAgent() {
       type: prioritaire ? "RECOMMANDATION" : "ALERTE",
       titre: prioritaire ? `Opportunité prioritaire : ${o.nom}` : `Relance suggérée : ${o.nom}`,
       contenu: prioritaire
-        ? `${o.nom} a ${o.probabilite}% de probabilité et une clôture estimée sous 7 jours (${o.montantEstime ? `${o.montantEstime} FCFA` : "montant non estimé"}). Priorité commerciale proposée cette semaine.`
+        ? `${o.nom} a ${o.probabilite}% de probabilité et une clôture estimée sous 7 jours (${o.montantEstime ? `${o.montantEstime} ${devise}` : "montant non estimé"}). Priorité commerciale proposée cette semaine.`
         : `${o.nom} n'a pas été mise à jour depuis plus de ${CRM_STAGNATION_DAYS} jours (statut : ${o.statut}). Relance recommandée pour éviter la perte de l'opportunité.`,
       entityType: "CrmOpportunity",
       entityId: o.id,

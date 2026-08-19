@@ -7,6 +7,7 @@ import { toneForOpportunityStatus, accentForOpportunityStatus } from "@/lib/stat
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Mail, Phone, MessageCircle, CalendarClock, MapPin, type LucideIcon } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,6 +47,7 @@ export default async function PortalOpportunityDetailPage({
   const { opportunityId } = await params;
   const session = await getPortalSession();
   if (!session) redirect("/portail/connexion");
+  const devise = await getOrganizationDevise();
 
   const contact = await prisma.crmContact.findUnique({
     where: { id: session.contactId },
@@ -98,7 +100,7 @@ export default async function PortalOpportunityDetailPage({
           <CardContent className="grid gap-3 text-sm md:grid-cols-2">
             <Info
               label="Montant estimé"
-              value={opportunity.montantEstime ? `${formatMontant(Number(opportunity.montantEstime))} FCFA` : "—"}
+              value={opportunity.montantEstime ? `${formatMontant(Number(opportunity.montantEstime))} ${devise}` : "—"}
             />
             <Info
               label="Clôture estimée"

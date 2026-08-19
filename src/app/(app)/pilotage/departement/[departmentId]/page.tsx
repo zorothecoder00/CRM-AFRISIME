@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { UserAvatar } from "@/components/messages/user-avatar";
+import { getOrganizationDevise } from "@/lib/currency";
 import { ChevronRight, Building2 } from "lucide-react";
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
@@ -68,7 +69,7 @@ export default async function DepartmentPilotagePage({
       orderBy: { nom: "asc" },
     }),
   ]);
-  const [pilotage, childrenPilotage] = await Promise.all([
+  const [pilotage, childrenPilotage, devise] = await Promise.all([
     computeScopePilotage(scope),
     Promise.all(
       children.map(async (child) => {
@@ -77,6 +78,7 @@ export default async function DepartmentPilotagePage({
         return { child, pilotage: childPilotage };
       })
     ),
+    getOrganizationDevise(),
   ]);
 
   return (
@@ -108,7 +110,7 @@ export default async function DepartmentPilotagePage({
         </p>
       </div>
 
-      <ScopePilotagePanel pilotage={pilotage} />
+      <ScopePilotagePanel pilotage={pilotage} devise={devise} />
 
       {children.length > 0 && (
         <div className="space-y-3">

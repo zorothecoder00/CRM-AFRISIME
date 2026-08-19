@@ -11,10 +11,12 @@ export function ProgrammeCoutReelForm({
   programmeId,
   budget,
   initialValue,
+  devise,
 }: {
   programmeId: string;
   budget: number | null;
   initialValue: number | null;
+  devise: string;
 }) {
   const [value, setValue] = useState(initialValue !== null ? String(initialValue) : "");
   const { run, isPending } = useAction(updateProgrammeCoutReel, { successMessage: "Coût réel enregistré." });
@@ -36,7 +38,7 @@ export function ProgrammeCoutReelForm({
         onChange={(e) => setValue(e.target.value)}
         className="h-8 w-32"
       />
-      <span className="text-xs text-muted-foreground">FCFA</span>
+      <span className="text-xs text-muted-foreground">{devise}</span>
       <Button size="sm" variant="outline" onClick={handleSave} disabled={isPending}>
         Enregistrer
       </Button>

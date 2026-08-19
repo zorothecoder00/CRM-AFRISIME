@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   // pdfkit lit ses fichiers de police (.afm) via __dirname au moment de
@@ -73,4 +76,4 @@ const nextConfig: NextConfig = {
 //     pas de configuration applicative dédiée. Export de sauvegarde manuel
 //     existant (/administration/donnees, DATA_BACKUP_MANAGE) ; pas de plan
 //     de reprise après incident documenté/testé.
-export default nextConfig;
+export default withNextIntl(nextConfig);

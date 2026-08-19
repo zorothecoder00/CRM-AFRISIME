@@ -20,6 +20,7 @@ export type OrganizationProfileValues = {
   mission: string | null;
   valeurs: string | null;
   siteWeb: string | null;
+  devise: string;
 };
 
 /** Profil de l'organisation (cahier des charges §I / §III — Vision/Mission/Valeurs). */
@@ -31,6 +32,7 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
   const [mission, setMission] = useState(initial.mission ?? "");
   const [valeurs, setValeurs] = useState(initial.valeurs ?? "");
   const [siteWeb, setSiteWeb] = useState(initial.siteWeb ?? "");
+  const [devise, setDevise] = useState(initial.devise);
 
   const { run, isPending } = useAction(updateOrganizationProfile, { successMessage: "Profil de l'organisation enregistré." });
 
@@ -44,6 +46,7 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
       mission: mission || undefined,
       valeurs: valeurs || undefined,
       siteWeb: siteWeb || undefined,
+      devise,
     });
   }
 
@@ -98,6 +101,10 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
               <div className="space-y-2">
                 <Label htmlFor="siteWeb">Site web</Label>
                 <Input id="siteWeb" value={siteWeb} onChange={(e) => setSiteWeb(e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="devise">Devise</Label>
+                <Input id="devise" value={devise} onChange={(e) => setDevise(e.target.value)} placeholder="FCFA" maxLength={10} required />
               </div>
             </div>
             <div className="space-y-2">

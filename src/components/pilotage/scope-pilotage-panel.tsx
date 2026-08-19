@@ -2,9 +2,9 @@ import { StatCard, type StatCardTone } from "@/components/ui/stat-card";
 import type { ScopePilotage } from "@/lib/pilotage-levels";
 import { Users, TrendingUp, Wallet, ListChecks, Clock, Gauge, AlertTriangle, Star } from "lucide-react";
 
-function formatMontant(montant: number) {
+function formatMontant(montant: number, devise: string) {
   if (montant === 0) return "—";
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} FCFA`;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} ${devise}`;
 }
 
 function toneForRate(rate: number | null): StatCardTone {
@@ -15,7 +15,7 @@ function toneForRate(rate: number | null): StatCardTone {
 }
 
 /** Indicateurs agrégés d'un périmètre (Organisation/Direction/Département/Service/Équipe — cahier des charges §XXIII). */
-export function ScopePilotagePanel({ pilotage }: { pilotage: ScopePilotage }) {
+export function ScopePilotagePanel({ pilotage, devise }: { pilotage: ScopePilotage; devise: string }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard label="Effectif" value={pilotage.headcount} icon={Users} tone="info" />
@@ -37,13 +37,13 @@ export function ScopePilotagePanel({ pilotage }: { pilotage: ScopePilotage }) {
 
       <StatCard
         label="Budget"
-        value={formatMontant(pilotage.coutReelTotal)}
+        value={formatMontant(pilotage.coutReelTotal, devise)}
         icon={Wallet}
         tone={pilotage.budgetDepasseCount > 0 ? "danger" : "success"}
         description={
           pilotage.budgetDepasseCount > 0
             ? `${pilotage.budgetDepasseCount} projet(s) en dépassement`
-            : `Budget : ${formatMontant(pilotage.budgetTotal)}`
+            : `Budget : ${formatMontant(pilotage.budgetTotal, devise)}`
         }
       />
 

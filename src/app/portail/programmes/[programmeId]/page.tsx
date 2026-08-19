@@ -9,6 +9,7 @@ import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
 import { getAuthorizedProjectIds, isProgrammeAuthorized } from "@/lib/portal-authorization";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Users, CalendarClock } from "lucide-react";
 
 function formatMontant(montant: number | null) {
@@ -29,6 +30,7 @@ export default async function PortalProgrammeDetailPage({
   const { programmeId } = await params;
   const session = await getPortalSession();
   if (!session) redirect("/portail/connexion");
+  const devise = await getOrganizationDevise();
 
   const contact = await prisma.crmContact.findUnique({
     where: { id: session.contactId },
@@ -72,7 +74,7 @@ export default async function PortalProgrammeDetailPage({
       </div>
       {programme.objectif && <p className="text-sm text-muted-foreground">{programme.objectif}</p>}
       {programme.budget !== null && (
-        <p className="text-sm text-muted-foreground">Budget : {formatMontant(Number(programme.budget))} FCFA</p>
+        <p className="text-sm text-muted-foreground">Budget : {formatMontant(Number(programme.budget))} {devise}</p>
       )}
 
       <div className="space-y-3">

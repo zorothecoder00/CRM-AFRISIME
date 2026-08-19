@@ -35,9 +35,9 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITIQUE: "Critique",
 };
 
-function formatMontant(montant: number | null) {
+function formatMontant(montant: number | null, devise: string) {
   if (montant === null) return "—";
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} FCFA`;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} ${devise}`;
 }
 
 const EXPORT_COLUMNS: XlsxColumn<ProjectRow>[] = [
@@ -53,7 +53,7 @@ const EXPORT_COLUMNS: XlsxColumn<ProjectRow>[] = [
 ];
 
 /** Vue Table (cahier des charges §VI) — tri lisible en un coup d'oeil, complementaire a la vue Liste en cartes. */
-export function ProjectTableView({ projects }: { projects: ProjectRow[] }) {
+export function ProjectTableView({ projects, devise }: { projects: ProjectRow[]; devise: string }) {
   if (projects.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>;
   }
@@ -97,7 +97,7 @@ export function ProjectTableView({ projects }: { projects: ProjectRow[] }) {
                 <TableCell className="text-muted-foreground">{p.responsableNom}</TableCell>
                 <TableCell>{p.avancement}%</TableCell>
                 <TableCell>
-                  {formatMontant(p.budget)}
+                  {formatMontant(p.budget, devise)}
                   {depasse && (
                     <Badge variant="destructive" className="ml-1.5">
                       Dépassé

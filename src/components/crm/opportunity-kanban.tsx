@@ -47,7 +47,7 @@ function formatMontant(montant: number | null) {
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant);
 }
 
-function OpportunityCard({ opportunity }: { opportunity: OpportunityRow }) {
+function OpportunityCard({ opportunity, devise }: { opportunity: OpportunityRow; devise: string }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: opportunity.id,
   });
@@ -71,7 +71,7 @@ function OpportunityCard({ opportunity }: { opportunity: OpportunityRow }) {
         <div className="mt-2 flex items-center justify-between">
           {opportunity.montantEstime !== null ? (
             <Badge variant="outline" className="text-xs">
-              {formatMontant(opportunity.montantEstime)} FCFA
+              {formatMontant(opportunity.montantEstime)} {devise}
             </Badge>
           ) : (
             <span />
@@ -87,10 +87,12 @@ function KanbanColumn({
   columnKey,
   label,
   opportunities,
+  devise,
 }: {
   columnKey: string;
   label: string;
   opportunities: OpportunityRow[];
+  devise: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
   const accent = COLUMN_ACCENT[toneForOpportunityStatus(columnKey)];
@@ -108,16 +110,22 @@ function KanbanColumn({
         <Badge variant="secondary">{opportunities.length}</Badge>
       </div>
       {total > 0 && (
-        <div className="mb-2 px-1 text-xs text-muted-foreground">{formatMontant(total)} FCFA</div>
+        <div className="mb-2 px-1 text-xs text-muted-foreground">{formatMontant(total)} {devise}</div>
       )}
       {opportunities.map((o) => (
-        <OpportunityCard key={o.id} opportunity={o} />
+        <OpportunityCard key={o.id} opportunity={o} devise={devise} />
       ))}
     </div>
   );
 }
 
-export function OpportunityKanban({ opportunities: initial }: { opportunities: OpportunityRow[] }) {
+export function OpportunityKanban({
+  opportunities: initial,
+  devise,
+}: {
+  opportunities: OpportunityRow[];
+  devise: string;
+}) {
   const [opportunities, setOpportunities] = useState(initial);
   const { run } = useAction(updateOpportunityStatus);
 
@@ -150,6 +158,7 @@ export function OpportunityKanban({ opportunities: initial }: { opportunities: O
             columnKey={col.key}
             label={col.label}
             opportunities={opportunities.filter((o) => o.statut === col.key)}
+            devise={devise}
           />
         ))}
       </div>
