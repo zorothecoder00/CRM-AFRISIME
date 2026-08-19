@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SessionList } from "@/components/security/session-list";
+import { detectSuspiciousActivity, computePermissionsOverview } from "@/lib/security-trust-center";
 
 export default async function SecuritePage() {
   const session = await getServerSession(authOptions);
@@ -25,7 +26,8 @@ export default async function SecuritePage() {
   }
   const canManageSessions = session!.user.permissions.includes(PERMISSIONS.SESSION_MANAGE);
 
-  const [logs, users, activeSessions] = await Promise.all([
+  const [logs, users, activeSessions, suspiciousActivity, permissionsOverview, retentionPoliciesActive, complianceNonConformesCount] =
+    await Promise.all([
     prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -44,16 +46,83 @@ export default async function SecuritePage() {
           take: 100,
         })
       : Promise.resolve([]),
+    detectSuspiciousActivity(),
+    computePermissionsOverview(),
+    prisma.retentionPolicy.count({ where: { isActive: true } }),
+    prisma.complianceObligation.count({ where: { statut: "NON_CONFORME" } }),
   ]);
 
   return (
     <div className="space-y-6">
       <AdminTabs />
       <div>
-        <h1 className="text-2xl font-semibold">Sécurité</h1>
+        <h1 className="text-2xl font-semibold">Centre de sécurité</h1>
         <p className="text-sm text-muted-foreground">
-          Journal d&apos;audit et état de la double authentification des utilisateurs.
+          Security & Trust Center (cahier des charges V3.0 §44) — sécurité, sessions, appareils, connexions,
+          permissions, audit, activités suspectes, politiques, conformité.
         </p>
+      </div>
+
+      {suspiciousActivity.length > 0 && (
+        <Card accent="destructive">
+          <CardHeader>
+            <CardTitle className="text-base">Activités suspectes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {suspiciousActivity.map((a, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <Badge variant={a.severity}>{a.type === "LOGIN_FAILED" ? "Connexion" : "IP multiples"}</Badge>
+                <span>{a.description}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Permissions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <p>{permissionsOverview.roleCount} rôle(s) définis</p>
+            <p>{permissionsOverview.overridesCount} dérogation(s) de permission</p>
+            {permissionsOverview.usersWithoutMfaCount > 0 && (
+              <Badge variant="warning">{permissionsOverview.usersWithoutMfaCount} utilisateur(s) sans MFA</Badge>
+            )}
+            <Link href="/administration/roles" className="block text-xs text-primary underline">
+              Gérer les rôles →
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Politiques</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <p>{retentionPoliciesActive} politique(s) de rétention active(s)</p>
+            <Link href="/administration/donnees" className="block text-xs text-primary underline">
+              Gérer les politiques →
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Conformité</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {complianceNonConformesCount > 0 ? (
+              <Badge variant="destructive">{complianceNonConformesCount} obligation(s) non conforme(s)</Badge>
+            ) : (
+              <p className="text-muted-foreground">Aucune non-conformité active.</p>
+            )}
+            <Link href="/conformite" className="block text-xs text-primary underline">
+              Voir la conformité →
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

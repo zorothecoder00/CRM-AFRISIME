@@ -711,6 +711,48 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 };
 
+// Zero-Trust Architecture (cahier des charges V3.0 §45) — "Prévoir
+// progressivement : Never trust → Always verify. Chaque accès doit être
+// contrôlé selon : utilisateur ; rôle ; organisation ; contexte ; appareil ;
+// localisation approximative si autorisée ; ressource ; action." Le cahier
+// demande explicitement une préparation progressive, pas une bascule
+// complète en un seul passage (qui toucherait chaque action serveur de
+// l'application — risque disproportionné pour un aller simple). État réel
+// axe par axe, pour que la suite de cette progression parte d'un état
+// exact plutôt que d'un vague "à faire" :
+//
+//  - Utilisateur  : ✅ chaque action serveur exige une session NextAuth
+//    valide (requireSession() dans chaque fichier src/actions/*.ts).
+//  - Rôle         : ✅ requirePermission()/hasPermission() ci-dessous,
+//    vérifiées à CHAQUE action, jamais supposées côté client.
+//  - Ressource +
+//    Action       : ✅ granularité fine par PermissionKey (ex.
+//    PROJECT_DELETE distinct de PROJECT_UPDATE), + scope optionnel
+//    département/projet/équipe via PermissionOverride (cahier §19).
+//  - Organisation : 🟡 PlatformOrganization (§27) existe comme registre de
+//    tenants mais n'est PAS encore un filtre appliqué aux requêtes — cette
+//    instance reste mono-organisation en pratique. À faire lors du vrai
+//    retrofit multi-tenant (voir commentaire sur PlatformOrganization dans
+//    schema.prisma).
+//  - Appareil +
+//    Contexte     : 🟡 partiellement couvert par UserSession (userAgent,
+//    ipAddress, lastSeenAt, révocation manuelle — §36) et par
+//    SENSITIVE_ACTION_TYPES (automation.ts, force une validation humaine
+//    PendingAiAction quel que soit le niveau IA configuré — une forme de
+//    vérification contextuelle par action). Pas encore de règle du type
+//    "ré-authentifier après N minutes d'inactivité avant une action
+//    sensible" ni de fingerprinting d'appareil au-delà du user-agent brut.
+//  - Localisation : ❌ non implémentée. Nécessiterait une base ou un
+//    service de géolocalisation IP — aucun n'est configuré dans cette
+//    instance (même statut que les autres intégrations externes non
+//    câblées, ex. IA/email — voir mémoire projet) ; "si autorisée" dans le
+//    cahier suppose de toute façon un consentement explicite non encore
+//    modélisé.
+//
+// Prochaine étape suggérée (non implémentée ici) : quand le multi-tenant
+// réel (§27) sera engagé, l'axe "organisation" deviendra le filtre
+// obligatoire le plus structurant — les autres axes (appareil/contexte/
+// localisation) peuvent progresser indépendamment sans attendre ce chantier.
 export function hasPermission(
   permissions: string[] | undefined,
   key: PermissionKey

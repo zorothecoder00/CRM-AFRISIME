@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import ToastProvider from "@/components/ToastProvider";
 import { SessionWrapper } from "@/components/SessionWrapper";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
+import { OfflineBanner } from "@/components/pwa/offline-banner";
 import "./uploadthing-vendor.css";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col">
         <AppSettingsProvider>
+          <OfflineBanner />
           <SessionWrapper>{children}</SessionWrapper>
           <ToastProvider />
         </AppSettingsProvider>

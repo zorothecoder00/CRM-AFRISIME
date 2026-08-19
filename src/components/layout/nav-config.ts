@@ -59,6 +59,8 @@ import {
   Link2,
   Map,
   History,
+  Mic,
+  TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -89,6 +91,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Niveaux de pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Recherche", href: "/recherche", icon: Search },
+      { title: "Assistant", href: "/assistant", icon: Mic },
     ],
   },
   {
@@ -117,6 +120,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Objectifs & KPI", href: "/objectifs", icon: Target, permission: PERMISSIONS.OBJECTIVE_READ },
       { title: "Évaluations", href: "/evaluations", icon: ClipboardCheck, permission: PERMISSIONS.EVALUATION_READ },
       { title: "Parties prenantes", href: "/parties-prenantes", icon: UserCog, permission: PERMISSIONS.PROJECT_READ },
+      { title: "Incidents", href: "/incidents", icon: TriangleAlert },
     ],
   },
   {
@@ -171,6 +175,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Gouvernance", href: "/gouvernance", icon: Landmark, permission: PERMISSIONS.GOVERNANCE_READ },
       { title: "Processus", href: "/processus", icon: GitBranch, permission: PERMISSIONS.PROCESS_READ },
       { title: "Risques", href: "/risques", icon: ShieldAlert, permission: PERMISSIONS.RISK_READ },
+      { title: "Conformité", href: "/conformite", icon: ShieldCheck, permission: PERMISSIONS.GOVERNANCE_READ },
     ],
   },
   {
