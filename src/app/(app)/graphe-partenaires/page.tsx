@@ -3,13 +3,18 @@ import { buildPartnerEcosystemGraph, computePartnerEcosystemAnalysis } from "@/l
 import { PartnerEcosystemGraphView } from "@/components/partner-ecosystem/partner-ecosystem-graph-view";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getOrganizationDevise } from "@/lib/currency";
 
 // Partner Ecosystem Graph (cahier des charges V3.0 §26) — visualise
 // Organisation ↔ partenaires ↔ projets ↔ clients ↔ institutions ↔
 // investisseurs, et identifie partenaires stratégiques, dépendances,
 // risques, opportunités et relations critiques.
 export default async function GraphePartenairesPage() {
-  const [graph, analysis] = await Promise.all([buildPartnerEcosystemGraph(), computePartnerEcosystemAnalysis()]);
+  const [graph, analysis, devise] = await Promise.all([
+    buildPartnerEcosystemGraph(),
+    computePartnerEcosystemAnalysis(),
+    getOrganizationDevise(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -93,7 +98,7 @@ export default async function GraphePartenairesPage() {
                   <span>
                     {o.opportunite} <span className="text-xs text-muted-foreground">({o.nom})</span>
                   </span>
-                  {o.montantEstime !== null && <Badge variant="outline">{o.montantEstime.toLocaleString("fr-FR")} €</Badge>}
+                  {o.montantEstime !== null && <Badge variant="outline">{o.montantEstime.toLocaleString("fr-FR")} {devise}</Badge>}
                 </div>
               ))
             )}

@@ -17,19 +17,22 @@ export function ExportXlsxButton<T extends Record<string, unknown>>({
   filename,
   sheetName,
   title,
+  currency,
 }: {
   rows: T[];
   columns: XlsxColumn<T>[];
   filename: string;
   sheetName?: string;
   title?: string;
+  /** Devise pour les colonnes "currency" (défaut "XOF" côté xlsx-export.ts si absente). */
+  currency?: string;
 }) {
   const [isPending, setIsPending] = useState(false);
 
   async function handleClick() {
     setIsPending(true);
     try {
-      await exportToXlsx(rows, columns, filename, { sheetName, title });
+      await exportToXlsx(rows, columns, filename, { sheetName, title, currency });
     } finally {
       setIsPending(false);
     }

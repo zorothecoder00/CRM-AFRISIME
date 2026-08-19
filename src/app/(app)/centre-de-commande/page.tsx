@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { buildExecutiveSnapshot } from "@/lib/executive-command-center";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Radar, Target, ShieldAlert, Landmark, Gauge, Handshake, Bell, TrendingUp, FolderKanban, Wallet, Link2 } from "lucide-react";
@@ -46,7 +47,7 @@ export default async function ExecutiveCommandCenterPage() {
     redirect("/dashboard");
   }
 
-  const snap = await buildExecutiveSnapshot();
+  const [snap, devise] = await Promise.all([buildExecutiveSnapshot(), getOrganizationDevise()]);
 
   return (
     <div className="space-y-6">
@@ -107,7 +108,7 @@ export default async function ExecutiveCommandCenterPage() {
 
         <StatCard icon={Handshake} title="Opportunités CRM" href="/crm/pipeline">
           <p>{snap.opportunitesCrm.total} opportunité(s)</p>
-          <p>{snap.opportunitesCrm.montantTotal.toLocaleString("fr-FR")} — pipeline total</p>
+          <p>{snap.opportunitesCrm.montantTotal.toLocaleString("fr-FR")} {devise} — pipeline total</p>
         </StatCard>
 
         <StatCard icon={Bell} title="Alertes" href="/agents-ia">
@@ -130,11 +131,11 @@ export default async function ExecutiveCommandCenterPage() {
         </StatCard>
 
         <StatCard icon={Wallet} title="Finances" href="/administration/integrations">
-          <p>Budget (projets actifs) : {snap.finances.budgetTotalProjetsActifs.toLocaleString("fr-FR")}</p>
-          <p>Coût réel : {snap.finances.coutReelTotalProjetsActifs.toLocaleString("fr-FR")}</p>
+          <p>Budget (projets actifs) : {snap.finances.budgetTotalProjetsActifs.toLocaleString("fr-FR")} {devise}</p>
+          <p>Coût réel : {snap.finances.coutReelTotalProjetsActifs.toLocaleString("fr-FR")} {devise}</p>
           <p className={snap.finances.ecartBudgetaire > 0 ? "text-destructive" : ""}>
             Écart : {snap.finances.ecartBudgetaire > 0 ? "+" : ""}
-            {snap.finances.ecartBudgetaire.toLocaleString("fr-FR")}
+            {snap.finances.ecartBudgetaire.toLocaleString("fr-FR")} {devise}
           </p>
           {snap.finances.systemesFinanciersConnectes.length === 0 ? (
             <p className="text-xs text-muted-foreground">Aucun système financier connecté.</p>

@@ -61,7 +61,14 @@ export function ProjectTableView({ projects, devise }: { projects: ProjectRow[];
   return (
     <div className="space-y-2">
       <div className="flex justify-end">
-        <ExportXlsxButton rows={projects} columns={EXPORT_COLUMNS} filename="projets.xlsx" sheetName="Projets" title="Projets" />
+        <ExportXlsxButton
+          rows={projects}
+          columns={EXPORT_COLUMNS}
+          filename="projets.xlsx"
+          sheetName="Projets"
+          title="Projets"
+          currency={devise}
+        />
       </div>
       <div className="rounded-md border">
       <Table>

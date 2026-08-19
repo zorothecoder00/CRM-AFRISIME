@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeDecisionRecommendation, buildDecisionJustification } from "@/lib/decision-matrix";
 import { getDependenciesFor, resolveDependencyLabels } from "@/lib/dependencies";
+import { getOrganizationDevise } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DecisionOptionFormDialog } from "@/components/decisions/decision-option-form-dialog";
@@ -31,6 +32,8 @@ export default async function DecisionMatrixDetailPage({
   if (!matrix) {
     notFound();
   }
+
+  const devise = await getOrganizationDevise();
 
   const recommendations = computeDecisionRecommendation(
     matrix.options.map((o) => ({
@@ -144,7 +147,7 @@ export default async function DecisionMatrixDetailPage({
               <CardContent className="space-y-2 text-sm">
                 {o.description && <p className="text-muted-foreground">{o.description}</p>}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <p>Coût : {o.cout ? Number(o.cout).toLocaleString("fr-FR") : "—"}</p>
+                  <p>Coût : {o.cout ? `${Number(o.cout).toLocaleString("fr-FR")} ${devise}` : "—"}</p>
                   <p>Délai : {o.delaiJours ?? "—"} j</p>
                   <p>Ressources : {o.ressources ? Number(o.ressources) : "—"}</p>
                   <p>ROI : {o.roiPercent ? `${Number(o.roiPercent)}%` : "—"}</p>
