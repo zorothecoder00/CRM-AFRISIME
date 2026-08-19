@@ -56,6 +56,8 @@ import {
   Lightbulb,
   Repeat2,
   Globe,
+  Link2,
+  Map,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -150,6 +152,9 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Santé organisationnelle", href: "/sante-organisationnelle", icon: HeartPulse, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Graphe de connaissances", href: "/graphe-de-connaissances", icon: Share2, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Graphe organisationnel", href: "/graphe-organisationnel", icon: Waypoints, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Partner Ecosystem Graph", href: "/graphe-partenaires", icon: Link2, permission: PERMISSIONS.CRM_READ },
+      { title: "Maturité organisationnelle", href: "/maturite-organisationnelle", icon: Gauge, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Feuille de route transformation", href: "/feuille-de-route-transformation", icon: Map, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Marketplace", href: "/marketplace", icon: Store },
       { title: "Corbeille", href: "/corbeille", icon: Trash2, permission: PERMISSIONS.TRASH_MANAGE },
       { title: "Sauvegarde & données", href: "/administration/donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
@@ -173,6 +178,12 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/administration/utilisateurs",
         icon: ShieldCheck,
         permission: PERMISSIONS.ADMINISTRATION_ACCESS,
+      },
+      {
+        title: "Plateforme multi-organisation",
+        href: "/administration/plateforme",
+        icon: Building2,
+        permission: PERMISSIONS.PLATFORM_MANAGE,
       },
     ],
   },

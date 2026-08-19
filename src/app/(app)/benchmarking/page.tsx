@@ -13,6 +13,7 @@ import {
   benchmarkTeams,
   benchmarkEntities,
   benchmarkPeriods,
+  benchmarkIndicators,
   type BenchmarkColumn,
 } from "@/lib/benchmarking";
 
@@ -21,6 +22,7 @@ const AXES = [
   { key: "equipes", label: "Entre équipes" },
   { key: "entites", label: "Entre entités" },
   { key: "projets", label: "Entre projets" },
+  { key: "indicateurs", label: "Entre indicateurs" },
 ] as const;
 
 type Axe = (typeof AXES)[number]["key"];
@@ -58,6 +60,10 @@ export default async function BenchmarkingPage({
     const entities = await prisma.entity.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } });
     candidates = entities.map((e) => ({ id: e.id, label: e.nom }));
     if (selectedIds.length >= 2) columns = await benchmarkEntities(selectedIds);
+  } else if (axe === "indicateurs") {
+    const indicators = await prisma.indicator.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } });
+    candidates = indicators.map((i) => ({ id: i.id, label: i.nom }));
+    if (selectedIds.length >= 2) columns = await benchmarkIndicators(selectedIds);
   } else if (axe === "temps") {
     if (sp.p1Start && sp.p1End && sp.p2Start && sp.p2End) {
       columns = await benchmarkPeriods([

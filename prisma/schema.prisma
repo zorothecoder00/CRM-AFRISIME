@@ -562,6 +562,7 @@ model User {
   courriersCreated                 Courrier[]                     @relation("CourrierCreatedBy")
   // Extension V3.0 — Organizational Designer (§21) et Talent & Succession (§24)
   orgDesignDraftsCreated            OrgDesignDraft[]               @relation("OrgDesignDraftCreatedBy")
+  platformOrganizationsCreated      PlatformOrganization[]         @relation("PlatformOrganizationCreatedBy")
   successionPlansCreated            SuccessionPlan[]               @relation("SuccessionPlanCreatedBy")
   successionPlanTitulaireFor        SuccessionPlan[]               @relation("SuccessionPlanTitulaire")
   successionCandidacies             SuccessionCandidate[]          @relation("SuccessionCandidateUser")
@@ -760,6 +761,45 @@ model OrganizationProfile {
   updatedById String?
   updatedBy   User?    @relation(fields: [updatedById], references: [id])
   updatedAt   DateTime @updatedAt
+}
+
+// Multi-Organization Platform (cahier des charges V3.0 §27) — "La V3 doit
+// préparer Work-Flow à accueillir plusieurs organisations totalement
+// indépendantes." Ce modèle est la couche fondation/registre (au-dessus
+// d'OrganizationProfile, qui reste le profil de L'UNIQUE organisation
+// pilotée par cette instance) : chaque ligne représente un futur tenant de
+// la plateforme, avec son branding et son abonnement — PAS une isolation de
+// données déjà effective. Retrofitter un tenantId sur les ~150 modèles
+// existants (User, Project, Department, etc.) est une migration séparée,
+// volontairement hors-scope ici : ce registre prépare/documente la
+// plateforme multi-organisation sans réécrire tout le schéma en un seul
+// passage risqué. Voir memoire de session pour le detail de cette
+// decision de perimetre.
+model PlatformOrganization {
+  id              String                     @id @default(cuid())
+  nom             String
+  slug            String                     @unique
+  statut          PlatformOrganizationStatut @default(ACTIVE)
+  plan            PlatformOrganizationPlan   @default(STANDARD)
+  logoUrl         String?
+  couleurPrimaire String?
+  configuration   Json?
+  createdById     String
+  createdBy       User                       @relation("PlatformOrganizationCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+}
+
+enum PlatformOrganizationStatut {
+  ACTIVE
+  SUSPENDUE
+  ARCHIVEE
+}
+
+enum PlatformOrganizationPlan {
+  GRATUIT
+  STANDARD
+  PREMIUM
 }
 
 // Poste / fonction structure (cahier des charges §I) — un poste peut etre

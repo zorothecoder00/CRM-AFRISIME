@@ -129,6 +129,44 @@ export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkC
 }
 
 /**
+ * Comparaison entre indicateurs/KPI (cahier des charges V3.0 §32,
+ * "Organizational Benchmarking" — complète les 4 axes déjà couverts par
+ * V2.2 §25 avec le dernier de la liste du cahier, "indicateurs"). La
+ * comparaison "à des références sectorielles" reste hors-scope : le cahier
+ * la conditionne lui-même à "des données agrégées et anonymisées [...] si
+ * disponibles", et aucune source de ce type n'existe dans l'application.
+ */
+export async function benchmarkIndicators(indicatorIds: string[]): Promise<BenchmarkColumn[]> {
+  const indicators = await prisma.indicator.findMany({
+    where: { id: { in: indicatorIds } },
+    include: {
+      objective: { select: { titre: true } },
+      project: { select: { nom: true } },
+      task: { select: { titre: true } },
+    },
+  });
+
+  return indicatorIds
+    .map((id) => indicators.find((i) => i.id === id))
+    .filter((i): i is NonNullable<typeof i> => Boolean(i))
+    .map((indicator) => {
+      const cible = Number(indicator.valeurCible);
+      const actuelle = Number(indicator.valeurActuelle);
+      const atteinte = cible !== 0 ? Math.round((actuelle / cible) * 100) : null;
+      const contexte = indicator.objective?.titre ?? indicator.project?.nom ?? indicator.task?.titre ?? "—";
+      return {
+        label: indicator.nom,
+        rows: [
+          { label: "Contexte", value: contexte },
+          { label: "Valeur actuelle", value: `${actuelle}${indicator.unite ?? ""}` },
+          { label: "Valeur cible", value: `${cible}${indicator.unite ?? ""}` },
+          { label: "Taux d'atteinte", value: atteinte !== null ? `${atteinte}%` : "—" },
+        ],
+      };
+    });
+}
+
+/**
  * Comparaison dans le temps (cahier des charges V2.2 §25, ex. "2026 vs
  * 2025") — s'appuie sur MetricSnapshot (module 11), alimenté quotidiennement
  * depuis peu : les périodes anciennes seront clairsemées, le mécanisme reste

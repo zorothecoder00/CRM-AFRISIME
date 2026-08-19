@@ -127,6 +127,11 @@ export const PERMISSIONS = {
   // Extension V3.0 §24 — Talent & Succession Planning
   SUCCESSION_READ: "succession.read",
   SUCCESSION_MANAGE: "succession.manage",
+
+  // Extension V3.0 §27 — Multi-Organization Platform (registre des tenants,
+  // reserve au super-admin de la plateforme, pas aux administrateurs d'une
+  // organisation individuelle).
+  PLATFORM_MANAGE: "platform.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -254,6 +259,8 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.SUCCESSION_READ, label: "Consulter les plans de succession et postes critiques", category: "Talent & Succession" },
   { key: PERMISSIONS.SUCCESSION_MANAGE, label: "Créer et gérer les plans de succession", category: "Talent & Succession" },
+
+  { key: PERMISSIONS.PLATFORM_MANAGE, label: "Gérer le registre des organisations de la plateforme (multi-organisation)", category: "Plateforme" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
