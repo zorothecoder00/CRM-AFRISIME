@@ -3879,6 +3879,12 @@ model Incident {
   dateDeclaration DateTime       @default(now())
   dateCloture     DateTime?
   createdAt       DateTime       @default(now())
+  // Photos prises sur le terrain au moment du signalement (cahier des
+  // charges V3.0 §42, "Mobile-First Execution" — liste "incidents" et
+  // "photos" comme deux fonctionnalites distinctes mais liees). URLs
+  // uploadthing, comme Document.url — pas de modele dedie pour de simples
+  // pieces jointes attachees a la creation.
+  photos          String[]       @default([])
 
   @@index([statut])
   @@index([type])

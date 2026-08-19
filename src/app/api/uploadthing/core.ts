@@ -70,6 +70,23 @@ export const ourFileRouter = {
       };
     }),
 
+  // Photos jointes à un signalement d'incident terrain (V3.0 §42) — jusqu'à
+  // 5 photos par incident, avant même que l'Incident existe en base (pris
+  // au moment du signalement, comme documentUploader pour les documents).
+  incidentPhotoUploader: f({
+    image: { maxFileSize: "8MB", maxFileCount: 5 },
+  })
+    .middleware(async () => {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        throw new UploadThingError("Non authentifié");
+      }
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ file }) => {
+      return { url: file.ufsUrl };
+    }),
+
   avatarUploader: f({
     image: { maxFileSize: "2MB", maxFileCount: 1 },
   })

@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TriangleAlert } from "lucide-react";
+import { UploadButton } from "@/lib/uploadthing";
+import { toast } from "sonner";
+import { TriangleAlert, X } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
   ORGANISATIONNEL: "Organisationnel",
@@ -34,6 +36,7 @@ export function IncidentReportForm({ projects }: { projects: { id: string; label
   const [description, setDescription] = useState("");
   const [criticite, setCriticite] = useState<(typeof INCIDENT_CRITICITES)[number]>("MODERE");
   const [projectId, setProjectId] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
   const { run, isPending } = useAction(createIncident, { successMessage: "Incident signalé." });
 
   async function handleSubmit() {
@@ -44,10 +47,12 @@ export function IncidentReportForm({ projects }: { projects: { id: string; label
       description: description.trim() || undefined,
       criticite,
       projectId: projectId || undefined,
+      photos: photos.length > 0 ? photos : undefined,
     });
     if (result.ok) {
       setTitre("");
       setDescription("");
+      setPhotos([]);
       router.refresh();
     }
   }
@@ -116,6 +121,39 @@ export function IncidentReportForm({ projects }: { projects: { id: string; label
         <div className="space-y-1.5">
           <Label>Description</Label>
           <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Photos</Label>
+          {photos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {photos.map((url) => (
+                <div key={url} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="Photo de l'incident" className="h-16 w-16 rounded-md border object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPhotos((prev) => prev.filter((p) => p !== url))}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                    aria-label="Retirer la photo"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {photos.length < 5 && (
+            <UploadButton
+              endpoint="incidentPhotoUploader"
+              onClientUploadComplete={(res) => {
+                setPhotos((prev) => [...prev, ...res.map((f) => f.url)]);
+                toast.success("Photo(s) ajoutée(s).");
+              }}
+              onUploadError={(uploadError) => {
+                toast.error(`Échec du téléversement : ${uploadError.message}`);
+              }}
+            />
+          )}
         </div>
         <Button onClick={handleSubmit} disabled={!titre.trim() || isPending} className="h-12 w-full text-base">
           {isPending ? "Envoi..." : "Signaler"}

@@ -19,6 +19,7 @@ export const createIncidentSchema = z.object({
   description: z.string().optional(),
   criticite: z.enum(INCIDENT_CRITICITES),
   projectId: z.string().optional(),
+  photos: z.array(z.string().url()).max(5).optional(),
 });
 
 export type CreateIncidentInput = z.infer<typeof createIncidentSchema>;

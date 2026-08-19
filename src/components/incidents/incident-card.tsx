@@ -35,6 +35,7 @@ export type IncidentCardData = {
   declarePar: { name: string };
   dateDeclaration: Date;
   project: { nom: string } | null;
+  photos: string[];
 };
 
 export function IncidentCard({
@@ -65,6 +66,16 @@ export function IncidentCard({
           {incident.type} — signalé par {incident.declarePar.name} le {incident.dateDeclaration.toLocaleDateString("fr-FR")}
           {incident.project && ` — ${incident.project.nom}`}
         </p>
+        {incident.photos.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {incident.photos.map((url) => (
+              <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="Photo de l'incident" className="h-16 w-16 rounded-md border object-cover" />
+              </a>
+            ))}
+          </div>
+        )}
 
         {canManage ? (
           <div className="flex flex-wrap items-center gap-2">

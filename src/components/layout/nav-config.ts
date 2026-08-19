@@ -208,8 +208,8 @@ export const NAV_GROUPS: NavGroup[] = [
 // du cahier (chef de projet, dirigeant) sont repris littéralement, les
 // autres rôles extrapolés dans le même esprit.
 export const CONTEXTUAL_NAV_BY_ROLE: Record<string, string[]> = {
-  DIRECTEUR_GENERAL: ["/strategie", "/tableaux-de-bord", "/risques", "/gouvernance", "/scenarios"],
-  DIRECTEUR: ["/strategie", "/tableaux-de-bord", "/risques", "/gouvernance", "/scenarios"],
+  DIRECTEUR_GENERAL: ["/strategie", "/tableaux-de-bord", "/risques", "/decisions", "/scenarios"],
+  DIRECTEUR: ["/strategie", "/tableaux-de-bord", "/risques", "/decisions", "/scenarios"],
   CHEF_DEPARTEMENT: ["/pilotage", "/charge-de-travail", "/objectifs", "/risques", "/planification"],
   CHEF_PROJET: ["/projets", "/taches", "/charge-de-travail", "/risques", "/planification"],
   RESPONSABLE: ["/projets", "/taches", "/charge-de-travail", "/reunions", "/objectifs"],

@@ -43,6 +43,7 @@ export async function createIncident(input: CreateIncidentInput) {
       criticite: data.criticite,
       projectId: data.projectId || undefined,
       declareParId: session.user.id,
+      photos: data.photos ?? [],
     },
   });
 
