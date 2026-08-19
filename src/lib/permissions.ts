@@ -123,6 +123,10 @@ export const PERMISSIONS = {
   // Extension V3.0 §17-18 — Memoire organisationnelle
   MEMORY_READ: "memory.read",
   MEMORY_MANAGE: "memory.manage",
+
+  // Extension V3.0 §24 — Talent & Succession Planning
+  SUCCESSION_READ: "succession.read",
+  SUCCESSION_MANAGE: "succession.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -247,6 +251,9 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.MEMORY_READ, label: "Consulter la mémoire organisationnelle (archives, décisions, retours d'expérience)", category: "Mémoire organisationnelle" },
   { key: PERMISSIONS.MEMORY_MANAGE, label: "Ajouter des entrées à la mémoire organisationnelle", category: "Mémoire organisationnelle" },
+
+  { key: PERMISSIONS.SUCCESSION_READ, label: "Consulter les plans de succession et postes critiques", category: "Talent & Succession" },
+  { key: PERMISSIONS.SUCCESSION_MANAGE, label: "Créer et gérer les plans de succession", category: "Talent & Succession" },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_CATALOG.map((p) => p.key);
@@ -325,6 +332,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_MANAGE,
     PERMISSIONS.MEMORY_READ,
+    PERMISSIONS.SUCCESSION_MANAGE,
+    PERMISSIONS.SUCCESSION_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
     PERMISSIONS.ENTITY_MANAGE,
@@ -405,6 +414,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_MANAGE,
     PERMISSIONS.MEMORY_READ,
+    PERMISSIONS.SUCCESSION_MANAGE,
+    PERMISSIONS.SUCCESSION_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
   ],
@@ -469,6 +480,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_MANAGE,
     PERMISSIONS.MEMORY_READ,
+    PERMISSIONS.SUCCESSION_MANAGE,
+    PERMISSIONS.SUCCESSION_READ,
     PERMISSIONS.RISK_MANAGE,
     PERMISSIONS.RISK_READ,
   ],
@@ -580,6 +593,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_READ,
+    PERMISSIONS.SUCCESSION_READ,
     PERMISSIONS.RISK_READ,
   ],
 
@@ -622,6 +636,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_READ,
+    PERMISSIONS.SUCCESSION_READ,
     PERMISSIONS.RISK_READ,
   ],
 

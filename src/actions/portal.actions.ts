@@ -46,6 +46,16 @@ export async function sendPortalMessage(input: SendPortalMessageInput) {
     select: { id: true, prenom: true, nom: true, ownerId: true },
   });
 
+  // Droits (cahier des charges V3.0 §25) — appliqué aussi côté serveur, pas
+  // seulement dans la visibilité de la nav (portal-nav-visibility.ts).
+  const account = await prisma.portalAccount.findUnique({
+    where: { contactId: contact.id },
+    select: { droitMessages: true },
+  });
+  if (account && !account.droitMessages) {
+    throw new Error("La messagerie n'est pas activée pour ce compte.");
+  }
+
   const message = await prisma.portalMessage.create({
     data: {
       contactId: contact.id,

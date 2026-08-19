@@ -36,6 +36,7 @@ export const createContactSchema = z.object({
     "CANDIDAT",
     "MEMBRE",
     "INVESTISSEUR",
+    "COMMUNAUTE",
     "AUTRE",
   ]),
   source: z.string().optional(),

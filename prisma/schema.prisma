@@ -560,6 +560,11 @@ model User {
   portalAccountsInvited            PortalAccount[]                @relation("PortalAccountInvitedBy")
   courriersResponsable             Courrier[]                     @relation("CourrierResponsable")
   courriersCreated                 Courrier[]                     @relation("CourrierCreatedBy")
+  // Extension V3.0 — Organizational Designer (§21) et Talent & Succession (§24)
+  orgDesignDraftsCreated            OrgDesignDraft[]               @relation("OrgDesignDraftCreatedBy")
+  successionPlansCreated            SuccessionPlan[]               @relation("SuccessionPlanCreatedBy")
+  successionPlanTitulaireFor        SuccessionPlan[]               @relation("SuccessionPlanTitulaire")
+  successionCandidacies             SuccessionCandidate[]          @relation("SuccessionCandidateUser")
 
   @@index([departmentId])
   @@index([roleId])
@@ -665,6 +670,7 @@ model Department {
   scenarios           Scenario[]
   orchestrationRules  AutomationRule[]
   transformations     Transformation[]
+  orgDesignDrafts     OrgDesignDraft[]
   createdAt           DateTime             @default(now())
 
   @@index([entityId])
@@ -705,6 +711,40 @@ model TeamMember {
   @@index([teamId])
 }
 
+// Organizational Designer (cahier des charges V3.0 §21) — concevoir
+// virtuellement une organisation (ex. "Direction Afrique de l'Ouest -> Togo
+// -> Bénin -> Côte d'Ivoire" puis équipes/responsables/compétences/projets/
+// processus) et la simuler avant tout déploiement réel. `structure` porte
+// l'arbre brouillon complet en JSON (pas de tables Department/Team tant que
+// non déployé) ; `simulationResume` mémorise le dernier résultat de
+// simulateOrgDesign (src/lib/org-designer.ts). Le déploiement crée les vrais
+// Department/Team/Project/Processus et relie deployedDepartmentId à la
+// racine créée — un brouillon déployé n'est plus modifiable (voir
+// deployOrgDesign).
+model OrgDesignDraft {
+  id                    String          @id @default(cuid())
+  nom                   String
+  description           String?
+  structure             Json
+  statut                OrgDesignStatut @default(BROUILLON)
+  simulationResume      Json?
+  deployedDepartmentId  String?
+  deployedDepartment    Department?     @relation(fields: [deployedDepartmentId], references: [id])
+  createdById           String
+  createdBy             User            @relation("OrgDesignDraftCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime        @default(now())
+  simulatedAt           DateTime?
+  deployedAt            DateTime?
+
+  @@index([deployedDepartmentId])
+}
+
+enum OrgDesignStatut {
+  BROUILLON
+  SIMULE
+  DEPLOYE
+}
+
 // Profil de l'organisation (cahier des charges §I "Profil de l'organisation"
 // et §III "Vision / Mission / Valeurs") — ligne unique (id fixe "org-profile"),
 // pas de vraie table multi-tenant : ce logiciel pilote une seule organisation.
@@ -736,11 +776,17 @@ model Poste {
   responsabilites String?
   departmentId    String?
   department      Department? @relation(fields: [departmentId], references: [id])
+  // Poste critique (cahier des charges V3.0 §24, "postes critiques") — signale
+  // manuellement un poste dont la vacance ferait courir un risque à
+  // l'organisation ; alimente le plan de succession (SuccessionPlan) et le
+  // Workforce Planning (§22).
+  critique        Boolean     @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   users                User[]
   responsabilitesListe PosteResponsabilite[]
+  successionPlans      SuccessionPlan[]
 
   @@index([departmentId])
 }
@@ -754,6 +800,60 @@ model PosteResponsabilite {
   ordre   Int    @default(0)
 
   @@index([posteId])
+}
+
+// Talent & Succession Planning (cahier des charges V3.0 §24) — prévoit
+// progressivement, pour un poste critique, un titulaire et un ou plusieurs
+// profils de remplacement avec leur potentiel/délai de disponibilité.
+// Volontairement un registre de gestion organisationnelle (postes,
+// compétences, plans, potentiel) et non un logiciel RH opérationnel : pas de
+// paie, pas d'évaluation formelle dédiée (l'évaluation existante — Evaluation
+// — reste la source de vérité sur la performance individuelle).
+model SuccessionPlan {
+  id                  String               @id @default(cuid())
+  posteId             String
+  poste               Poste                @relation(fields: [posteId], references: [id])
+  titulaireId         String?
+  titulaire           User?                @relation("SuccessionPlanTitulaire", fields: [titulaireId], references: [id])
+  competencesRequises String?
+  statut              SuccessionPlanStatut @default(EN_PREPARATION)
+  notes               String?
+  createdById         String
+  createdBy           User                 @relation("SuccessionPlanCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  profils SuccessionCandidate[]
+
+  @@index([posteId])
+  @@index([titulaireId])
+}
+
+model SuccessionCandidate {
+  id               String          @id @default(cuid())
+  successionPlanId String
+  successionPlan   SuccessionPlan  @relation(fields: [successionPlanId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User            @relation("SuccessionCandidateUser", fields: [userId], references: [id])
+  potentiel        PotentielNiveau @default(MOYEN)
+  pretDans         String?
+  notes            String?
+  createdAt        DateTime        @default(now())
+
+  @@unique([successionPlanId, userId])
+  @@index([successionPlanId])
+}
+
+enum SuccessionPlanStatut {
+  EN_PREPARATION
+  PRET
+  ACTIF
+}
+
+enum PotentielNiveau {
+  FAIBLE
+  MOYEN
+  ELEVE
 }
 
 // Site / agence (cahier des charges §I, "Sites / agences, Localisations").
@@ -1280,6 +1380,9 @@ enum CrmContactType {
   CANDIDAT
   MEMBRE
   INVESTISSEUR
+  // Écosystème V3.0 (§25) — association, collectif ou groupe d'intérêt
+  // rattaché à l'organisation, sans relation commerciale ni contrat.
+  COMMUNAUTE
   AUTRE
 }
 
@@ -1405,6 +1508,15 @@ model PortalAccount {
   invitedBy    User       @relation("PortalAccountInvitedBy", fields: [invitedById], references: [id])
   activatedAt  DateTime?
   lastLoginAt  DateTime?
+  // Droits granulaires (cahier des charges V3.0 §25, "Ecosystem Management" —
+  // chaque acteur externe peut avoir "... + ses droits") : par defaut identiques
+  // au comportement V2.2 (tout visible des lors que la donnee existe pour le
+  // contact), un administrateur peut les restreindre acteur par acteur sans
+  // toucher au systeme de visibilite base sur les donnees (portal-nav-visibility.ts).
+  droitProjets       Boolean @default(true)
+  droitDocuments     Boolean @default(true)
+  droitTeleversement Boolean @default(true)
+  droitMessages      Boolean @default(true)
   createdAt    DateTime   @default(now())
 
   inviteTokens PortalInviteToken[]

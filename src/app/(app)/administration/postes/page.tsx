@@ -7,6 +7,7 @@ import { AdminTabs } from "@/components/administration/admin-tabs";
 import { PosteFormDialog } from "@/components/administration/poste-form-dialog";
 import { DeletePosteButton } from "@/components/administration/delete-poste-button";
 import { PosteResponsabiliteList } from "@/components/administration/poste-responsabilite-list";
+import { PosteCritiqueToggle } from "@/components/administration/poste-critique-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -65,9 +66,10 @@ export default async function PostesPage() {
                     items={p.responsabilitesListe.map((r) => ({ id: r.id, libelle: r.libelle }))}
                   />
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {p.department && <Badge variant="outline">{p.department.name}</Badge>}
                   <Badge variant="secondary">{p._count.users} collaborateur(s)</Badge>
+                  <PosteCritiqueToggle posteId={p.id} critique={p.critique} />
                 </div>
               </CardContent>
             </Card>

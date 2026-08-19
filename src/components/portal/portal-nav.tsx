@@ -14,7 +14,7 @@ export function PortalNav({ visibility }: { visibility: PortalNavVisibility }) {
     { href: "/portail/programmes", label: "Programmes", show: visibility.programmes },
     { href: "/portail/reunions", label: "Réunions", show: visibility.meetings },
     { href: "/portail/actualites", label: "Actualités", show: visibility.news },
-    { href: "/portail/messages", label: "Messages", badge: visibility.unreadMessages, show: true },
+    { href: "/portail/messages", label: "Messages", badge: visibility.unreadMessages, show: visibility.droitMessages },
   ].filter((item) => item.show);
 
   return (

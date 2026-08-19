@@ -307,6 +307,15 @@ export async function depositPortalDocument(input: DepositPortalDocumentInput) {
     throw new Error("Vous n'avez pas accès à cette mission.");
   }
 
+  // Droits (cahier des charges V3.0 §25).
+  const account = await prisma.portalAccount.findUnique({
+    where: { contactId: portalSession.contactId },
+    select: { droitTeleversement: true },
+  });
+  if (account && !account.droitTeleversement) {
+    throw new Error("Le téléversement de documents n'est pas activé pour ce compte.");
+  }
+
   const document = await prisma.document.create({
     data: {
       projectId: task.projectId,

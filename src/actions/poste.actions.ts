@@ -11,10 +11,12 @@ import {
   updatePosteSchema,
   deletePosteSchema,
   addPosteResponsabiliteSchema,
+  setPosteCritiqueSchema,
   type CreatePosteInput,
   type UpdatePosteInput,
   type DeletePosteInput,
   type AddPosteResponsabiliteInput,
+  type SetPosteCritiqueInput,
 } from "@/lib/validations/poste.schema";
 
 async function requireSession() {
@@ -115,6 +117,28 @@ export async function addPosteResponsabilite(input: AddPosteResponsabiliteInput)
 
   revalidatePath("/administration/postes");
   return responsabilite;
+}
+
+/** Poste critique (cahier des charges V3.0 §24) — alimente le plan de succession et le Workforce Planning (§22). */
+export async function setPosteCritique(input: SetPosteCritiqueInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+  const data = setPosteCritiqueSchema.parse(input);
+
+  const poste = await prisma.poste.update({ where: { id: data.id }, data: { critique: data.critique } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "poste.critique_toggled",
+    entityType: "Poste",
+    entityId: poste.id,
+    changes: { critique: poste.critique },
+  });
+
+  revalidatePath("/administration/postes");
+  revalidatePath("/succession");
+  revalidatePath("/planification-effectifs");
+  return poste;
 }
 
 export async function deletePosteResponsabilite(id: string) {

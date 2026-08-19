@@ -51,6 +51,11 @@ import {
   Scale,
   Combine,
   Archive,
+  Blocks,
+  GraduationCap,
+  Lightbulb,
+  Repeat2,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -89,6 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Contacts", href: "/crm/contacts", icon: Users, permission: PERMISSIONS.CRM_READ },
       { title: "Organisations", href: "/crm/organisations", icon: Building2, permission: PERMISSIONS.CRM_READ },
       { title: "Pipeline", href: "/crm/pipeline", icon: Kanban, permission: PERMISSIONS.CRM_READ },
+      { title: "Écosystème", href: "/ecosysteme", icon: Globe, permission: PERMISSIONS.CRM_READ },
     ],
   },
   {
@@ -137,6 +143,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Consolidation Groupe", href: "/consolidation", icon: Globe2, permission: PERMISSIONS.ENTITY_VIEW_ALL },
       { title: "Benchmarking", href: "/benchmarking", icon: BarChart3, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Jumeau organisationnel", href: "/jumeau-organisationnel", icon: Boxes, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Organizational Designer", href: "/organisation-virtuelle", icon: Blocks, permission: PERMISSIONS.DEPARTMENT_MANAGE },
+      { title: "Workforce Planning", href: "/planification-effectifs", icon: GraduationCap, permission: PERMISSIONS.WORKLOAD_READ },
+      { title: "Skills Intelligence", href: "/intelligence-competences", icon: Lightbulb, permission: PERMISSIONS.WORKLOAD_READ },
+      { title: "Succession", href: "/succession", icon: Repeat2, permission: PERMISSIONS.SUCCESSION_READ },
       { title: "Santé organisationnelle", href: "/sante-organisationnelle", icon: HeartPulse, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Graphe de connaissances", href: "/graphe-de-connaissances", icon: Share2, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Graphe organisationnel", href: "/graphe-organisationnel", icon: Waypoints, permission: PERMISSIONS.DASHBOARD_READ },

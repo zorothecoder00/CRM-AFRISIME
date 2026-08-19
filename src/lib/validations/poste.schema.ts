@@ -25,3 +25,12 @@ export const addPosteResponsabiliteSchema = z.object({
 });
 
 export type AddPosteResponsabiliteInput = z.infer<typeof addPosteResponsabiliteSchema>;
+
+// Poste critique (cahier des charges V3.0 §24) — flag alimentant le Talent &
+// Succession Planning et le Workforce Planning (§22).
+export const setPosteCritiqueSchema = z.object({
+  id: z.string().min(1),
+  critique: z.boolean(),
+});
+
+export type SetPosteCritiqueInput = z.infer<typeof setPosteCritiqueSchema>;

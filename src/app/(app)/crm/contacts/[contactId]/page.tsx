@@ -26,6 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
   CANDIDAT: "Candidat",
   MEMBRE: "Membre",
   INVESTISSEUR: "Investisseur",
+  COMMUNAUTE: "Communauté",
   AUTRE: "Autre",
 };
 
@@ -282,6 +283,10 @@ export default async function CrmContactDetailPage({
                     isActive: contact.portalAccount.isActive,
                     activatedAt: contact.portalAccount.activatedAt?.toISOString() ?? null,
                     lastLoginAt: contact.portalAccount.lastLoginAt?.toISOString() ?? null,
+                    droitProjets: contact.portalAccount.droitProjets,
+                    droitDocuments: contact.portalAccount.droitDocuments,
+                    droitTeleversement: contact.portalAccount.droitTeleversement,
+                    droitMessages: contact.portalAccount.droitMessages,
                   }
                 : null
             }

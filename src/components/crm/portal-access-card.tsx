@@ -7,11 +7,14 @@ import {
   resendPortalInvite,
   revokePortalAccess,
   reactivatePortalAccess,
+  updatePortalAccountRights,
 } from "@/actions/portal-account.actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { KeyRound } from "lucide-react";
 
 export type PortalAccountData = {
@@ -20,7 +23,18 @@ export type PortalAccountData = {
   isActive: boolean;
   activatedAt: string | null;
   lastLoginAt: string | null;
+  droitProjets: boolean;
+  droitDocuments: boolean;
+  droitTeleversement: boolean;
+  droitMessages: boolean;
 };
+
+const RIGHTS: { key: "droitProjets" | "droitDocuments" | "droitTeleversement" | "droitMessages"; label: string }[] = [
+  { key: "droitProjets", label: "Voir ses projets" },
+  { key: "droitDocuments", label: "Voir les documents" },
+  { key: "droitTeleversement", label: "Téléverser des documents" },
+  { key: "droitMessages", label: "Messagerie" },
+];
 
 export function PortalAccessCard({
   contactId,
@@ -36,8 +50,25 @@ export function PortalAccessCard({
   const resendAction = useAction(resendPortalInvite, { successMessage: "Lien renvoyé." });
   const revokeAction = useAction(revokePortalAccess, { successMessage: "Accès révoqué." });
   const reactivateAction = useAction(reactivatePortalAccess, { successMessage: "Accès réactivé." });
+  const rightsAction = useAction(updatePortalAccountRights, { successMessage: "Droits mis à jour." });
   const isPending =
-    createAction.isPending || resendAction.isPending || revokeAction.isPending || reactivateAction.isPending;
+    createAction.isPending ||
+    resendAction.isPending ||
+    revokeAction.isPending ||
+    reactivateAction.isPending ||
+    rightsAction.isPending;
+
+  function handleToggleRight(key: (typeof RIGHTS)[number]["key"], value: boolean) {
+    if (!account) return;
+    rightsAction.run({
+      portalAccountId: account.id,
+      droitProjets: account.droitProjets,
+      droitDocuments: account.droitDocuments,
+      droitTeleversement: account.droitTeleversement,
+      droitMessages: account.droitMessages,
+      [key]: value,
+    });
+  }
 
   async function handleCreate() {
     const result = await createAction.run({ contactId });
@@ -113,6 +144,22 @@ export function PortalAccessCard({
                 </Button>
               )}
             </div>
+
+            {account.isActive && (
+              <div className="space-y-2 rounded-md border border-dashed p-2.5">
+                <Label className="text-xs text-muted-foreground">Droits (écosystème V3.0)</Label>
+                {RIGHTS.map((right) => (
+                  <div key={right.key} className="flex items-center justify-between text-sm">
+                    <span>{right.label}</span>
+                    <Switch
+                      checked={account[right.key]}
+                      onCheckedChange={(v) => handleToggleRight(right.key, v)}
+                      disabled={isPending}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 

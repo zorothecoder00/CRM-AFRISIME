@@ -19,6 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
   CANDIDAT: "Candidat",
   MEMBRE: "Membre",
   INVESTISSEUR: "Investisseur",
+  COMMUNAUTE: "Communauté",
   AUTRE: "Autre",
 };
 

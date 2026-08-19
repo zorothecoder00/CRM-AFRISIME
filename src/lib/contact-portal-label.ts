@@ -21,6 +21,8 @@ export function portalLabelForContactType(type: string, organizationType?: strin
       return "Portail consultant";
     case "INVESTISSEUR":
       return "Portail investisseur";
+    case "COMMUNAUTE":
+      return "Portail communauté";
     default:
       return "Portail";
   }

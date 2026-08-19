@@ -7,7 +7,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
-import { createPortalAccountSchema, type CreatePortalAccountInput } from "@/lib/validations/portal-account.schema";
+import {
+  createPortalAccountSchema,
+  updatePortalAccountRightsSchema,
+  type CreatePortalAccountInput,
+  type UpdatePortalAccountRightsInput,
+} from "@/lib/validations/portal-account.schema";
 
 const INVITE_TOKEN_TTL_MS = 72 * 60 * 60 * 1000;
 
@@ -109,6 +114,40 @@ export async function revokePortalAccess(portalAccountId: string) {
   });
 
   revalidatePath(`/crm/contacts/${account.contactId}`);
+  return account;
+}
+
+/** Droits granulaires du portail (cahier des charges V3.0 §25, "chaque acteur peut avoir ... ses droits"). */
+export async function updatePortalAccountRights(input: UpdatePortalAccountRightsInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.CRM_MANAGE);
+  const data = updatePortalAccountRightsSchema.parse(input);
+
+  const account = await prisma.portalAccount.update({
+    where: { id: data.portalAccountId },
+    data: {
+      droitProjets: data.droitProjets,
+      droitDocuments: data.droitDocuments,
+      droitTeleversement: data.droitTeleversement,
+      droitMessages: data.droitMessages,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "portal_account.rights_updated",
+    entityType: "PortalAccount",
+    entityId: account.id,
+    changes: {
+      droitProjets: account.droitProjets,
+      droitDocuments: account.droitDocuments,
+      droitTeleversement: account.droitTeleversement,
+      droitMessages: account.droitMessages,
+    },
+  });
+
+  revalidatePath(`/crm/contacts/${account.contactId}`);
+  revalidatePath("/ecosysteme");
   return account;
 }
 
