@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { computeEntityScopePilotage, getRootDepartmentsForEntity } from "@/lib/consolidation";
 import { entityLevelLabel, buildEntityBreadcrumb, computeEntityDepth } from "@/lib/entity-tree";
-import { getOrganizationDevise } from "@/lib/currency";
+import { getDeviseForEntity } from "@/lib/currency";
 import { Building2 } from "lucide-react";
 
 /**
@@ -42,7 +42,7 @@ export default async function ConsolidationEntitePage({
   const [pilotage, rootDepartments, devise] = await Promise.all([
     computeEntityScopePilotage(entityId),
     getRootDepartmentsForEntity(entityId),
-    getOrganizationDevise(),
+    getDeviseForEntity(entityId),
   ]);
 
   return (

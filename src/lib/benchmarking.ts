@@ -105,9 +105,17 @@ export async function benchmarkTeams(teamIds: string[]): Promise<BenchmarkColumn
   return results;
 }
 
-/** Comparaison entre entités (cahier des charges V2.2 §25, ex. "Togo vs Bénin") — réutilise computeEntityScopePilotage (§24). */
+/**
+ * Comparaison entre entités (cahier des charges V2.2 §25, ex. "Togo vs
+ * Bénin") — réutilise computeEntityScopePilotage (§24). Devise résolue PAR
+ * entité (Entity.devise si renseignée, sinon repli sur la devise globale de
+ * l'organisation) plutôt qu'une seule devise partagée pour toutes les
+ * colonnes : comparer deux entités qui opèrent dans des devises différentes
+ * sous une étiquette unique serait trompeur (cf. src/lib/currency.ts,
+ * getDeviseForEntity).
+ */
 export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkColumn[]> {
-  const [entities, devise] = await Promise.all([
+  const [entities, orgDevise] = await Promise.all([
     prisma.entity.findMany({ where: { id: { in: entityIds } } }),
     getOrganizationDevise(),
   ]);
@@ -116,6 +124,7 @@ export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkC
   for (const id of entityIds) {
     const entity = entities.find((e) => e.id === id);
     if (!entity) continue;
+    const devise = entity.devise || orgDevise;
     const pilotage = await computeEntityScopePilotage(id);
     results.push({
       label: entity.nom,
