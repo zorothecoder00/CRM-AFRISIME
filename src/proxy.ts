@@ -40,5 +40,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // manifest.webmanifest exclu (V3.0 §43) : un navigateur peut le requêter
+  // avant toute connexion (éligibilité "Ajouter à l'écran d'accueil") — le
+  // laisser passer par la garde d'authentification le redirigeait vers
+  // /login au lieu de servir le JSON attendu.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest).*)"],
 };
