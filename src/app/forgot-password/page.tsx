@@ -49,6 +49,10 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-muted-foreground">
                 Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.
               </p>
+              <p className="text-sm text-muted-foreground">
+                Pas d&apos;email reçu ? Contacte un administrateur de ton organisation — il peut te générer un lien
+                directement.
+              </p>
               <Button asChild variant="outline" className="h-11 w-full rounded-xl">
                 <Link href="/login">Retour à la connexion</Link>
               </Button>

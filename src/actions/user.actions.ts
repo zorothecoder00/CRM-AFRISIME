@@ -9,6 +9,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { createUserSchema, updateUserSchema, type CreateUserInput, type UpdateUserInput } from "@/lib/validations/user.schema";
+import { createPasswordResetToken } from "@/lib/password-reset";
 
 /** Un manager ne peut pas etre son propre subordonne, direct ou indirect (meme principe que assertNoCycle pour Department/Objective/Plan). */
 async function assertNoManagerCycle(userId: string, managerId: string) {
@@ -116,6 +117,32 @@ export async function updateUser(input: UpdateUserInput) {
 
   revalidatePath("/administration/utilisateurs");
   return user;
+}
+
+/**
+ * Génère un lien de réinitialisation de mot de passe pour un utilisateur,
+ * à transmettre manuellement (WhatsApp, appel...) — aucun fournisseur
+ * email/SMS n'est câblé dans cette instance, ce chemin administratif est
+ * donc le seul moyen réel de débloquer un utilisateur qui a perdu son mot
+ * de passe (voir src/lib/password-reset.ts et le flux self-service
+ * /api/auth/forgot-password, qui journalise le lien sans l'envoyer).
+ */
+export async function generatePasswordResetLink(userId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.ADMINISTRATION_USERS_MANAGE);
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, email: true } });
+  const resetUrl = await createPasswordResetToken(user.id);
+
+  await logAudit({
+    userId: session.user.id,
+    action: "user.password_reset_link_generated",
+    entityType: "User",
+    entityId: user.id,
+  });
+
+  return { resetUrl };
 }
 
 export async function toggleUserActive(userId: string, isActive: boolean) {

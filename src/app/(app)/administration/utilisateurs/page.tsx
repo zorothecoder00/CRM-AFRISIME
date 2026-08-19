@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { UserFormDialog } from "@/components/administration/user-form-dialog";
 import { EditUserDialog } from "@/components/administration/edit-user-dialog";
+import { ResetPasswordLinkButton } from "@/components/administration/reset-password-link-button";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 
 /** Options de departement indentees par profondeur, meme logique que la page Departements. */
@@ -100,24 +101,27 @@ export default async function UtilisateursPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <EditUserDialog
-                    user={{
-                      id: user.id,
-                      name: user.name,
-                      email: user.email,
-                      roleId: user.roleId,
-                      departmentId: user.departmentId,
-                      poste: user.poste,
-                      posteId: user.posteId,
-                      siteId: user.siteId,
-                      managerId: user.managerId,
-                    }}
-                    roles={roles.map((r) => ({ id: r.id, label: r.label }))}
-                    departments={departmentOptions}
-                    postes={posteOptions}
-                    sites={siteOptions}
-                    managers={managerOptions}
-                  />
+                  <div className="flex items-center gap-1">
+                    <EditUserDialog
+                      user={{
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        roleId: user.roleId,
+                        departmentId: user.departmentId,
+                        poste: user.poste,
+                        posteId: user.posteId,
+                        siteId: user.siteId,
+                        managerId: user.managerId,
+                      }}
+                      roles={roles.map((r) => ({ id: r.id, label: r.label }))}
+                      departments={departmentOptions}
+                      postes={posteOptions}
+                      sites={siteOptions}
+                      managers={managerOptions}
+                    />
+                    <ResetPasswordLinkButton userId={user.id} userName={user.name} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
