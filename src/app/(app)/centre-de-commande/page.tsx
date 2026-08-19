@@ -6,7 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { buildExecutiveSnapshot } from "@/lib/executive-command-center";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Radar, Target, ShieldAlert, Landmark, Gauge, Handshake, Bell, TrendingUp, FolderKanban } from "lucide-react";
+import { Radar, Target, ShieldAlert, Landmark, Gauge, Handshake, Bell, TrendingUp, FolderKanban, Wallet, Link2 } from "lucide-react";
 
 function StatCard({
   icon: Icon,
@@ -35,10 +35,11 @@ function StatCard({
   );
 }
 
-// Centre de commande executif (cahier des charges V2.2 §29) — reserve aux
-// dirigeants via PERMISSIONS.EXECUTIVE_VIEW. Assemble 9 sources deja
-// existantes (voir src/lib/executive-command-center.ts) : aucune nouvelle
-// donnee, seulement une vue unifiee.
+// Strategic Command Center (cahier des charges V2.2 §29, étendu V3.0 §35
+// avec Finances et Partenaires) — reserve aux dirigeants via
+// PERMISSIONS.EXECUTIVE_VIEW. Assemble 11 sources deja existantes (voir
+// src/lib/executive-command-center.ts) : aucune nouvelle donnee, seulement
+// une vue unifiee.
 export default async function ExecutiveCommandCenterPage() {
   const session = await getServerSession(authOptions);
   if (!session!.user.permissions.includes(PERMISSIONS.EXECUTIVE_VIEW)) {
@@ -126,6 +127,32 @@ export default async function ExecutiveCommandCenterPage() {
             {snap.previsionsIa.variationProductivitePercent !== null &&
               ` (${snap.previsionsIa.variationProductivitePercent > 0 ? "+" : ""}${snap.previsionsIa.variationProductivitePercent}%)`}
           </p>
+        </StatCard>
+
+        <StatCard icon={Wallet} title="Finances" href="/administration/integrations">
+          <p>Budget (projets actifs) : {snap.finances.budgetTotalProjetsActifs.toLocaleString("fr-FR")}</p>
+          <p>Coût réel : {snap.finances.coutReelTotalProjetsActifs.toLocaleString("fr-FR")}</p>
+          <p className={snap.finances.ecartBudgetaire > 0 ? "text-destructive" : ""}>
+            Écart : {snap.finances.ecartBudgetaire > 0 ? "+" : ""}
+            {snap.finances.ecartBudgetaire.toLocaleString("fr-FR")}
+          </p>
+          {snap.finances.systemesFinanciersConnectes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Aucun système financier connecté.</p>
+          ) : (
+            snap.finances.systemesFinanciersConnectes.map((s) => (
+              <Badge key={s.id} variant={s.statut === "CONNECTE" ? "success" : "secondary"}>
+                {s.nom}
+              </Badge>
+            ))
+          )}
+        </StatCard>
+
+        <StatCard icon={Link2} title="Partenaires" href="/graphe-partenaires">
+          <p>{snap.partenaires.partenairesStrategiquesCount} partenaire(s) stratégique(s)</p>
+          {snap.partenaires.relationsCritiquesCount > 0 && (
+            <Badge variant="warning">{snap.partenaires.relationsCritiquesCount} relation(s) critique(s)</Badge>
+          )}
+          {snap.partenaires.risquesCount > 0 && <Badge variant="destructive">{snap.partenaires.risquesCount} risque(s)</Badge>}
         </StatCard>
       </div>
     </div>

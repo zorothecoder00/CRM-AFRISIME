@@ -17,7 +17,8 @@ export type SearchResultType =
   | "Contrat"
   | "Processus"
   | "Risque"
-  | "Décision";
+  | "Décision"
+  | "KPI";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -59,9 +60,11 @@ export type SearchFilters = {
  * sur une réunion). Contrat/Processus/Risque/Décision ajoutés pour combler
  * §28 (personnes/projets/tâches/documents/contrats/décisions/réunions/
  * partenaires/processus/risques déjà tous représentés par un modèle
- * existant — voir memoire project_afriflow_v2_2_extension). "Recherche
- * sémantique"/"recherche IA" restent hors périmètre (pas de clé API LLM —
- * choix explicite de différer, voir memoire).
+ * existant — voir memoire project_afriflow_v2_2_extension). Indicator/KPI
+ * ajouté (V3.0 §40, "Universal Organizational Search" — dernier type de la
+ * liste du cahier absent jusque-là). "Recherche sémantique"/"recherche IA"
+ * restent hors périmètre (pas de clé API LLM — choix explicite de différer,
+ * voir memoire).
  */
 export async function globalSearch(
   query: string,
@@ -420,6 +423,30 @@ export async function globalSearch(
             subtitle: `Risque projet (${r.project.nom}) · ${r.statut}`,
             href: `/projets/${r.projectId}`,
             _entityType: "ProjectRisk",
+          }))
+        )
+    );
+  }
+
+  // KPI (comble V3.0 §40, "Universal Organizational Search" — le seul type
+  // de la liste du cahier absent jusqu'ici, "partenaires" étant déjà couvert
+  // par Contact CRM/Organisation CRM ci-dessus).
+  if (hasPermission(permissions, PERMISSIONS.OBJECTIVE_READ)) {
+    searches.push(
+      prisma.indicator
+        .findMany({
+          where: { nom: { contains: q, mode: "insensitive" } },
+          take: 8,
+          select: { id: true, nom: true, objectiveId: true, projectId: true, taskId: true, objective: { select: { titre: true } } },
+        })
+        .then((rows) =>
+          rows.map((i) => ({
+            type: "KPI" as const,
+            id: i.id,
+            title: i.nom,
+            subtitle: i.objective?.titre ?? null,
+            href: i.objectiveId ? `/objectifs/${i.objectiveId}` : i.projectId ? `/projets/${i.projectId}` : i.taskId ? `/taches/${i.taskId}` : "/objectifs",
+            _entityType: "Indicator",
           }))
         )
     );

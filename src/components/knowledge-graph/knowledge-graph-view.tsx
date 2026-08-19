@@ -5,13 +5,14 @@ import { useMemo } from "react";
 import { ReactFlow, Background, Controls, Handle, Position, type Node, type Edge, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { GraphNode, GraphEdge } from "@/lib/knowledge-graph";
-import { User, FolderKanban, GitBranch, FileText, Landmark, CalendarClock, ScrollText } from "lucide-react";
+import { User, FolderKanban, GitBranch, FileText, Landmark, CalendarClock, ScrollText, Target } from "lucide-react";
 
 const TYPE_META: Record<string, { label: string; icon: typeof User; className: string }> = {
   User: { label: "Personne", icon: User, className: "border-success bg-success/10" },
   Project: { label: "Projet", icon: FolderKanban, className: "border-info bg-info/10" },
   Processus: { label: "Processus", icon: GitBranch, className: "border-warning bg-warning/10" },
   ProcessusDocument: { label: "Document", icon: FileText, className: "border-muted-foreground/40 bg-muted" },
+  Indicator: { label: "Résultat", icon: Target, className: "border-success bg-success/10" },
   GovernanceInstance: { label: "Instance", icon: Landmark, className: "border-primary bg-primary/10" },
   GovernanceMeeting: { label: "Réunion", icon: CalendarClock, className: "border-info bg-info/10" },
   GovernanceDecision: { label: "Décision", icon: ScrollText, className: "border-warning bg-warning/10" },

@@ -58,6 +58,7 @@ import {
   Globe,
   Link2,
   Map,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -83,6 +84,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "Espace personnel", href: "/dashboard", icon: LayoutDashboard },
       { title: "Centre de commande", href: "/centre-de-commande", icon: Radar, permission: PERMISSIONS.EXECUTIVE_VIEW },
+      { title: "Executive Simulation Room", href: "/salle-de-simulation", icon: FlaskConical, permission: PERMISSIONS.EXECUTIVE_VIEW },
       { title: "Mon planning", href: "/planning", icon: CalendarRange },
       { title: "Tableaux de bord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Niveaux de pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
@@ -159,6 +161,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Corbeille", href: "/corbeille", icon: Trash2, permission: PERMISSIONS.TRASH_MANAGE },
       { title: "Sauvegarde & données", href: "/administration/donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
       { title: "Matrices de décision", href: "/decisions", icon: Scale, permission: PERMISSIONS.DASHBOARD_READ },
+      { title: "Decision Intelligence", href: "/intelligence-decisions", icon: History, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Gouvernance IA", href: "/gouvernance-ia", icon: ShieldCheck, permission: PERMISSIONS.AI_GOVERNANCE_APPROVE },
     ],
   },

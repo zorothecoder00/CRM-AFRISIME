@@ -23,6 +23,7 @@ const COLUMN_X: Record<string, number> = {
   Project: 280,
   Processus: 560,
   ProcessusDocument: 840,
+  Indicator: 1120,
   GovernanceInstance: 0,
   GovernanceMeeting: 280,
   GovernanceDecision: 560,
@@ -87,6 +88,24 @@ export async function buildKnowledgeGraph(
       seenProjects.add(project.id);
       const projectKey = g.addNode("Project", project.id, project.nom, `/projets/${project.id}`);
       g.addEdge(userKey, projectKey, "travaille sur");
+
+      // "Résultats" (comble V3.0 §39, "Organizational Knowledge Engine" —
+      // dernier maillon de la chaîne du cahier absent jusque-là : Personne->
+      // Projet->Processus->Document->Décision->Instance devient ...->
+      // Résultat en bout de chaîne, via les indicateurs déjà mesurés §XIV).
+      const indicators = await prisma.indicator.findMany({
+        where: { projectId: project.id },
+        take: MAX_ITEMS_PER_BRANCH,
+        select: { id: true, nom: true, valeurActuelle: true, valeurCible: true, unite: true },
+      });
+      for (const indicator of indicators) {
+        const indicatorKey = g.addNode(
+          "Indicator",
+          indicator.id,
+          `${indicator.nom} (${indicator.valeurActuelle}${indicator.unite ?? ""}/${indicator.valeurCible}${indicator.unite ?? ""})`
+        );
+        g.addEdge(projectKey, indicatorKey, "a pour résultat");
+      }
 
       const dependencies = await prisma.dependency.findMany({
         where: { sourceType: "Project", sourceId: project.id, targetType: "Processus" },

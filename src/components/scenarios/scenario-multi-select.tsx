@@ -9,9 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 export function ScenarioMultiSelect({
   scenarios,
   initialSelectedIds,
+  targetHref = "/scenarios/comparaison",
 }: {
   scenarios: { id: string; nom: string; type: string }[];
   initialSelectedIds: string[];
+  targetHref?: string;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>(initialSelectedIds);
@@ -23,7 +25,7 @@ export function ScenarioMultiSelect({
   function compare() {
     const params = new URLSearchParams();
     for (const id of selected) params.append("ids", id);
-    router.push(`/scenarios/comparaison?${params.toString()}`);
+    router.push(`${targetHref}?${params.toString()}`);
   }
 
   return (

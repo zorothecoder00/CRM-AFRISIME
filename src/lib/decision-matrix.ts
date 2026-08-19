@@ -92,3 +92,40 @@ export function computeDecisionRecommendation(
     })
     .sort((a, b) => b.score - a.score);
 }
+
+const CRITERE_LABELS: Record<string, string> = {
+  cout: "coût",
+  delai: "délai",
+  risque: "risque",
+  impact: "impact",
+  ressources: "ressources",
+  roi: "ROI",
+  faisabilite: "faisabilité",
+};
+
+/**
+ * Decision Simulator (cahier des charges V3.0 §38) — "fournit une
+ * recommandation avec justification, et non une décision automatique" :
+ * transforme le score numérique déjà calculé en une phrase explicative,
+ * sans rien décider ni exécuter à la place de l'utilisateur.
+ */
+export function buildDecisionJustification(scores: DecisionScore[]): string | null {
+  if (scores.length === 0) return null;
+  const [top, runnerUp] = scores;
+
+  const topStrengths = Object.entries(top.details)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([k]) => CRITERE_LABELS[k] ?? k);
+
+  if (!runnerUp) {
+    return `« ${top.nom} » est la seule option évaluée (score ${top.score}/100), portée par : ${topStrengths.join(" et ")}.`;
+  }
+
+  const ecart = top.score - runnerUp.score;
+  if (ecart < 5) {
+    return `« ${top.nom} » et « ${runnerUp.nom} » sont quasi équivalentes (${top.score} vs ${runnerUp.score}/100) — l'écart est trop faible pour trancher sur les seuls critères chiffrés ; un arbitrage humain est recommandé.`;
+  }
+
+  return `« ${top.nom} » est recommandée (${top.score}/100, +${ecart} points sur « ${runnerUp.nom} »), principalement grâce à : ${topStrengths.join(" et ")}.`;
+}

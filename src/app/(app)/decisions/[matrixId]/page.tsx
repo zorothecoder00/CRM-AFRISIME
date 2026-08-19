@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
-import { computeDecisionRecommendation } from "@/lib/decision-matrix";
+import { computeDecisionRecommendation, buildDecisionJustification } from "@/lib/decision-matrix";
+import { getDependenciesFor, resolveDependencyLabels } from "@/lib/dependencies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DecisionOptionFormDialog } from "@/components/decisions/decision-option-form-dialog";
@@ -54,6 +55,15 @@ export default async function DecisionMatrixDetailPage({
     }
   );
   const recommended = recommendations[0];
+  const justification = buildDecisionJustification(recommendations);
+
+  const projectDependencies = matrix.projectId ? await getDependenciesFor("Project", matrix.projectId) : null;
+  const dependencyLabels = projectDependencies
+    ? await resolveDependencyLabels([
+        ...projectDependencies.upstream.map((d) => ({ type: d.targetType, id: d.targetId })),
+        ...projectDependencies.downstream.map((d) => ({ type: d.sourceType, id: d.sourceId })),
+      ])
+    : null;
 
   return (
     <div className="space-y-6">
@@ -69,8 +79,25 @@ export default async function DecisionMatrixDetailPage({
             <Trophy className="size-5 text-success" />
             <CardTitle className="text-base">Recommandation : {recommended.nom}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-1">
             <p className="text-sm text-muted-foreground">Score global : {recommended.score}/100</p>
+            {justification && <p className="text-sm">{justification}</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {projectDependencies && dependencyLabels && (projectDependencies.upstream.length > 0 || projectDependencies.downstream.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Dépendances du projet concerné</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm text-muted-foreground">
+            {projectDependencies.upstream.map((d) => (
+              <p key={d.id}>Dépend de : {dependencyLabels.get(`${d.targetType}:${d.targetId}`) ?? d.targetId}</p>
+            ))}
+            {projectDependencies.downstream.map((d) => (
+              <p key={d.id}>Dont dépend : {dependencyLabels.get(`${d.sourceType}:${d.sourceId}`) ?? d.sourceId}</p>
+            ))}
           </CardContent>
         </Card>
       )}

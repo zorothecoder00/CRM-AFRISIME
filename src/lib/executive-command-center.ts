@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { computeScopePilotage, type ScopePilotage } from "@/lib/pilotage-levels";
 import { computeWorkload } from "@/lib/workload";
 import { computeTeamPrediction, type TeamPrediction } from "@/lib/predictive-scoring";
+import { computePartnerEcosystemAnalysis } from "@/lib/partner-ecosystem-graph";
 
 export type ExecutiveSnapshot = {
   performanceGlobale: ScopePilotage;
@@ -13,14 +14,24 @@ export type ExecutiveSnapshot = {
   opportunitesCrm: { total: number; montantTotal: number; parStatut: Record<string, number> };
   alertes: { id: string; titre: string; contenu: string; createdAt: Date }[];
   previsionsIa: TeamPrediction;
+  finances: {
+    budgetTotalProjetsActifs: number;
+    coutReelTotalProjetsActifs: number;
+    ecartBudgetaire: number;
+    systemesFinanciersConnectes: { id: string; nom: string; statut: string }[];
+  };
+  partenaires: { partenairesStrategiquesCount: number; relationsCritiquesCount: number; risquesCount: number };
 };
 
 /**
- * Centre de commande executif (cahier des charges V2.2 §29) — n'introduit
- * aucun nouveau calcul : agrege 9 sources deja existantes (pilotage §XXIII,
- * objectifs, projets/risques, decisions de reunion/gouvernance, charge de
- * travail §10, pipeline CRM, AiAgentInsight §6, predictions §11). La page
- * qui consomme ce snapshot est gardee par PERMISSIONS.EXECUTIVE_VIEW.
+ * Strategic Command Center (cahier des charges V2.2 §29, étendu V3.0 §35
+ * avec Finances et Partenaires) — n'introduit aucun nouveau calcul central :
+ * agrège 11 sources déjà existantes (pilotage §XXIII, objectifs, projets/
+ * risques, decisions de reunion/gouvernance, charge de travail §10, pipeline
+ * CRM, AiAgentInsight §6, predictions §11, budget/coût projets + Integration
+ * de type SYSTEME_FINANCIER pour "Finances via systèmes connectés", Partner
+ * Ecosystem Graph §26 pour "Partenaires"). La page qui consomme ce snapshot
+ * est gardee par PERMISSIONS.EXECUTIVE_VIEW.
  */
 export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
   const now = new Date();
@@ -87,6 +98,18 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     }),
   ]);
 
+  const [projetsActifsFinance, integrationsFinancieres, partenairesAnalysis] = await Promise.all([
+    prisma.project.findMany({
+      where: { statut: { in: ["PLANIFIE", "EN_COURS"] } },
+      select: { budget: true, coutReel: true },
+    }),
+    prisma.integration.findMany({
+      where: { type: "SYSTEME_FINANCIER" },
+      select: { id: true, nom: true, statut: true },
+    }),
+    computePartnerEcosystemAnalysis(),
+  ]);
+
   const userIds = activeUsers.map((u) => u.id);
   const projectIds = allProjects.map((p) => p.id);
   const [performanceGlobale, previsionsIa] = await Promise.all([
@@ -149,5 +172,19 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     },
     alertes,
     previsionsIa,
+    finances: {
+      budgetTotalProjetsActifs: projetsActifsFinance.reduce((s, p) => s + (p.budget ? Number(p.budget) : 0), 0),
+      coutReelTotalProjetsActifs: projetsActifsFinance.reduce((s, p) => s + (p.coutReel ? Number(p.coutReel) : 0), 0),
+      ecartBudgetaire: projetsActifsFinance.reduce(
+        (s, p) => s + ((p.coutReel ? Number(p.coutReel) : 0) - (p.budget ? Number(p.budget) : 0)),
+        0
+      ),
+      systemesFinanciersConnectes: integrationsFinancieres,
+    },
+    partenaires: {
+      partenairesStrategiquesCount: partenairesAnalysis.partenairesStrategiques.length,
+      relationsCritiquesCount: partenairesAnalysis.relationsCritiques.length,
+      risquesCount: partenairesAnalysis.risques.length,
+    },
   };
 }

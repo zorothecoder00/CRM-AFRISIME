@@ -563,6 +563,8 @@ model User {
   // Extension V3.0 — Organizational Designer (§21) et Talent & Succession (§24)
   orgDesignDraftsCreated            OrgDesignDraft[]               @relation("OrgDesignDraftCreatedBy")
   platformOrganizationsCreated      PlatformOrganization[]         @relation("PlatformOrganizationCreatedBy")
+  decisionOutcomesCreated           DecisionOutcome[]              @relation("DecisionOutcomeCreatedBy")
+  decisionOutcomesEvaluated         DecisionOutcome[]              @relation("DecisionOutcomeEvaluatedBy")
   successionPlansCreated            SuccessionPlan[]               @relation("SuccessionPlanCreatedBy")
   successionPlanTitulaireFor        SuccessionPlan[]               @relation("SuccessionPlanTitulaire")
   successionCandidacies             SuccessionCandidate[]          @relation("SuccessionCandidateUser")
@@ -800,6 +802,41 @@ enum PlatformOrganizationPlan {
   GRATUIT
   STANDARD
   PREMIUM
+}
+
+// Decision Intelligence (cahier des charges V3.0 §37) — "le système doit
+// conserver l'historique des décisions et mesurer leurs conséquences"
+// (ex. "Ouvrir une nouvelle agence" -> 6 mois plus tard : objectif atteint,
+// coût réel, délai, performance, incidents, ROI, enseignements).
+// sourceType/sourceId (optionnels, même convention que Dependency) relient
+// à une MeetingDecision/GovernanceDecision existante quand la décision est
+// déjà tracée là — sinon la décision est purement décrite ici (titre/
+// description), pour couvrir aussi les décisions qui ne passent pas par un
+// circuit de réunion formel.
+model DecisionOutcome {
+  id                   String    @id @default(cuid())
+  titre                String
+  description          String?
+  sourceType           String?
+  sourceId             String?
+  dateDecision         DateTime
+  dateEvaluationPrevue DateTime?
+  objectifAtteint      Boolean?
+  coutReel             Decimal?  @db.Decimal(14, 2)
+  delaiJours           Int?
+  performance          String?
+  incidents            String?
+  roiPercent           Decimal?  @db.Decimal(6, 2)
+  enseignements        String?
+  evaluatedAt          DateTime?
+  evaluatedById        String?
+  evaluatedBy          User?     @relation("DecisionOutcomeEvaluatedBy", fields: [evaluatedById], references: [id])
+  createdById          String
+  createdBy            User      @relation("DecisionOutcomeCreatedBy", fields: [createdById], references: [id])
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([sourceType, sourceId])
 }
 
 // Poste / fonction structure (cahier des charges §I) — un poste peut etre
