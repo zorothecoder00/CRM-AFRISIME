@@ -164,6 +164,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Marketplace", href: "/marketplace", icon: Store },
       { title: "Corbeille", href: "/corbeille", icon: Trash2, permission: PERMISSIONS.TRASH_MANAGE },
       { title: "Sauvegarde & données", href: "/administration/donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
+      { title: "Gouvernance des données", href: "/gouvernance-donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
       { title: "Matrices de décision", href: "/decisions", icon: Scale, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Decision Intelligence", href: "/intelligence-decisions", icon: History, permission: PERMISSIONS.DASHBOARD_READ },
       { title: "Gouvernance IA", href: "/gouvernance-ia", icon: ShieldCheck, permission: PERMISSIONS.AI_GOVERNANCE_APPROVE },

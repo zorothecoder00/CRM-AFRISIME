@@ -565,6 +565,8 @@ model User {
   platformOrganizationsCreated      PlatformOrganization[]         @relation("PlatformOrganizationCreatedBy")
   decisionOutcomesCreated           DecisionOutcome[]              @relation("DecisionOutcomeCreatedBy")
   decisionOutcomesEvaluated         DecisionOutcome[]              @relation("DecisionOutcomeEvaluatedBy")
+  dataClassificationsOwned          DataClassification[]           @relation("DataClassificationProprietaire")
+  dataClassificationsClassifiedBy   DataClassification[]           @relation("DataClassificationClassifiedBy")
   successionPlansCreated            SuccessionPlan[]               @relation("SuccessionPlanCreatedBy")
   successionPlanTitulaireFor        SuccessionPlan[]               @relation("SuccessionPlanTitulaire")
   successionCandidacies             SuccessionCandidate[]          @relation("SuccessionCandidateUser")
@@ -2322,6 +2324,59 @@ model DocumentAccess {
 
   @@unique([documentId, userId])
   @@index([documentId])
+}
+
+// Data Governance (cahier des charges V3.0 §46) — classification/
+// sensibilité/qualité/propriétaire d'une donnée, distincts de qui l'a
+// créée (createdById/uploadedById, déjà présents sur chaque modèle) :
+// un propriétaire de gouvernance peut être réassigné indépendamment de
+// l'auteur d'origine. entityType/entityId reprend la convention ouverte de
+// Dependency/EntityTag (pas de FK typée par type) ; seul "Document" a une
+// UI de classification pour l'instant (/gouvernance-donnees), le modèle
+// reste ouvert à d'autres types sans migration. Les autres facettes du
+// cahier (accès, conservation, archivage, historique) réutilisent des
+// mécanismes déjà en place (DocumentAccess/PermissionOverride,
+// RetentionPolicy, Document.estArchive, AuditLog) plutôt que d'être
+// dupliquées ici.
+model DataClassification {
+  id             String                  @id @default(cuid())
+  entityType     String
+  entityId       String
+  niveau         DataClassificationLevel @default(INTERNE)
+  sensibilite    DataSensitivity         @default(NORMALE)
+  qualite        DataQualityNiveau       @default(NON_EVALUEE)
+  proprietaireId String?
+  proprietaire   User?                   @relation("DataClassificationProprietaire", fields: [proprietaireId], references: [id])
+  notes          String?
+  classifiedById String
+  classifiedBy   User                    @relation("DataClassificationClassifiedBy", fields: [classifiedById], references: [id])
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([entityType, entityId])
+}
+
+enum DataClassificationLevel {
+  PUBLIC
+  INTERNE
+  CONFIDENTIEL
+  RESTREINT
+}
+
+enum DataSensitivity {
+  NORMALE
+  PERSONNELLE
+  FINANCIERE
+  STRATEGIQUE
+}
+
+enum DataQualityNiveau {
+  NON_EVALUEE
+  FAIBLE
+  MOYENNE
+  BONNE
+  EXCELLENTE
 }
 
 // Historique des modifications (cahier des charges §10) : chaque nouvelle

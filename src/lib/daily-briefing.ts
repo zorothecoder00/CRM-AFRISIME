@@ -21,17 +21,21 @@ export type DailyBriefing = {
   validationsEnAttente: number;
   opportunitesARelancer: number;
   decisionsATraiter: number;
+  messagesNonLus: number;
   prioriteRecommandee: { label: string; href: string } | null;
 };
 
 /**
- * Briefing quotidien (cahier des charges V2.2 §30) — agrege des comptes
- * deja calcules ailleurs sous forme de Notification (voir daily-checks
- * cron) mais consolides ici en un seul objet par utilisateur, calcule a la
- * demande (pas de nouveau modele de persistance : comme la plupart des
- * widgets dashboard, recalcule a chaque affichage). "Priorite recommandee"
- * = le premier element trouve en parcourant les categories par ordre
- * d'urgence (tache prioritaire > projet a risque > decision > validation).
+ * Briefing quotidien (cahier des charges V2.2 §30, aligné V3.0 §50
+ * "Votre journée" — même principe : priorités/réunions/validation/risque/
+ * décision, complété ici par les messages non lus, seul élément de la
+ * liste du cahier qui manquait) — agrege des comptes deja calcules
+ * ailleurs sous forme de Notification (voir daily-checks cron) mais
+ * consolides ici en un seul objet par utilisateur, calcule a la demande
+ * (pas de nouveau modele de persistance : comme la plupart des widgets
+ * dashboard, recalcule a chaque affichage). "Priorite recommandee" = le
+ * premier element trouve en parcourant les categories par ordre d'urgence
+ * (tache prioritaire > projet a risque > decision > validation).
  */
 export async function generateDailyBriefing(userId: string): Promise<DailyBriefing> {
   const now = new Date();
@@ -47,6 +51,7 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
     staleOpportunities,
     meetingDecisions,
     governanceDecisions,
+    conversationsForUnread,
   ] = await Promise.all([
     prisma.task.findMany({
       where: {
@@ -85,7 +90,25 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
       where: { statut: "EN_COURS", responsableId: userId },
       select: { id: true, objet: true, meetingId: true },
     }),
+    prisma.conversation.findMany({
+      where: { participants: { some: { userId } } },
+      select: { id: true, participants: { where: { userId }, select: { lastReadAt: true } } },
+    }),
   ]);
+
+  const messagesNonLus = (
+    await Promise.all(
+      conversationsForUnread.map((conv) =>
+        prisma.message.count({
+          where: {
+            conversationId: conv.id,
+            authorId: { not: userId },
+            createdAt: { gt: conv.participants[0]?.lastReadAt ?? new Date(0) },
+          },
+        })
+      )
+    )
+  ).reduce((sum, n) => sum + n, 0);
 
   const memberProjectIdSet = new Set(memberProjectIds.map((m) => m.projectId));
   const projectsAtRisk = projectsOwned.filter(
@@ -148,6 +171,7 @@ export async function generateDailyBriefing(userId: string): Promise<DailyBriefi
     validationsEnAttente: pendingValidationsForUser.length,
     opportunitesARelancer: opportunitesARelancer.length,
     decisionsATraiter: decisions.length,
+    messagesNonLus,
     prioriteRecommandee,
   };
 }

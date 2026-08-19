@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PendingActionActions } from "@/components/ai-governance/pending-action-actions";
+import { resolveDependencyLabels } from "@/lib/dependencies";
 import { ShieldCheck } from "lucide-react";
 
 const STATUT_TONE: Record<string, "warning" | "success" | "destructive"> = {
@@ -14,12 +15,31 @@ const STATUT_TONE: Record<string, "warning" | "success" | "destructive"> = {
   REJETE: "destructive",
 };
 
+const INSIGHT_STATUT_TONE: Record<string, "info" | "secondary" | "success" | "destructive"> = {
+  NOUVEAU: "info",
+  VU: "secondary",
+  TRAITE: "success",
+  IGNORE: "destructive",
+};
+
+const AGENT_LABELS: Record<string, string> = {
+  PROJECT_MANAGER: "Chef de projet IA",
+  CRM_MANAGER: "CRM IA",
+  RISK_MANAGER: "Risques IA",
+  ANALYST: "Analyste IA",
+  ADMINISTRATIVE_ASSISTANT: "Assistant administratif IA",
+  STRATEGY_ADVISOR: "Conseiller stratégique IA",
+};
+
 /**
- * Gouvernance IA (cahier des charges V2.2 §42-43) — "human in the loop" :
- * actions IA en attente de validation humaine + traçabilité de toutes les
- * décisions (approuvées/rejetées) et des suggestions non exécutées
- * (AutomationExecution, déjà la source de vérité pour toute exécution
- * d'automatisation, réutilisée ici plutôt qu'un nouveau journal).
+ * Gouvernance IA (cahier des charges V2.2 §42-43, étendu V3.0 §47 "AI
+ * Governance") — "human in the loop" : actions IA en attente de validation
+ * humaine + traçabilité de toutes les décisions (approuvées/rejetées) et
+ * des suggestions non exécutées (AutomationExecution, déjà la source de
+ * vérité pour toute exécution d'automatisation, réutilisée ici plutôt qu'un
+ * nouveau journal). §47 ajoute le registre des agents IA (AiAgentInsight)
+ * ci-dessous, jusque-là invisible depuis cette page bien que déjà journalisé
+ * par recordInsight() pour chaque agent (§9, §16, prédictions...).
  */
 export default async function GouvernanceIaPage() {
   const session = await getServerSession(authOptions);
@@ -27,7 +47,7 @@ export default async function GouvernanceIaPage() {
     redirect("/dashboard");
   }
 
-  const [pending, decided, recentExecutions] = await Promise.all([
+  const [pending, decided, recentExecutions, agentInsights] = await Promise.all([
     prisma.pendingAiAction.findMany({
       where: { statut: "EN_ATTENTE" },
       include: { rule: { select: { nom: true, action: true } } },
@@ -44,7 +64,22 @@ export default async function GouvernanceIaPage() {
       orderBy: { executedAt: "desc" },
       take: 30,
     }),
+    prisma.aiAgentInsight.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
   ]);
+
+  // Registre des agents IA (comble V3.0 §47, "AI Governance" — traçabilité
+  // agent/donnees-utilisees/recommandation/resultat ; les insights restent
+  // purement informationnels, sans exécution automatique, donc pas de champ
+  // "validation" applicable ici (voir "En attente de validation" ci-dessus
+  // pour le flux qui, lui, exécute réellement une action).
+  const entityLabels = await resolveDependencyLabels(
+    agentInsights
+      .filter((i) => i.entityType && i.entityId)
+      .map((i) => ({ type: i.entityType!, id: i.entityId! }))
+  );
 
   return (
     <div className="space-y-6">
@@ -93,6 +128,35 @@ export default async function GouvernanceIaPage() {
                 par {d.decidedBy?.name ?? "—"} le {d.decidedAt?.toLocaleDateString("fr-FR")}
                 {d.motifRejet ? ` — ${d.motifRejet}` : ""}
               </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Registre des agents IA ({agentInsights.length})</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Agent · donnée utilisée · recommandation · statut — traçabilité des agents IA (§16, §9, prédictions...),
+            distincte des actions d&apos;automatisation ci-dessus.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {agentInsights.length === 0 && <p className="text-sm text-muted-foreground">Aucun insight généré.</p>}
+          {agentInsights.map((insight) => (
+            <div key={insight.id} className="space-y-1 rounded-md border p-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{AGENT_LABELS[insight.agent] ?? insight.agent}</Badge>
+                <Badge variant={INSIGHT_STATUT_TONE[insight.statut]}>{insight.statut}</Badge>
+                <span className="text-xs text-muted-foreground">{insight.type}</span>
+              </div>
+              <p className="text-sm font-medium">{insight.titre}</p>
+              <p className="text-xs text-muted-foreground">{insight.contenu}</p>
+              {insight.entityType && insight.entityId && (
+                <p className="text-xs text-muted-foreground">
+                  Donnée utilisée : {entityLabels.get(`${insight.entityType}:${insight.entityId}`) ?? `${insight.entityType} (${insight.entityId})`}
+                </p>
+              )}
             </div>
           ))}
         </CardContent>

@@ -11,12 +11,15 @@ const ITEMS: { key: keyof DailyBriefing; label: (n: number) => string; href: str
   { key: "validationsEnAttente", label: (n) => `${n} validation(s) en attente`, href: "/demandes" },
   { key: "opportunitesARelancer", label: (n) => `${n} opportunité(s) CRM à relancer`, href: "/crm/pipeline" },
   { key: "decisionsATraiter", label: (n) => `${n} décision(s) à traiter`, href: "/gouvernance" },
+  { key: "messagesNonLus", label: (n) => `${n} message(s) non lu(s)`, href: "/messages" },
 ];
 
-// Briefing quotidien IA (cahier des charges V2.2 §30). "IA" = agregation
-// automatique templee, pas un texte genere par LLM (aucune cle API
-// disponible — choix explicite de differer la generation reelle, voir
-// memoire projet). Formulation calquee sur l'exemple du cahier des charges.
+// Briefing quotidien IA (cahier des charges V2.2 §30, "Votre journée"
+// V3.0 §50). "IA" = agregation automatique templee, pas un texte genere par
+// LLM (aucune cle API disponible — choix explicite de differer la
+// generation reelle, voir memoire projet). Formulation calquee sur
+// l'exemple du cahier des charges (priorités/réunions/validation/risque/
+// messages/décision).
 export function DailyBriefingCard({ userName, briefing }: { userName: string | null | undefined; briefing: DailyBriefing }) {
   const today = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
 
