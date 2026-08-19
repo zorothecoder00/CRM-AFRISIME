@@ -1,7 +1,7 @@
 import { Workflow } from "lucide-react";
 import { SidebarNav } from "./sidebar-nav";
 
-export function Sidebar({ permissions }: { permissions: string[] }) {
+export function Sidebar({ permissions, roleKey }: { permissions: string[]; roleKey?: string }) {
   return (
     <aside className="show-desktop w-64 flex-col border-r bg-sidebar">
       <div className="flex h-14 items-center gap-2.5 border-b px-4">
@@ -10,7 +10,7 @@ export function Sidebar({ permissions }: { permissions: string[] }) {
         </div>
         <span className="text-lg font-semibold">AfriFlow</span>
       </div>
-      <SidebarNav permissions={permissions} />
+      <SidebarNav permissions={permissions} roleKey={roleKey} />
     </aside>
   );
 }

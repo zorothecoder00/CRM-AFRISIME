@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { SidebarNav } from "./sidebar-nav";
 
-export function MobileSidebar({ permissions }: { permissions: string[] }) {
+export function MobileSidebar({ permissions, roleKey }: { permissions: string[]; roleKey?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,7 +23,7 @@ export function MobileSidebar({ permissions }: { permissions: string[] }) {
           </div>
           <SheetTitle className="text-lg">AfriFlow</SheetTitle>
         </SheetHeader>
-        <SidebarNav permissions={permissions} onNavigate={() => setOpen(false)} />
+        <SidebarNav permissions={permissions} roleKey={roleKey} onNavigate={() => setOpen(false)} />
       </SheetContent>
     </Sheet>
   );

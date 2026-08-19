@@ -10,7 +10,7 @@ import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
 import { getAuthorizedProjectIds } from "@/lib/portal-authorization";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Sparkles } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   NOUVEAU: "Nouveau",
@@ -122,6 +122,30 @@ export default async function PortalDashboardPage() {
           {contact.organization ? contact.organization.nom : "Suivi de votre relation avec AfriSime."}
         </p>
       </div>
+
+      {/* IA d'assistance client (cahier des charges V3.0 §52, "Role-Based AI" —
+          le portail externe n'a pas de moteur conversationnel dédié comme
+          §41, mais applique le même principe qu'ailleurs dans l'app : un
+          résumé proactif plutôt qu'une recherche manuelle, cf. "Votre
+          journée" §50) — réutilise des données déjà chargées ci-dessus. */}
+      {(echeances.length > 0 || visibility.unreadMessages > 0) && (
+        <Card accent="info">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4" />
+              Votre assistant
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 text-sm">
+            {echeances.length > 0 && <Badge variant="info">{echeances.length} échéance(s) à venir</Badge>}
+            {visibility.unreadMessages > 0 && (
+              <Link href="/portail/messages">
+                <Badge variant="warning">{visibility.unreadMessages} message(s) non lu(s)</Badge>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {echeances.length > 0 && (
         <Card>

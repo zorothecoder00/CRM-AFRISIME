@@ -342,6 +342,21 @@ model OrchestrationPlaybook {
 // externes (AfriGes, M365, WhatsApp...). Sans identifiants réels disponibles,
 // ce MVP fournit l'enregistrement des connexions et un webhook entrant
 // générique validé par clé partagée, mais n'appelle aucun service tiers.
+//
+// AFRIGES RESTE LE SYSTÈME OPÉRATIONNEL (cahier des charges V3.0 §55,
+// règle fondamentale) — AfriGes est l'ERP opérationnel de l'organisation
+// (ventes, achats, stock, comptabilité, crédit, opérations) ; AfriFlow/
+// Work-Flow (CE projet) est le système d'exploitation ORGANISATIONNEL
+// (stratégie, CRM, projets, collaboration, gouvernance, processus,
+// intelligence, IA, simulation, performance) — les deux communiquent
+// UNIQUEMENT via cette couche d'intégration (IntegrationType.AFRIGES ici,
+// et SYSTEME_FINANCIER pour la vue "Finances" du Strategic Command Center,
+// §35/§48), jamais par un accès direct à la base de données de l'autre
+// système. Ce projet ne doit PAS développer de modules de vente/achat/
+// stock/comptabilité — ce serait dupliquer AfriGes plutôt que s'y
+// connecter. Rappel opérationnel : ce sont deux bases de données Neon
+// distinctes (afriflow / afriges) — toujours vérifier laquelle est ciblée
+// avant toute commande `prisma migrate` en production.
 enum IntegrationType {
   AFRIGES
   M365

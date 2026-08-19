@@ -20,6 +20,7 @@ export function Topbar({
   userName,
   userImage,
   roleLabel,
+  roleKey,
   notifications,
   unreadCount,
   permissions,
@@ -27,6 +28,7 @@ export function Topbar({
   userName: string;
   userImage?: string | null;
   roleLabel: string;
+  roleKey?: string;
   notifications: NotificationPreview[];
   unreadCount: number;
   permissions: string[];
@@ -41,7 +43,7 @@ export function Topbar({
   return (
     <header className="flex h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
       <div className="flex items-center gap-2">
-        <MobileSidebar permissions={permissions} />
+        <MobileSidebar permissions={permissions} roleKey={roleKey} />
         <div className="show-from-lg text-sm text-muted-foreground">
           Planifier · Collaborer · Exécuter · Contrôler
         </div>

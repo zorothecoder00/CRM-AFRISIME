@@ -197,3 +197,31 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+// Contextual UI (cahier des charges V3.0 §51) — "les menus peuvent
+// s'adapter au contexte" : plutôt que de restructurer entièrement
+// NAV_GROUPS par rôle (risque de régression sur une sidebar déjà utilisée
+// par tous), une section "Pour vous" épinglée en tête reprend les items
+// déjà existants les plus pertinents pour le rôle courant — les exemples
+// du cahier (chef de projet, dirigeant) sont repris littéralement, les
+// autres rôles extrapolés dans le même esprit.
+export const CONTEXTUAL_NAV_BY_ROLE: Record<string, string[]> = {
+  DIRECTEUR_GENERAL: ["/strategie", "/tableaux-de-bord", "/risques", "/gouvernance", "/scenarios"],
+  DIRECTEUR: ["/strategie", "/tableaux-de-bord", "/risques", "/gouvernance", "/scenarios"],
+  CHEF_DEPARTEMENT: ["/pilotage", "/charge-de-travail", "/objectifs", "/risques", "/planification"],
+  CHEF_PROJET: ["/projets", "/taches", "/charge-de-travail", "/risques", "/planification"],
+  RESPONSABLE: ["/projets", "/taches", "/charge-de-travail", "/reunions", "/objectifs"],
+  MANAGER: ["/charge-de-travail", "/taches", "/reunions", "/objectifs", "/evaluations"],
+  COLLABORATEUR: ["/dashboard", "/taches", "/planning", "/messages", "/objectifs"],
+  CONSULTANT_EXTERNE: ["/taches", "/projets", "/messages", "/documents"],
+  PRESTATAIRE: ["/taches", "/projets", "/messages"],
+  INVITE: ["/projets", "/taches"],
+};
+
+export function getContextualNavItems(roleKey: string | undefined, permissions: string[]): NavItem[] {
+  const hrefs = (roleKey && CONTEXTUAL_NAV_BY_ROLE[roleKey]) || [];
+  const allItems = NAV_GROUPS.flatMap((g) => g.items);
+  return hrefs
+    .map((href) => allItems.find((item) => item.href === href))
+    .filter((item): item is NavItem => !!item && (!item.permission || permissions.includes(item.permission)));
+}

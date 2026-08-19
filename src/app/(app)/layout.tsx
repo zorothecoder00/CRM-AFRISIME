@@ -27,12 +27,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen">
-      <Sidebar permissions={session.user.permissions} />
+      <Sidebar permissions={session.user.permissions} roleKey={session.user.roleKey} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar
           userName={session.user.name ?? session.user.email ?? ""}
           userImage={session.user.image}
           roleLabel={session.user.roleLabel}
+          roleKey={session.user.roleKey}
           permissions={session.user.permissions}
           notifications={recentNotifications.map((n) => ({
             id: n.id,

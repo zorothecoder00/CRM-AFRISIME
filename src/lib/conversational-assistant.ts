@@ -43,6 +43,90 @@ export function parseIntent(texte: string): AssistantIntent {
   return { type: "INCONNU", texte: t };
 }
 
+// Role-Based AI (cahier des charges V3.0 §52) — "L'IA doit également
+// s'adapter au rôle." Le moteur d'intention ci-dessus reste le même pour
+// tous (même logique déterministe) ; ce qui s'adapte est le CADRAGE
+// présenté à l'utilisateur (raccourcis suggérés vers les autres modules
+// "IA" déjà construits — Conseiller stratégique §9, Orchestrateur §16,
+// Décisions §37-38, prédictions §11-14 — plutôt que 6 moteurs séparés à
+// maintenir).
+export type AiRoleFlavor = { label: string; description: string; suggestions: { label: string; href: string }[] };
+
+export const AI_ROLE_FLAVORS: Record<string, AiRoleFlavor> = {
+  DIRECTEUR_GENERAL: {
+    label: "IA stratégique",
+    description: "Analyse de la performance globale, scénarios, recommandations de décision.",
+    suggestions: [
+      { label: "Conseiller stratégique", href: "/conseiller-strategique" },
+      { label: "Executive Simulation Room", href: "/salle-de-simulation" },
+      { label: "Feuille de route de transformation", href: "/feuille-de-route-transformation" },
+    ],
+  },
+  DIRECTEUR: {
+    label: "IA de pilotage",
+    description: "Suivi de la performance, alertes précoces, benchmarking.",
+    suggestions: [
+      { label: "Centre de commande", href: "/centre-de-commande" },
+      { label: "Prédictions", href: "/predictions" },
+      { label: "Benchmarking", href: "/benchmarking" },
+    ],
+  },
+  CHEF_DEPARTEMENT: {
+    label: "IA de pilotage",
+    description: "Suivi de la charge et des risques du département.",
+    suggestions: [
+      { label: "Niveaux de pilotage", href: "/pilotage" },
+      { label: "Charge de travail", href: "/charge-de-travail" },
+    ],
+  },
+  MANAGER: {
+    label: "IA de coordination",
+    description: "Coordination d'équipe, charge de travail, échéances.",
+    suggestions: [
+      { label: "Charge de travail", href: "/charge-de-travail" },
+      { label: "Orchestrateur d'agents", href: "/orchestrateur-ia" },
+    ],
+  },
+  CHEF_PROJET: {
+    label: "IA d'exécution",
+    description: "Création de tâches, suivi des projets et risques.",
+    suggestions: [
+      { label: "Dépendances", href: "/dependances" },
+      { label: "Décisions du projet", href: "/decisions" },
+    ],
+  },
+  RESPONSABLE: {
+    label: "IA d'exécution",
+    description: "Suivi des projets, tâches et réunions dont vous êtes responsable.",
+    suggestions: [{ label: "Mes tâches", href: "/taches" }],
+  },
+  COLLABORATEUR: {
+    label: "IA personnelle",
+    description: "Votre journée : priorités, réunions, messages.",
+    suggestions: [{ label: "Mon tableau de bord", href: "/dashboard" }],
+  },
+  CONSULTANT_EXTERNE: {
+    label: "IA personnelle",
+    description: "Suivi de vos missions et échéances.",
+    suggestions: [{ label: "Mes tâches", href: "/taches" }],
+  },
+  PRESTATAIRE: {
+    label: "IA personnelle",
+    description: "Suivi de vos missions et échéances.",
+    suggestions: [{ label: "Mes tâches", href: "/taches" }],
+  },
+};
+
+export function getAiRoleFlavor(roleKey: string | undefined): AiRoleFlavor {
+  return (
+    (roleKey && AI_ROLE_FLAVORS[roleKey]) || {
+      label: "IA générale",
+      description: "Posez une question ou dictez une commande.",
+      suggestions: [],
+    }
+  );
+}
+
 export type AssistantResponseItem = { label: string; sublabel?: string; href?: string };
 export type AssistantResponse = { message: string; items: AssistantResponseItem[] };
 
