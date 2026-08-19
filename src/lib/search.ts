@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { findEntitiesByTagNames } from "@/lib/tags";
+import { fuzzyMatchIds, sortByRelevance } from "@/lib/fuzzy-search";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type SearchResultType =
@@ -63,8 +64,13 @@ export type SearchFilters = {
  * existant — voir memoire project_afriflow_v2_2_extension). Indicator/KPI
  * ajouté (V3.0 §40, "Universal Organizational Search" — dernier type de la
  * liste du cahier absent jusque-là). "Recherche sémantique"/"recherche IA"
- * restent hors périmètre (pas de clé API LLM — choix explicite de différer,
- * voir memoire).
+ * restent hors périmètre (pas de clé API LLM/embeddings — choix explicite
+ * de différer, voir memoire) — mais chaque champ texte cherché tolère
+ * désormais les fautes de frappe/variantes via pg_trgm (similarité
+ * trigramme, src/lib/fuzzy-search.ts) : fuzzyMatchIds() élargit le rappel,
+ * puis le findMany() Prisma qui suit applique les filtres avancés
+ * existants sans les dupliquer en SQL brut, et sortByRelevance() réordonne
+ * le résultat final selon la pertinence plutôt que l'ordre d'insertion.
  */
 export async function globalSearch(
   query: string,
@@ -89,342 +95,327 @@ export async function globalSearch(
   const searches: Promise<Hit[]>[] = [];
 
   if (hasPermission(permissions, PERMISSIONS.PROJECT_READ)) {
-    const where: Prisma.ProjectWhereInput = { nom: { contains: q, mode: "insensitive" } };
-    if (filters.responsableId) where.responsableId = filters.responsableId;
-    if (filters.departmentId) where.departmentId = filters.departmentId;
-    if (filters.projectStatut) where.statut = filters.projectStatut as never;
-    if (filters.projectPriorite) where.priorite = filters.projectPriorite as never;
-    if (dateFrom || dateTo) {
-      where.dateDebut = { gte: dateFrom, lte: dateTo };
-    }
     searches.push(
-      prisma.project
-        .findMany({ where, take: 8, select: { id: true, nom: true, statut: true } })
-        .then((rows) =>
-          rows.map((p) => ({
-            type: "Projet" as const,
-            id: p.id,
-            title: p.nom,
-            subtitle: p.statut,
-            href: `/projets/${p.id}`,
-            _entityType: "Project",
-          }))
-        )
+      fuzzyMatchIds("Project", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const where: Prisma.ProjectWhereInput = { id: { in: candidateIds } };
+        if (filters.responsableId) where.responsableId = filters.responsableId;
+        if (filters.departmentId) where.departmentId = filters.departmentId;
+        if (filters.projectStatut) where.statut = filters.projectStatut as never;
+        if (filters.projectPriorite) where.priorite = filters.projectPriorite as never;
+        if (dateFrom || dateTo) {
+          where.dateDebut = { gte: dateFrom, lte: dateTo };
+        }
+        const rows = await prisma.project.findMany({ where, take: 8, select: { id: true, nom: true, statut: true } });
+        return sortByRelevance(rows, candidateIds).map((p) => ({
+          type: "Projet" as const,
+          id: p.id,
+          title: p.nom,
+          subtitle: p.statut,
+          href: `/projets/${p.id}`,
+          _entityType: "Project",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.TASK_READ)) {
-    const where: Prisma.TaskWhereInput = { titre: { contains: q, mode: "insensitive" } };
-    if (filters.responsableId) where.responsablePrincipalId = filters.responsableId;
-    if (filters.statut) where.statut = filters.statut as never;
-    if (filters.priorite) where.priorite = filters.priorite as never;
-    if (filters.departmentId) where.project = { departmentId: filters.departmentId };
-    if (dateFrom || dateTo) {
-      where.echeance = { gte: dateFrom, lte: dateTo };
-    }
     searches.push(
-      prisma.task
-        .findMany({
+      fuzzyMatchIds("Task", ["titre"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const where: Prisma.TaskWhereInput = { id: { in: candidateIds } };
+        if (filters.responsableId) where.responsablePrincipalId = filters.responsableId;
+        if (filters.statut) where.statut = filters.statut as never;
+        if (filters.priorite) where.priorite = filters.priorite as never;
+        if (filters.departmentId) where.project = { departmentId: filters.departmentId };
+        if (dateFrom || dateTo) {
+          where.echeance = { gte: dateFrom, lte: dateTo };
+        }
+        const rows = await prisma.task.findMany({
           where,
           take: 8,
           select: { id: true, titre: true, statut: true, project: { select: { nom: true } } },
-        })
-        .then((rows) =>
-          rows.map((t) => ({
-            type: "Tâche" as const,
-            id: t.id,
-            title: t.titre,
-            subtitle: `${t.project.nom} · ${t.statut}`,
-            href: `/taches/${t.id}`,
-            _entityType: "Task",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((t) => ({
+          type: "Tâche" as const,
+          id: t.id,
+          title: t.titre,
+          subtitle: `${t.project.nom} · ${t.statut}`,
+          href: `/taches/${t.id}`,
+          _entityType: "Task",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.TASK_COMMENT)) {
     searches.push(
-      prisma.taskComment
-        .findMany({
-          where: { content: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("TaskComment", ["content"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.taskComment.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, content: true, taskId: true, task: { select: { titre: true } } },
-        })
-        .then((rows) =>
-          rows.map((c) => ({
-            type: "Commentaire" as const,
-            id: c.id,
-            title: c.content.length > 80 ? `${c.content.slice(0, 80)}…` : c.content,
-            subtitle: c.task.titre,
-            href: `/taches/${c.taskId}`,
-            _entityType: "TaskComment",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((c) => ({
+          type: "Commentaire" as const,
+          id: c.id,
+          title: c.content.length > 80 ? `${c.content.slice(0, 80)}…` : c.content,
+          subtitle: c.task.titre,
+          href: `/taches/${c.taskId}`,
+          _entityType: "TaskComment",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.MEETING_READ)) {
-    const where: Prisma.MeetingWhereInput = { titre: { contains: q, mode: "insensitive" } };
-    if (dateFrom || dateTo) {
-      where.dateHeure = { gte: dateFrom, lte: dateTo };
-    }
     searches.push(
-      prisma.meeting
-        .findMany({ where, take: 8, select: { id: true, titre: true, dateHeure: true } })
-        .then((rows) =>
-          rows.map((m) => ({
-            type: "Réunion" as const,
-            id: m.id,
-            title: m.titre,
-            subtitle: m.dateHeure.toLocaleDateString("fr-FR"),
-            href: `/reunions/${m.id}`,
-            _entityType: "Meeting",
-          }))
-        )
+      fuzzyMatchIds("Meeting", ["titre"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const where: Prisma.MeetingWhereInput = { id: { in: candidateIds } };
+        if (dateFrom || dateTo) {
+          where.dateHeure = { gte: dateFrom, lte: dateTo };
+        }
+        const rows = await prisma.meeting.findMany({ where, take: 8, select: { id: true, titre: true, dateHeure: true } });
+        return sortByRelevance(rows, candidateIds).map((m) => ({
+          type: "Réunion" as const,
+          id: m.id,
+          title: m.titre,
+          subtitle: m.dateHeure.toLocaleDateString("fr-FR"),
+          href: `/reunions/${m.id}`,
+          _entityType: "Meeting",
+        }));
+      })
     );
 
     searches.push(
-      prisma.meetingDecision
-        .findMany({
-          where: { description: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("MeetingDecision", ["description"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.meetingDecision.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, description: true, meetingId: true, projectId: true },
-        })
-        .then((rows) =>
-          rows.map((d) => ({
-            type: "Décision" as const,
-            id: d.id,
-            title: d.description.length > 80 ? `${d.description.slice(0, 80)}…` : d.description,
-            subtitle: "Décision de réunion",
-            href: d.meetingId ? `/reunions/${d.meetingId}` : d.projectId ? `/projets/${d.projectId}` : "/reunions",
-            _entityType: "MeetingDecision",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((d) => ({
+          type: "Décision" as const,
+          id: d.id,
+          title: d.description.length > 80 ? `${d.description.slice(0, 80)}…` : d.description,
+          subtitle: "Décision de réunion",
+          href: d.meetingId ? `/reunions/${d.meetingId}` : d.projectId ? `/projets/${d.projectId}` : "/reunions",
+          _entityType: "MeetingDecision",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.GOVERNANCE_READ)) {
     searches.push(
-      prisma.governanceDecision
-        .findMany({
-          where: { objet: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("GovernanceDecision", ["objet"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.governanceDecision.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, objet: true, meetingId: true },
-        })
-        .then((rows) =>
-          rows.map((d) => ({
-            type: "Décision" as const,
-            id: d.id,
-            title: d.objet,
-            subtitle: "Décision de gouvernance",
-            href: `/gouvernance/reunions/${d.meetingId}`,
-            _entityType: "GovernanceDecision",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((d) => ({
+          type: "Décision" as const,
+          id: d.id,
+          title: d.objet,
+          subtitle: "Décision de gouvernance",
+          href: `/gouvernance/reunions/${d.meetingId}`,
+          _entityType: "GovernanceDecision",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.DOCUMENT_READ)) {
     searches.push(
-      prisma.document
-        .findMany({
-          where: { nom: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("Document", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.document.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, nom: true, project: { select: { nom: true } } },
-        })
-        .then((rows) =>
-          rows.map((d) => ({
-            type: "Document" as const,
-            id: d.id,
-            title: d.nom,
-            subtitle: d.project.nom,
-            href: `/documents/${d.id}`,
-            _entityType: "Document",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((d) => ({
+          type: "Document" as const,
+          id: d.id,
+          title: d.nom,
+          subtitle: d.project.nom,
+          href: `/documents/${d.id}`,
+          _entityType: "Document",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.KNOWLEDGE_READ)) {
     searches.push(
-      prisma.knowledgeArticle
-        .findMany({
-          where: {
-            statut: "PUBLIE",
-            OR: [{ titre: { contains: q, mode: "insensitive" } }, { content: { contains: q, mode: "insensitive" } }],
-          },
+      fuzzyMatchIds("KnowledgeArticle", ["titre", "content"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.knowledgeArticle.findMany({
+          where: { id: { in: candidateIds }, statut: "PUBLIE" },
           take: 8,
           select: { id: true, titre: true, category: { select: { nom: true } } },
-        })
-        .then((rows) =>
-          rows.map((a) => ({
-            type: "Article" as const,
-            id: a.id,
-            title: a.titre,
-            subtitle: a.category?.nom ?? null,
-            href: `/base-de-connaissances/${a.id}`,
-            _entityType: "KnowledgeArticle",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((a) => ({
+          type: "Article" as const,
+          id: a.id,
+          title: a.titre,
+          subtitle: a.category?.nom ?? null,
+          href: `/base-de-connaissances/${a.id}`,
+          _entityType: "KnowledgeArticle",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.COURRIER_READ)) {
     searches.push(
-      prisma.courrier
-        .findMany({
-          where: {
-            confidentiel: false,
-            OR: [
-              { objet: { contains: q, mode: "insensitive" } },
-              { reference: { contains: q, mode: "insensitive" } },
-            ],
-          },
+      fuzzyMatchIds("Courrier", ["objet", "reference"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.courrier.findMany({
+          where: { id: { in: candidateIds }, confidentiel: false },
           take: 8,
           select: { id: true, objet: true, reference: true },
-        })
-        .then((rows) =>
-          rows.map((c) => ({
-            type: "Courrier" as const,
-            id: c.id,
-            title: c.objet,
-            subtitle: c.reference,
-            href: `/courrier/${c.id}`,
-            _entityType: "Courrier",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((c) => ({
+          type: "Courrier" as const,
+          id: c.id,
+          title: c.objet,
+          subtitle: c.reference,
+          href: `/courrier/${c.id}`,
+          _entityType: "Courrier",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.CRM_READ)) {
     searches.push(
-      prisma.crmContact
-        .findMany({
-          where: {
-            OR: [
-              { nom: { contains: q, mode: "insensitive" } },
-              { prenom: { contains: q, mode: "insensitive" } },
-              { email: { contains: q, mode: "insensitive" } },
-            ],
-          },
+      fuzzyMatchIds("CrmContact", ["nom", "prenom", "email"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.crmContact.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, nom: true, prenom: true, fonction: true, organization: { select: { nom: true } } },
-        })
-        .then((rows) =>
-          rows.map((c) => ({
-            type: "Contact CRM" as const,
-            id: c.id,
-            title: `${c.prenom} ${c.nom}`,
-            subtitle: c.organization?.nom ?? c.fonction ?? null,
-            href: `/crm/contacts/${c.id}`,
-            _entityType: "CrmContact",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((c) => ({
+          type: "Contact CRM" as const,
+          id: c.id,
+          title: `${c.prenom} ${c.nom}`,
+          subtitle: c.organization?.nom ?? c.fonction ?? null,
+          href: `/crm/contacts/${c.id}`,
+          _entityType: "CrmContact",
+        }));
+      })
     );
 
     searches.push(
-      prisma.crmOrganization
-        .findMany({
-          where: { nom: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("CrmOrganization", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.crmOrganization.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, nom: true, secteur: true, type: true },
-        })
-        .then((rows) =>
-          rows.map((o) => ({
-            type: "Organisation CRM" as const,
-            id: o.id,
-            title: o.type === "PARTENAIRE" ? `${o.nom} (partenaire)` : o.nom,
-            subtitle: o.secteur,
-            href: `/crm/organisations/${o.id}`,
-            _entityType: "CrmOrganization",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((o) => ({
+          type: "Organisation CRM" as const,
+          id: o.id,
+          title: o.type === "PARTENAIRE" ? `${o.nom} (partenaire)` : o.nom,
+          subtitle: o.secteur,
+          href: `/crm/organisations/${o.id}`,
+          _entityType: "CrmOrganization",
+        }));
+      })
     );
 
     searches.push(
-      prisma.contract
-        .findMany({
-          where: { nom: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("Contract", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.contract.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, nom: true, statut: true, opportunityId: true, organizationId: true },
-        })
-        .then((rows) =>
-          rows.map((c) => ({
-            type: "Contrat" as const,
-            id: c.id,
-            title: c.nom,
-            subtitle: c.statut,
-            href: c.opportunityId
-              ? `/crm/opportunites/${c.opportunityId}`
-              : c.organizationId
-                ? `/crm/organisations/${c.organizationId}`
-                : "/crm",
-            _entityType: "Contract",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((c) => ({
+          type: "Contrat" as const,
+          id: c.id,
+          title: c.nom,
+          subtitle: c.statut,
+          href: c.opportunityId
+            ? `/crm/opportunites/${c.opportunityId}`
+            : c.organizationId
+              ? `/crm/organisations/${c.organizationId}`
+              : "/crm",
+          _entityType: "Contract",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.PROCESS_READ)) {
     searches.push(
-      prisma.processus
-        .findMany({
-          where: { nom: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("Processus", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.processus.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, nom: true, statut: true },
-        })
-        .then((rows) =>
-          rows.map((p) => ({
-            type: "Processus" as const,
-            id: p.id,
-            title: p.nom,
-            subtitle: p.statut,
-            href: `/processus/${p.id}`,
-            _entityType: "Processus",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((p) => ({
+          type: "Processus" as const,
+          id: p.id,
+          title: p.nom,
+          subtitle: p.statut,
+          href: `/processus/${p.id}`,
+          _entityType: "Processus",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.RISK_READ)) {
     searches.push(
-      prisma.organizationalRisk
-        .findMany({
-          where: { titre: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("OrganizationalRisk", ["titre"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.organizationalRisk.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, titre: true, criticite: true },
-        })
-        .then((rows) =>
-          rows.map((r) => ({
-            type: "Risque" as const,
-            id: r.id,
-            title: r.titre,
-            subtitle: `Risque organisationnel · ${r.criticite}`,
-            href: `/risques/${r.id}`,
-            _entityType: "OrganizationalRisk",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((r) => ({
+          type: "Risque" as const,
+          id: r.id,
+          title: r.titre,
+          subtitle: `Risque organisationnel · ${r.criticite}`,
+          href: `/risques/${r.id}`,
+          _entityType: "OrganizationalRisk",
+        }));
+      })
     );
   }
 
   if (hasPermission(permissions, PERMISSIONS.PROJECT_READ)) {
     searches.push(
-      prisma.projectRisk
-        .findMany({
-          where: { titre: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("ProjectRisk", ["titre"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.projectRisk.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, titre: true, statut: true, projectId: true, project: { select: { nom: true } } },
-        })
-        .then((rows) =>
-          rows.map((r) => ({
-            type: "Risque" as const,
-            id: r.id,
-            title: r.titre,
-            subtitle: `Risque projet (${r.project.nom}) · ${r.statut}`,
-            href: `/projets/${r.projectId}`,
-            _entityType: "ProjectRisk",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((r) => ({
+          type: "Risque" as const,
+          id: r.id,
+          title: r.titre,
+          subtitle: `Risque projet (${r.project.nom}) · ${r.statut}`,
+          href: `/projets/${r.projectId}`,
+          _entityType: "ProjectRisk",
+        }));
+      })
     );
   }
 
@@ -433,22 +424,22 @@ export async function globalSearch(
   // par Contact CRM/Organisation CRM ci-dessus).
   if (hasPermission(permissions, PERMISSIONS.OBJECTIVE_READ)) {
     searches.push(
-      prisma.indicator
-        .findMany({
-          where: { nom: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("Indicator", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.indicator.findMany({
+          where: { id: { in: candidateIds } },
           take: 8,
           select: { id: true, nom: true, objectiveId: true, projectId: true, taskId: true, objective: { select: { titre: true } } },
-        })
-        .then((rows) =>
-          rows.map((i) => ({
-            type: "KPI" as const,
-            id: i.id,
-            title: i.nom,
-            subtitle: i.objective?.titre ?? null,
-            href: i.objectiveId ? `/objectifs/${i.objectiveId}` : i.projectId ? `/projets/${i.projectId}` : i.taskId ? `/taches/${i.taskId}` : "/objectifs",
-            _entityType: "Indicator",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((i) => ({
+          type: "KPI" as const,
+          id: i.id,
+          title: i.nom,
+          subtitle: i.objective?.titre ?? null,
+          href: i.objectiveId ? `/objectifs/${i.objectiveId}` : i.projectId ? `/projets/${i.projectId}` : i.taskId ? `/taches/${i.taskId}` : "/objectifs",
+          _entityType: "Indicator",
+        }));
+      })
     );
   }
 
@@ -457,22 +448,22 @@ export async function globalSearch(
   // qu'un filtre est actif pour eviter de renvoyer des resultats non filtres.
   if (!hasAdvancedFilters) {
     searches.push(
-      prisma.user
-        .findMany({
-          where: { isActive: true, name: { contains: q, mode: "insensitive" } },
+      fuzzyMatchIds("User", ["name"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.user.findMany({
+          where: { id: { in: candidateIds }, isActive: true },
           take: 8,
           select: { id: true, name: true, role: { select: { label: true } } },
-        })
-        .then((rows) =>
-          rows.map((u) => ({
-            type: "Utilisateur" as const,
-            id: u.id,
-            title: u.name,
-            subtitle: u.role.label,
-            href: `/administration/utilisateurs`,
-            _entityType: "User",
-          }))
-        )
+        });
+        return sortByRelevance(rows, candidateIds).map((u) => ({
+          type: "Utilisateur" as const,
+          id: u.id,
+          title: u.name,
+          subtitle: u.role.label,
+          href: `/administration/utilisateurs`,
+          _entityType: "User",
+        }));
+      })
     );
   }
 
