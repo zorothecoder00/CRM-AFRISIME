@@ -449,6 +449,7 @@ model User {
   delegationsReceived              Delegation[]                   @relation("DelegationDelegataire")
   delegationsCreated               Delegation[]                   @relation("DelegationCreatedBy")
   organizationProfilesUpdated      OrganizationProfile[]
+  exchangeRatesUpdated             ExchangeRate[]
   strategicAxesCreated             StrategicAxis[]
   swotItemsCreated                 SwotItem[]
   tasksOwned                       Task[]                         @relation("TaskResponsablePrincipal")
@@ -787,6 +788,28 @@ model OrganizationProfile {
   updatedById String?
   updatedBy   User?    @relation(fields: [updatedById], references: [id])
   updatedAt   DateTime @updatedAt
+}
+
+// Taux de change (revue applicative du 2026-08-19, point faible "pas de
+// moteur de conversion de change") — agréger des entités en devises
+// différentes (§23 v2.2, multi-pays) sans convertir juxtaposait jusqu'ici
+// des nombres bruts sous une étiquette unique, trompeur. Aucune clé API de
+// taux de change en direct disponible dans cette instance (même contrainte
+// que l'email/l'IA) : taux maintenus manuellement par un administrateur,
+// comme ferait une équipe finance sans flux temps réel. Non orienté (une
+// seule ligne par paire from->to) ; l'inverse est calculé à la volée
+// (1/taux) par convertMontant() plutôt que dupliqué.
+model ExchangeRate {
+  id          String   @id @default(cuid())
+  fromDevise  String
+  toDevise    String
+  taux        Decimal  @db.Decimal(18, 6)
+  updatedById String
+  updatedBy   User     @relation(fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([fromDevise, toDevise])
 }
 
 // Multi-Organization Platform (cahier des charges V3.0 §27) — "La V3 doit

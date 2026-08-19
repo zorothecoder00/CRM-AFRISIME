@@ -6,10 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { computeEntityScopePilotage, getRootDepartmentsForEntity } from "@/lib/consolidation";
+import { computeEntityScopePilotage, computeEntityBudgetRollup, getRootDepartmentsForEntity } from "@/lib/consolidation";
 import { entityLevelLabel, buildEntityBreadcrumb, computeEntityDepth } from "@/lib/entity-tree";
-import { getDeviseForEntity } from "@/lib/currency";
-import { Building2 } from "lucide-react";
+import { Building2, TriangleAlert } from "lucide-react";
 
 /**
  * Drill-down d'une entité (cahier des charges V2.2 §24) — descend jusqu'à
@@ -39,10 +38,10 @@ export default async function ConsolidationEntitePage({
   const depth = computeEntityDepth(entityId, byId);
   const children = allEntities.filter((e) => e.parentId === entityId);
 
-  const [pilotage, rootDepartments, devise] = await Promise.all([
+  const [pilotage, budgetRollup, rootDepartments] = await Promise.all([
     computeEntityScopePilotage(entityId),
+    computeEntityBudgetRollup(entityId),
     getRootDepartmentsForEntity(entityId),
-    getDeviseForEntity(entityId),
   ]);
 
   return (
@@ -77,7 +76,14 @@ export default async function ConsolidationEntitePage({
           <Info label="Effectif" value={`${pilotage.headcount}`} />
           <Info label="Projets actifs" value={`${pilotage.projectsActifs} / ${pilotage.projectsTotal}`} />
           <Info label="Avancement moyen" value={pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—"} />
-          <Info label="Budget total" value={`${pilotage.budgetTotal.toLocaleString("fr-FR")} ${devise}`} />
+          <Info
+            label="Budget total"
+            value={`${budgetRollup.budgetTotal.toLocaleString("fr-FR")} ${budgetRollup.devise}`}
+          />
+          <Info
+            label="Coût réel total"
+            value={`${budgetRollup.coutReelTotal.toLocaleString("fr-FR")} ${budgetRollup.devise}`}
+          />
           <Info label="Tâches en cours" value={`${pilotage.tachesEnCours}`} />
           <Info label="Tâches en retard" value={`${pilotage.tachesEnRetard}`} />
           <Info label="Risques critiques" value={`${pilotage.risquesCritiques}`} />
@@ -86,6 +92,22 @@ export default async function ConsolidationEntitePage({
             value={pilotage.tauxOccupationMoyen !== null ? `${pilotage.tauxOccupationMoyen}%` : "—"}
           />
         </CardContent>
+        {budgetRollup.conversionIncomplete && (
+          <CardContent className="pt-0">
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-warning">
+              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p>
+                Un ou plusieurs projets de cette entité sont dans une devise sans taux de change configuré vers{" "}
+                {budgetRollup.devise} — le total ci-dessus additionne leur montant brut non converti et est donc
+                probablement inexact. Renseignez le taux manquant dans{" "}
+                <Link href="/administration/devises" className="underline">
+                  Administration → Devises
+                </Link>
+                .
+              </p>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {children.length > 0 ? (
