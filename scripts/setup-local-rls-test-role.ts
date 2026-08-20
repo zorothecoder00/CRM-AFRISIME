@@ -81,6 +81,19 @@ const COVERED_TABLES = [
   "Plan",
   "Programme",
   "ProgrammeRisk",
+  "GovernanceInstance",
+  "GovernanceInstanceMember",
+  "GovernanceMeeting",
+  "GovernanceMeetingParticipant",
+  "GovernanceMeetingDocument",
+  "GovernanceDecision",
+  "Processus",
+  "ProcessusEtape",
+  "ProcessusVersion",
+  "ProcessusExecution",
+  "ProcessusExecutionEtape",
+  "ProcessusDocument",
+  "OrganizationalRisk",
 ];
 
 async function main() {

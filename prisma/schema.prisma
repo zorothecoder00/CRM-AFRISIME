@@ -928,6 +928,19 @@ model PlatformOrganization {
   plans                                       Plan[]                  @relation("PlatformOrganizationPlans")
   programmes                                    Programme[]             @relation("PlatformOrganizationProgrammes")
   programmeRisks                                  ProgrammeRisk[]         @relation("PlatformOrganizationProgrammeRisks")
+  governanceInstances       GovernanceInstance[]           @relation("PlatformOrganizationGovernanceInstances")
+  governanceInstanceMembers   GovernanceInstanceMember[]     @relation("PlatformOrganizationGovernanceInstanceMembers")
+  governanceMeetings            GovernanceMeeting[]            @relation("PlatformOrganizationGovernanceMeetings")
+  governanceMeetingParticipants   GovernanceMeetingParticipant[] @relation("PlatformOrganizationGovernanceMeetingParticipants")
+  governanceMeetingDocuments        GovernanceMeetingDocument[]    @relation("PlatformOrganizationGovernanceMeetingDocuments")
+  governanceDecisions                  GovernanceDecision[]           @relation("PlatformOrganizationGovernanceDecisions")
+  processusListe                          Processus[]                     @relation("PlatformOrganizationProcessus")
+  processusEtapes                             ProcessusEtape[]                @relation("PlatformOrganizationProcessusEtapes")
+  processusVersions                               ProcessusVersion[]              @relation("PlatformOrganizationProcessusVersions")
+  processusExecutions                                 ProcessusExecution[]            @relation("PlatformOrganizationProcessusExecutions")
+  processusExecutionEtapes                                ProcessusExecutionEtape[]       @relation("PlatformOrganizationProcessusExecutionEtapes")
+  processusDocuments                                          ProcessusDocument[]             @relation("PlatformOrganizationProcessusDocuments")
+  organizationalRisks                                             OrganizationalRisk[]            @relation("PlatformOrganizationOrganizationalRisks")
 }
 
 enum PlatformOrganizationStatut {
@@ -3587,6 +3600,11 @@ enum GovernanceDecisionPriorite {
 // TaskValidationRun dans ce schema).
 model GovernanceInstance {
   id          String                 @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceInstances", fields: [organizationId], references: [id])
   nom         String
   type        GovernanceInstanceType @default(AUTRE)
   description String?
@@ -3602,6 +3620,10 @@ model GovernanceInstance {
 
 model GovernanceInstanceMember {
   id         String                 @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que
+  // GovernanceInstance, denormalise depuis instance.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceInstanceMembers", fields: [organizationId], references: [id])
   instanceId String
   instance   GovernanceInstance     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   userId     String
@@ -3620,6 +3642,10 @@ model GovernanceInstanceMember {
 
 model GovernanceMeeting {
   id          String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que
+  // GovernanceInstance, denormalise depuis instance.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceMeetings", fields: [organizationId], references: [id])
   instanceId  String
   instance    GovernanceInstance @relation(fields: [instanceId], references: [id])
   titre       String
@@ -3645,6 +3671,10 @@ model GovernanceMeetingParticipant {
   userId    String
   meeting   GovernanceMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   user      User              @relation("GovernanceMeetingParticipantUser", fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que
+  // GovernanceMeeting, denormalise depuis meeting.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceMeetingParticipants", fields: [organizationId], references: [id])
 
   @@id([meetingId, userId])
 }
@@ -3654,6 +3684,10 @@ model GovernanceMeetingParticipant {
 // reunion de gouvernance n'appartient justement a aucun projet.
 model GovernanceMeetingDocument {
   id           String            @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que
+  // GovernanceMeeting, denormalise depuis meeting.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceMeetingDocuments", fields: [organizationId], references: [id])
   meetingId    String
   meeting      GovernanceMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   nom          String
@@ -3673,6 +3707,10 @@ model GovernanceMeetingDocument {
 // Task TERMINEE).
 model GovernanceDecision {
   id            String                     @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que
+  // GovernanceMeeting, denormalise depuis meeting.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceDecisions", fields: [organizationId], references: [id])
   meetingId     String
   meeting       GovernanceMeeting          @relation(fields: [meetingId], references: [id])
   reference     String?
@@ -3712,6 +3750,11 @@ enum ProcessusExecutionStatut {
 // d'analyse (§4.4) soient calcules sur des donnees vraies, pas fictives.
 model Processus {
   id                String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProcessus", fields: [organizationId], references: [id])
   nom               String
   description       String?
   processusParentId String?
@@ -3738,6 +3781,10 @@ model Processus {
 
 model ProcessusEtape {
   id            String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que Processus,
+  // denormalise depuis processus.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProcessusEtapes", fields: [organizationId], references: [id])
   processusId   String
   processus     Processus @relation(fields: [processusId], references: [id], onDelete: Cascade)
   nom           String
@@ -3760,6 +3807,10 @@ model ProcessusEtape {
 // DocumentVersion : pas de diff structurel, juste un horodatage + note.
 model ProcessusVersion {
   id          String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que Processus,
+  // denormalise depuis processus.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProcessusVersions", fields: [organizationId], references: [id])
   processusId String
   processus   Processus @relation(fields: [processusId], references: [id])
   version     Int
@@ -3777,6 +3828,10 @@ model ProcessusVersion {
 // mockes. Voir src/lib/processus-analytics.ts.
 model ProcessusExecution {
   id              String                   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que Processus,
+  // denormalise depuis processus.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProcessusExecutions", fields: [organizationId], references: [id])
   processusId     String
   processus       Processus                @relation(fields: [processusId], references: [id])
   libelle         String
@@ -3799,6 +3854,10 @@ model ProcessusExecution {
 // calcul du temps par etape et la detection des goulots d'etranglement.
 model ProcessusExecutionEtape {
   id          String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que
+  // ProcessusExecution, denormalise depuis execution.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProcessusExecutionEtapes", fields: [organizationId], references: [id])
   executionId String
   execution   ProcessusExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   etapeId     String
@@ -3812,6 +3871,10 @@ model ProcessusExecutionEtape {
 
 model ProcessusDocument {
   id           String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que Processus,
+  // denormalise depuis processus.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProcessusDocuments", fields: [organizationId], references: [id])
   processusId  String
   processus    Processus @relation(fields: [processusId], references: [id], onDelete: Cascade)
   nom          String
@@ -3841,6 +3904,11 @@ enum RiskCriticite {
 // pour ProjectRisk) plutot que de dupliquer des enums quasi identiques.
 model OrganizationalRisk {
   id                 String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 12 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationOrganizationalRisks", fields: [organizationId], references: [id])
   code               String          @unique
   titre              String
   description        String?

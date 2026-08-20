@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-11) — rattache toutes
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-12) — rattache toutes
  * les lignes existantes (sans organizationId) des modeles couverts par le
  * retrofit multi-tenant a une PlatformOrganization "AfriSime", conformement
  * a la decision actee le 2026-08-20 : les donnees actuelles de ce
@@ -86,6 +86,19 @@ const MODELS = [
   { label: "Plans", client: prisma.plan },
   { label: "Programmes", client: prisma.programme },
   { label: "Risques programme", client: prisma.programmeRisk },
+  { label: "Instances de gouvernance", client: prisma.governanceInstance },
+  { label: "Membres d'instance de gouvernance", client: prisma.governanceInstanceMember },
+  { label: "Réunions de gouvernance", client: prisma.governanceMeeting },
+  { label: "Participants de réunion de gouvernance", client: prisma.governanceMeetingParticipant },
+  { label: "Documents de réunion de gouvernance", client: prisma.governanceMeetingDocument },
+  { label: "Décisions de gouvernance", client: prisma.governanceDecision },
+  { label: "Processus", client: prisma.processus },
+  { label: "Étapes de processus", client: prisma.processusEtape },
+  { label: "Versions de processus", client: prisma.processusVersion },
+  { label: "Exécutions de processus", client: prisma.processusExecution },
+  { label: "Étapes d'exécution de processus", client: prisma.processusExecutionEtape },
+  { label: "Documents de processus", client: prisma.processusDocument },
+  { label: "Risques organisationnels", client: prisma.organizationalRisk },
 ] as const;
 
 async function main() {

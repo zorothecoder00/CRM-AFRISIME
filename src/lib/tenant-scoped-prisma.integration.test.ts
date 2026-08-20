@@ -140,6 +140,28 @@ let programmeA: { id: string };
 let programmeB: { id: string };
 let programmeRiskA: { id: string };
 let programmeRiskB: { id: string };
+let governanceInstanceA: { id: string };
+let governanceInstanceB: { id: string };
+let governanceMeetingA: { id: string };
+let governanceMeetingB: { id: string };
+let governanceMeetingDocumentA: { id: string };
+let governanceMeetingDocumentB: { id: string };
+let governanceDecisionA: { id: string };
+let governanceDecisionB: { id: string };
+let processusA: { id: string };
+let processusB: { id: string };
+let processusEtapeA: { id: string };
+let processusEtapeB: { id: string };
+let processusVersionA: { id: string };
+let processusVersionB: { id: string };
+let processusExecutionA: { id: string };
+let processusExecutionB: { id: string };
+let processusExecutionEtapeA: { id: string };
+let processusExecutionEtapeB: { id: string };
+let processusDocumentA: { id: string };
+let processusDocumentB: { id: string };
+let organizationalRiskA: { id: string };
+let organizationalRiskB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -784,16 +806,198 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     programmeRiskB = await admin.programmeRisk.create({
       data: { programmeId: programmeB.id, titre: "Risque B", createdById: userB.id, organizationId: orgB.id },
     });
+
+    governanceInstanceA = await admin.governanceInstance.create({
+      data: { nom: "Instance A", createdById: userA.id, organizationId: orgA.id },
+    });
+    governanceInstanceB = await admin.governanceInstance.create({
+      data: { nom: "Instance B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    governanceMeetingA = await admin.governanceMeeting.create({
+      data: {
+        instanceId: governanceInstanceA.id,
+        titre: "Reunion Gouvernance A",
+        dateHeure: new Date(),
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    governanceMeetingB = await admin.governanceMeeting.create({
+      data: {
+        instanceId: governanceInstanceB.id,
+        titre: "Reunion Gouvernance B",
+        dateHeure: new Date(),
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    await admin.governanceMeetingParticipant.create({
+      data: { meetingId: governanceMeetingA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    await admin.governanceMeetingParticipant.create({
+      data: { meetingId: governanceMeetingB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    governanceMeetingDocumentA = await admin.governanceMeetingDocument.create({
+      data: {
+        meetingId: governanceMeetingA.id,
+        nom: "Doc Gouvernance A",
+        url: "https://example.com/gov-doc-a",
+        uploadedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    governanceMeetingDocumentB = await admin.governanceMeetingDocument.create({
+      data: {
+        meetingId: governanceMeetingB.id,
+        nom: "Doc Gouvernance B",
+        url: "https://example.com/gov-doc-b",
+        uploadedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    governanceDecisionA = await admin.governanceDecision.create({
+      data: {
+        meetingId: governanceMeetingA.id,
+        objet: "Objet A",
+        decision: "Decision A",
+        organizationId: orgA.id,
+      },
+    });
+    governanceDecisionB = await admin.governanceDecision.create({
+      data: {
+        meetingId: governanceMeetingB.id,
+        objet: "Objet B",
+        decision: "Decision B",
+        organizationId: orgB.id,
+      },
+    });
+
+    processusA = await admin.processus.create({
+      data: { nom: "Processus A", createdById: userA.id, organizationId: orgA.id },
+    });
+    processusB = await admin.processus.create({
+      data: { nom: "Processus B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    processusEtapeA = await admin.processusEtape.create({
+      data: { processusId: processusA.id, nom: "Etape A", organizationId: orgA.id },
+    });
+    processusEtapeB = await admin.processusEtape.create({
+      data: { processusId: processusB.id, nom: "Etape B", organizationId: orgB.id },
+    });
+
+    processusVersionA = await admin.processusVersion.create({
+      data: { processusId: processusA.id, version: 1, createdById: userA.id, organizationId: orgA.id },
+    });
+    processusVersionB = await admin.processusVersion.create({
+      data: { processusId: processusB.id, version: 1, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    processusExecutionA = await admin.processusExecution.create({
+      data: {
+        processusId: processusA.id,
+        libelle: "Execution A",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    processusExecutionB = await admin.processusExecution.create({
+      data: {
+        processusId: processusB.id,
+        libelle: "Execution B",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    processusExecutionEtapeA = await admin.processusExecutionEtape.create({
+      data: { executionId: processusExecutionA.id, etapeId: processusEtapeA.id, organizationId: orgA.id },
+    });
+    processusExecutionEtapeB = await admin.processusExecutionEtape.create({
+      data: { executionId: processusExecutionB.id, etapeId: processusEtapeB.id, organizationId: orgB.id },
+    });
+
+    processusDocumentA = await admin.processusDocument.create({
+      data: {
+        processusId: processusA.id,
+        nom: "Doc Processus A",
+        url: "https://example.com/proc-doc-a",
+        uploadedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    processusDocumentB = await admin.processusDocument.create({
+      data: {
+        processusId: processusB.id,
+        nom: "Doc Processus B",
+        url: "https://example.com/proc-doc-b",
+        uploadedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    organizationalRiskA = await admin.organizationalRisk.create({
+      data: {
+        code: `RISK-A-${Date.now()}`,
+        titre: "Risque organisationnel A",
+        criticite: "MODERE",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    organizationalRiskB = await admin.organizationalRisk.create({
+      data: {
+        code: `RISK-B-${Date.now()}`,
+        titre: "Risque organisationnel B",
+        criticite: "MODERE",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-11) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-12) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
     // qui referencent PlatformOrganization.
+    await admin.organizationalRisk.deleteMany({
+      where: { id: { in: [organizationalRiskA.id, organizationalRiskB.id] } },
+    });
+    await admin.processusDocument.deleteMany({
+      where: { id: { in: [processusDocumentA.id, processusDocumentB.id] } },
+    });
+    await admin.processusExecutionEtape.deleteMany({
+      where: { id: { in: [processusExecutionEtapeA.id, processusExecutionEtapeB.id] } },
+    });
+    await admin.processusExecution.deleteMany({
+      where: { id: { in: [processusExecutionA.id, processusExecutionB.id] } },
+    });
+    await admin.processusVersion.deleteMany({ where: { id: { in: [processusVersionA.id, processusVersionB.id] } } });
+    await admin.processusEtape.deleteMany({ where: { id: { in: [processusEtapeA.id, processusEtapeB.id] } } });
+    await admin.processus.deleteMany({ where: { id: { in: [processusA.id, processusB.id] } } });
+    await admin.governanceDecision.deleteMany({
+      where: { id: { in: [governanceDecisionA.id, governanceDecisionB.id] } },
+    });
+    await admin.governanceMeetingDocument.deleteMany({
+      where: { id: { in: [governanceMeetingDocumentA.id, governanceMeetingDocumentB.id] } },
+    });
+    await admin.governanceMeetingParticipant.deleteMany({
+      where: { meetingId: { in: [governanceMeetingA.id, governanceMeetingB.id] } },
+    });
+    await admin.governanceMeeting.deleteMany({
+      where: { id: { in: [governanceMeetingA.id, governanceMeetingB.id] } },
+    });
+    await admin.governanceInstance.deleteMany({
+      where: { id: { in: [governanceInstanceA.id, governanceInstanceB.id] } },
+    });
     await admin.programmeRisk.deleteMany({ where: { id: { in: [programmeRiskA.id, programmeRiskB.id] } } });
     await admin.programme.deleteMany({ where: { id: { in: [programmeA.id, programmeB.id] } } });
     await admin.plan.deleteMany({ where: { id: { in: [planA.id, planB.id] } } });
@@ -1531,5 +1735,127 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
       tx.programmeRisk.findMany({ where: { id: { in: [programmeRiskA.id, programmeRiskB.id] } } })
     );
     expect(risks.map((r) => r.id)).toEqual([programmeRiskB.id]);
+  });
+
+  it("GovernanceInstance : un role scope a l'organisation A ne voit que les instances de A", async () => {
+    const instances = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.governanceInstance.findMany({ where: { id: { in: [governanceInstanceA.id, governanceInstanceB.id] } } })
+    );
+    expect(instances.map((i) => i.id)).toEqual([governanceInstanceA.id]);
+  });
+
+  it("GovernanceInstance : le role non-proprietaire ne peut pas modifier une instance hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.governanceInstance.update({ where: { id: governanceInstanceB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("GovernanceMeeting : un role scope a l'organisation B ne voit que les reunions de gouvernance de B", async () => {
+    const meetings = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.governanceMeeting.findMany({ where: { id: { in: [governanceMeetingA.id, governanceMeetingB.id] } } })
+    );
+    expect(meetings.map((m) => m.id)).toEqual([governanceMeetingB.id]);
+  });
+
+  it("GovernanceMeetingParticipant : un role scope a l'organisation A ne voit que les participants de A", async () => {
+    const participants = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.governanceMeetingParticipant.findMany({
+        where: { meetingId: { in: [governanceMeetingA.id, governanceMeetingB.id] } },
+      })
+    );
+    expect(participants.map((p) => p.meetingId)).toEqual([governanceMeetingA.id]);
+  });
+
+  it("GovernanceMeetingDocument : un role scope a l'organisation B ne voit que les documents de B", async () => {
+    const docs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.governanceMeetingDocument.findMany({
+        where: { id: { in: [governanceMeetingDocumentA.id, governanceMeetingDocumentB.id] } },
+      })
+    );
+    expect(docs.map((d) => d.id)).toEqual([governanceMeetingDocumentB.id]);
+  });
+
+  it("GovernanceDecision : un role scope a l'organisation A ne voit que les decisions de A", async () => {
+    const decisions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.governanceDecision.findMany({ where: { id: { in: [governanceDecisionA.id, governanceDecisionB.id] } } })
+    );
+    expect(decisions.map((d) => d.id)).toEqual([governanceDecisionA.id]);
+  });
+
+  it("GovernanceDecision : le role non-proprietaire ne peut pas modifier une decision hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.governanceDecision.update({ where: { id: governanceDecisionB.id }, data: { objet: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Processus : un role scope a l'organisation B ne voit que les processus de B", async () => {
+    const processus = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.processus.findMany({ where: { id: { in: [processusA.id, processusB.id] } } })
+    );
+    expect(processus.map((p) => p.id)).toEqual([processusB.id]);
+  });
+
+  it("Processus : le role non-proprietaire ne peut pas modifier un processus hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.processus.update({ where: { id: processusB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ProcessusEtape : un role scope a l'organisation A ne voit que les etapes de A", async () => {
+    const etapes = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.processusEtape.findMany({ where: { id: { in: [processusEtapeA.id, processusEtapeB.id] } } })
+    );
+    expect(etapes.map((e) => e.id)).toEqual([processusEtapeA.id]);
+  });
+
+  it("ProcessusVersion : un role scope a l'organisation B ne voit que les versions de B", async () => {
+    const versions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.processusVersion.findMany({ where: { id: { in: [processusVersionA.id, processusVersionB.id] } } })
+    );
+    expect(versions.map((v) => v.id)).toEqual([processusVersionB.id]);
+  });
+
+  it("ProcessusExecution : un role scope a l'organisation A ne voit que les executions de A", async () => {
+    const executions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.processusExecution.findMany({ where: { id: { in: [processusExecutionA.id, processusExecutionB.id] } } })
+    );
+    expect(executions.map((e) => e.id)).toEqual([processusExecutionA.id]);
+  });
+
+  it("ProcessusExecutionEtape : un role scope a l'organisation B ne voit que les etapes d'execution de B", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.processusExecutionEtape.findMany({
+        where: { id: { in: [processusExecutionEtapeA.id, processusExecutionEtapeB.id] } },
+      })
+    );
+    expect(items.map((i) => i.id)).toEqual([processusExecutionEtapeB.id]);
+  });
+
+  it("ProcessusDocument : un role scope a l'organisation A ne voit que les documents de A", async () => {
+    const docs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.processusDocument.findMany({ where: { id: { in: [processusDocumentA.id, processusDocumentB.id] } } })
+    );
+    expect(docs.map((d) => d.id)).toEqual([processusDocumentA.id]);
+  });
+
+  it("OrganizationalRisk : un role scope a l'organisation B ne voit que les risques de B", async () => {
+    const risks = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.organizationalRisk.findMany({ where: { id: { in: [organizationalRiskA.id, organizationalRiskB.id] } } })
+    );
+    expect(risks.map((r) => r.id)).toEqual([organizationalRiskB.id]);
+  });
+
+  it("OrganizationalRisk : le role non-proprietaire ne peut pas modifier un risque hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.organizationalRisk.update({ where: { id: organizationalRiskB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
   });
 });
