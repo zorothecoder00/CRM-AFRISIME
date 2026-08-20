@@ -74,9 +74,17 @@ const nextConfig: NextConfig = {
 //   API-first        : ✅ toute mutation passe par une server action typée
 //     (jamais de logique métier directement dans un composant serveur).
 //   Sécurité         : ✅ permissions granulaires + MFA + audit (§18/§22/§44).
-//   Multi-tenant     : 🟡 registre seulement (§27, PlatformOrganization) —
-//     pas d'isolation de données effective, voir le commentaire détaillé
-//     sur ce modèle dans schema.prisma.
+//   Multi-tenant     : 🟡 Phase 1 (organizationId nullable sur User/
+//     Department, JWT) + preuve de concept Phase 2/3 (RLS + rôle Postgres
+//     non-propriétaire + 5 tests d'intégration réels, tous verts — voir
+//     src/lib/tenant-scoped-prisma.ts et son .integration.test.ts) actées
+//     le 2026-08-20. Mécanisme prouvé sur 2 modèles, PAS encore étendu aux
+//     ~148 autres (Project, Task, CRM, gouvernance...), et withTenantScope
+//     n'est pas encore appliqué par le reste de l'app (qui continue
+//     d'utiliser le client Prisma non scopé, exempté de RLS en tant que
+//     propriétaire) — toujours pas d'isolation de données effective en
+//     pratique. Voir le commentaire détaillé sur PlatformOrganization dans
+//     schema.prisma.
 //   Multi-entités    : ✅ Entity + Department.entityId (V2.2 §22-23), déjà
 //     opérationnel (consolidation, benchmarking §32).
 //   Extensibilité    : ✅ modèles génériques ouverts (Dependency, EntityTag,

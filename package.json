@@ -12,8 +12,10 @@
     "create-admin": "tsx scripts/create-admin.ts",
     "sync-role-permissions": "tsx scripts/sync-role-permissions.ts",
     "backfill-platform-organization": "tsx scripts/backfill-platform-organization.ts",
+    "setup-local-rls-test-role": "tsx scripts/setup-local-rls-test-role.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
