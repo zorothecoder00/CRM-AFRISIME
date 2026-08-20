@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { computeEntityScopePilotage } from "@/lib/consolidation";
@@ -7,8 +8,19 @@ const ACTIVE_TASK_STATUSES = ["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"];
 
 export type BenchmarkColumn = { label: string; rows: { label: string; value: string }[] };
 
+// Mis en cache 3 min (revalidate) — meme principe que health-score.ts/
+// maturity-assessment.ts (agregat recalcule a chaque comparaison, pas de
+// tag par mutation source), mais fenetre plus courte : contrairement a un
+// score organisationnel global, une comparaison ad-hoc choisie par
+// l'utilisateur (projets/equipes/entites/indicateurs/periodes) affiche des
+// champs sensibles a la fraicheur (taches en retard, avancement) qu'on ne
+// veut pas voir figes plusieurs minutes apres un changement recent.
+// unstable_cache utilise deja les arguments (ids/ranges) comme partie de la
+// cle de cache — pas besoin de keyParts explicites, aucune fermeture externe.
+const BENCHMARK_REVALIDATE_SECONDS = 180;
+
 /** Comparaison entre projets (cahier des charges V2.2 §25). */
-export async function benchmarkProjects(projectIds: string[]): Promise<BenchmarkColumn[]> {
+async function benchmarkProjectsUncached(projectIds: string[]): Promise<BenchmarkColumn[]> {
   const [projects, devise] = await Promise.all([
     prisma.project.findMany({
       where: { id: { in: projectIds } },
@@ -41,7 +53,7 @@ export async function benchmarkProjects(projectIds: string[]): Promise<Benchmark
 }
 
 /** Comparaison entre équipes (cahier des charges V2.2 §25) — charge agrégée via computeWorkload (module 10). */
-export async function benchmarkTeams(teamIds: string[]): Promise<BenchmarkColumn[]> {
+async function benchmarkTeamsUncached(teamIds: string[]): Promise<BenchmarkColumn[]> {
   const teams = await prisma.team.findMany({
     where: { id: { in: teamIds } },
     include: { members: { include: { user: { include: { role: true } } } } },
@@ -114,7 +126,7 @@ export async function benchmarkTeams(teamIds: string[]): Promise<BenchmarkColumn
  * sous une étiquette unique serait trompeur (cf. src/lib/currency.ts,
  * getDeviseForEntity).
  */
-export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkColumn[]> {
+async function benchmarkEntitiesUncached(entityIds: string[]): Promise<BenchmarkColumn[]> {
   const [entities, orgDevise] = await Promise.all([
     prisma.entity.findMany({ where: { id: { in: entityIds } } }),
     getOrganizationDevise(),
@@ -152,7 +164,7 @@ export async function benchmarkEntities(entityIds: string[]): Promise<BenchmarkC
  * la conditionne lui-même à "des données agrégées et anonymisées [...] si
  * disponibles", et aucune source de ce type n'existe dans l'application.
  */
-export async function benchmarkIndicators(indicatorIds: string[]): Promise<BenchmarkColumn[]> {
+async function benchmarkIndicatorsUncached(indicatorIds: string[]): Promise<BenchmarkColumn[]> {
   const indicators = await prisma.indicator.findMany({
     where: { id: { in: indicatorIds } },
     include: {
@@ -188,7 +200,7 @@ export async function benchmarkIndicators(indicatorIds: string[]): Promise<Bench
  * depuis peu : les périodes anciennes seront clairsemées, le mécanisme reste
  * réel et se densifie avec le temps plutôt que d'être un mock.
  */
-export async function benchmarkPeriods(
+async function benchmarkPeriodsUncached(
   ranges: { label: string; start: string; end: string }[]
 ): Promise<BenchmarkColumn[]> {
   const results: BenchmarkColumn[] = [];
@@ -222,3 +234,19 @@ export async function benchmarkPeriods(
   }
   return results;
 }
+
+export const benchmarkProjects = unstable_cache(benchmarkProjectsUncached, ["benchmark-projects"], {
+  revalidate: BENCHMARK_REVALIDATE_SECONDS,
+});
+export const benchmarkTeams = unstable_cache(benchmarkTeamsUncached, ["benchmark-teams"], {
+  revalidate: BENCHMARK_REVALIDATE_SECONDS,
+});
+export const benchmarkEntities = unstable_cache(benchmarkEntitiesUncached, ["benchmark-entities"], {
+  revalidate: BENCHMARK_REVALIDATE_SECONDS,
+});
+export const benchmarkIndicators = unstable_cache(benchmarkIndicatorsUncached, ["benchmark-indicators"], {
+  revalidate: BENCHMARK_REVALIDATE_SECONDS,
+});
+export const benchmarkPeriods = unstable_cache(benchmarkPeriodsUncached, ["benchmark-periods"], {
+  revalidate: BENCHMARK_REVALIDATE_SECONDS,
+});

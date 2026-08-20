@@ -11,7 +11,13 @@ const nextConfig: NextConfig = {
   // Offline Mode (cahier des charges V3.0 §43) — détection de connectivité +
   // retry automatique des navigations/Server Actions en attente (voir
   // src/components/pwa/offline-banner.tsx). Un rechargement complet de page
-  // hors-ligne reste hors-scope (nécessiterait un service worker dédié).
+  // hors-ligne reste hors-scope : évalué le 2026-08-20 avec Serwist (seule
+  // option service-worker citée par la doc Next.js "Progressive Web Apps"),
+  // mais ce projet tourne sous Turbopack par défaut (Next 16) et le seul
+  // package Serwist compatible Turbopack (@serwist/turbopack) n'existe qu'en
+  // version preview pre-1.0 (10.0.0-preview.x, tag npm "preview") — pas de
+  // dépendance pre-release sur le pipeline de build. À réévaluer quand une
+  // version stable Turbopack de Serwist sortira.
   experimental: {
     useOffline: true,
   },
@@ -57,10 +63,14 @@ const nextConfig: NextConfig = {
 //     en mémoire entre requêtes) + Neon Postgres (pooler de connexions,
 //     autoscaling du compute côté fournisseur) absorbent une croissance de
 //     trafic sans changement de code ; pas encore éprouvé en charge réelle
-//     (pas de tests de charge effectués), et certains calculs lourds
-//     (health-score, maturity-assessment...) recalculent tout à la demande
-//     plutôt que d'être mis en cache/pré-agrégés — à revisiter si le volume
-//     de données grossit fortement.
+//     (pas de tests de charge effectués). health-score.ts et
+//     maturity-assessment.ts (les deux calculs les plus lourds, agrégats
+//     sur ~10-20 tables) sont mis en cache via unstable_cache (5-10 min,
+//     voir commentaires dans ces fichiers) plutôt que recalculés à chaque
+//     affichage — pas de pré-agrégation en table dédiée (MetricSnapshot
+//     reste réservé aux séries temporelles, §11) : à revisiter si le
+//     volume de données grossit fortement au point que même un cache de
+//     quelques minutes ne suffise plus.
 //   API-first        : ✅ toute mutation passe par une server action typée
 //     (jamais de logique métier directement dans un composant serveur).
 //   Sécurité         : ✅ permissions granulaires + MFA + audit (§18/§22/§44).

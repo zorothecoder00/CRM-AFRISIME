@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 // Digital Maturity Assessment (cahier des charges V3.0 §33) — distinct du
@@ -70,7 +71,16 @@ function ratio(numerator: number, denominator: number): number {
   return denominator > 0 ? clamp0100((numerator / denominator) * 100) : 0;
 }
 
-export async function computeMaturityAssessment(): Promise<MaturityAssessment> {
+// Mis en cache 10 min (revalidate) — même logique que health-score.ts
+// (computeOrganizationalHealth) : agrégat sur ~20 tables recalculé en
+// entier à chaque affichage. Pas de tag par mutation source (trop de
+// contributeurs disparates, un oubli figerait le score plutôt que
+// simplement le rafraîchir un peu en retard) ; pas d'action de
+// configuration dédiée ici (contrairement au Health Score et ses poids)
+// donc uniquement du time-based, plus long que le Health Score car la
+// maturité évolue par nature plus lentement (pratiques/outils, pas
+// activité au jour le jour).
+async function computeMaturityAssessmentUncached(): Promise<MaturityAssessment> {
   const [
     profile,
     strategicAxesCount,
@@ -201,3 +211,7 @@ export async function computeMaturityAssessment(): Promise<MaturityAssessment> {
     faiblesses: sorted.slice(-3).reverse(),
   };
 }
+
+export const computeMaturityAssessment = unstable_cache(computeMaturityAssessmentUncached, ["maturity-assessment"], {
+  revalidate: 600,
+});

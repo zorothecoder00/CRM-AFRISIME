@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { HEALTH_SCORE_CACHE_TAG } from "@/lib/health-score";
 import type { HealthScoreDimension } from "@/generated/prisma/enums";
 
 async function requireSession() {
@@ -33,5 +34,9 @@ export async function updateHealthScoreWeight(dimension: HealthScoreDimension, p
     changes: { poids, isActive },
   });
 
+  // updateTag (pas revalidateTag) : Server Action + lecture-de-sa-propre-
+  // ecriture — l'admin qui vient de changer un poids doit voir le score
+  // recalcule immediatement, pas un stale-while-revalidate en arriere-plan.
+  updateTag(HEALTH_SCORE_CACHE_TAG);
   revalidatePath("/sante-organisationnelle");
 }

@@ -1,6 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import type { HealthScoreDimension } from "@/generated/prisma/enums";
+
+export const HEALTH_SCORE_CACHE_TAG = "health-score";
 
 export type HealthDimensionScore = {
   dimension: HealthScoreDimension;
@@ -34,12 +37,22 @@ function clamp0100(n: number): number {
 }
 
 // Organizational Health Score (cahier des charges V3.0 §13) — score
-// synthétique 0-100, moyenne pondérée de 9 dimensions calculées à la volée
-// à partir des données existantes (aucune donnée stockée, aucune
-// duplication) + TURNOVER, exclu du calcul par défaut (pas de modèle de
-// départ/turnover dans ce MVP) — "configurable" via HealthScoreWeight,
-// "explicable" via `explication` sur chaque dimension.
-export async function computeOrganizationalHealth(): Promise<OrganizationalHealth> {
+// synthétique 0-100, moyenne pondérée de 9 dimensions calculées à partir
+// des données existantes (aucune donnée stockée, aucune duplication) +
+// TURNOVER, exclu du calcul par défaut (pas de modèle de départ/turnover
+// dans ce MVP) — "configurable" via HealthScoreWeight, "explicable" via
+// `explication` sur chaque dimension.
+//
+// Mis en cache 5 min (revalidate) : ce calcul agrège des dizaines de
+// requêtes sur ~10 tables à chaque affichage de page — coûteux à recalculer
+// à chaque visite alors qu'un score organisationnel n'a pas besoin d'être
+// seconde-près. Pas de tag par mutation source (tâches, projets, risques...
+// des dizaines d'actions y contribuent, un oubli rendrait le score figé
+// silencieusement) : uniquement un updateTag ciblé quand les poids
+// eux-mêmes changent (src/actions/health-score.actions.ts), là où la
+// fraîcheur immédiate compte vraiment pour l'utilisateur qui vient de
+// modifier la configuration.
+async function computeOrganizationalHealthUncached(): Promise<OrganizationalHealth> {
   const weights = await prisma.healthScoreWeight.findMany();
   const weightByDimension = new Map(weights.map((w) => [w.dimension, w]));
   const weightFor = (dim: HealthScoreDimension) => weightByDimension.get(dim) ?? { poids: 10, isActive: true };
@@ -180,3 +193,8 @@ export async function computeOrganizationalHealth(): Promise<OrganizationalHealt
 
   return { score, dimensions };
 }
+
+export const computeOrganizationalHealth = unstable_cache(computeOrganizationalHealthUncached, ["organizational-health"], {
+  tags: [HEALTH_SCORE_CACHE_TAG],
+  revalidate: 300,
+});
