@@ -139,25 +139,61 @@ export async function updateContact(input: UpdateContactInput) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.CRM_MANAGE);
   const data = updateContactSchema.parse(input);
+  const newEmail = data.email || undefined;
 
-  const contact = await prisma.crmContact.update({
+  const existing = await prisma.crmContact.findUnique({
     where: { id: data.id },
-    data: {
-      prenom: data.prenom,
-      nom: data.nom,
-      email: data.email || undefined,
-      telephone: data.telephone || undefined,
-      fonction: data.fonction || undefined,
-      type: data.type,
-      source: data.source || undefined,
-      organizationId: data.organizationId || undefined,
-      notes: data.notes || undefined,
-      ownerId: data.ownerId || undefined,
-      score: data.score,
-      segment: data.segment || undefined,
-      prochaineRelance: data.prochaineRelance ? new Date(data.prochaineRelance) : data.prochaineRelance === "" ? null : undefined,
-    },
+    select: { portalAccount: { select: { id: true, email: true } } },
   });
+
+  // PortalAccount.email (unique, identifiant de connexion du portail externe)
+  // est copie depuis CrmContact.email a la creation du compte
+  // (createPortalAccount) mais ne se resynchronise jamais tout seul ensuite —
+  // sans ce garde-fou, changer l'email d'un contact ayant deja un acces
+  // portail desynchronise silencieusement son identifiant de connexion.
+  if (existing?.portalAccount && !newEmail) {
+    throw new Error(
+      "Impossible de retirer l'email : ce contact a un accès portail actif qui nécessite un email de connexion. Révoquez d'abord l'accès portail."
+    );
+  }
+
+  let contact;
+  try {
+    contact = await prisma.$transaction(async (tx) => {
+      const updated = await tx.crmContact.update({
+        where: { id: data.id },
+        data: {
+          prenom: data.prenom,
+          nom: data.nom,
+          email: newEmail,
+          telephone: data.telephone || undefined,
+          fonction: data.fonction || undefined,
+          type: data.type,
+          source: data.source || undefined,
+          organizationId: data.organizationId || undefined,
+          notes: data.notes || undefined,
+          ownerId: data.ownerId || undefined,
+          score: data.score,
+          segment: data.segment || undefined,
+          prochaineRelance: data.prochaineRelance ? new Date(data.prochaineRelance) : data.prochaineRelance === "" ? null : undefined,
+        },
+      });
+
+      if (existing?.portalAccount && newEmail && newEmail !== existing.portalAccount.email) {
+        await tx.portalAccount.update({
+          where: { id: existing.portalAccount.id },
+          data: { email: newEmail },
+        });
+      }
+
+      return updated;
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+      throw new Error("Cet email est déjà utilisé par un autre accès portail.");
+    }
+    throw error;
+  }
 
   await logAudit({
     userId: session.user.id,
@@ -169,6 +205,7 @@ export async function updateContact(input: UpdateContactInput) {
 
   revalidatePath(`/crm/contacts/${data.id}`);
   revalidatePath("/crm/contacts");
+  if (existing?.portalAccount) revalidatePath("/ecosysteme");
   return contact;
 }
 

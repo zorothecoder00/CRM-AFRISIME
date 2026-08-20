@@ -97,7 +97,13 @@ export function ContactFormDialog({
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+              {errors.email ? (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Optionnel, mais requis pour donner à ce contact un accès portail plus tard.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="telephone">Téléphone</Label>

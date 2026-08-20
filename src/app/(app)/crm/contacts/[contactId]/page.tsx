@@ -11,6 +11,7 @@ import { InteractionLog } from "@/components/crm/interaction-log";
 import { RelationshipGraphView } from "@/components/crm/relationship-graph-view";
 import { buildRelationshipGraph } from "@/lib/relationship-graph";
 import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog";
+import { ContactEditDialog } from "@/components/crm/contact-edit-dialog";
 import { PortalAccessCard } from "@/components/crm/portal-access-card";
 import { ContactPortalMessagesCard } from "@/components/crm/contact-portal-messages-card";
 import { markPortalMessagesReadByInternal } from "@/actions/portal.actions";
@@ -101,6 +102,30 @@ export default async function CrmContactDetailPage({
               {contact.prenom} {contact.nom}
             </h1>
             <Badge variant="outline">{TYPE_LABELS[contact.type]}</Badge>
+            {canManage && (
+              <ContactEditDialog
+                contact={{
+                  id: contact.id,
+                  prenom: contact.prenom,
+                  nom: contact.nom,
+                  email: contact.email,
+                  telephone: contact.telephone,
+                  fonction: contact.fonction,
+                  type: contact.type,
+                  source: contact.source,
+                  organizationId: contact.organizationId,
+                  notes: contact.notes,
+                  ownerId: contact.ownerId,
+                  score: contact.score,
+                  segment: contact.segment,
+                  prochaineRelance: contact.prochaineRelance
+                    ? contact.prochaineRelance.toISOString().slice(0, 10)
+                    : null,
+                }}
+                organizations={organizations.map((o) => ({ id: o.id, label: o.nom }))}
+                hasPortalAccount={!!contact.portalAccount}
+              />
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {contact.fonction || "Fonction non renseignée"}
