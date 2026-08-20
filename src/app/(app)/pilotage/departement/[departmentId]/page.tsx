@@ -31,8 +31,15 @@ const PROJECT_STATUS_LABELS: Record<string, string> = {
  * Niveaux 2/3/4 — Direction/Département/Service (cahier des charges §XXIII).
  * Le libellé de niveau est dérivé de la profondeur dans l'arbre Department,
  * pas d'un champ dédié. Affiche systématiquement : le roll-up (ce noeud +
- * descendants), les sous-unités pour continuer la descente, et l'équipe +
- * les projets rattachés directement à ce noeud (niveaux 5 et 6).
+ * descendants), les sous-unités pour continuer la descente, et le niveau 5
+ * ("Équipe" au sens du cahier des charges) + les projets rattachés
+ * directement à ce noeud (niveau 6).
+ *
+ * Le niveau 5 recouvre deux listes distinctes, à ne pas confondre :
+ * "Collaborateurs rattachés directement" = simples User.departmentId sur ce
+ * noeud (getDirectTeamScope, pas de structure) ; "Équipes de cette unité" =
+ * vraies entités Team (leader + membres, fiche dédiée /pilotage/equipe/[id]).
+ * Un collaborateur peut apparaître dans l'une sans l'autre.
  */
 export default async function DepartmentPilotagePage({
   params,
@@ -142,7 +149,7 @@ export default async function DepartmentPilotagePage({
       )}
 
       <div className="space-y-3">
-        <h2 className="text-lg font-medium">Équipe rattachée directement ({members.length})</h2>
+        <h2 className="text-lg font-medium">Collaborateurs rattachés directement ({members.length})</h2>
         {members.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun collaborateur rattaché directement à cette unité.</p>
         ) : (
