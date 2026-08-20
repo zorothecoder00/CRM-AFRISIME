@@ -10,6 +10,7 @@
     "check": "npm run lint && tsc --noEmit && next build",
     "db:seed": "prisma db seed",
     "create-admin": "tsx scripts/create-admin.ts",
+    "sync-role-permissions": "tsx scripts/sync-role-permissions.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
