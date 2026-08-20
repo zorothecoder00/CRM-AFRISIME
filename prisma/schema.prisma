@@ -873,6 +873,8 @@ model PlatformOrganization {
   teams       Team[]       @relation("PlatformOrganizationTeams")
   projects    Project[]    @relation("PlatformOrganizationProjects")
   tasks       Task[]       @relation("PlatformOrganizationTasks")
+  projectSections ProjectSection[] @relation("PlatformOrganizationProjectSections")
+  documents       Document[]       @relation("PlatformOrganizationDocuments")
 }
 
 enum PlatformOrganizationStatut {
@@ -1787,6 +1789,11 @@ model ProjectSection {
   id            String           @id @default(cuid())
   projectId     String
   project       Project          @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 4 (2026-08-20) — meme statut que Task (voir
+  // PlatformOrganization dans schema.prisma) : nullable, reversible,
+  // denormalise depuis project.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectSections", fields: [organizationId], references: [id])
   parentId      String?
   parent        ProjectSection?  @relation("SectionHierarchy", fields: [parentId], references: [id])
   children      ProjectSection[] @relation("SectionHierarchy")
@@ -2336,6 +2343,11 @@ model Document {
   id                           String                   @id @default(cuid())
   projectId                    String
   project                      Project                  @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 4 (2026-08-20) — meme statut que Task/
+  // ProjectSection : nullable, reversible, denormalise depuis
+  // project.organizationId.
+  organizationId               String?
+  organization                 PlatformOrganization?    @relation("PlatformOrganizationDocuments", fields: [organizationId], references: [id])
   folderId                     String?
   folder                       DocumentFolder?          @relation(fields: [folderId], references: [id])
   sectionId                    String?

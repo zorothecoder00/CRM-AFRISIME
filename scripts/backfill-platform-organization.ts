@@ -3,8 +3,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-3) — rattache toutes
- * les lignes User/Department/Team/Project/Task existantes (sans organizationId)
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-4) — rattache toutes
+ * les lignes User/Department/Team/Project/Task/ProjectSection/Document
+ * existantes (sans organizationId)
  * a une PlatformOrganization "AfriSime", conformement a la decision actee
  * le 2026-08-20 : les donnees actuelles de ce deploiement deviennent
  * l'organisation n°1. Idempotent (upsert sur le slug + where organizationId
@@ -34,28 +35,37 @@ async function main() {
     },
   });
 
-  const [usersResult, departmentsResult, teamsResult, projectsResult, tasksResult] = await Promise.all([
-    prisma.user.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: afrisime.id },
-    }),
-    prisma.department.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: afrisime.id },
-    }),
-    prisma.team.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: afrisime.id },
-    }),
-    prisma.project.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: afrisime.id },
-    }),
-    prisma.task.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: afrisime.id },
-    }),
-  ]);
+  const [usersResult, departmentsResult, teamsResult, projectsResult, tasksResult, sectionsResult, documentsResult] =
+    await Promise.all([
+      prisma.user.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+      prisma.department.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+      prisma.team.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+      prisma.project.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+      prisma.task.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+      prisma.projectSection.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+      prisma.document.updateMany({
+        where: { organizationId: null },
+        data: { organizationId: afrisime.id },
+      }),
+    ]);
 
   console.log(`PlatformOrganization "AfriSime" (id: ${afrisime.id})`);
   console.log(`  Utilisateurs rattachés : ${usersResult.count}`);
@@ -63,6 +73,8 @@ async function main() {
   console.log(`  Équipes rattachées : ${teamsResult.count}`);
   console.log(`  Projets rattachés : ${projectsResult.count}`);
   console.log(`  Tâches rattachées : ${tasksResult.count}`);
+  console.log(`  Phases/lots rattachés : ${sectionsResult.count}`);
+  console.log(`  Documents rattachés : ${documentsResult.count}`);
 
   await prisma.$disconnect();
 }
