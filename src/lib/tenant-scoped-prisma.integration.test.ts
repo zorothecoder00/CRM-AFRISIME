@@ -102,6 +102,20 @@ let reactionA: { id: string };
 let reactionB: { id: string };
 let notificationA: { id: string };
 let notificationB: { id: string };
+let crmOrganizationA: { id: string };
+let crmOrganizationB: { id: string };
+let portalAccountA: { id: string };
+let portalAccountB: { id: string };
+let portalInviteTokenA: { id: string };
+let portalInviteTokenB: { id: string };
+let crmOpportunityA: { id: string };
+let crmOpportunityB: { id: string };
+let crmInteractionA: { id: string };
+let crmInteractionB: { id: string };
+let contractA: { id: string };
+let contractB: { id: string };
+let portalMessageA: { id: string };
+let portalMessageB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -384,10 +398,10 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     });
 
     crmContactA = await admin.crmContact.create({
-      data: { prenom: "Contact", nom: "A", createdById: userA.id },
+      data: { prenom: "Contact", nom: "A", createdById: userA.id, platformOrganizationId: orgA.id },
     });
     crmContactB = await admin.crmContact.create({
-      data: { prenom: "Contact", nom: "B", createdById: userB.id },
+      data: { prenom: "Contact", nom: "B", createdById: userB.id, platformOrganizationId: orgB.id },
     });
 
     meetingExternalParticipantA = await admin.meetingExternalParticipant.create({
@@ -545,16 +559,116 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     notificationB = await admin.notification.create({
       data: { userId: userB.id, type: "COMMENTAIRE", titre: "Notif B", organizationId: orgB.id },
     });
+
+    crmOrganizationA = await admin.crmOrganization.create({
+      data: { nom: "CRM Org A", createdById: userA.id, platformOrganizationId: orgA.id },
+    });
+    crmOrganizationB = await admin.crmOrganization.create({
+      data: { nom: "CRM Org B", createdById: userB.id, platformOrganizationId: orgB.id },
+    });
+
+    portalAccountA = await admin.portalAccount.create({
+      data: {
+        contactId: crmContactA.id,
+        email: `portal-a-${Date.now()}@example.com`,
+        invitedById: userA.id,
+        platformOrganizationId: orgA.id,
+      },
+    });
+    portalAccountB = await admin.portalAccount.create({
+      data: {
+        contactId: crmContactB.id,
+        email: `portal-b-${Date.now()}@example.com`,
+        invitedById: userB.id,
+        platformOrganizationId: orgB.id,
+      },
+    });
+
+    portalInviteTokenA = await admin.portalInviteToken.create({
+      data: {
+        portalAccountId: portalAccountA.id,
+        tokenHash: `hash-a-${Date.now()}`,
+        expiresAt: new Date(Date.now() + 86400000),
+        platformOrganizationId: orgA.id,
+      },
+    });
+    portalInviteTokenB = await admin.portalInviteToken.create({
+      data: {
+        portalAccountId: portalAccountB.id,
+        tokenHash: `hash-b-${Date.now()}`,
+        expiresAt: new Date(Date.now() + 86400000),
+        platformOrganizationId: orgB.id,
+      },
+    });
+
+    crmOpportunityA = await admin.crmOpportunity.create({
+      data: {
+        nom: "Opportunite A",
+        ownerId: userA.id,
+        createdById: userA.id,
+        platformOrganizationId: orgA.id,
+      },
+    });
+    crmOpportunityB = await admin.crmOpportunity.create({
+      data: {
+        nom: "Opportunite B",
+        ownerId: userB.id,
+        createdById: userB.id,
+        platformOrganizationId: orgB.id,
+      },
+    });
+
+    crmInteractionA = await admin.crmInteraction.create({
+      data: { type: "NOTE", contenu: "Interaction A", authorId: userA.id, platformOrganizationId: orgA.id },
+    });
+    crmInteractionB = await admin.crmInteraction.create({
+      data: { type: "NOTE", contenu: "Interaction B", authorId: userB.id, platformOrganizationId: orgB.id },
+    });
+
+    contractA = await admin.contract.create({
+      data: { nom: "Contrat A", createdById: userA.id, platformOrganizationId: orgA.id },
+    });
+    contractB = await admin.contract.create({
+      data: { nom: "Contrat B", createdById: userB.id, platformOrganizationId: orgB.id },
+    });
+
+    portalMessageA = await admin.portalMessage.create({
+      data: {
+        contactId: crmContactA.id,
+        authorType: "INTERNAL",
+        authorUserId: userA.id,
+        content: "Message portail A",
+        platformOrganizationId: orgA.id,
+      },
+    });
+    portalMessageB = await admin.portalMessage.create({
+      data: {
+        contactId: crmContactB.id,
+        authorType: "INTERNAL",
+        authorUserId: userB.id,
+        content: "Message portail B",
+        platformOrganizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-9) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-10) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
     // qui referencent PlatformOrganization.
+    await admin.portalMessage.deleteMany({ where: { id: { in: [portalMessageA.id, portalMessageB.id] } } });
+    await admin.contract.deleteMany({ where: { id: { in: [contractA.id, contractB.id] } } });
+    await admin.crmInteraction.deleteMany({ where: { id: { in: [crmInteractionA.id, crmInteractionB.id] } } });
+    await admin.crmOpportunity.deleteMany({ where: { id: { in: [crmOpportunityA.id, crmOpportunityB.id] } } });
+    await admin.portalInviteToken.deleteMany({
+      where: { id: { in: [portalInviteTokenA.id, portalInviteTokenB.id] } },
+    });
+    await admin.portalAccount.deleteMany({ where: { id: { in: [portalAccountA.id, portalAccountB.id] } } });
+    await admin.crmOrganization.deleteMany({ where: { id: { in: [crmOrganizationA.id, crmOrganizationB.id] } } });
     await admin.notification.deleteMany({ where: { id: { in: [notificationA.id, notificationB.id] } } });
     await admin.reaction.deleteMany({ where: { id: { in: [reactionA.id, reactionB.id] } } });
     await admin.message.deleteMany({ where: { id: { in: [messageA.id, messageB.id] } } });
@@ -1079,5 +1193,85 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         tx.notification.update({ where: { id: notificationB.id }, data: { isRead: true } })
       )
     ).rejects.toThrow();
+  });
+
+  it("CrmOrganization : un role scope a l'organisation A ne voit que les organisations CRM de A", async () => {
+    const orgs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.crmOrganization.findMany({ where: { id: { in: [crmOrganizationA.id, crmOrganizationB.id] } } })
+    );
+    expect(orgs.map((o) => o.id)).toEqual([crmOrganizationA.id]);
+  });
+
+  it("CrmContact : un role scope a l'organisation B ne voit que les contacts CRM de B", async () => {
+    const contacts = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.crmContact.findMany({ where: { id: { in: [crmContactA.id, crmContactB.id] } } })
+    );
+    expect(contacts.map((c) => c.id)).toEqual([crmContactB.id]);
+  });
+
+  it("CrmContact : le role non-proprietaire ne peut pas modifier un contact CRM hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.crmContact.update({ where: { id: crmContactB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("PortalAccount : un role scope a l'organisation A ne voit que les comptes portail de A", async () => {
+    const accounts = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.portalAccount.findMany({ where: { id: { in: [portalAccountA.id, portalAccountB.id] } } })
+    );
+    expect(accounts.map((a) => a.id)).toEqual([portalAccountA.id]);
+  });
+
+  it("PortalInviteToken : un role scope a l'organisation B ne voit que les tokens de B", async () => {
+    const tokens = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.portalInviteToken.findMany({ where: { id: { in: [portalInviteTokenA.id, portalInviteTokenB.id] } } })
+    );
+    expect(tokens.map((t) => t.id)).toEqual([portalInviteTokenB.id]);
+  });
+
+  it("CrmOpportunity : un role scope a l'organisation A ne voit que les opportunites de A", async () => {
+    const opportunities = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.crmOpportunity.findMany({ where: { id: { in: [crmOpportunityA.id, crmOpportunityB.id] } } })
+    );
+    expect(opportunities.map((o) => o.id)).toEqual([crmOpportunityA.id]);
+  });
+
+  it("CrmOpportunity : le role non-proprietaire ne peut pas modifier une opportunite hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.crmOpportunity.update({ where: { id: crmOpportunityB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("CrmInteraction : un role scope a l'organisation B ne voit que les interactions de B", async () => {
+    const interactions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.crmInteraction.findMany({ where: { id: { in: [crmInteractionA.id, crmInteractionB.id] } } })
+    );
+    expect(interactions.map((i) => i.id)).toEqual([crmInteractionB.id]);
+  });
+
+  it("Contract : un role scope a l'organisation A ne voit que les contrats de A", async () => {
+    const contracts = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.contract.findMany({ where: { id: { in: [contractA.id, contractB.id] } } })
+    );
+    expect(contracts.map((c) => c.id)).toEqual([contractA.id]);
+  });
+
+  it("Contract : le role non-proprietaire ne peut pas modifier un contrat hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.contract.update({ where: { id: contractB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("PortalMessage : un role scope a l'organisation B ne voit que les messages portail de B", async () => {
+    const messages = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.portalMessage.findMany({ where: { id: { in: [portalMessageA.id, portalMessageB.id] } } })
+    );
+    expect(messages.map((m) => m.id)).toEqual([portalMessageB.id]);
   });
 });

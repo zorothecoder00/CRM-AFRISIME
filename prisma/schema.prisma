@@ -908,6 +908,14 @@ model PlatformOrganization {
   messages                  Message[]                 @relation("PlatformOrganizationMessages")
   reactions                  Reaction[]                @relation("PlatformOrganizationReactions")
   notifications                Notification[]            @relation("PlatformOrganizationNotifications")
+  crmOrganizations       CrmOrganization[]     @relation("PlatformOrganizationCrmOrganizations")
+  crmContacts             CrmContact[]          @relation("PlatformOrganizationCrmContacts")
+  portalAccounts           PortalAccount[]       @relation("PlatformOrganizationPortalAccounts")
+  portalInviteTokens        PortalInviteToken[]   @relation("PlatformOrganizationPortalInviteTokens")
+  crmOpportunities            CrmOpportunity[]      @relation("PlatformOrganizationCrmOpportunities")
+  crmInteractions               CrmInteraction[]      @relation("PlatformOrganizationCrmInteractions")
+  contracts                       Contract[]            @relation("PlatformOrganizationContracts")
+  portalMessages                    PortalMessage[]       @relation("PlatformOrganizationPortalMessages")
 }
 
 enum PlatformOrganizationStatut {
@@ -1626,6 +1634,14 @@ enum CrmInteractionType {
 
 model CrmOrganization {
   id          String              @id @default(cuid())
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId. Nomme platformOrganizationId (et non
+  // organizationId) pour ne pas entrer en collision avec le sens CRM
+  // existant de "organisation" (CrmOrganization = client/partenaire), qui
+  // n'a rien a voir avec le tenant PlatformOrganization.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationCrmOrganizations", fields: [platformOrganizationId], references: [id])
   nom         String
   type        CrmOrganizationType @default(ENTREPRISE)
   secteur     String?
@@ -1677,6 +1693,12 @@ model CrmContact {
   prochaineRelance DateTime?
   organizationId   String?
   organization     CrmOrganization? @relation(fields: [organizationId], references: [id])
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que
+  // CrmOrganization.platformOrganizationId (nom distinct pour ne pas
+  // entrer en collision avec organizationId ci-dessus, qui designe le
+  // CrmOrganization client, pas le tenant).
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationCrmContacts", fields: [platformOrganizationId], references: [id])
   notes            String?
   ownerId          String?
   owner            User?            @relation("CrmContactOwner", fields: [ownerId], references: [id])
@@ -1719,6 +1741,11 @@ model PortalAccount {
   id           String     @id @default(cuid())
   contactId    String     @unique
   contact      CrmContact @relation(fields: [contactId], references: [id])
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que
+  // CrmContact.platformOrganizationId, denormalise depuis
+  // contact.platformOrganizationId.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationPortalAccounts", fields: [platformOrganizationId], references: [id])
   email        String     @unique
   passwordHash String?
   isActive     Boolean    @default(true)
@@ -1746,6 +1773,9 @@ model PortalInviteToken {
   id              String        @id @default(cuid())
   portalAccountId String
   portalAccount   PortalAccount @relation(fields: [portalAccountId], references: [id], onDelete: Cascade)
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que PortalAccount.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationPortalInviteTokens", fields: [platformOrganizationId], references: [id])
   tokenHash       String        @unique
   expiresAt       DateTime
   usedAt          DateTime?
@@ -1761,6 +1791,10 @@ model CrmOpportunity {
   contact            CrmContact?          @relation(fields: [contactId], references: [id])
   organizationId     String?
   organization       CrmOrganization?     @relation(fields: [organizationId], references: [id])
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que
+  // CrmContact.platformOrganizationId.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationCrmOpportunities", fields: [platformOrganizationId], references: [id])
   statut             CrmOpportunityStatus @default(NOUVEAU)
   montantEstime      Decimal?             @db.Decimal(14, 2)
   probabilite        Int?
@@ -1793,6 +1827,10 @@ model CrmInteraction {
   contact         CrmContact?        @relation(fields: [contactId], references: [id])
   organizationId  String?
   organization    CrmOrganization?   @relation(fields: [organizationId], references: [id])
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que
+  // CrmContact.platformOrganizationId.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationCrmInteractions", fields: [platformOrganizationId], references: [id])
   opportunityId   String?
   opportunity     CrmOpportunity?    @relation(fields: [opportunityId], references: [id])
   authorId        String
@@ -1823,6 +1861,10 @@ model Contract {
   opportunity    CrmOpportunity?  @relation(fields: [opportunityId], references: [id])
   organizationId String?
   organization   CrmOrganization? @relation(fields: [organizationId], references: [id])
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que
+  // CrmContact.platformOrganizationId.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationContracts", fields: [platformOrganizationId], references: [id])
   montant        Decimal?         @db.Decimal(14, 2)
   dateSignature  DateTime?
   dateExpiration DateTime?
@@ -4305,6 +4347,10 @@ model PortalMessage {
   id               String                  @id @default(cuid())
   contactId        String
   contact          CrmContact              @relation(fields: [contactId], references: [id])
+  // Multi-tenant Phase 1 lot 10 (2026-08-20) — meme statut que
+  // CrmContact.platformOrganizationId.
+  platformOrganizationId String?
+  platformOrganization   PlatformOrganization? @relation("PlatformOrganizationPortalMessages", fields: [platformOrganizationId], references: [id])
   authorType       PortalMessageAuthorType
   authorUserId     String?
   authorUser       User?                   @relation("PortalMessageAuthor", fields: [authorUserId], references: [id])

@@ -63,6 +63,17 @@ const MODELS = [
   { label: "Messages", client: prisma.message },
   { label: "Réactions", client: prisma.reaction },
   { label: "Notifications", client: prisma.notification },
+  // Cluster CRM (lot 10) — champ platformOrganizationId (pas organizationId,
+  // deja pris par le sens CRM existant sur ces tables : voir
+  // prisma/schema.prisma).
+  { label: "Organisations CRM", client: prisma.crmOrganization, field: "platformOrganizationId" },
+  { label: "Contacts CRM", client: prisma.crmContact, field: "platformOrganizationId" },
+  { label: "Comptes portail", client: prisma.portalAccount, field: "platformOrganizationId" },
+  { label: "Tokens d'invitation portail", client: prisma.portalInviteToken, field: "platformOrganizationId" },
+  { label: "Opportunités CRM", client: prisma.crmOpportunity, field: "platformOrganizationId" },
+  { label: "Interactions CRM", client: prisma.crmInteraction, field: "platformOrganizationId" },
+  { label: "Contrats", client: prisma.contract, field: "platformOrganizationId" },
+  { label: "Messages portail", client: prisma.portalMessage, field: "platformOrganizationId" },
 ] as const;
 
 async function main() {
@@ -83,13 +94,14 @@ async function main() {
 
   console.log(`PlatformOrganization "AfriSime" (id: ${afrisime.id})`);
 
-  for (const { label, client } of MODELS) {
+  for (const entry of MODELS) {
+    const field = "field" in entry ? entry.field : "organizationId";
     // @ts-expect-error -- updateMany existe sur tous les delegates Prisma listes ci-dessus
-    const result = await client.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: afrisime.id },
+    const result = await entry.client.updateMany({
+      where: { [field]: null },
+      data: { [field]: afrisime.id },
     });
-    console.log(`  ${label} rattachés : ${result.count}`);
+    console.log(`  ${entry.label} rattachés : ${result.count}`);
   }
 
   await prisma.$disconnect();

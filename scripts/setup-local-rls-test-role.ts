@@ -61,6 +61,14 @@ const COVERED_TABLES = [
   "Message",
   "Reaction",
   "Notification",
+  "CrmOrganization",
+  "CrmContact",
+  "PortalAccount",
+  "PortalInviteToken",
+  "CrmOpportunity",
+  "CrmInteraction",
+  "Contract",
+  "PortalMessage",
 ];
 
 async function main() {
