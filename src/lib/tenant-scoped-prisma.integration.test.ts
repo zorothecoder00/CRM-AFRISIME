@@ -218,6 +218,46 @@ let automationExecutionA: { id: string };
 let automationExecutionB: { id: string };
 let pendingAiActionA: { id: string };
 let pendingAiActionB: { id: string };
+let orgDesignDraftA: { id: string };
+let orgDesignDraftB: { id: string };
+let dataClassificationA: { id: string };
+let dataClassificationB: { id: string };
+let transformationA: { id: string };
+let transformationB: { id: string };
+let organizationalMemoryEntryA: { id: string };
+let organizationalMemoryEntryB: { id: string };
+let decisionMatrixA: { id: string };
+let decisionMatrixB: { id: string };
+let decisionOptionA: { id: string };
+let decisionOptionB: { id: string };
+let auditLogA: { id: string };
+let auditLogB: { id: string };
+let integrationA: { id: string };
+let integrationB: { id: string };
+let integrationEventA: { id: string };
+let integrationEventB: { id: string };
+let dashboardWidgetPreferenceA: { id: string };
+let dashboardWidgetPreferenceB: { id: string };
+let aiAgentInsightA: { id: string };
+let aiAgentInsightB: { id: string };
+let metricSnapshotA: { id: string };
+let metricSnapshotB: { id: string };
+let dependencyA: { id: string };
+let dependencyB: { id: string };
+let scenarioA: { id: string };
+let scenarioB: { id: string };
+let beneficiaireA: { id: string };
+let beneficiaireB: { id: string };
+let entityA: { id: string };
+let entityB: { id: string };
+let holidayA: { id: string };
+let holidayB: { id: string };
+let tagA: { id: string };
+let tagB: { id: string };
+let entityTagA: { id: string };
+let entityTagB: { id: string };
+let apiKeyA: { id: string };
+let apiKeyB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -1363,12 +1403,224 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         organizationId: orgB.id,
       },
     });
+
+    orgDesignDraftA = await admin.orgDesignDraft.create({
+      data: { nom: "Draft A", structure: {}, createdById: userA.id, organizationId: orgA.id },
+    });
+    orgDesignDraftB = await admin.orgDesignDraft.create({
+      data: { nom: "Draft B", structure: {}, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    dataClassificationA = await admin.dataClassification.create({
+      data: {
+        entityType: "Document",
+        entityId: docA.id,
+        classifiedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    dataClassificationB = await admin.dataClassification.create({
+      data: {
+        entityType: "Document",
+        entityId: docB.id,
+        classifiedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    transformationA = await admin.transformation.create({
+      data: {
+        nom: "Transformation A",
+        type: "DIGITALE",
+        responsableId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    transformationB = await admin.transformation.create({
+      data: {
+        nom: "Transformation B",
+        type: "DIGITALE",
+        responsableId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    organizationalMemoryEntryA = await admin.organizationalMemoryEntry.create({
+      data: {
+        type: "EXPERIENCE",
+        titre: "Memoire A",
+        contenu: "Contenu A",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    organizationalMemoryEntryB = await admin.organizationalMemoryEntry.create({
+      data: {
+        type: "EXPERIENCE",
+        titre: "Memoire B",
+        contenu: "Contenu B",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    decisionMatrixA = await admin.decisionMatrix.create({
+      data: { titre: "Matrice A", createdById: userA.id, organizationId: orgA.id },
+    });
+    decisionMatrixB = await admin.decisionMatrix.create({
+      data: { titre: "Matrice B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    decisionOptionA = await admin.decisionOption.create({
+      data: { matrixId: decisionMatrixA.id, nom: "Option A", organizationId: orgA.id },
+    });
+    decisionOptionB = await admin.decisionOption.create({
+      data: { matrixId: decisionMatrixB.id, nom: "Option B", organizationId: orgB.id },
+    });
+
+    auditLogA = await admin.auditLog.create({
+      data: { userId: userA.id, action: "CREATE", entityType: "Task", entityId: taskA.id, organizationId: orgA.id },
+    });
+    auditLogB = await admin.auditLog.create({
+      data: { userId: userB.id, action: "CREATE", entityType: "Task", entityId: taskB.id, organizationId: orgB.id },
+    });
+
+    integrationA = await admin.integration.create({
+      data: { nom: "Integration A", type: "EMAIL", createdById: userA.id, organizationId: orgA.id },
+    });
+    integrationB = await admin.integration.create({
+      data: { nom: "Integration B", type: "EMAIL", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    integrationEventA = await admin.integrationEvent.create({
+      data: { integrationId: integrationA.id, eventType: "test", payload: {}, organizationId: orgA.id },
+    });
+    integrationEventB = await admin.integrationEvent.create({
+      data: { integrationId: integrationB.id, eventType: "test", payload: {}, organizationId: orgB.id },
+    });
+
+    dashboardWidgetPreferenceA = await admin.dashboardWidgetPreference.create({
+      data: { userId: userA.id, widgets: [], organizationId: orgA.id },
+    });
+    dashboardWidgetPreferenceB = await admin.dashboardWidgetPreference.create({
+      data: { userId: userB.id, widgets: [], organizationId: orgB.id },
+    });
+
+    aiAgentInsightA = await admin.aiAgentInsight.create({
+      data: {
+        agent: "ANALYST",
+        type: "RECOMMANDATION",
+        titre: "Insight A",
+        contenu: "Contenu A",
+        organizationId: orgA.id,
+      },
+    });
+    aiAgentInsightB = await admin.aiAgentInsight.create({
+      data: {
+        agent: "ANALYST",
+        type: "RECOMMANDATION",
+        titre: "Insight B",
+        contenu: "Contenu B",
+        organizationId: orgB.id,
+      },
+    });
+
+    metricSnapshotA = await admin.metricSnapshot.create({
+      data: { entityType: "Project", entityId: projectA.id, metric: "avancement", valeur: 50, organizationId: orgA.id },
+    });
+    metricSnapshotB = await admin.metricSnapshot.create({
+      data: { entityType: "Project", entityId: projectB.id, metric: "avancement", valeur: 50, organizationId: orgB.id },
+    });
+
+    dependencyA = await admin.dependency.create({
+      data: {
+        sourceType: "Project",
+        sourceId: projectA.id,
+        targetType: "Project",
+        targetId: projectA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    dependencyB = await admin.dependency.create({
+      data: {
+        sourceType: "Project",
+        sourceId: projectB.id,
+        targetType: "Project",
+        targetId: projectB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    scenarioA = await admin.scenario.create({
+      data: { nom: "Scenario A", type: "EFFECTIF", createdById: userA.id, organizationId: orgA.id },
+    });
+    scenarioB = await admin.scenario.create({
+      data: { nom: "Scenario B", type: "EFFECTIF", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    beneficiaireA = await admin.beneficiaire.create({
+      data: { nom: "Beneficiaire A", createdById: userA.id, organizationId: orgA.id },
+    });
+    beneficiaireB = await admin.beneficiaire.create({
+      data: { nom: "Beneficiaire B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    entityA = await admin.entity.create({
+      data: { nom: "Entite A", code: `ENT-A-${Date.now()}`, organizationId: orgA.id },
+    });
+    entityB = await admin.entity.create({
+      data: { nom: "Entite B", code: `ENT-B-${Date.now()}`, organizationId: orgB.id },
+    });
+
+    holidayA = await admin.holiday.create({
+      data: { entityId: entityA.id, nom: "Ferie A", date: new Date(), createdById: userA.id, organizationId: orgA.id },
+    });
+    holidayB = await admin.holiday.create({
+      data: { entityId: entityB.id, nom: "Ferie B", date: new Date(), createdById: userB.id, organizationId: orgB.id },
+    });
+
+    tagA = await admin.tag.create({
+      data: { nom: `Tag A ${Date.now()}`, createdById: userA.id, organizationId: orgA.id },
+    });
+    tagB = await admin.tag.create({
+      data: { nom: `Tag B ${Date.now()}`, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    entityTagA = await admin.entityTag.create({
+      data: { tagId: tagA.id, entityType: "Project", entityId: projectA.id, organizationId: orgA.id },
+    });
+    entityTagB = await admin.entityTag.create({
+      data: { tagId: tagB.id, entityType: "Project", entityId: projectB.id, organizationId: orgB.id },
+    });
+
+    apiKeyA = await admin.apiKey.create({
+      data: {
+        nom: "Cle A",
+        keyPrefix: "afriflow_a",
+        keyHash: "hash-a",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    apiKeyB = await admin.apiKey.create({
+      data: {
+        nom: "Cle B",
+        keyPrefix: "afriflow_b",
+        keyHash: "hash-b",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-15) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-16) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
@@ -1376,6 +1628,32 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     // AdminRequestValidationRun/AdminRequest/TaskApproval/TaskValidationRun/
     // ValidationWorkflowStep/ValidationWorkflow/Courrier avant taskA2/taskB2
     // (TaskValidationRun.taskId les referme).
+    await admin.apiKey.deleteMany({ where: { id: { in: [apiKeyA.id, apiKeyB.id] } } });
+    await admin.entityTag.deleteMany({ where: { id: { in: [entityTagA.id, entityTagB.id] } } });
+    await admin.tag.deleteMany({ where: { id: { in: [tagA.id, tagB.id] } } });
+    await admin.holiday.deleteMany({ where: { id: { in: [holidayA.id, holidayB.id] } } });
+    await admin.entity.deleteMany({ where: { id: { in: [entityA.id, entityB.id] } } });
+    await admin.beneficiaire.deleteMany({ where: { id: { in: [beneficiaireA.id, beneficiaireB.id] } } });
+    await admin.scenario.deleteMany({ where: { id: { in: [scenarioA.id, scenarioB.id] } } });
+    await admin.dependency.deleteMany({ where: { id: { in: [dependencyA.id, dependencyB.id] } } });
+    await admin.metricSnapshot.deleteMany({ where: { id: { in: [metricSnapshotA.id, metricSnapshotB.id] } } });
+    await admin.aiAgentInsight.deleteMany({ where: { id: { in: [aiAgentInsightA.id, aiAgentInsightB.id] } } });
+    await admin.dashboardWidgetPreference.deleteMany({
+      where: { id: { in: [dashboardWidgetPreferenceA.id, dashboardWidgetPreferenceB.id] } },
+    });
+    await admin.integrationEvent.deleteMany({ where: { id: { in: [integrationEventA.id, integrationEventB.id] } } });
+    await admin.integration.deleteMany({ where: { id: { in: [integrationA.id, integrationB.id] } } });
+    await admin.auditLog.deleteMany({ where: { id: { in: [auditLogA.id, auditLogB.id] } } });
+    await admin.decisionOption.deleteMany({ where: { id: { in: [decisionOptionA.id, decisionOptionB.id] } } });
+    await admin.decisionMatrix.deleteMany({ where: { id: { in: [decisionMatrixA.id, decisionMatrixB.id] } } });
+    await admin.organizationalMemoryEntry.deleteMany({
+      where: { id: { in: [organizationalMemoryEntryA.id, organizationalMemoryEntryB.id] } },
+    });
+    await admin.transformation.deleteMany({ where: { id: { in: [transformationA.id, transformationB.id] } } });
+    await admin.dataClassification.deleteMany({
+      where: { id: { in: [dataClassificationA.id, dataClassificationB.id] } },
+    });
+    await admin.orgDesignDraft.deleteMany({ where: { id: { in: [orgDesignDraftA.id, orgDesignDraftB.id] } } });
     await admin.pendingAiAction.deleteMany({ where: { id: { in: [pendingAiActionA.id, pendingAiActionB.id] } } });
     await admin.automationExecution.deleteMany({
       where: { id: { in: [automationExecutionA.id, automationExecutionB.id] } },
@@ -2611,6 +2889,190 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.pendingAiAction.update({ where: { id: pendingAiActionB.id }, data: { statut: "APPROUVE" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("OrgDesignDraft : un role scope a l'organisation A ne voit que les brouillons de A", async () => {
+    const drafts = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.orgDesignDraft.findMany({ where: { id: { in: [orgDesignDraftA.id, orgDesignDraftB.id] } } })
+    );
+    expect(drafts.map((d) => d.id)).toEqual([orgDesignDraftA.id]);
+  });
+
+  it("DataClassification : un role scope a l'organisation B ne voit que les classifications de B", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.dataClassification.findMany({ where: { id: { in: [dataClassificationA.id, dataClassificationB.id] } } })
+    );
+    expect(items.map((i) => i.id)).toEqual([dataClassificationB.id]);
+  });
+
+  it("Transformation : un role scope a l'organisation A ne voit que les transformations de A", async () => {
+    const transformations = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.transformation.findMany({ where: { id: { in: [transformationA.id, transformationB.id] } } })
+    );
+    expect(transformations.map((t) => t.id)).toEqual([transformationA.id]);
+  });
+
+  it("Transformation : le role non-proprietaire ne peut pas modifier une transformation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.transformation.update({ where: { id: transformationB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("OrganizationalMemoryEntry : un role scope a l'organisation B ne voit que les entrees de B", async () => {
+    const entries = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.organizationalMemoryEntry.findMany({
+        where: { id: { in: [organizationalMemoryEntryA.id, organizationalMemoryEntryB.id] } },
+      })
+    );
+    expect(entries.map((e) => e.id)).toEqual([organizationalMemoryEntryB.id]);
+  });
+
+  it("DecisionMatrix : un role scope a l'organisation A ne voit que les matrices de A", async () => {
+    const matrices = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.decisionMatrix.findMany({ where: { id: { in: [decisionMatrixA.id, decisionMatrixB.id] } } })
+    );
+    expect(matrices.map((m) => m.id)).toEqual([decisionMatrixA.id]);
+  });
+
+  it("DecisionOption : un role scope a l'organisation B ne voit que les options de B", async () => {
+    const options = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.decisionOption.findMany({ where: { id: { in: [decisionOptionA.id, decisionOptionB.id] } } })
+    );
+    expect(options.map((o) => o.id)).toEqual([decisionOptionB.id]);
+  });
+
+  it("AuditLog : un role scope a l'organisation A ne voit que les journaux de A", async () => {
+    const logs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.auditLog.findMany({ where: { id: { in: [auditLogA.id, auditLogB.id] } } })
+    );
+    expect(logs.map((l) => l.id)).toEqual([auditLogA.id]);
+  });
+
+  it("Integration : un role scope a l'organisation B ne voit que les integrations de B", async () => {
+    const integrations = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.integration.findMany({ where: { id: { in: [integrationA.id, integrationB.id] } } })
+    );
+    expect(integrations.map((i) => i.id)).toEqual([integrationB.id]);
+  });
+
+  it("Integration : le role non-proprietaire ne peut pas modifier une integration hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.integration.update({ where: { id: integrationB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("IntegrationEvent : un role scope a l'organisation A ne voit que les evenements de A", async () => {
+    const events = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.integrationEvent.findMany({ where: { id: { in: [integrationEventA.id, integrationEventB.id] } } })
+    );
+    expect(events.map((e) => e.id)).toEqual([integrationEventA.id]);
+  });
+
+  it("DashboardWidgetPreference : un role scope a l'organisation B ne voit que les preferences de B", async () => {
+    const prefs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.dashboardWidgetPreference.findMany({
+        where: { id: { in: [dashboardWidgetPreferenceA.id, dashboardWidgetPreferenceB.id] } },
+      })
+    );
+    expect(prefs.map((p) => p.id)).toEqual([dashboardWidgetPreferenceB.id]);
+  });
+
+  it("AiAgentInsight : un role scope a l'organisation A ne voit que les insights de A", async () => {
+    const insights = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.aiAgentInsight.findMany({ where: { id: { in: [aiAgentInsightA.id, aiAgentInsightB.id] } } })
+    );
+    expect(insights.map((i) => i.id)).toEqual([aiAgentInsightA.id]);
+  });
+
+  it("MetricSnapshot : un role scope a l'organisation B ne voit que les instantanes de B", async () => {
+    const snapshots = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.metricSnapshot.findMany({ where: { id: { in: [metricSnapshotA.id, metricSnapshotB.id] } } })
+    );
+    expect(snapshots.map((s) => s.id)).toEqual([metricSnapshotB.id]);
+  });
+
+  it("Dependency : un role scope a l'organisation A ne voit que les dependances de A", async () => {
+    const deps = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.dependency.findMany({ where: { id: { in: [dependencyA.id, dependencyB.id] } } })
+    );
+    expect(deps.map((d) => d.id)).toEqual([dependencyA.id]);
+  });
+
+  it("Scenario : un role scope a l'organisation B ne voit que les scenarios de B", async () => {
+    const scenarios = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.scenario.findMany({ where: { id: { in: [scenarioA.id, scenarioB.id] } } })
+    );
+    expect(scenarios.map((s) => s.id)).toEqual([scenarioB.id]);
+  });
+
+  it("Scenario : le role non-proprietaire ne peut pas modifier un scenario hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.scenario.update({ where: { id: scenarioB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Beneficiaire : un role scope a l'organisation A ne voit que les beneficiaires de A", async () => {
+    const beneficiaires = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.beneficiaire.findMany({ where: { id: { in: [beneficiaireA.id, beneficiaireB.id] } } })
+    );
+    expect(beneficiaires.map((b) => b.id)).toEqual([beneficiaireA.id]);
+  });
+
+  it("Entity : un role scope a l'organisation B ne voit que les entites de B", async () => {
+    const entities = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.entity.findMany({ where: { id: { in: [entityA.id, entityB.id] } } })
+    );
+    expect(entities.map((e) => e.id)).toEqual([entityB.id]);
+  });
+
+  it("Entity : le role non-proprietaire ne peut pas modifier une entite hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.entity.update({ where: { id: entityB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Holiday : un role scope a l'organisation A ne voit que les jours feries de A", async () => {
+    const holidays = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.holiday.findMany({ where: { id: { in: [holidayA.id, holidayB.id] } } })
+    );
+    expect(holidays.map((h) => h.id)).toEqual([holidayA.id]);
+  });
+
+  it("Tag : un role scope a l'organisation B ne voit que les tags de B", async () => {
+    const tags = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.tag.findMany({ where: { id: { in: [tagA.id, tagB.id] } } })
+    );
+    expect(tags.map((t) => t.id)).toEqual([tagB.id]);
+  });
+
+  it("EntityTag : un role scope a l'organisation A ne voit que les tags d'entite de A", async () => {
+    const entityTags = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.entityTag.findMany({ where: { id: { in: [entityTagA.id, entityTagB.id] } } })
+    );
+    expect(entityTags.map((e) => e.id)).toEqual([entityTagA.id]);
+  });
+
+  it("ApiKey : un role scope a l'organisation B ne voit que les cles API de B", async () => {
+    const keys = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.apiKey.findMany({ where: { id: { in: [apiKeyA.id, apiKeyB.id] } } })
+    );
+    expect(keys.map((k) => k.id)).toEqual([apiKeyB.id]);
+  });
+
+  it("ApiKey : le role non-proprietaire ne peut pas modifier une cle API hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.apiKey.update({ where: { id: apiKeyB.id }, data: { nom: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
   });

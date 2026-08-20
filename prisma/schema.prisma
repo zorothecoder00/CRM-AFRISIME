@@ -780,6 +780,11 @@ model TeamMember {
 // deployOrgDesign).
 model OrgDesignDraft {
   id                    String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationOrgDesignDrafts", fields: [organizationId], references: [id])
   nom                   String
   description           String?
   structure             Json
@@ -980,6 +985,26 @@ model PlatformOrganization {
   automationRules                AutomationRule[]          @relation("PlatformOrganizationAutomationRules")
   automationExecutions              AutomationExecution[]    @relation("PlatformOrganizationAutomationExecutions")
   pendingAiActions                     PendingAiAction[]         @relation("PlatformOrganizationPendingAiActions")
+  orgDesignDrafts       OrgDesignDraft[]              @relation("PlatformOrganizationOrgDesignDrafts")
+  dataClassifications     DataClassification[]          @relation("PlatformOrganizationDataClassifications")
+  transformations           Transformation[]              @relation("PlatformOrganizationTransformations")
+  organizationalMemoryEntries OrganizationalMemoryEntry[]   @relation("PlatformOrganizationOrganizationalMemoryEntries")
+  decisionMatrices                 DecisionMatrix[]              @relation("PlatformOrganizationDecisionMatrices")
+  decisionOptions                     DecisionOption[]              @relation("PlatformOrganizationDecisionOptions")
+  auditLogs                               AuditLog[]                    @relation("PlatformOrganizationAuditLogs")
+  integrations                               Integration[]                 @relation("PlatformOrganizationIntegrations")
+  integrationEvents                             IntegrationEvent[]            @relation("PlatformOrganizationIntegrationEvents")
+  dashboardWidgetPreferences                       DashboardWidgetPreference[]   @relation("PlatformOrganizationDashboardWidgetPreferences")
+  aiAgentInsights                                     AiAgentInsight[]              @relation("PlatformOrganizationAiAgentInsights")
+  metricSnapshots                                         MetricSnapshot[]              @relation("PlatformOrganizationMetricSnapshots")
+  dependencies                                                Dependency[]                  @relation("PlatformOrganizationDependencies")
+  scenarios                                                       Scenario[]                    @relation("PlatformOrganizationScenarios")
+  beneficiaires                                                       Beneficiaire[]                @relation("PlatformOrganizationBeneficiaires")
+  entities                                                                Entity[]                      @relation("PlatformOrganizationEntities")
+  holidays                                                                    Holiday[]                     @relation("PlatformOrganizationHolidays")
+  tags                                                                            Tag[]                         @relation("PlatformOrganizationTags")
+  entityTags                                                                          EntityTag[]                   @relation("PlatformOrganizationEntityTags")
+  apiKeys                                                                                 ApiKey[]                      @relation("PlatformOrganizationApiKeys")
 }
 
 enum PlatformOrganizationStatut {
@@ -2725,6 +2750,11 @@ model DocumentAccess {
 // dupliquées ici.
 model DataClassification {
   id             String                  @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // classifiedBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDataClassifications", fields: [organizationId], references: [id])
   entityType     String
   entityId       String
   niveau         DataClassificationLevel @default(INTERNE)
@@ -3472,6 +3502,11 @@ enum TransformationStatut {
 // d'impact §6.
 model Transformation {
   id            String                @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTransformations", fields: [organizationId], references: [id])
   nom           String
   type          TransformationType
   description   String?
@@ -3516,6 +3551,11 @@ enum OrganizationalMemoryType {
 
 model OrganizationalMemoryEntry {
   id          String                    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationOrganizationalMemoryEntries", fields: [organizationId], references: [id])
   type        OrganizationalMemoryType
   titre       String
   contenu     String
@@ -3543,6 +3583,11 @@ enum NiveauQualitatif {
 // a 3 niveaux (impact = benefice attendu de l'option, pas un risque).
 model DecisionMatrix {
   id          String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDecisionMatrices", fields: [organizationId], references: [id])
   titre       String
   contexte    String?
   projectId   String?
@@ -3568,6 +3613,10 @@ model DecisionMatrix {
 
 model DecisionOption {
   id           String           @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que
+  // DecisionMatrix, denormalise depuis matrix.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDecisionOptions", fields: [organizationId], references: [id])
   matrixId     String
   matrix       DecisionMatrix   @relation(fields: [matrixId], references: [id], onDelete: Cascade)
   nom          String
@@ -3587,6 +3636,12 @@ model DecisionOption {
 // Générique — sert aussi d'historique des modifications de tâche/projet.
 model AuditLog {
   id         String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // user.organizationId quand renseigne (certaines entrees sont generees
+  // hors requete utilisateur, ex. automatisations serveur).
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAuditLogs", fields: [organizationId], references: [id])
   userId     String?
   user       User?    @relation(fields: [userId], references: [id])
   action     String
@@ -3608,6 +3663,11 @@ model AuditLog {
 // réel n'est effectué dans ce MVP (pas d'identifiants tiers disponibles).
 model Integration {
   id          String            @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationIntegrations", fields: [organizationId], references: [id])
   nom         String
   type        IntegrationType
   statut      IntegrationStatus @default(DECONNECTE)
@@ -3626,6 +3686,10 @@ model Integration {
 // Journal des webhooks entrants reçus pour une intégration.
 model IntegrationEvent {
   id            String      @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que
+  // Integration, denormalise depuis integration.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationIntegrationEvents", fields: [organizationId], references: [id])
   integrationId String
   integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
   eventType     String
@@ -3641,6 +3705,11 @@ model IntegrationEvent {
 // dans l'ordre par défaut (voir src/lib/dashboard-widgets.ts).
 model DashboardWidgetPreference {
   id        String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // user.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDashboardWidgetPreferences", fields: [organizationId], references: [id])
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
   widgets   Json
@@ -4523,6 +4592,11 @@ enum AiInsightStatut {
 
 model AiAgentInsight {
   id         String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que Poste/Site :
+  // nullable, reversible, aucun proprietaire direct (genere par un agent
+  // systeme, entityType/entityId polymorphe) — rattache par le backfill.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAiAgentInsights", fields: [organizationId], references: [id])
   agent      AiAgentType
   type       AiInsightType
   titre      String
@@ -4546,6 +4620,10 @@ model AiAgentInsight {
 // nouvelle metrique suivie plus tard.
 model MetricSnapshot {
   id         String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que
+  // AiAgentInsight : aucun proprietaire direct, rattache par le backfill.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationMetricSnapshots", fields: [organizationId], references: [id])
   entityType String
   entityId   String
   metric     String
@@ -4567,6 +4645,11 @@ model MetricSnapshot {
 // charges — voir src/lib/dependencies.ts).
 model Dependency {
   id          String         @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDependencies", fields: [organizationId], references: [id])
   sourceType  String
   sourceId    String
   targetType  String
@@ -4601,6 +4684,11 @@ enum ScenarioType {
 
 model Scenario {
   id                      String       @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationScenarios", fields: [organizationId], references: [id])
   nom                     String
   description             String?
   type                    ScenarioType
@@ -4684,6 +4772,11 @@ model MeetingExternalParticipant {
 // — registre minimal, pas de gestion beneficiaire complete (hors perimetre).
 model Beneficiaire {
   id          String     @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationBeneficiaires", fields: [organizationId], references: [id])
   nom         String
   description String?
   programmeId String?
@@ -4710,6 +4803,11 @@ model Beneficiaire {
 // l'entite de leur racine (pas de denormalisation, voir entity-scope.ts).
 model Entity {
   id       String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que Poste/Site :
+  // nullable, reversible, aucun proprietaire direct (racine de
+  // configuration multi-entites) — rattache par le backfill.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationEntities", fields: [organizationId], references: [id])
   nom      String
   code     String   @unique
   parentId String?
@@ -4742,6 +4840,11 @@ model Entity {
 // (ex. fete nationale), false pour une date ponctuelle.
 model Holiday {
   id                 String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationHolidays", fields: [organizationId], references: [id])
   entityId           String
   entity             Entity   @relation(fields: [entityId], references: [id])
   nom                String
@@ -4764,6 +4867,11 @@ model Holiday {
 // place et deja cherche dans globalSearch) : les deux mecanismes coexistent.
 model Tag {
   id          String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTags", fields: [organizationId], references: [id])
   nom         String   @unique
   couleur     String?
   createdById String
@@ -4775,6 +4883,10 @@ model Tag {
 
 model EntityTag {
   id         String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que Tag,
+  // denormalise depuis tag.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationEntityTags", fields: [organizationId], references: [id])
   tagId      String
   tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
   entityType String
@@ -4796,6 +4908,11 @@ model EntityTag {
 // quel role) verifie manuellement dans chaque route /api/v1/*.
 model ApiKey {
   id          String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationApiKeys", fields: [organizationId], references: [id])
   nom         String
   keyPrefix   String
   keyHash     String

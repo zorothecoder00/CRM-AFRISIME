@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-15) — rattache toutes
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-16) — rattache toutes
  * les lignes existantes (sans organizationId) des modeles couverts par le
  * retrofit multi-tenant a une PlatformOrganization "AfriSime", conformement
  * a la decision actee le 2026-08-20 : les donnees actuelles de ce
@@ -128,6 +128,26 @@ const MODELS = [
   { label: "Règles d'automatisation", client: prisma.automationRule },
   { label: "Exécutions d'automatisation", client: prisma.automationExecution },
   { label: "Actions IA en attente", client: prisma.pendingAiAction },
+  { label: "Brouillons de design organisationnel", client: prisma.orgDesignDraft },
+  { label: "Classifications de données", client: prisma.dataClassification },
+  { label: "Transformations", client: prisma.transformation },
+  { label: "Entrées de mémoire organisationnelle", client: prisma.organizationalMemoryEntry },
+  { label: "Matrices de décision", client: prisma.decisionMatrix },
+  { label: "Options de décision", client: prisma.decisionOption },
+  { label: "Journaux d'audit", client: prisma.auditLog },
+  { label: "Intégrations", client: prisma.integration },
+  { label: "Événements d'intégration", client: prisma.integrationEvent },
+  { label: "Préférences de tableau de bord", client: prisma.dashboardWidgetPreference },
+  { label: "Insights agents IA", client: prisma.aiAgentInsight },
+  { label: "Instantanés de métriques", client: prisma.metricSnapshot },
+  { label: "Dépendances", client: prisma.dependency },
+  { label: "Scénarios", client: prisma.scenario },
+  { label: "Bénéficiaires", client: prisma.beneficiaire },
+  { label: "Entités", client: prisma.entity },
+  { label: "Jours fériés", client: prisma.holiday },
+  { label: "Tags", client: prisma.tag },
+  { label: "Tags d'entité", client: prisma.entityTag },
+  { label: "Clés API", client: prisma.apiKey },
 ] as const;
 
 async function main() {
