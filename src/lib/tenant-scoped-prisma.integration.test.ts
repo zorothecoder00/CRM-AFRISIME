@@ -192,6 +192,22 @@ let incidentA: { id: string };
 let incidentB: { id: string };
 let changeRequestA: { id: string };
 let changeRequestB: { id: string };
+let validationWorkflowA: { id: string };
+let validationWorkflowB: { id: string };
+let validationWorkflowStepA: { id: string };
+let validationWorkflowStepB: { id: string };
+let taskValidationRunA: { id: string };
+let taskValidationRunB: { id: string };
+let taskApprovalA: { id: string };
+let taskApprovalB: { id: string };
+let adminRequestA: { id: string };
+let adminRequestB: { id: string };
+let adminRequestValidationRunA: { id: string };
+let adminRequestValidationRunB: { id: string };
+let adminRequestApprovalA: { id: string };
+let adminRequestApprovalB: { id: string };
+let courrierA: { id: string };
+let courrierB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -1146,16 +1162,145 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     changeRequestB = await admin.changeRequest.create({
       data: { titre: "Changement B", demandeParId: userB.id, organizationId: orgB.id },
     });
+
+    validationWorkflowA = await admin.validationWorkflow.create({
+      data: {
+        nom: "Circuit A",
+        entityType: "TASK",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    validationWorkflowB = await admin.validationWorkflow.create({
+      data: {
+        nom: "Circuit B",
+        entityType: "TASK",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    validationWorkflowStepA = await admin.validationWorkflowStep.create({
+      data: { workflowId: validationWorkflowA.id, ordre: 1, approverRole: "MANAGER", organizationId: orgA.id },
+    });
+    validationWorkflowStepB = await admin.validationWorkflowStep.create({
+      data: { workflowId: validationWorkflowB.id, ordre: 1, approverRole: "MANAGER", organizationId: orgB.id },
+    });
+
+    taskValidationRunA = await admin.taskValidationRun.create({
+      data: {
+        taskId: taskA2.id,
+        workflowId: validationWorkflowA.id,
+        submittedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    taskValidationRunB = await admin.taskValidationRun.create({
+      data: {
+        taskId: taskB2.id,
+        workflowId: validationWorkflowB.id,
+        submittedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    taskApprovalA = await admin.taskApproval.create({
+      data: { runId: taskValidationRunA.id, stepId: validationWorkflowStepA.id, organizationId: orgA.id },
+    });
+    taskApprovalB = await admin.taskApproval.create({
+      data: { runId: taskValidationRunB.id, stepId: validationWorkflowStepB.id, organizationId: orgB.id },
+    });
+
+    adminRequestA = await admin.adminRequest.create({
+      data: { type: "ACHAT", titre: "Demande A", demandeurId: userA.id, organizationId: orgA.id },
+    });
+    adminRequestB = await admin.adminRequest.create({
+      data: { type: "ACHAT", titre: "Demande B", demandeurId: userB.id, organizationId: orgB.id },
+    });
+
+    adminRequestValidationRunA = await admin.adminRequestValidationRun.create({
+      data: {
+        adminRequestId: adminRequestA.id,
+        workflowId: validationWorkflowA.id,
+        submittedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    adminRequestValidationRunB = await admin.adminRequestValidationRun.create({
+      data: {
+        adminRequestId: adminRequestB.id,
+        workflowId: validationWorkflowB.id,
+        submittedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    adminRequestApprovalA = await admin.adminRequestApproval.create({
+      data: {
+        runId: adminRequestValidationRunA.id,
+        stepId: validationWorkflowStepA.id,
+        organizationId: orgA.id,
+      },
+    });
+    adminRequestApprovalB = await admin.adminRequestApproval.create({
+      data: {
+        runId: adminRequestValidationRunB.id,
+        stepId: validationWorkflowStepB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    courrierA = await admin.courrier.create({
+      data: {
+        reference: `CRR-TEST-A-${Date.now()}`,
+        objet: "Objet A",
+        type: "ENTRANT",
+        dateCourrier: new Date(),
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    courrierB = await admin.courrier.create({
+      data: {
+        reference: `CRR-TEST-B-${Date.now()}`,
+        objet: "Objet B",
+        type: "ENTRANT",
+        dateCourrier: new Date(),
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-13) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-14) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
-    // qui referencent PlatformOrganization.
+    // qui referencent PlatformOrganization. AdminRequestApproval/
+    // AdminRequestValidationRun/AdminRequest/TaskApproval/TaskValidationRun/
+    // ValidationWorkflowStep/ValidationWorkflow/Courrier avant taskA2/taskB2
+    // (TaskValidationRun.taskId les referme).
+    await admin.courrier.deleteMany({ where: { id: { in: [courrierA.id, courrierB.id] } } });
+    await admin.adminRequestApproval.deleteMany({
+      where: { id: { in: [adminRequestApprovalA.id, adminRequestApprovalB.id] } },
+    });
+    await admin.adminRequestValidationRun.deleteMany({
+      where: { id: { in: [adminRequestValidationRunA.id, adminRequestValidationRunB.id] } },
+    });
+    await admin.adminRequest.deleteMany({ where: { id: { in: [adminRequestA.id, adminRequestB.id] } } });
+    await admin.taskApproval.deleteMany({ where: { id: { in: [taskApprovalA.id, taskApprovalB.id] } } });
+    await admin.taskValidationRun.deleteMany({
+      where: { id: { in: [taskValidationRunA.id, taskValidationRunB.id] } },
+    });
+    await admin.validationWorkflowStep.deleteMany({
+      where: { id: { in: [validationWorkflowStepA.id, validationWorkflowStepB.id] } },
+    });
+    await admin.validationWorkflow.deleteMany({
+      where: { id: { in: [validationWorkflowA.id, validationWorkflowB.id] } },
+    });
     await admin.changeRequest.deleteMany({ where: { id: { in: [changeRequestA.id, changeRequestB.id] } } });
     await admin.incident.deleteMany({ where: { id: { in: [incidentA.id, incidentB.id] } } });
     await admin.auditFinding.deleteMany({ where: { id: { in: [auditFindingA.id, auditFindingB.id] } } });
@@ -2225,6 +2370,92 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.changeRequest.update({ where: { id: changeRequestB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ValidationWorkflow : un role scope a l'organisation A ne voit que les circuits de A", async () => {
+    const workflows = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.validationWorkflow.findMany({ where: { id: { in: [validationWorkflowA.id, validationWorkflowB.id] } } })
+    );
+    expect(workflows.map((w) => w.id)).toEqual([validationWorkflowA.id]);
+  });
+
+  it("ValidationWorkflow : le role non-proprietaire ne peut pas modifier un circuit hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.validationWorkflow.update({ where: { id: validationWorkflowB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ValidationWorkflowStep : un role scope a l'organisation B ne voit que les etapes de B", async () => {
+    const steps = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.validationWorkflowStep.findMany({
+        where: { id: { in: [validationWorkflowStepA.id, validationWorkflowStepB.id] } },
+      })
+    );
+    expect(steps.map((s) => s.id)).toEqual([validationWorkflowStepB.id]);
+  });
+
+  it("TaskValidationRun : un role scope a l'organisation A ne voit que les instances de A", async () => {
+    const runs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.taskValidationRun.findMany({ where: { id: { in: [taskValidationRunA.id, taskValidationRunB.id] } } })
+    );
+    expect(runs.map((r) => r.id)).toEqual([taskValidationRunA.id]);
+  });
+
+  it("TaskApproval : un role scope a l'organisation B ne voit que les approbations de B", async () => {
+    const approvals = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.taskApproval.findMany({ where: { id: { in: [taskApprovalA.id, taskApprovalB.id] } } })
+    );
+    expect(approvals.map((a) => a.id)).toEqual([taskApprovalB.id]);
+  });
+
+  it("AdminRequest : un role scope a l'organisation A ne voit que les demandes de A", async () => {
+    const requests = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.adminRequest.findMany({ where: { id: { in: [adminRequestA.id, adminRequestB.id] } } })
+    );
+    expect(requests.map((r) => r.id)).toEqual([adminRequestA.id]);
+  });
+
+  it("AdminRequest : le role non-proprietaire ne peut pas modifier une demande hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.adminRequest.update({ where: { id: adminRequestB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("AdminRequestValidationRun : un role scope a l'organisation B ne voit que les instances de B", async () => {
+    const runs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.adminRequestValidationRun.findMany({
+        where: { id: { in: [adminRequestValidationRunA.id, adminRequestValidationRunB.id] } },
+      })
+    );
+    expect(runs.map((r) => r.id)).toEqual([adminRequestValidationRunB.id]);
+  });
+
+  it("AdminRequestApproval : un role scope a l'organisation A ne voit que les approbations de A", async () => {
+    const approvals = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.adminRequestApproval.findMany({
+        where: { id: { in: [adminRequestApprovalA.id, adminRequestApprovalB.id] } },
+      })
+    );
+    expect(approvals.map((a) => a.id)).toEqual([adminRequestApprovalA.id]);
+  });
+
+  it("Courrier : un role scope a l'organisation B ne voit que les courriers de B", async () => {
+    const courriers = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.courrier.findMany({ where: { id: { in: [courrierA.id, courrierB.id] } } })
+    );
+    expect(courriers.map((c) => c.id)).toEqual([courrierB.id]);
+  });
+
+  it("Courrier : le role non-proprietaire ne peut pas modifier un courrier hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.courrier.update({ where: { id: courrierB.id }, data: { objet: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
   });

@@ -957,6 +957,14 @@ model PlatformOrganization {
   auditFindings                                                      AuditFinding[]                  @relation("PlatformOrganizationAuditFindings")
   incidents                                                              Incident[]                      @relation("PlatformOrganizationIncidents")
   changeRequests                                                            ChangeRequest[]                 @relation("PlatformOrganizationChangeRequests")
+  validationWorkflows       ValidationWorkflow[]          @relation("PlatformOrganizationValidationWorkflows")
+  validationWorkflowSteps     ValidationWorkflowStep[]      @relation("PlatformOrganizationValidationWorkflowSteps")
+  taskValidationRuns             TaskValidationRun[]           @relation("PlatformOrganizationTaskValidationRuns")
+  taskApprovals                     TaskApproval[]                @relation("PlatformOrganizationTaskApprovals")
+  adminRequests                        AdminRequest[]                @relation("PlatformOrganizationAdminRequests")
+  adminRequestValidationRuns              AdminRequestValidationRun[]   @relation("PlatformOrganizationAdminRequestValidationRuns")
+  adminRequestApprovals                       AdminRequestApproval[]        @relation("PlatformOrganizationAdminRequestApprovals")
+  courriers                                          Courrier[]                     @relation("PlatformOrganizationCourriers")
 }
 
 enum PlatformOrganizationStatut {
@@ -2181,6 +2189,11 @@ model TaskDependency {
 // pour chaque tâche soumise à validation de ce type d'entité.
 model ValidationWorkflow {
   id                      String               @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationValidationWorkflows", fields: [organizationId], references: [id])
   nom                     String
   entityType              ValidationEntityType
   // Condition de selection du circuit (cahier des charges §VIII) — ne
@@ -2216,6 +2229,10 @@ model ValidationWorkflow {
 // rôle (ex: RESPONSABLE puis DIRECTEUR puis DIRECTEUR_GENERAL).
 model ValidationWorkflowStep {
   id            String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que
+  // ValidationWorkflow, denormalise depuis workflow.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationValidationWorkflowSteps", fields: [organizationId], references: [id])
   workflowId    String
   workflow      ValidationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   ordre         Int
@@ -2246,6 +2263,10 @@ model ValidationWorkflowStep {
 // transition (voir src/actions/task.actions.ts).
 model TaskValidationRun {
   id            String              @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que
+  // ValidationWorkflow, denormalise depuis task.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTaskValidationRuns", fields: [organizationId], references: [id])
   taskId        String              @unique
   task          Task                @relation(fields: [taskId], references: [id])
   workflowId    String
@@ -2266,6 +2287,10 @@ model TaskValidationRun {
 // circuit — une ligne par étape, créée EN_ATTENTE dès la soumission.
 model TaskApproval {
   id          String                 @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que
+  // TaskValidationRun, denormalise depuis run.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTaskApprovals", fields: [organizationId], references: [id])
   runId       String
   run         TaskValidationRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
   stepId      String
@@ -2288,6 +2313,11 @@ model TaskApproval {
 // brouillon, comme Leave). Les conges restent geres par Leave, pas ici.
 model AdminRequest {
   id           String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // demandeur.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAdminRequests", fields: [organizationId], references: [id])
   type         AdminRequestType
   titre        String
   description  String?
@@ -2318,6 +2348,10 @@ model AdminRequest {
 // Miroir exact de TaskValidationRun, pour AdminRequest.
 model AdminRequestValidationRun {
   id             String              @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que
+  // AdminRequest, denormalise depuis adminRequest.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAdminRequestValidationRuns", fields: [organizationId], references: [id])
   adminRequestId String              @unique
   adminRequest   AdminRequest        @relation(fields: [adminRequestId], references: [id])
   workflowId     String
@@ -2337,6 +2371,10 @@ model AdminRequestValidationRun {
 // Miroir exact de TaskApproval, pour AdminRequestValidationRun.
 model AdminRequestApproval {
   id          String                    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que
+  // AdminRequestValidationRun, denormalise depuis run.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAdminRequestApprovals", fields: [organizationId], references: [id])
   runId       String
   run         AdminRequestValidationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   stepId      String
@@ -2373,6 +2411,11 @@ enum CourrierStatus {
 
 model Courrier {
   id            String         @id @default(cuid())
+  // Multi-tenant Phase 1 lot 14 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationCourriers", fields: [organizationId], references: [id])
   // Genere a la creation, format CRR-{annee}-{sequence}, ex. CRR-2026-0001.
   reference     String         @unique
   objet         String

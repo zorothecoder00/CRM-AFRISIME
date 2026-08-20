@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-13) — rattache toutes
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-14) — rattache toutes
  * les lignes existantes (sans organizationId) des modeles couverts par le
  * retrofit multi-tenant a une PlatformOrganization "AfriSime", conformement
  * a la decision actee le 2026-08-20 : les donnees actuelles de ce
@@ -115,6 +115,14 @@ const MODELS = [
   { label: "Constats d'audit", client: prisma.auditFinding },
   { label: "Incidents", client: prisma.incident },
   { label: "Demandes de changement", client: prisma.changeRequest },
+  { label: "Circuits de validation", client: prisma.validationWorkflow },
+  { label: "Étapes de circuit de validation", client: prisma.validationWorkflowStep },
+  { label: "Instances de validation de tâche", client: prisma.taskValidationRun },
+  { label: "Approbations de tâche", client: prisma.taskApproval },
+  { label: "Demandes administratives", client: prisma.adminRequest },
+  { label: "Instances de validation de demande admin", client: prisma.adminRequestValidationRun },
+  { label: "Approbations de demande admin", client: prisma.adminRequestApproval },
+  { label: "Courriers", client: prisma.courrier },
 ] as const;
 
 async function main() {

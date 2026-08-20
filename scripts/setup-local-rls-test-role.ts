@@ -110,6 +110,14 @@ const COVERED_TABLES = [
   "AuditFinding",
   "Incident",
   "ChangeRequest",
+  "ValidationWorkflow",
+  "ValidationWorkflowStep",
+  "TaskValidationRun",
+  "TaskApproval",
+  "AdminRequest",
+  "AdminRequestValidationRun",
+  "AdminRequestApproval",
+  "Courrier",
 ];
 
 async function main() {
