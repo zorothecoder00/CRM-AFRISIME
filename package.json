@@ -11,6 +11,7 @@
     "db:seed": "prisma db seed",
     "create-admin": "tsx scripts/create-admin.ts",
     "sync-role-permissions": "tsx scripts/sync-role-permissions.ts",
+    "backfill-platform-organization": "tsx scripts/backfill-platform-organization.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

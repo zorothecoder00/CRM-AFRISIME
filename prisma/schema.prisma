@@ -396,6 +396,13 @@ model User {
   role                       Role        @relation(fields: [roleId], references: [id])
   departmentId               String?
   department                 Department? @relation(fields: [departmentId], references: [id])
+  // Multi-tenant (cahier des charges V3.0 §27, plan Phase 1 — voir
+  // PlatformOrganization) — nullable et NON encore NOT NULL delibrement :
+  // seuls User et Department portent ce champ pour l'instant (retrofit
+  // reversible), pas encore de RLS (Phase 3), pas encore de backfill
+  // obligatoire pour les ~148 autres modeles. Voir scripts/backfill-platform-organization.ts.
+  organizationId             String?
+  organization               PlatformOrganization? @relation("PlatformOrganizationUsers", fields: [organizationId], references: [id])
   // Poste / fonction (cahier des charges §I, "Postes / Fonctions") — libelle
   // libre historique, distinct du Role qui porte les permissions. posteId
   // est le rattachement structure (avec responsabilites) recommande pour
@@ -681,6 +688,13 @@ model Department {
   // src/lib/entity-scope.ts), pas de denormalisation sur chaque noeud.
   entityId            String?
   entity              Entity?              @relation(fields: [entityId], references: [id])
+  // Multi-tenant (V3.0 §27, plan Phase 1) — meme statut que User.organizationId
+  // ci-dessus : nullable, reversible, pas de RLS. `code` reste @unique
+  // globalement pour l'instant (une seule organisation existe reellement) ;
+  // passage en unicite composite (organizationId, code) planifie en Phase 4,
+  // pas fait ici.
+  organizationId      String?
+  organization        PlatformOrganization? @relation("PlatformOrganizationDepartments", fields: [organizationId], references: [id])
   users               User[]
   projects            Project[]
   objectives          Objective[]
@@ -821,13 +835,17 @@ model ExchangeRate {
 // indépendantes." Ce modèle est la couche fondation/registre (au-dessus
 // d'OrganizationProfile, qui reste le profil de L'UNIQUE organisation
 // pilotée par cette instance) : chaque ligne représente un futur tenant de
-// la plateforme, avec son branding et son abonnement — PAS une isolation de
-// données déjà effective. Retrofitter un tenantId sur les ~150 modèles
-// existants (User, Project, Department, etc.) est une migration séparée,
-// volontairement hors-scope ici : ce registre prépare/documente la
-// plateforme multi-organisation sans réécrire tout le schéma en un seul
-// passage risqué. Voir memoire de session pour le detail de cette
-// decision de perimetre.
+// la plateforme, avec son branding et son abonnement.
+//
+// Retrofit Phase 1 (2026-08-20, plan détaillé en Artifact "Isolation
+// multi-tenant réelle pour AfriFlow") : organizationId nullable ajouté
+// UNIQUEMENT sur User et Department (les 2 modèles-pivots) — PAS encore
+// sur les ~148 autres modèles (Project, Task, tout le CRM...), PAS de
+// politique Row-Level Security (Phase 3), PAS de contrainte NOT NULL
+// (irréversible, différée). C'est un premier socle réversible, pas une
+// isolation effective : voir scripts/backfill-platform-organization.ts
+// pour le rattachement de "AfriSime" comme organisation n°1, et le JWT
+// NextAuth (src/lib/auth.ts) qui porte désormais organizationId.
 model PlatformOrganization {
   id              String                     @id @default(cuid())
   nom             String
@@ -841,6 +859,9 @@ model PlatformOrganization {
   createdBy       User                       @relation("PlatformOrganizationCreatedBy", fields: [createdById], references: [id])
   createdAt       DateTime                   @default(now())
   updatedAt       DateTime                   @updatedAt
+
+  users       User[]       @relation("PlatformOrganizationUsers")
+  departments Department[] @relation("PlatformOrganizationDepartments")
 }
 
 enum PlatformOrganizationStatut {

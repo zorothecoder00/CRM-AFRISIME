@@ -87,6 +87,7 @@ export const authOptions: NextAuthOptions = {
           roleKey: user.role.key,
           roleLabel: user.role.label,
           departmentId: user.departmentId,
+          organizationId: user.organizationId,
           permissions: user.role.permissions.map((rp) => rp.permission.key),
           sessionId: userSession.id,
         };
@@ -100,6 +101,7 @@ export const authOptions: NextAuthOptions = {
         token.roleKey = user.roleKey;
         token.roleLabel = user.roleLabel;
         token.departmentId = user.departmentId;
+        token.organizationId = user.organizationId;
         token.permissions = user.permissions;
         token.sessionId = user.sessionId;
       }
@@ -118,6 +120,7 @@ export const authOptions: NextAuthOptions = {
       session.user.roleKey = token.roleKey;
       session.user.roleLabel = token.roleLabel;
       session.user.departmentId = token.departmentId;
+      session.user.organizationId = token.organizationId;
       session.user.permissions = token.permissions;
       session.user.sessionId = token.sessionId;
 

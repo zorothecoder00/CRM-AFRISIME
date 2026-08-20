@@ -7,6 +7,12 @@ declare module "next-auth" {
       roleKey: string;
       roleLabel: string;
       departmentId: string | null;
+      // Multi-tenant Phase 1 (V3.0 §27, 2026-08-20) — nullable : pas encore
+      // NOT NULL en base (voir User.organizationId dans schema.prisma), et
+      // aucune donnee n'est encore scopee dessus (pas de RLS/filtre Prisma
+      // systematique). Present dans la session pour que la Phase 2+ (RLS,
+      // filtrage) ait deja le tenant courant disponible sans reprendre l'auth.
+      organizationId: string | null;
       permissions: string[];
       sessionId: string;
     } & DefaultSession["user"];
@@ -21,6 +27,7 @@ declare module "next-auth" {
     roleKey: string;
     roleLabel: string;
     departmentId: string | null;
+    organizationId: string | null;
     permissions: string[];
     sessionId: string;
   }
@@ -32,6 +39,7 @@ declare module "next-auth/jwt" {
     roleKey: string;
     roleLabel: string;
     departmentId: string | null;
+    organizationId: string | null;
     permissions: string[];
     sessionId: string;
   }
