@@ -116,6 +116,30 @@ let contractA: { id: string };
 let contractB: { id: string };
 let portalMessageA: { id: string };
 let portalMessageB: { id: string };
+let decisionOutcomeA: { id: string };
+let decisionOutcomeB: { id: string };
+let posteA: { id: string };
+let posteB: { id: string };
+let posteResponsabiliteA: { id: string };
+let posteResponsabiliteB: { id: string };
+let successionPlanA: { id: string };
+let successionPlanB: { id: string };
+let successionCandidateA: { id: string };
+let successionCandidateB: { id: string };
+let siteA: { id: string };
+let siteB: { id: string };
+let delegationA: { id: string };
+let delegationB: { id: string };
+let strategicAxisA: { id: string };
+let strategicAxisB: { id: string };
+let swotItemA: { id: string };
+let swotItemB: { id: string };
+let planA: { id: string };
+let planB: { id: string };
+let programmeA: { id: string };
+let programmeB: { id: string };
+let programmeRiskA: { id: string };
+let programmeRiskB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -650,16 +674,142 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         platformOrganizationId: orgB.id,
       },
     });
+
+    decisionOutcomeA = await admin.decisionOutcome.create({
+      data: { titre: "Decision A", dateDecision: new Date(), createdById: userA.id, organizationId: orgA.id },
+    });
+    decisionOutcomeB = await admin.decisionOutcome.create({
+      data: { titre: "Decision B", dateDecision: new Date(), createdById: userB.id, organizationId: orgB.id },
+    });
+
+    posteA = await admin.poste.create({
+      data: { nom: "Poste A", departmentId: deptA.id, organizationId: orgA.id },
+    });
+    posteB = await admin.poste.create({
+      data: { nom: "Poste B", departmentId: deptB.id, organizationId: orgB.id },
+    });
+
+    posteResponsabiliteA = await admin.posteResponsabilite.create({
+      data: { posteId: posteA.id, libelle: "Responsabilite A", organizationId: orgA.id },
+    });
+    posteResponsabiliteB = await admin.posteResponsabilite.create({
+      data: { posteId: posteB.id, libelle: "Responsabilite B", organizationId: orgB.id },
+    });
+
+    successionPlanA = await admin.successionPlan.create({
+      data: { posteId: posteA.id, createdById: userA.id, organizationId: orgA.id },
+    });
+    successionPlanB = await admin.successionPlan.create({
+      data: { posteId: posteB.id, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    successionCandidateA = await admin.successionCandidate.create({
+      data: { successionPlanId: successionPlanA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    successionCandidateB = await admin.successionCandidate.create({
+      data: { successionPlanId: successionPlanB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    siteA = await admin.site.create({ data: { nom: "Site A", departmentId: deptA.id, organizationId: orgA.id } });
+    siteB = await admin.site.create({ data: { nom: "Site B", departmentId: deptB.id, organizationId: orgB.id } });
+
+    delegationA = await admin.delegation.create({
+      data: {
+        delegantId: userA.id,
+        delegataireId: userA.id,
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    delegationB = await admin.delegation.create({
+      data: {
+        delegantId: userB.id,
+        delegataireId: userB.id,
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    strategicAxisA = await admin.strategicAxis.create({
+      data: { nom: "Axe A", createdById: userA.id, organizationId: orgA.id },
+    });
+    strategicAxisB = await admin.strategicAxis.create({
+      data: { nom: "Axe B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    swotItemA = await admin.swotItem.create({
+      data: { categorie: "FORCE", contenu: "Force A", createdById: userA.id, organizationId: orgA.id },
+    });
+    swotItemB = await admin.swotItem.create({
+      data: { categorie: "FORCE", contenu: "Force B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    planA = await admin.plan.create({
+      data: {
+        nom: "Plan A",
+        niveau: "STRATEGIQUE",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        ownerId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    planB = await admin.plan.create({
+      data: {
+        nom: "Plan B",
+        niveau: "STRATEGIQUE",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        ownerId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    programmeA = await admin.programme.create({
+      data: { nom: "Programme A", responsableId: userA.id, createdById: userA.id, organizationId: orgA.id },
+    });
+    programmeB = await admin.programme.create({
+      data: { nom: "Programme B", responsableId: userB.id, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    programmeRiskA = await admin.programmeRisk.create({
+      data: { programmeId: programmeA.id, titre: "Risque A", createdById: userA.id, organizationId: orgA.id },
+    });
+    programmeRiskB = await admin.programmeRisk.create({
+      data: { programmeId: programmeB.id, titre: "Risque B", createdById: userB.id, organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-10) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-11) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
     // qui referencent PlatformOrganization.
+    await admin.programmeRisk.deleteMany({ where: { id: { in: [programmeRiskA.id, programmeRiskB.id] } } });
+    await admin.programme.deleteMany({ where: { id: { in: [programmeA.id, programmeB.id] } } });
+    await admin.plan.deleteMany({ where: { id: { in: [planA.id, planB.id] } } });
+    await admin.swotItem.deleteMany({ where: { id: { in: [swotItemA.id, swotItemB.id] } } });
+    await admin.strategicAxis.deleteMany({ where: { id: { in: [strategicAxisA.id, strategicAxisB.id] } } });
+    await admin.delegation.deleteMany({ where: { id: { in: [delegationA.id, delegationB.id] } } });
+    await admin.site.deleteMany({ where: { id: { in: [siteA.id, siteB.id] } } });
+    await admin.successionCandidate.deleteMany({
+      where: { id: { in: [successionCandidateA.id, successionCandidateB.id] } },
+    });
+    await admin.successionPlan.deleteMany({ where: { id: { in: [successionPlanA.id, successionPlanB.id] } } });
+    await admin.posteResponsabilite.deleteMany({
+      where: { id: { in: [posteResponsabiliteA.id, posteResponsabiliteB.id] } },
+    });
+    await admin.poste.deleteMany({ where: { id: { in: [posteA.id, posteB.id] } } });
+    await admin.decisionOutcome.deleteMany({ where: { id: { in: [decisionOutcomeA.id, decisionOutcomeB.id] } } });
     await admin.portalMessage.deleteMany({ where: { id: { in: [portalMessageA.id, portalMessageB.id] } } });
     await admin.contract.deleteMany({ where: { id: { in: [contractA.id, contractB.id] } } });
     await admin.crmInteraction.deleteMany({ where: { id: { in: [crmInteractionA.id, crmInteractionB.id] } } });
@@ -1273,5 +1423,113 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
       tx.portalMessage.findMany({ where: { id: { in: [portalMessageA.id, portalMessageB.id] } } })
     );
     expect(messages.map((m) => m.id)).toEqual([portalMessageB.id]);
+  });
+
+  it("DecisionOutcome : un role scope a l'organisation A ne voit que les decisions de A", async () => {
+    const decisions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.decisionOutcome.findMany({ where: { id: { in: [decisionOutcomeA.id, decisionOutcomeB.id] } } })
+    );
+    expect(decisions.map((d) => d.id)).toEqual([decisionOutcomeA.id]);
+  });
+
+  it("Poste : un role scope a l'organisation B ne voit que les postes de B", async () => {
+    const postes = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.poste.findMany({ where: { id: { in: [posteA.id, posteB.id] } } })
+    );
+    expect(postes.map((p) => p.id)).toEqual([posteB.id]);
+  });
+
+  it("Poste : le role non-proprietaire ne peut pas modifier un poste hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.poste.update({ where: { id: posteB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("PosteResponsabilite : un role scope a l'organisation A ne voit que les responsabilites de A", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.posteResponsabilite.findMany({ where: { id: { in: [posteResponsabiliteA.id, posteResponsabiliteB.id] } } })
+    );
+    expect(items.map((i) => i.id)).toEqual([posteResponsabiliteA.id]);
+  });
+
+  it("SuccessionPlan : un role scope a l'organisation B ne voit que les plans de succession de B", async () => {
+    const plans = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.successionPlan.findMany({ where: { id: { in: [successionPlanA.id, successionPlanB.id] } } })
+    );
+    expect(plans.map((p) => p.id)).toEqual([successionPlanB.id]);
+  });
+
+  it("SuccessionCandidate : un role scope a l'organisation A ne voit que les candidats de A", async () => {
+    const candidates = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.successionCandidate.findMany({ where: { id: { in: [successionCandidateA.id, successionCandidateB.id] } } })
+    );
+    expect(candidates.map((c) => c.id)).toEqual([successionCandidateA.id]);
+  });
+
+  it("Site : un role scope a l'organisation B ne voit que les sites de B", async () => {
+    const sites = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.site.findMany({ where: { id: { in: [siteA.id, siteB.id] } } })
+    );
+    expect(sites.map((s) => s.id)).toEqual([siteB.id]);
+  });
+
+  it("Delegation : un role scope a l'organisation A ne voit que les delegations de A", async () => {
+    const delegations = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.delegation.findMany({ where: { id: { in: [delegationA.id, delegationB.id] } } })
+    );
+    expect(delegations.map((d) => d.id)).toEqual([delegationA.id]);
+  });
+
+  it("Delegation : le role non-proprietaire ne peut pas modifier une delegation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.delegation.update({ where: { id: delegationB.id }, data: { motif: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("StrategicAxis : un role scope a l'organisation B ne voit que les axes de B", async () => {
+    const axes = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.strategicAxis.findMany({ where: { id: { in: [strategicAxisA.id, strategicAxisB.id] } } })
+    );
+    expect(axes.map((a) => a.id)).toEqual([strategicAxisB.id]);
+  });
+
+  it("SwotItem : un role scope a l'organisation A ne voit que les items SWOT de A", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.swotItem.findMany({ where: { id: { in: [swotItemA.id, swotItemB.id] } } })
+    );
+    expect(items.map((i) => i.id)).toEqual([swotItemA.id]);
+  });
+
+  it("Plan : un role scope a l'organisation B ne voit que les plans de B", async () => {
+    const plans = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.plan.findMany({ where: { id: { in: [planA.id, planB.id] } } })
+    );
+    expect(plans.map((p) => p.id)).toEqual([planB.id]);
+  });
+
+  it("Plan : le role non-proprietaire ne peut pas modifier un plan hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.plan.update({ where: { id: planB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Programme : un role scope a l'organisation A ne voit que les programmes de A", async () => {
+    const programmes = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.programme.findMany({ where: { id: { in: [programmeA.id, programmeB.id] } } })
+    );
+    expect(programmes.map((p) => p.id)).toEqual([programmeA.id]);
+  });
+
+  it("ProgrammeRisk : un role scope a l'organisation B ne voit que les risques programme de B", async () => {
+    const risks = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.programmeRisk.findMany({ where: { id: { in: [programmeRiskA.id, programmeRiskB.id] } } })
+    );
+    expect(risks.map((r) => r.id)).toEqual([programmeRiskB.id]);
   });
 });

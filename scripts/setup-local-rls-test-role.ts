@@ -69,6 +69,18 @@ const COVERED_TABLES = [
   "CrmInteraction",
   "Contract",
   "PortalMessage",
+  "DecisionOutcome",
+  "Poste",
+  "PosteResponsabilite",
+  "SuccessionPlan",
+  "SuccessionCandidate",
+  "Site",
+  "Delegation",
+  "StrategicAxis",
+  "SwotItem",
+  "Plan",
+  "Programme",
+  "ProgrammeRisk",
 ];
 
 async function main() {

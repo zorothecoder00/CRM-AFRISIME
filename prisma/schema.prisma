@@ -916,6 +916,18 @@ model PlatformOrganization {
   crmInteractions               CrmInteraction[]      @relation("PlatformOrganizationCrmInteractions")
   contracts                       Contract[]            @relation("PlatformOrganizationContracts")
   portalMessages                    PortalMessage[]       @relation("PlatformOrganizationPortalMessages")
+  decisionOutcomes       DecisionOutcome[]       @relation("PlatformOrganizationDecisionOutcomes")
+  postes                   Poste[]                 @relation("PlatformOrganizationPostes")
+  posteResponsabilites       PosteResponsabilite[]   @relation("PlatformOrganizationPosteResponsabilites")
+  successionPlans               SuccessionPlan[]        @relation("PlatformOrganizationSuccessionPlans")
+  successionCandidates             SuccessionCandidate[]   @relation("PlatformOrganizationSuccessionCandidates")
+  sites                               Site[]                  @relation("PlatformOrganizationSites")
+  delegations                           Delegation[]            @relation("PlatformOrganizationDelegations")
+  strategicAxes                           StrategicAxis[]         @relation("PlatformOrganizationStrategicAxes")
+  swotItems                                 SwotItem[]              @relation("PlatformOrganizationSwotItems")
+  plans                                       Plan[]                  @relation("PlatformOrganizationPlans")
+  programmes                                    Programme[]             @relation("PlatformOrganizationProgrammes")
+  programmeRisks                                  ProgrammeRisk[]         @relation("PlatformOrganizationProgrammeRisks")
 }
 
 enum PlatformOrganizationStatut {
@@ -941,6 +953,11 @@ enum PlatformOrganizationPlan {
 // circuit de réunion formel.
 model DecisionOutcome {
   id                   String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDecisionOutcomes", fields: [organizationId], references: [id])
   titre                String
   description          String?
   sourceType           String?
@@ -970,6 +987,12 @@ model DecisionOutcome {
 // propres responsabilites plutot que le simple libelle texte User.poste.
 model Poste {
   id              String      @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome. Pas de createdBy sur ce modele (referentiel, pas une
+  // transaction utilisateur) : rattache via department si renseigne, sinon
+  // par le backfill comme les autres modeles sans parent direct.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPostes", fields: [organizationId], references: [id])
   nom             String
   description     String?
   // Champ texte libre historique, conserve pour compatibilite. La liste
@@ -999,6 +1022,10 @@ model PosteResponsabilite {
   id      String @id @default(cuid())
   posteId String
   poste   Poste  @relation(fields: [posteId], references: [id], onDelete: Cascade)
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que Poste,
+  // denormalise depuis poste.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPosteResponsabilites", fields: [organizationId], references: [id])
   libelle String
   ordre   Int    @default(0)
 
@@ -1014,6 +1041,10 @@ model PosteResponsabilite {
 // — reste la source de vérité sur la performance individuelle).
 model SuccessionPlan {
   id                  String               @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome, denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationSuccessionPlans", fields: [organizationId], references: [id])
   posteId             String
   poste               Poste                @relation(fields: [posteId], references: [id])
   titulaireId         String?
@@ -1034,6 +1065,10 @@ model SuccessionPlan {
 
 model SuccessionCandidate {
   id               String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // SuccessionPlan, denormalise depuis successionPlan.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationSuccessionCandidates", fields: [organizationId], references: [id])
   successionPlanId String
   successionPlan   SuccessionPlan  @relation(fields: [successionPlanId], references: [id], onDelete: Cascade)
   userId           String
@@ -1062,6 +1097,10 @@ enum PotentielNiveau {
 // Site / agence (cahier des charges §I, "Sites / agences, Localisations").
 model Site {
   id           String      @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que Poste (pas
+  // de createdBy, referentiel).
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationSites", fields: [organizationId], references: [id])
   nom          String
   ville        String?
   pays         String?
@@ -1085,6 +1124,10 @@ model Site {
 // une extension separee).
 model Delegation {
   id            String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome, denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDelegations", fields: [organizationId], references: [id])
   delegantId    String
   delegant      User     @relation("DelegationDelegant", fields: [delegantId], references: [id])
   delegataireId String
@@ -1121,6 +1164,10 @@ enum PlanNiveau {
 // priorite reutilise l'echelle ProjectPriority (meme semantique).
 model StrategicAxis {
   id          String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome, denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationStrategicAxes", fields: [organizationId], references: [id])
   nom         String
   description String?
   priorite    ProjectPriority @default(MOYENNE)
@@ -1146,6 +1193,10 @@ enum SwotCategory {
 // deja rattachable aux Plans/Objectifs independamment de ce module.
 model SwotItem {
   id          String       @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome, denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationSwotItems", fields: [organizationId], references: [id])
   categorie   SwotCategory
   contenu     String
   createdById String
@@ -1157,6 +1208,10 @@ model SwotItem {
 
 model Plan {
   id              String         @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome, denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPlans", fields: [organizationId], references: [id])
   nom             String
   niveau          PlanNiveau
   description     String?
@@ -1198,6 +1253,10 @@ model Plan {
 // d'introduire un enum dedie.
 model Programme {
   id            String        @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que
+  // DecisionOutcome, denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProgrammes", fields: [organizationId], references: [id])
   nom           String
   description   String?
   objectif      String?
@@ -1230,6 +1289,10 @@ model Programme {
 // RiskStatus, deux systemes paralleles plutot qu'une relation polymorphe).
 model ProgrammeRisk {
   id             String          @id @default(cuid())
+  // Multi-tenant Phase 1 lot 11 (2026-08-20) — meme statut que Programme,
+  // denormalise depuis programme.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProgrammeRisks", fields: [organizationId], references: [id])
   programmeId    String
   programme      Programme       @relation(fields: [programmeId], references: [id])
   titre          String

@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-9) — rattache toutes
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-11) — rattache toutes
  * les lignes existantes (sans organizationId) des modeles couverts par le
  * retrofit multi-tenant a une PlatformOrganization "AfriSime", conformement
  * a la decision actee le 2026-08-20 : les donnees actuelles de ce
@@ -74,6 +74,18 @@ const MODELS = [
   { label: "Interactions CRM", client: prisma.crmInteraction, field: "platformOrganizationId" },
   { label: "Contrats", client: prisma.contract, field: "platformOrganizationId" },
   { label: "Messages portail", client: prisma.portalMessage, field: "platformOrganizationId" },
+  { label: "Décisions (Decision Intelligence)", client: prisma.decisionOutcome },
+  { label: "Postes", client: prisma.poste },
+  { label: "Responsabilités de poste", client: prisma.posteResponsabilite },
+  { label: "Plans de succession", client: prisma.successionPlan },
+  { label: "Candidats de succession", client: prisma.successionCandidate },
+  { label: "Sites", client: prisma.site },
+  { label: "Délégations", client: prisma.delegation },
+  { label: "Axes stratégiques", client: prisma.strategicAxis },
+  { label: "Éléments SWOT", client: prisma.swotItem },
+  { label: "Plans", client: prisma.plan },
+  { label: "Programmes", client: prisma.programme },
+  { label: "Risques programme", client: prisma.programmeRisk },
 ] as const;
 
 async function main() {
