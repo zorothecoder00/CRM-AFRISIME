@@ -883,6 +883,16 @@ model PlatformOrganization {
   projectMilestones    ProjectMilestone[]   @relation("PlatformOrganizationProjectMilestones")
   projectDeliverables  ProjectDeliverable[] @relation("PlatformOrganizationProjectDeliverables")
   projectResources     ProjectResource[]    @relation("PlatformOrganizationProjectResources")
+  sectionComments             SectionComment[]             @relation("PlatformOrganizationSectionComments")
+  taskAssignees                TaskAssignee[]                @relation("PlatformOrganizationTaskAssignees")
+  checklistItems                ChecklistItem[]                @relation("PlatformOrganizationChecklistItems")
+  taskComments                  TaskComment[]                  @relation("PlatformOrganizationTaskComments")
+  taskDependencies               TaskDependency[]               @relation("PlatformOrganizationTaskDependencies")
+  documentAccesses               DocumentAccess[]               @relation("PlatformOrganizationDocumentAccesses")
+  documentVersions                DocumentVersion[]              @relation("PlatformOrganizationDocumentVersions")
+  meetingParticipants             MeetingParticipant[]           @relation("PlatformOrganizationMeetingParticipants")
+  meetingDecisions                 MeetingDecision[]              @relation("PlatformOrganizationMeetingDecisions")
+  meetingExternalParticipants       MeetingExternalParticipant[]  @relation("PlatformOrganizationMeetingExternalParticipants")
 }
 
 enum PlatformOrganizationStatut {
@@ -1851,6 +1861,11 @@ model SectionComment {
   id        String         @id @default(cuid())
   sectionId String
   section   ProjectSection @relation(fields: [sectionId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // section.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationSectionComments", fields: [organizationId], references: [id])
   authorId  String
   author    User           @relation("SectionCommentAuthor", fields: [authorId], references: [id])
   content   String
@@ -1953,6 +1968,10 @@ model TaskAssignee {
   userId String
   task   Task   @relation(fields: [taskId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis task.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTaskAssignees", fields: [organizationId], references: [id])
 
   @@id([taskId, userId])
 }
@@ -1961,6 +1980,9 @@ model ChecklistItem {
   id            String    @id @default(cuid())
   taskId        String
   task          Task      @relation(fields: [taskId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationChecklistItems", fields: [organizationId], references: [id])
   label         String
   isDone        Boolean   @default(false)
   ordre         Int       @default(0)
@@ -1976,6 +1998,9 @@ model TaskComment {
   id        String   @id @default(cuid())
   taskId    String
   task      Task     @relation(fields: [taskId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTaskComments", fields: [organizationId], references: [id])
   authorId  String
   author    User     @relation(fields: [authorId], references: [id])
   content   String
@@ -1995,6 +2020,9 @@ model TaskDependency {
   task            Task           @relation("DependentTask", fields: [taskId], references: [id])
   dependsOnTask   Task           @relation("PrerequisiteTask", fields: [dependsOnTaskId], references: [id])
   createdAt       DateTime       @default(now())
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTaskDependencies", fields: [organizationId], references: [id])
 
   @@unique([taskId, dependsOnTaskId])
 }
@@ -2276,6 +2304,10 @@ model MeetingParticipant {
   userId    String
   meeting   Meeting @relation(fields: [meetingId], references: [id])
   user      User    @relation(fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee,
+  // denormalise depuis meeting.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationMeetingParticipants", fields: [organizationId], references: [id])
 
   @@id([meetingId, userId])
 }
@@ -2298,6 +2330,11 @@ model MeetingDecision {
   meeting       Meeting?       @relation(fields: [meetingId], references: [id])
   projectId     String?
   project       Project?       @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee,
+  // denormalise depuis meeting.organizationId OU project.organizationId
+  // (l'un des deux est toujours renseigne).
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationMeetingDecisions", fields: [organizationId], references: [id])
   description   String
   // Motif (cahier des charges §XI) — pourquoi cette decision, distinct de
   // la description de l'action elle-meme.
@@ -2455,6 +2492,10 @@ model DocumentAccess {
   id         String   @id @default(cuid())
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee,
+  // denormalise depuis document.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDocumentAccesses", fields: [organizationId], references: [id])
   userId     String
   user       User     @relation("DocumentAccessGrantee", fields: [userId], references: [id])
   createdAt  DateTime @default(now())
@@ -2522,6 +2563,10 @@ model DocumentVersion {
   id          String   @id @default(cuid())
   documentId  String
   document    Document @relation(fields: [documentId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que
+  // DocumentAccess.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDocumentVersions", fields: [organizationId], references: [id])
   url         String
   mimeType    String?
   sizeBytes   Int?
@@ -4212,6 +4257,10 @@ model MeetingExternalParticipant {
   meeting     Meeting             @relation(fields: [meetingId], references: [id])
   contactId   String
   contact     CrmContact          @relation(fields: [contactId], references: [id])
+  // Multi-tenant Phase 1 lot 7 (2026-08-20) — meme statut que TaskAssignee,
+  // denormalise depuis meeting.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationMeetingExternalParticipants", fields: [organizationId], references: [id])
   rsvp        MeetingExternalRsvp @default(EN_ATTENTE)
   invitedAt   DateTime            @default(now())
   respondedAt DateTime?

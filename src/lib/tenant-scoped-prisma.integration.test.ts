@@ -54,6 +54,26 @@ let deliverableA: { id: string };
 let deliverableB: { id: string };
 let resourceA: { id: string };
 let resourceB: { id: string };
+let sectionCommentA: { id: string };
+let sectionCommentB: { id: string };
+let taskA2: { id: string };
+let taskB2: { id: string };
+let checklistItemA: { id: string };
+let checklistItemB: { id: string };
+let taskCommentA: { id: string };
+let taskCommentB: { id: string };
+let taskDependencyA: { id: string };
+let taskDependencyB: { id: string };
+let documentAccessA: { id: string };
+let documentAccessB: { id: string };
+let documentVersionA: { id: string };
+let documentVersionB: { id: string };
+let meetingDecisionA: { id: string };
+let meetingDecisionB: { id: string };
+let crmContactA: { id: string };
+let crmContactB: { id: string };
+let meetingExternalParticipantA: { id: string };
+let meetingExternalParticipantB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -256,16 +276,124 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     resourceB = await admin.projectResource.create({
       data: { projectId: projectB.id, nom: "Ressource B", createdById: userB.id, organizationId: orgB.id },
     });
+
+    sectionCommentA = await admin.sectionComment.create({
+      data: { sectionId: sectionA.id, authorId: userA.id, content: "Commentaire A", organizationId: orgA.id },
+    });
+    sectionCommentB = await admin.sectionComment.create({
+      data: { sectionId: sectionB.id, authorId: userB.id, content: "Commentaire B", organizationId: orgB.id },
+    });
+
+    await admin.taskAssignee.create({ data: { taskId: taskA.id, userId: userA.id, organizationId: orgA.id } });
+    await admin.taskAssignee.create({ data: { taskId: taskB.id, userId: userB.id, organizationId: orgB.id } });
+
+    checklistItemA = await admin.checklistItem.create({
+      data: { taskId: taskA.id, label: "Item A", organizationId: orgA.id },
+    });
+    checklistItemB = await admin.checklistItem.create({
+      data: { taskId: taskB.id, label: "Item B", organizationId: orgB.id },
+    });
+
+    taskCommentA = await admin.taskComment.create({
+      data: { taskId: taskA.id, authorId: userA.id, content: "Commentaire A", organizationId: orgA.id },
+    });
+    taskCommentB = await admin.taskComment.create({
+      data: { taskId: taskB.id, authorId: userB.id, content: "Commentaire B", organizationId: orgB.id },
+    });
+
+    taskA2 = await admin.task.create({
+      data: {
+        titre: "Task A2",
+        projectId: projectA.id,
+        responsablePrincipalId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    taskB2 = await admin.task.create({
+      data: {
+        titre: "Task B2",
+        projectId: projectB.id,
+        responsablePrincipalId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    taskDependencyA = await admin.taskDependency.create({
+      data: { taskId: taskA2.id, dependsOnTaskId: taskA.id, organizationId: orgA.id },
+    });
+    taskDependencyB = await admin.taskDependency.create({
+      data: { taskId: taskB2.id, dependsOnTaskId: taskB.id, organizationId: orgB.id },
+    });
+
+    documentAccessA = await admin.documentAccess.create({
+      data: { documentId: docA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    documentAccessB = await admin.documentAccess.create({
+      data: { documentId: docB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    documentVersionA = await admin.documentVersion.create({
+      data: { documentId: docA.id, url: "https://example.com/v1-a", createdById: userA.id, organizationId: orgA.id },
+    });
+    documentVersionB = await admin.documentVersion.create({
+      data: { documentId: docB.id, url: "https://example.com/v1-b", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    await admin.meetingParticipant.create({
+      data: { meetingId: meetingA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    await admin.meetingParticipant.create({
+      data: { meetingId: meetingB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    meetingDecisionA = await admin.meetingDecision.create({
+      data: { meetingId: meetingA.id, description: "Decision A", organizationId: orgA.id },
+    });
+    meetingDecisionB = await admin.meetingDecision.create({
+      data: { meetingId: meetingB.id, description: "Decision B", organizationId: orgB.id },
+    });
+
+    crmContactA = await admin.crmContact.create({
+      data: { prenom: "Contact", nom: "A", createdById: userA.id },
+    });
+    crmContactB = await admin.crmContact.create({
+      data: { prenom: "Contact", nom: "B", createdById: userB.id },
+    });
+
+    meetingExternalParticipantA = await admin.meetingExternalParticipant.create({
+      data: { meetingId: meetingA.id, contactId: crmContactA.id, organizationId: orgA.id },
+    });
+    meetingExternalParticipantB = await admin.meetingExternalParticipant.create({
+      data: { meetingId: meetingB.id, contactId: crmContactB.id, organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : Meeting/DocumentFolder/Document/Task/ProjectSection/
-    // Whiteboard/ProjectMember/ProjectRisk/ProjectMilestone/
-    // ProjectDeliverable/ProjectResource referencent Project+User,
-    // Project/Team referencent User+Department, qui referencent
-    // PlatformOrganization.
+    // des FK : les modeles "feuilles" (lot 7) d'abord, puis Meeting/
+    // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
+    // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
+    // referencent Project+User, Project/Team referencent User+Department,
+    // qui referencent PlatformOrganization.
+    await admin.meetingExternalParticipant.deleteMany({
+      where: { id: { in: [meetingExternalParticipantA.id, meetingExternalParticipantB.id] } },
+    });
+    await admin.crmContact.deleteMany({ where: { id: { in: [crmContactA.id, crmContactB.id] } } });
+    await admin.meetingDecision.deleteMany({ where: { id: { in: [meetingDecisionA.id, meetingDecisionB.id] } } });
+    await admin.meetingParticipant.deleteMany({
+      where: { meetingId: { in: [meetingA.id, meetingB.id] } },
+    });
+    await admin.documentVersion.deleteMany({ where: { id: { in: [documentVersionA.id, documentVersionB.id] } } });
+    await admin.documentAccess.deleteMany({ where: { id: { in: [documentAccessA.id, documentAccessB.id] } } });
+    await admin.taskDependency.deleteMany({ where: { id: { in: [taskDependencyA.id, taskDependencyB.id] } } });
+    await admin.taskComment.deleteMany({ where: { id: { in: [taskCommentA.id, taskCommentB.id] } } });
+    await admin.checklistItem.deleteMany({ where: { id: { in: [checklistItemA.id, checklistItemB.id] } } });
+    await admin.taskAssignee.deleteMany({ where: { taskId: { in: [taskA.id, taskB.id] } } });
+    await admin.sectionComment.deleteMany({ where: { id: { in: [sectionCommentA.id, sectionCommentB.id] } } });
+    await admin.task.deleteMany({ where: { id: { in: [taskA2.id, taskB2.id] } } });
     await admin.whiteboard.deleteMany({ where: { id: { in: [whiteboardA.id, whiteboardB.id] } } });
     await admin.projectMember.deleteMany({ where: { id: { in: [projectMemberA.id, projectMemberB.id] } } });
     await admin.projectRisk.deleteMany({ where: { id: { in: [riskA.id, riskB.id] } } });
@@ -484,5 +612,112 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         tx.projectResource.update({ where: { id: resourceB.id }, data: { nom: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
+  });
+
+  it("SectionComment : un role scope a l'organisation A ne voit que les commentaires de A", async () => {
+    const comments = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.sectionComment.findMany({ where: { id: { in: [sectionCommentA.id, sectionCommentB.id] } } })
+    );
+    expect(comments.map((c) => c.id)).toEqual([sectionCommentA.id]);
+  });
+
+  it("TaskAssignee : un role scope a l'organisation B ne voit que les affectations de B", async () => {
+    const assignees = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.taskAssignee.findMany({ where: { taskId: { in: [taskA.id, taskB.id] } } })
+    );
+    expect(assignees.map((a) => a.taskId)).toEqual([taskB.id]);
+  });
+
+  it("TaskAssignee : le role non-proprietaire ne peut pas modifier une affectation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.taskAssignee.update({
+          where: { taskId_userId: { taskId: taskB.id, userId: userB.id } },
+          data: { organizationId: orgA.id },
+        })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ChecklistItem : un role scope a l'organisation A ne voit que les items de A", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.checklistItem.findMany({ where: { id: { in: [checklistItemA.id, checklistItemB.id] } } })
+    );
+    expect(items.map((i) => i.id)).toEqual([checklistItemA.id]);
+  });
+
+  it("TaskComment : un role scope a l'organisation B ne voit que les commentaires de B", async () => {
+    const comments = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.taskComment.findMany({ where: { id: { in: [taskCommentA.id, taskCommentB.id] } } })
+    );
+    expect(comments.map((c) => c.id)).toEqual([taskCommentB.id]);
+  });
+
+  it("TaskComment : le role non-proprietaire ne peut pas modifier un commentaire hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.taskComment.update({ where: { id: taskCommentB.id }, data: { content: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("TaskDependency : un role scope a l'organisation A ne voit que les dependances de A", async () => {
+    const deps = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.taskDependency.findMany({ where: { id: { in: [taskDependencyA.id, taskDependencyB.id] } } })
+    );
+    expect(deps.map((d) => d.id)).toEqual([taskDependencyA.id]);
+  });
+
+  it("DocumentAccess : un role scope a l'organisation B ne voit que les acces de B", async () => {
+    const accesses = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.documentAccess.findMany({ where: { id: { in: [documentAccessA.id, documentAccessB.id] } } })
+    );
+    expect(accesses.map((a) => a.id)).toEqual([documentAccessB.id]);
+  });
+
+  it("DocumentVersion : un role scope a l'organisation A ne voit que les versions de A", async () => {
+    const versions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.documentVersion.findMany({ where: { id: { in: [documentVersionA.id, documentVersionB.id] } } })
+    );
+    expect(versions.map((v) => v.id)).toEqual([documentVersionA.id]);
+  });
+
+  it("DocumentVersion : le role non-proprietaire ne peut pas modifier une version hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.documentVersion.update({ where: { id: documentVersionB.id }, data: { note: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("MeetingParticipant : un role scope a l'organisation B ne voit que les participants de B", async () => {
+    const participants = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.meetingParticipant.findMany({ where: { meetingId: { in: [meetingA.id, meetingB.id] } } })
+    );
+    expect(participants.map((p) => p.meetingId)).toEqual([meetingB.id]);
+  });
+
+  it("MeetingDecision : un role scope a l'organisation A ne voit que les decisions de A", async () => {
+    const decisions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.meetingDecision.findMany({ where: { id: { in: [meetingDecisionA.id, meetingDecisionB.id] } } })
+    );
+    expect(decisions.map((d) => d.id)).toEqual([meetingDecisionA.id]);
+  });
+
+  it("MeetingDecision : le role non-proprietaire ne peut pas modifier une decision hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.meetingDecision.update({ where: { id: meetingDecisionB.id }, data: { description: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("MeetingExternalParticipant : un role scope a l'organisation B ne voit que les participants externes de B", async () => {
+    const participants = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.meetingExternalParticipant.findMany({
+        where: { id: { in: [meetingExternalParticipantA.id, meetingExternalParticipantB.id] } },
+      })
+    );
+    expect(participants.map((p) => p.id)).toEqual([meetingExternalParticipantB.id]);
   });
 });
