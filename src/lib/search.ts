@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { findEntitiesByTagNames } from "@/lib/tags";
 import { fuzzyMatchIds, sortByRelevance } from "@/lib/fuzzy-search";
+import { computeDepartmentDepth, departmentLevelLabel } from "@/lib/department-tree";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type SearchResultType =
@@ -19,7 +20,9 @@ export type SearchResultType =
   | "Processus"
   | "Risque"
   | "Décision"
-  | "KPI";
+  | "KPI"
+  | "Département"
+  | "Équipe";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -438,6 +441,48 @@ export async function globalSearch(
           subtitle: i.objective?.titre ?? null,
           href: i.objectiveId ? `/objectifs/${i.objectiveId}` : i.projectId ? `/projets/${i.projectId}` : i.taskId ? `/taches/${i.taskId}` : "/objectifs",
           _entityType: "Indicator",
+        }));
+      })
+    );
+  }
+
+  // Départements/Équipes (niveaux 2-5 du pilotage, §XXIII) — même garde que
+  // /pilotage (DASHBOARD_READ), absent jusqu'ici de la recherche globale.
+  if (hasPermission(permissions, PERMISSIONS.DASHBOARD_READ)) {
+    searches.push(
+      fuzzyMatchIds("Department", ["name"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const [rows, allDepartments] = await Promise.all([
+          prisma.department.findMany({ where: { id: { in: candidateIds } }, take: 8, select: { id: true, name: true } }),
+          prisma.department.findMany({ select: { id: true, name: true, parentId: true } }),
+        ]);
+        const byId = new Map(allDepartments.map((d) => [d.id, d]));
+        return sortByRelevance(rows, candidateIds).map((d) => ({
+          type: "Département" as const,
+          id: d.id,
+          title: d.name,
+          subtitle: departmentLevelLabel(computeDepartmentDepth(d.id, byId)),
+          href: `/pilotage/departement/${d.id}`,
+          _entityType: "Department",
+        }));
+      })
+    );
+
+    searches.push(
+      fuzzyMatchIds("Team", ["nom"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const rows = await prisma.team.findMany({
+          where: { id: { in: candidateIds } },
+          take: 8,
+          select: { id: true, nom: true, department: { select: { name: true } } },
+        });
+        return sortByRelevance(rows, candidateIds).map((t) => ({
+          type: "Équipe" as const,
+          id: t.id,
+          title: t.nom,
+          subtitle: t.department.name,
+          href: `/pilotage/equipe/${t.id}`,
+          _entityType: "Team",
         }));
       })
     );

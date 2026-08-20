@@ -22,6 +22,8 @@ const TYPE_ORDER: SearchResultType[] = [
   "Courrier",
   "Contact CRM",
   "Organisation CRM",
+  "Département",
+  "Équipe",
   "Utilisateur",
 ];
 
