@@ -36,6 +36,8 @@ export default async function CalendrierPage({
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canManageLeaves = session!.user.permissions.includes(PERMISSIONS.LEAVE_MANAGE);
+  const canCreateLeave = session!.user.permissions.includes(PERMISSIONS.LEAVE_CREATE);
+  const canCreateEvent = session!.user.permissions.includes(PERMISSIONS.EVENT_CREATE);
 
   const now = new Date();
   const year = annee ? parseInt(annee, 10) : now.getFullYear();
@@ -147,8 +149,10 @@ export default async function CalendrierPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <LeaveFormDialog />
-            <EventFormDialog projects={projects.map((p) => ({ id: p.id, label: p.nom }))} />
+            {canCreateLeave && <LeaveFormDialog />}
+            {canCreateEvent && (
+              <EventFormDialog projects={projects.map((p) => ({ id: p.id, label: p.nom }))} />
+            )}
           </div>
         </div>
 
