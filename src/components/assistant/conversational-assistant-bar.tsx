@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
 import { askAssistant, type AskAssistantResult } from "@/actions/assistant.actions";
@@ -48,7 +48,16 @@ export function ConversationalAssistantBar({ projects }: { projects: { id: strin
   const askAction = useAction(askAssistant);
   const createTaskAction = useAction(createTask, { successMessage: "Tâche créée." });
 
-  const speechSupported = getSpeechRecognition() !== null;
+  // `getSpeechRecognition()` depend de `window` : evalue directement dans le
+  // corps du composant, il renvoie false au rendu serveur puis true des le
+  // premier rendu client (le navigateur a bien `window`), ce qui desaccorde
+  // le HTML hydrate de celui rendu par le serveur (erreur d'hydratation).
+  // useState+useEffect force le premier rendu client a rester identique au
+  // rendu serveur (false), le bouton micro n'apparaissant qu'apres coup.
+  const [speechSupported, setSpeechSupported] = useState(false);
+  useEffect(() => {
+    setSpeechSupported(getSpeechRecognition() !== null);
+  }, []);
 
   function toggleListening() {
     const SpeechRecognitionCtor = getSpeechRecognition();
