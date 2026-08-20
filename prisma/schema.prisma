@@ -941,6 +941,22 @@ model PlatformOrganization {
   processusExecutionEtapes                                ProcessusExecutionEtape[]       @relation("PlatformOrganizationProcessusExecutionEtapes")
   processusDocuments                                          ProcessusDocument[]             @relation("PlatformOrganizationProcessusDocuments")
   organizationalRisks                                             OrganizationalRisk[]            @relation("PlatformOrganizationOrganizationalRisks")
+  complianceObligations       ComplianceObligation[]         @relation("PlatformOrganizationComplianceObligations")
+  complianceControls            ComplianceControl[]            @relation("PlatformOrganizationComplianceControls")
+  complianceObligationDocuments   ComplianceObligationDocument[] @relation("PlatformOrganizationComplianceObligationDocuments")
+  nonConformites                     NonConformite[]                @relation("PlatformOrganizationNonConformites")
+  nonConformiteActions                  NonConformiteAction[]          @relation("PlatformOrganizationNonConformiteActions")
+  qualityDocuments                         QualityDocument[]              @relation("PlatformOrganizationQualityDocuments")
+  qualityControls                             QualityControl[]               @relation("PlatformOrganizationQualityControls")
+  qualityChecklistItems                          QualityChecklistItem[]         @relation("PlatformOrganizationQualityChecklistItems")
+  qualityClaims                                     QualityClaim[]                  @relation("PlatformOrganizationQualityClaims")
+  auditPlans                                           AuditPlan[]                     @relation("PlatformOrganizationAuditPlans")
+  auditPlanMembers                                        AuditPlanMember[]               @relation("PlatformOrganizationAuditPlanMembers")
+  auditPlanDocuments                                          AuditPlanDocument[]             @relation("PlatformOrganizationAuditPlanDocuments")
+  auditMissions                                                  AuditMission[]                  @relation("PlatformOrganizationAuditMissions")
+  auditFindings                                                      AuditFinding[]                  @relation("PlatformOrganizationAuditFindings")
+  incidents                                                              Incident[]                      @relation("PlatformOrganizationIncidents")
+  changeRequests                                                            ChangeRequest[]                 @relation("PlatformOrganizationChangeRequests")
 }
 
 enum PlatformOrganizationStatut {
@@ -3960,6 +3976,11 @@ enum ComplianceControlResultat {
 
 model ComplianceObligation {
   id            String                     @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationComplianceObligations", fields: [organizationId], references: [id])
   code          String?
   titre         String
   description   String?
@@ -3983,6 +4004,10 @@ model ComplianceObligation {
 
 model ComplianceControl {
   id            String                    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que
+  // ComplianceObligation, denormalise depuis obligation.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationComplianceControls", fields: [organizationId], references: [id])
   obligationId  String
   obligation    ComplianceObligation      @relation(fields: [obligationId], references: [id], onDelete: Cascade)
   dateControle  DateTime                  @default(now())
@@ -3998,6 +4023,10 @@ model ComplianceControl {
 
 model ComplianceObligationDocument {
   id           String               @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que
+  // ComplianceObligation, denormalise depuis obligation.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationComplianceObligationDocuments", fields: [organizationId], references: [id])
   obligationId String
   obligation   ComplianceObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
   nom          String
@@ -4029,6 +4058,11 @@ enum NonConformiteStatut {
 
 model NonConformite {
   id            String                @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // detecteePar.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationNonConformites", fields: [organizationId], references: [id])
   source        NonConformiteSource
   titre         String
   description   String?
@@ -4061,6 +4095,10 @@ enum NonConformiteActionStatut {
 
 model NonConformiteAction {
   id              String                    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que
+  // NonConformite, denormalise depuis nonConformite.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationNonConformiteActions", fields: [organizationId], references: [id])
   nonConformiteId String
   nonConformite   NonConformite             @relation(fields: [nonConformiteId], references: [id], onDelete: Cascade)
   type            NonConformiteActionType   @default(CORRECTIVE)
@@ -4090,6 +4128,11 @@ enum QualityDocumentStatut {
 
 model QualityDocument {
   id            String                @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationQualityDocuments", fields: [organizationId], references: [id])
   type          QualityDocumentType
   titre         String
   contenu       String?
@@ -4107,6 +4150,11 @@ model QualityDocument {
 
 model QualityControl {
   id            String                    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // controlePar.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationQualityControls", fields: [organizationId], references: [id])
   titre         String
   dateControle  DateTime                  @default(now())
   resultat      ComplianceControlResultat
@@ -4120,6 +4168,10 @@ model QualityControl {
 
 model QualityChecklistItem {
   id        String         @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que
+  // QualityControl, denormalise depuis control.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationQualityChecklistItems", fields: [organizationId], references: [id])
   controlId String
   control   QualityControl @relation(fields: [controlId], references: [id], onDelete: Cascade)
   label     String
@@ -4137,6 +4189,11 @@ enum QualityClaimStatut {
 
 model QualityClaim {
   id            String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationQualityClaims", fields: [organizationId], references: [id])
   titre         String
   description   String
   contactId     String?
@@ -4171,6 +4228,11 @@ enum AuditFindingStatut {
 
 model AuditPlan {
   id          String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAuditPlans", fields: [organizationId], references: [id])
   titre       String
   dateDebut   DateTime
   dateFin     DateTime
@@ -4188,6 +4250,10 @@ model AuditPlan {
 
 model AuditPlanMember {
   id     String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que AuditPlan,
+  // denormalise depuis plan.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAuditPlanMembers", fields: [organizationId], references: [id])
   planId String
   plan   AuditPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   userId String
@@ -4199,6 +4265,10 @@ model AuditPlanMember {
 
 model AuditPlanDocument {
   id           String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que AuditPlan,
+  // denormalise depuis plan.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAuditPlanDocuments", fields: [organizationId], references: [id])
   planId       String
   plan         AuditPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   nom          String
@@ -4214,6 +4284,10 @@ model AuditPlanDocument {
 
 model AuditMission {
   id          String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que AuditPlan,
+  // denormalise depuis plan.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAuditMissions", fields: [organizationId], references: [id])
   planId      String
   plan        AuditPlan          @relation(fields: [planId], references: [id])
   titre       String
@@ -4231,6 +4305,10 @@ model AuditMission {
 
 model AuditFinding {
   id             String             @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que
+  // AuditMission, denormalise depuis mission.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAuditFindings", fields: [organizationId], references: [id])
   missionId      String
   mission        AuditMission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
   constat        String
@@ -4267,6 +4345,11 @@ enum IncidentStatut {
 
 model Incident {
   id              String         @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // declarePar.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationIncidents", fields: [organizationId], references: [id])
   type            IncidentType
   titre           String
   description     String?
@@ -4313,6 +4396,11 @@ enum ChangeRequestStatut {
 
 model ChangeRequest {
   id                String              @id @default(cuid())
+  // Multi-tenant Phase 1 lot 13 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // demandePar.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationChangeRequests", fields: [organizationId], references: [id])
   titre             String
   description       String?
   analyseImpact     String?

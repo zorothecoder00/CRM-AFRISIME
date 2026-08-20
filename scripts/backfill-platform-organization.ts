@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-12) — rattache toutes
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-13) — rattache toutes
  * les lignes existantes (sans organizationId) des modeles couverts par le
  * retrofit multi-tenant a une PlatformOrganization "AfriSime", conformement
  * a la decision actee le 2026-08-20 : les donnees actuelles de ce
@@ -99,6 +99,22 @@ const MODELS = [
   { label: "Étapes d'exécution de processus", client: prisma.processusExecutionEtape },
   { label: "Documents de processus", client: prisma.processusDocument },
   { label: "Risques organisationnels", client: prisma.organizationalRisk },
+  { label: "Obligations de conformité", client: prisma.complianceObligation },
+  { label: "Contrôles de conformité", client: prisma.complianceControl },
+  { label: "Documents d'obligation de conformité", client: prisma.complianceObligationDocument },
+  { label: "Non-conformités", client: prisma.nonConformite },
+  { label: "Actions de non-conformité", client: prisma.nonConformiteAction },
+  { label: "Documents qualité", client: prisma.qualityDocument },
+  { label: "Contrôles qualité", client: prisma.qualityControl },
+  { label: "Éléments de checklist qualité", client: prisma.qualityChecklistItem },
+  { label: "Réclamations qualité", client: prisma.qualityClaim },
+  { label: "Plans d'audit", client: prisma.auditPlan },
+  { label: "Membres de plan d'audit", client: prisma.auditPlanMember },
+  { label: "Documents de plan d'audit", client: prisma.auditPlanDocument },
+  { label: "Missions d'audit", client: prisma.auditMission },
+  { label: "Constats d'audit", client: prisma.auditFinding },
+  { label: "Incidents", client: prisma.incident },
+  { label: "Demandes de changement", client: prisma.changeRequest },
 ] as const;
 
 async function main() {

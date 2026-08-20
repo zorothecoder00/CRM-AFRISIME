@@ -162,6 +162,36 @@ let processusDocumentA: { id: string };
 let processusDocumentB: { id: string };
 let organizationalRiskA: { id: string };
 let organizationalRiskB: { id: string };
+let complianceObligationA: { id: string };
+let complianceObligationB: { id: string };
+let complianceControlA: { id: string };
+let complianceControlB: { id: string };
+let complianceObligationDocumentA: { id: string };
+let complianceObligationDocumentB: { id: string };
+let nonConformiteA: { id: string };
+let nonConformiteB: { id: string };
+let nonConformiteActionA: { id: string };
+let nonConformiteActionB: { id: string };
+let qualityDocumentA: { id: string };
+let qualityDocumentB: { id: string };
+let qualityControlA: { id: string };
+let qualityControlB: { id: string };
+let qualityChecklistItemA: { id: string };
+let qualityChecklistItemB: { id: string };
+let qualityClaimA: { id: string };
+let qualityClaimB: { id: string };
+let auditPlanA: { id: string };
+let auditPlanB: { id: string };
+let auditPlanDocumentA: { id: string };
+let auditPlanDocumentB: { id: string };
+let auditMissionA: { id: string };
+let auditMissionB: { id: string };
+let auditFindingA: { id: string };
+let auditFindingB: { id: string };
+let incidentA: { id: string };
+let incidentB: { id: string };
+let changeRequestA: { id: string };
+let changeRequestB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -958,16 +988,202 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         organizationId: orgB.id,
       },
     });
+
+    complianceObligationA = await admin.complianceObligation.create({
+      data: { titre: "Obligation A", createdById: userA.id, organizationId: orgA.id },
+    });
+    complianceObligationB = await admin.complianceObligation.create({
+      data: { titre: "Obligation B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    complianceControlA = await admin.complianceControl.create({
+      data: {
+        obligationId: complianceObligationA.id,
+        resultat: "CONFORME",
+        controleParId: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    complianceControlB = await admin.complianceControl.create({
+      data: {
+        obligationId: complianceObligationB.id,
+        resultat: "CONFORME",
+        controleParId: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    complianceObligationDocumentA = await admin.complianceObligationDocument.create({
+      data: {
+        obligationId: complianceObligationA.id,
+        nom: "Doc Obligation A",
+        url: "https://example.com/oblig-doc-a",
+        uploadedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    complianceObligationDocumentB = await admin.complianceObligationDocument.create({
+      data: {
+        obligationId: complianceObligationB.id,
+        nom: "Doc Obligation B",
+        url: "https://example.com/oblig-doc-b",
+        uploadedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    nonConformiteA = await admin.nonConformite.create({
+      data: { source: "QUALITE", titre: "NC A", detecteeParId: userA.id, organizationId: orgA.id },
+    });
+    nonConformiteB = await admin.nonConformite.create({
+      data: { source: "QUALITE", titre: "NC B", detecteeParId: userB.id, organizationId: orgB.id },
+    });
+
+    nonConformiteActionA = await admin.nonConformiteAction.create({
+      data: { nonConformiteId: nonConformiteA.id, description: "Action A", organizationId: orgA.id },
+    });
+    nonConformiteActionB = await admin.nonConformiteAction.create({
+      data: { nonConformiteId: nonConformiteB.id, description: "Action B", organizationId: orgB.id },
+    });
+
+    qualityDocumentA = await admin.qualityDocument.create({
+      data: { type: "PROCEDURE", titre: "Doc Qualite A", createdById: userA.id, organizationId: orgA.id },
+    });
+    qualityDocumentB = await admin.qualityDocument.create({
+      data: { type: "PROCEDURE", titre: "Doc Qualite B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    qualityControlA = await admin.qualityControl.create({
+      data: { titre: "Controle A", resultat: "CONFORME", controleParId: userA.id, organizationId: orgA.id },
+    });
+    qualityControlB = await admin.qualityControl.create({
+      data: { titre: "Controle B", resultat: "CONFORME", controleParId: userB.id, organizationId: orgB.id },
+    });
+
+    qualityChecklistItemA = await admin.qualityChecklistItem.create({
+      data: { controlId: qualityControlA.id, label: "Item A", organizationId: orgA.id },
+    });
+    qualityChecklistItemB = await admin.qualityChecklistItem.create({
+      data: { controlId: qualityControlB.id, label: "Item B", organizationId: orgB.id },
+    });
+
+    qualityClaimA = await admin.qualityClaim.create({
+      data: { titre: "Reclamation A", description: "Desc A", createdById: userA.id, organizationId: orgA.id },
+    });
+    qualityClaimB = await admin.qualityClaim.create({
+      data: { titre: "Reclamation B", description: "Desc B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    auditPlanA = await admin.auditPlan.create({
+      data: {
+        titre: "Plan Audit A",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    auditPlanB = await admin.auditPlan.create({
+      data: {
+        titre: "Plan Audit B",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    await admin.auditPlanMember.create({
+      data: { planId: auditPlanA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    await admin.auditPlanMember.create({
+      data: { planId: auditPlanB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    auditPlanDocumentA = await admin.auditPlanDocument.create({
+      data: {
+        planId: auditPlanA.id,
+        nom: "Doc Plan Audit A",
+        url: "https://example.com/audit-doc-a",
+        uploadedById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    auditPlanDocumentB = await admin.auditPlanDocument.create({
+      data: {
+        planId: auditPlanB.id,
+        nom: "Doc Plan Audit B",
+        url: "https://example.com/audit-doc-b",
+        uploadedById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    auditMissionA = await admin.auditMission.create({
+      data: { planId: auditPlanA.id, titre: "Mission A", createdById: userA.id, organizationId: orgA.id },
+    });
+    auditMissionB = await admin.auditMission.create({
+      data: { planId: auditPlanB.id, titre: "Mission B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    auditFindingA = await admin.auditFinding.create({
+      data: { missionId: auditMissionA.id, constat: "Constat A", organizationId: orgA.id },
+    });
+    auditFindingB = await admin.auditFinding.create({
+      data: { missionId: auditMissionB.id, constat: "Constat B", organizationId: orgB.id },
+    });
+
+    incidentA = await admin.incident.create({
+      data: { type: "ORGANISATIONNEL", titre: "Incident A", declareParId: userA.id, organizationId: orgA.id },
+    });
+    incidentB = await admin.incident.create({
+      data: { type: "ORGANISATIONNEL", titre: "Incident B", declareParId: userB.id, organizationId: orgB.id },
+    });
+
+    changeRequestA = await admin.changeRequest.create({
+      data: { titre: "Changement A", demandeParId: userA.id, organizationId: orgA.id },
+    });
+    changeRequestB = await admin.changeRequest.create({
+      data: { titre: "Changement B", demandeParId: userB.id, organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-12) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-13) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
     // qui referencent PlatformOrganization.
+    await admin.changeRequest.deleteMany({ where: { id: { in: [changeRequestA.id, changeRequestB.id] } } });
+    await admin.incident.deleteMany({ where: { id: { in: [incidentA.id, incidentB.id] } } });
+    await admin.auditFinding.deleteMany({ where: { id: { in: [auditFindingA.id, auditFindingB.id] } } });
+    await admin.auditMission.deleteMany({ where: { id: { in: [auditMissionA.id, auditMissionB.id] } } });
+    await admin.auditPlanDocument.deleteMany({
+      where: { id: { in: [auditPlanDocumentA.id, auditPlanDocumentB.id] } },
+    });
+    await admin.auditPlanMember.deleteMany({ where: { planId: { in: [auditPlanA.id, auditPlanB.id] } } });
+    await admin.auditPlan.deleteMany({ where: { id: { in: [auditPlanA.id, auditPlanB.id] } } });
+    await admin.qualityClaim.deleteMany({ where: { id: { in: [qualityClaimA.id, qualityClaimB.id] } } });
+    await admin.qualityChecklistItem.deleteMany({
+      where: { id: { in: [qualityChecklistItemA.id, qualityChecklistItemB.id] } },
+    });
+    await admin.qualityControl.deleteMany({ where: { id: { in: [qualityControlA.id, qualityControlB.id] } } });
+    await admin.qualityDocument.deleteMany({ where: { id: { in: [qualityDocumentA.id, qualityDocumentB.id] } } });
+    await admin.nonConformiteAction.deleteMany({
+      where: { id: { in: [nonConformiteActionA.id, nonConformiteActionB.id] } },
+    });
+    await admin.nonConformite.deleteMany({ where: { id: { in: [nonConformiteA.id, nonConformiteB.id] } } });
+    await admin.complianceObligationDocument.deleteMany({
+      where: { id: { in: [complianceObligationDocumentA.id, complianceObligationDocumentB.id] } },
+    });
+    await admin.complianceControl.deleteMany({
+      where: { id: { in: [complianceControlA.id, complianceControlB.id] } },
+    });
+    await admin.complianceObligation.deleteMany({
+      where: { id: { in: [complianceObligationA.id, complianceObligationB.id] } },
+    });
     await admin.organizationalRisk.deleteMany({
       where: { id: { in: [organizationalRiskA.id, organizationalRiskB.id] } },
     });
@@ -1855,6 +2071,160 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.organizationalRisk.update({ where: { id: organizationalRiskB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ComplianceObligation : un role scope a l'organisation A ne voit que les obligations de A", async () => {
+    const obligations = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.complianceObligation.findMany({ where: { id: { in: [complianceObligationA.id, complianceObligationB.id] } } })
+    );
+    expect(obligations.map((o) => o.id)).toEqual([complianceObligationA.id]);
+  });
+
+  it("ComplianceObligation : le role non-proprietaire ne peut pas modifier une obligation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.complianceObligation.update({ where: { id: complianceObligationB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ComplianceControl : un role scope a l'organisation B ne voit que les controles de B", async () => {
+    const controls = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.complianceControl.findMany({ where: { id: { in: [complianceControlA.id, complianceControlB.id] } } })
+    );
+    expect(controls.map((c) => c.id)).toEqual([complianceControlB.id]);
+  });
+
+  it("ComplianceObligationDocument : un role scope a l'organisation A ne voit que les documents de A", async () => {
+    const docs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.complianceObligationDocument.findMany({
+        where: { id: { in: [complianceObligationDocumentA.id, complianceObligationDocumentB.id] } },
+      })
+    );
+    expect(docs.map((d) => d.id)).toEqual([complianceObligationDocumentA.id]);
+  });
+
+  it("NonConformite : un role scope a l'organisation B ne voit que les non-conformites de B", async () => {
+    const ncs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.nonConformite.findMany({ where: { id: { in: [nonConformiteA.id, nonConformiteB.id] } } })
+    );
+    expect(ncs.map((n) => n.id)).toEqual([nonConformiteB.id]);
+  });
+
+  it("NonConformite : le role non-proprietaire ne peut pas modifier une non-conformite hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.nonConformite.update({ where: { id: nonConformiteB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("NonConformiteAction : un role scope a l'organisation A ne voit que les actions de A", async () => {
+    const actions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.nonConformiteAction.findMany({ where: { id: { in: [nonConformiteActionA.id, nonConformiteActionB.id] } } })
+    );
+    expect(actions.map((a) => a.id)).toEqual([nonConformiteActionA.id]);
+  });
+
+  it("QualityDocument : un role scope a l'organisation B ne voit que les documents qualite de B", async () => {
+    const docs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.qualityDocument.findMany({ where: { id: { in: [qualityDocumentA.id, qualityDocumentB.id] } } })
+    );
+    expect(docs.map((d) => d.id)).toEqual([qualityDocumentB.id]);
+  });
+
+  it("QualityControl : un role scope a l'organisation A ne voit que les controles qualite de A", async () => {
+    const controls = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.qualityControl.findMany({ where: { id: { in: [qualityControlA.id, qualityControlB.id] } } })
+    );
+    expect(controls.map((c) => c.id)).toEqual([qualityControlA.id]);
+  });
+
+  it("QualityChecklistItem : un role scope a l'organisation B ne voit que les items de B", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.qualityChecklistItem.findMany({ where: { id: { in: [qualityChecklistItemA.id, qualityChecklistItemB.id] } } })
+    );
+    expect(items.map((i) => i.id)).toEqual([qualityChecklistItemB.id]);
+  });
+
+  it("QualityClaim : un role scope a l'organisation A ne voit que les reclamations de A", async () => {
+    const claims = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.qualityClaim.findMany({ where: { id: { in: [qualityClaimA.id, qualityClaimB.id] } } })
+    );
+    expect(claims.map((c) => c.id)).toEqual([qualityClaimA.id]);
+  });
+
+  it("QualityClaim : le role non-proprietaire ne peut pas modifier une reclamation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.qualityClaim.update({ where: { id: qualityClaimB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("AuditPlan : un role scope a l'organisation B ne voit que les plans d'audit de B", async () => {
+    const plans = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.auditPlan.findMany({ where: { id: { in: [auditPlanA.id, auditPlanB.id] } } })
+    );
+    expect(plans.map((p) => p.id)).toEqual([auditPlanB.id]);
+  });
+
+  it("AuditPlanMember : un role scope a l'organisation A ne voit que les membres de A", async () => {
+    const members = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.auditPlanMember.findMany({ where: { planId: { in: [auditPlanA.id, auditPlanB.id] } } })
+    );
+    expect(members.map((m) => m.planId)).toEqual([auditPlanA.id]);
+  });
+
+  it("AuditPlanDocument : un role scope a l'organisation B ne voit que les documents de B", async () => {
+    const docs = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.auditPlanDocument.findMany({ where: { id: { in: [auditPlanDocumentA.id, auditPlanDocumentB.id] } } })
+    );
+    expect(docs.map((d) => d.id)).toEqual([auditPlanDocumentB.id]);
+  });
+
+  it("AuditMission : un role scope a l'organisation A ne voit que les missions de A", async () => {
+    const missions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.auditMission.findMany({ where: { id: { in: [auditMissionA.id, auditMissionB.id] } } })
+    );
+    expect(missions.map((m) => m.id)).toEqual([auditMissionA.id]);
+  });
+
+  it("AuditFinding : un role scope a l'organisation B ne voit que les constats de B", async () => {
+    const findings = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.auditFinding.findMany({ where: { id: { in: [auditFindingA.id, auditFindingB.id] } } })
+    );
+    expect(findings.map((f) => f.id)).toEqual([auditFindingB.id]);
+  });
+
+  it("Incident : un role scope a l'organisation A ne voit que les incidents de A", async () => {
+    const incidents = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.incident.findMany({ where: { id: { in: [incidentA.id, incidentB.id] } } })
+    );
+    expect(incidents.map((i) => i.id)).toEqual([incidentA.id]);
+  });
+
+  it("Incident : le role non-proprietaire ne peut pas modifier un incident hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.incident.update({ where: { id: incidentB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ChangeRequest : un role scope a l'organisation B ne voit que les demandes de changement de B", async () => {
+    const changes = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.changeRequest.findMany({ where: { id: { in: [changeRequestA.id, changeRequestB.id] } } })
+    );
+    expect(changes.map((c) => c.id)).toEqual([changeRequestB.id]);
+  });
+
+  it("ChangeRequest : le role non-proprietaire ne peut pas modifier une demande de changement hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.changeRequest.update({ where: { id: changeRequestB.id }, data: { titre: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
   });

@@ -94,6 +94,22 @@ const COVERED_TABLES = [
   "ProcessusExecutionEtape",
   "ProcessusDocument",
   "OrganizationalRisk",
+  "ComplianceObligation",
+  "ComplianceControl",
+  "ComplianceObligationDocument",
+  "NonConformite",
+  "NonConformiteAction",
+  "QualityDocument",
+  "QualityControl",
+  "QualityChecklistItem",
+  "QualityClaim",
+  "AuditPlan",
+  "AuditPlanMember",
+  "AuditPlanDocument",
+  "AuditMission",
+  "AuditFinding",
+  "Incident",
+  "ChangeRequest",
 ];
 
 async function main() {
