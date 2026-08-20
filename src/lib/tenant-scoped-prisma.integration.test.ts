@@ -38,10 +38,14 @@ let sectionA: { id: string };
 let sectionB: { id: string };
 let docA: { id: string };
 let docB: { id: string };
+let meetingA: { id: string };
+let meetingB: { id: string };
+let folderA: { id: string };
+let folderB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
-describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Document par organisation", () => {
+describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Document/Meeting/DocumentFolder par organisation", () => {
   beforeAll(async () => {
     // Fixtures créées via le role admin (proprietaire, exempte de RLS) — un
     // role/utilisateur "arbitraire" existant sert de createdBy/roleId.
@@ -152,14 +156,52 @@ describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Doc
         organizationId: orgB.id,
       },
     });
+
+    meetingA = await admin.meeting.create({
+      data: {
+        projectId: projectA.id,
+        titre: "Reunion A",
+        dateHeure: new Date(),
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    meetingB = await admin.meeting.create({
+      data: {
+        projectId: projectB.id,
+        titre: "Reunion B",
+        dateHeure: new Date(),
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    folderA = await admin.documentFolder.create({
+      data: {
+        projectId: projectA.id,
+        nom: "Dossier A",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    folderB = await admin.documentFolder.create({
+      data: {
+        projectId: projectB.id,
+        nom: "Dossier B",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : Document/Task/ProjectSection referencent Project+User,
-    // Project/Team referencent User+Department, qui referencent
-    // PlatformOrganization.
+    // des FK : Meeting/DocumentFolder/Document/Task/ProjectSection
+    // referencent Project+User, Project/Team referencent User+Department,
+    // qui referencent PlatformOrganization.
+    await admin.meeting.deleteMany({ where: { id: { in: [meetingA.id, meetingB.id] } } });
+    await admin.documentFolder.deleteMany({ where: { id: { in: [folderA.id, folderB.id] } } });
     await admin.document.deleteMany({ where: { id: { in: [docA.id, docB.id] } } });
     await admin.projectSection.deleteMany({ where: { id: { in: [sectionA.id, sectionB.id] } } });
     await admin.task.deleteMany({ where: { id: { in: [taskA.id, taskB.id] } } });
@@ -264,6 +306,36 @@ describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Doc
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.document.update({ where: { id: docB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Meeting : un role scope a l'organisation A ne voit que les reunions de A", async () => {
+    const meetings = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.meeting.findMany({ where: { id: { in: [meetingA.id, meetingB.id] } } })
+    );
+    expect(meetings.map((m) => m.id)).toEqual([meetingA.id]);
+  });
+
+  it("Meeting : le role non-proprietaire ne peut pas modifier une reunion hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.meeting.update({ where: { id: meetingB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("DocumentFolder : un role scope a l'organisation B ne voit que les dossiers de B", async () => {
+    const folders = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.documentFolder.findMany({ where: { id: { in: [folderA.id, folderB.id] } } })
+    );
+    expect(folders.map((f) => f.id)).toEqual([folderB.id]);
+  });
+
+  it("DocumentFolder : le role non-proprietaire ne peut pas modifier un dossier hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.documentFolder.update({ where: { id: folderB.id }, data: { nom: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
   });

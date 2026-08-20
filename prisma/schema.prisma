@@ -875,6 +875,8 @@ model PlatformOrganization {
   tasks       Task[]       @relation("PlatformOrganizationTasks")
   projectSections ProjectSection[] @relation("PlatformOrganizationProjectSections")
   documents       Document[]       @relation("PlatformOrganizationDocuments")
+  meetings        Meeting[]        @relation("PlatformOrganizationMeetings")
+  documentFolders DocumentFolder[] @relation("PlatformOrganizationDocumentFolders")
 }
 
 enum PlatformOrganizationStatut {
@@ -2209,6 +2211,11 @@ model Meeting {
   id                    String            @id @default(cuid())
   projectId             String
   project               Project           @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 5 (2026-08-20) — meme statut que Task/
+  // ProjectSection/Document : nullable, reversible, denormalise depuis
+  // project.organizationId.
+  organizationId        String?
+  organization          PlatformOrganization? @relation("PlatformOrganizationMeetings", fields: [organizationId], references: [id])
   titre                 String
   dateHeure             DateTime
   lieu                  String?
@@ -2287,6 +2294,9 @@ model DocumentFolder {
   id          String           @id @default(cuid())
   projectId   String
   project     Project          @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 5 (2026-08-20) — meme statut que Meeting.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationDocumentFolders", fields: [organizationId], references: [id])
   parentId    String?
   parent      DocumentFolder?  @relation("DocumentFolderHierarchy", fields: [parentId], references: [id])
   children    DocumentFolder[] @relation("DocumentFolderHierarchy")
