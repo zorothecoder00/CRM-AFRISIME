@@ -725,6 +725,14 @@ model Team {
   nom          String
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id])
+  // Multi-tenant Phase 1 lot 2 (2026-08-20) — meme statut que User/Department
+  // (voir PlatformOrganization dans schema.prisma) : nullable, reversible,
+  // denormalise plutot que resolu par jointure sur department.organizationId
+  // (coherence avec le pattern deja en place, pas de contrainte DB qui
+  // garantisse la synchronisation entre les deux — a surveiller si Team
+  // change de departement).
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTeams", fields: [organizationId], references: [id])
   leaderId     String?
   leader       User?      @relation("TeamLeader", fields: [leaderId], references: [id])
   createdById  String
@@ -862,6 +870,8 @@ model PlatformOrganization {
 
   users       User[]       @relation("PlatformOrganizationUsers")
   departments Department[] @relation("PlatformOrganizationDepartments")
+  teams       Team[]       @relation("PlatformOrganizationTeams")
+  projects    Project[]    @relation("PlatformOrganizationProjects")
 }
 
 enum PlatformOrganizationStatut {
@@ -1203,6 +1213,9 @@ model Project {
   responsable   User            @relation("ProjectResponsable", fields: [responsableId], references: [id])
   departmentId  String
   department    Department      @relation(fields: [departmentId], references: [id])
+  // Multi-tenant Phase 1 lot 2 (2026-08-20) — meme statut que Team ci-dessus.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjects", fields: [organizationId], references: [id])
   programmeId   String?
   programme     Programme?      @relation(fields: [programmeId], references: [id])
   priorite      ProjectPriority @default(MOYENNE)

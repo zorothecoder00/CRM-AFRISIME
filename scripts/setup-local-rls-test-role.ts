@@ -30,13 +30,15 @@ async function main() {
     console.log(`Rôle "${ROLE_NAME}" déjà présent.`);
   }
 
-  // Acces minimal : lecture/ecriture sur User/Department uniquement, rien
-  // d'autre — ce role ne sert qu'a prouver l'isolation RLS, pas a faire
-  // tourner l'app.
+  // Acces minimal : lecture/ecriture sur les modeles couverts par le POC
+  // multi-tenant, rien d'autre — ce role ne sert qu'a prouver l'isolation
+  // RLS, pas a faire tourner l'app.
   await client.query(`GRANT USAGE ON SCHEMA public TO ${ROLE_NAME}`);
-  await client.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON "User", "Department" TO ${ROLE_NAME}`);
+  await client.query(
+    `GRANT SELECT, INSERT, UPDATE, DELETE ON "User", "Department", "Team", "Project" TO ${ROLE_NAME}`
+  );
 
-  console.log("Droits accordés sur User/Department.");
+  console.log("Droits accordés sur User/Department/Team/Project.");
   console.log(
     `Chaîne de connexion pour les tests : postgresql://${ROLE_NAME}:${ROLE_PASSWORD}@localhost:5432/afriflow?schema=public`
   );

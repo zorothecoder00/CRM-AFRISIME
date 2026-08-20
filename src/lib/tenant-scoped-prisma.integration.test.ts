@@ -28,10 +28,14 @@ let userA: { id: string };
 let userB: { id: string };
 let deptA: { id: string };
 let deptB: { id: string };
+let teamA: { id: string };
+let teamB: { id: string };
+let projectA: { id: string };
+let projectB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
-describe("RLS — isolation User/Department par organisation", () => {
+describe("RLS — isolation User/Department/Team/Project par organisation", () => {
   beforeAll(async () => {
     // Fixtures créées via le role admin (proprietaire, exempte de RLS) — un
     // role/utilisateur "arbitraire" existant sert de createdBy/roleId.
@@ -71,11 +75,41 @@ describe("RLS — isolation User/Department par organisation", () => {
         organizationId: orgB.id,
       },
     });
+
+    teamA = await admin.team.create({
+      data: { nom: "Team A", departmentId: deptA.id, createdById: userA.id, organizationId: orgA.id },
+    });
+    teamB = await admin.team.create({
+      data: { nom: "Team B", departmentId: deptB.id, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    projectA = await admin.project.create({
+      data: {
+        nom: "Project A",
+        departmentId: deptA.id,
+        responsableId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    projectB = await admin.project.create({
+      data: {
+        nom: "Project B",
+        departmentId: deptB.id,
+        responsableId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
-    // pas voir/supprimer les lignes hors de son organisation).
+    // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
+    // des FK : Project/Team referencent User+Department, qui referencent
+    // PlatformOrganization.
+    await admin.project.deleteMany({ where: { id: { in: [projectA.id, projectB.id] } } });
+    await admin.team.deleteMany({ where: { id: { in: [teamA.id, teamB.id] } } });
     await admin.user.deleteMany({ where: { id: { in: [userA.id, userB.id] } } });
     await admin.department.deleteMany({ where: { id: { in: [deptA.id, deptB.id] } } });
     await admin.platformOrganization.deleteMany({ where: { id: { in: [orgA.id, orgB.id] } } });
@@ -118,5 +152,27 @@ describe("RLS — isolation User/Department par organisation", () => {
   it("le role proprietaire (admin) voit toujours toutes les lignes, RLS ou pas", async () => {
     const users = await admin.user.findMany({ where: { id: { in: [userA.id, userB.id] } } });
     expect(users.map((u) => u.id).sort()).toEqual([userA.id, userB.id].sort());
+  });
+
+  it("Team : un role scope a l'organisation A ne voit que les equipes de A", async () => {
+    const teams = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.team.findMany({ where: { id: { in: [teamA.id, teamB.id] } } })
+    );
+    expect(teams.map((t) => t.id)).toEqual([teamA.id]);
+  });
+
+  it("Project : un role scope a l'organisation B ne voit que les projets de B", async () => {
+    const projects = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.project.findMany({ where: { id: { in: [projectA.id, projectB.id] } } })
+    );
+    expect(projects.map((p) => p.id)).toEqual([projectB.id]);
+  });
+
+  it("Project : le role non-proprietaire ne peut pas modifier un projet hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.project.update({ where: { id: projectB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
   });
 });
