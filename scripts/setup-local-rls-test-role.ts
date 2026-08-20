@@ -143,6 +143,13 @@ const COVERED_TABLES = [
   "Tag",
   "EntityTag",
   "ApiKey",
+  "PasswordResetToken",
+  "PermissionOverride",
+  "TeamMember",
+  "Stakeholder",
+  "StakeholderProject",
+  "StakeholderCommunication",
+  "UserSession",
 ];
 
 async function main() {

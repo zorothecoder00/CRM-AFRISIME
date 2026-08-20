@@ -617,6 +617,12 @@ model User {
 // envoye par email : seul le hash est persiste, jamais le token en clair.
 model PasswordResetToken {
   id        String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // user.organizationId. tokenHash reste unique globalement (hash aleatoire,
+  // pas une cle catalogue) : aucune collision possible entre organisations.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPasswordResetTokens", fields: [organizationId], references: [id])
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String    @unique
@@ -662,6 +668,11 @@ model RolePermission {
 // existants sans scope ne sont pas affectés.
 model PermissionOverride {
   id            String           @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // user.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPermissionOverrides", fields: [organizationId], references: [id])
   userId        String
   user          User             @relation("PermissionOverrideTarget", fields: [userId], references: [id], onDelete: Cascade)
   permissionKey String
@@ -758,6 +769,10 @@ model Team {
 
 model TeamMember {
   id       String   @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis team.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationTeamMembers", fields: [organizationId], references: [id])
   teamId   String
   team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   userId   String
@@ -1005,6 +1020,13 @@ model PlatformOrganization {
   tags                                                                            Tag[]                         @relation("PlatformOrganizationTags")
   entityTags                                                                          EntityTag[]                   @relation("PlatformOrganizationEntityTags")
   apiKeys                                                                                 ApiKey[]                      @relation("PlatformOrganizationApiKeys")
+  passwordResetTokens       PasswordResetToken[]        @relation("PlatformOrganizationPasswordResetTokens")
+  permissionOverrides         PermissionOverride[]        @relation("PlatformOrganizationPermissionOverrides")
+  teamMembers                    TeamMember[]                @relation("PlatformOrganizationTeamMembers")
+  stakeholders                       Stakeholder[]               @relation("PlatformOrganizationStakeholders")
+  stakeholderProjects                    StakeholderProject[]        @relation("PlatformOrganizationStakeholderProjects")
+  stakeholderCommunications                  StakeholderCommunication[]  @relation("PlatformOrganizationStakeholderCommunications")
+  userSessions                                     UserSession[]               @relation("PlatformOrganizationUserSessions")
 }
 
 enum PlatformOrganizationStatut {
@@ -1571,6 +1593,11 @@ enum StakeholderPosition {
 // (CrmContact), ou ni l'un ni l'autre (simple nom en texte libre).
 model Stakeholder {
   id                  String               @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationStakeholders", fields: [organizationId], references: [id])
   nom                 String
   userId              String?
   user                User?                @relation("StakeholderUser", fields: [userId], references: [id])
@@ -1606,6 +1633,10 @@ model Stakeholder {
 // autres attributs (influence/engagement/position/...) vivent sur Stakeholder.
 model StakeholderProject {
   id            String      @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que Stakeholder,
+  // denormalise depuis stakeholder.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationStakeholderProjects", fields: [organizationId], references: [id])
   stakeholderId String
   stakeholder   Stakeholder @relation(fields: [stakeholderId], references: [id], onDelete: Cascade)
   projectId     String
@@ -1623,6 +1654,10 @@ model StakeholderProject {
 // suppose un CrmContact.
 model StakeholderCommunication {
   id            String      @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que Stakeholder,
+  // denormalise depuis stakeholder.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationStakeholderCommunications", fields: [organizationId], references: [id])
   stakeholderId String
   stakeholder   Stakeholder @relation(fields: [stakeholderId], references: [id], onDelete: Cascade)
   date          DateTime    @default(now())
@@ -4970,6 +5005,11 @@ model AppCatalogEntry {
 // src/app/(app)/layout.tsx), sans abandonner la strategie JWT.
 model UserSession {
   id          String    @id @default(cuid())
+  // Multi-tenant Phase 1 lot 17 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // user.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationUserSessions", fields: [organizationId], references: [id])
   userId      String
   user        User      @relation("UserSessionOwner", fields: [userId], references: [id])
   userAgent   String?

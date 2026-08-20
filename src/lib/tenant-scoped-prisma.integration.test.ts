@@ -258,6 +258,20 @@ let entityTagA: { id: string };
 let entityTagB: { id: string };
 let apiKeyA: { id: string };
 let apiKeyB: { id: string };
+let passwordResetTokenA: { id: string };
+let passwordResetTokenB: { id: string };
+let permissionOverrideA: { id: string };
+let permissionOverrideB: { id: string };
+let teamMemberA: { id: string };
+let teamMemberB: { id: string };
+let stakeholderA: { id: string };
+let stakeholderB: { id: string };
+let stakeholderProjectA: { id: string };
+let stakeholderProjectB: { id: string };
+let stakeholderCommunicationA: { id: string };
+let stakeholderCommunicationB: { id: string };
+let userSessionA: { id: string };
+let userSessionB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -1615,12 +1629,91 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         organizationId: orgB.id,
       },
     });
+
+    passwordResetTokenA = await admin.passwordResetToken.create({
+      data: {
+        userId: userA.id,
+        tokenHash: `hash-reset-a-${Date.now()}`,
+        expiresAt: new Date(Date.now() + 3600000),
+        organizationId: orgA.id,
+      },
+    });
+    passwordResetTokenB = await admin.passwordResetToken.create({
+      data: {
+        userId: userB.id,
+        tokenHash: `hash-reset-b-${Date.now()}`,
+        expiresAt: new Date(Date.now() + 3600000),
+        organizationId: orgB.id,
+      },
+    });
+
+    permissionOverrideA = await admin.permissionOverride.create({
+      data: {
+        userId: userA.id,
+        permissionKey: "document.view",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    permissionOverrideB = await admin.permissionOverride.create({
+      data: {
+        userId: userB.id,
+        permissionKey: "document.view",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    teamMemberA = await admin.teamMember.create({
+      data: { teamId: teamA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    teamMemberB = await admin.teamMember.create({
+      data: { teamId: teamB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    stakeholderA = await admin.stakeholder.create({
+      data: { nom: "Partie prenante A", createdById: userA.id, organizationId: orgA.id },
+    });
+    stakeholderB = await admin.stakeholder.create({
+      data: { nom: "Partie prenante B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    stakeholderProjectA = await admin.stakeholderProject.create({
+      data: { stakeholderId: stakeholderA.id, projectId: projectA.id, organizationId: orgA.id },
+    });
+    stakeholderProjectB = await admin.stakeholderProject.create({
+      data: { stakeholderId: stakeholderB.id, projectId: projectB.id, organizationId: orgB.id },
+    });
+
+    stakeholderCommunicationA = await admin.stakeholderCommunication.create({
+      data: {
+        stakeholderId: stakeholderA.id,
+        resume: "Echange A",
+        authorId: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    stakeholderCommunicationB = await admin.stakeholderCommunication.create({
+      data: {
+        stakeholderId: stakeholderB.id,
+        resume: "Echange B",
+        authorId: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    userSessionA = await admin.userSession.create({
+      data: { userId: userA.id, organizationId: orgA.id },
+    });
+    userSessionB = await admin.userSession.create({
+      data: { userId: userB.id, organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-16) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-17) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
@@ -1628,6 +1721,21 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     // AdminRequestValidationRun/AdminRequest/TaskApproval/TaskValidationRun/
     // ValidationWorkflowStep/ValidationWorkflow/Courrier avant taskA2/taskB2
     // (TaskValidationRun.taskId les referme).
+    await admin.userSession.deleteMany({ where: { id: { in: [userSessionA.id, userSessionB.id] } } });
+    await admin.stakeholderCommunication.deleteMany({
+      where: { id: { in: [stakeholderCommunicationA.id, stakeholderCommunicationB.id] } },
+    });
+    await admin.stakeholderProject.deleteMany({
+      where: { id: { in: [stakeholderProjectA.id, stakeholderProjectB.id] } },
+    });
+    await admin.stakeholder.deleteMany({ where: { id: { in: [stakeholderA.id, stakeholderB.id] } } });
+    await admin.teamMember.deleteMany({ where: { id: { in: [teamMemberA.id, teamMemberB.id] } } });
+    await admin.permissionOverride.deleteMany({
+      where: { id: { in: [permissionOverrideA.id, permissionOverrideB.id] } },
+    });
+    await admin.passwordResetToken.deleteMany({
+      where: { id: { in: [passwordResetTokenA.id, passwordResetTokenB.id] } },
+    });
     await admin.apiKey.deleteMany({ where: { id: { in: [apiKeyA.id, apiKeyB.id] } } });
     await admin.entityTag.deleteMany({ where: { id: { in: [entityTagA.id, entityTagB.id] } } });
     await admin.tag.deleteMany({ where: { id: { in: [tagA.id, tagB.id] } } });
@@ -3075,5 +3183,72 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         tx.apiKey.update({ where: { id: apiKeyB.id }, data: { nom: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
+  });
+
+  it("PasswordResetToken : un role scope a l'organisation A ne voit que les tokens de A", async () => {
+    const tokens = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.passwordResetToken.findMany({ where: { id: { in: [passwordResetTokenA.id, passwordResetTokenB.id] } } })
+    );
+    expect(tokens.map((t) => t.id)).toEqual([passwordResetTokenA.id]);
+  });
+
+  it("PermissionOverride : un role scope a l'organisation B ne voit que les derogations de B", async () => {
+    const overrides = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.permissionOverride.findMany({ where: { id: { in: [permissionOverrideA.id, permissionOverrideB.id] } } })
+    );
+    expect(overrides.map((o) => o.id)).toEqual([permissionOverrideB.id]);
+  });
+
+  it("PermissionOverride : le role non-proprietaire ne peut pas modifier une derogation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.permissionOverride.update({ where: { id: permissionOverrideB.id }, data: { effect: "DENY" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("TeamMember : un role scope a l'organisation A ne voit que les membres de A", async () => {
+    const members = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.teamMember.findMany({ where: { id: { in: [teamMemberA.id, teamMemberB.id] } } })
+    );
+    expect(members.map((m) => m.id)).toEqual([teamMemberA.id]);
+  });
+
+  it("Stakeholder : un role scope a l'organisation B ne voit que les parties prenantes de B", async () => {
+    const stakeholders = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.stakeholder.findMany({ where: { id: { in: [stakeholderA.id, stakeholderB.id] } } })
+    );
+    expect(stakeholders.map((s) => s.id)).toEqual([stakeholderB.id]);
+  });
+
+  it("Stakeholder : le role non-proprietaire ne peut pas modifier une partie prenante hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.stakeholder.update({ where: { id: stakeholderB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("StakeholderProject : un role scope a l'organisation A ne voit que les rattachements de A", async () => {
+    const links = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.stakeholderProject.findMany({ where: { id: { in: [stakeholderProjectA.id, stakeholderProjectB.id] } } })
+    );
+    expect(links.map((l) => l.id)).toEqual([stakeholderProjectA.id]);
+  });
+
+  it("StakeholderCommunication : un role scope a l'organisation B ne voit que les communications de B", async () => {
+    const comms = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.stakeholderCommunication.findMany({
+        where: { id: { in: [stakeholderCommunicationA.id, stakeholderCommunicationB.id] } },
+      })
+    );
+    expect(comms.map((c) => c.id)).toEqual([stakeholderCommunicationB.id]);
+  });
+
+  it("UserSession : un role scope a l'organisation A ne voit que les sessions de A", async () => {
+    const sessions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.userSession.findMany({ where: { id: { in: [userSessionA.id, userSessionB.id] } } })
+    );
+    expect(sessions.map((s) => s.id)).toEqual([userSessionA.id]);
   });
 });
