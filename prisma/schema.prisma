@@ -893,6 +893,16 @@ model PlatformOrganization {
   meetingParticipants             MeetingParticipant[]           @relation("PlatformOrganizationMeetingParticipants")
   meetingDecisions                 MeetingDecision[]              @relation("PlatformOrganizationMeetingDecisions")
   meetingExternalParticipants       MeetingExternalParticipant[]  @relation("PlatformOrganizationMeetingExternalParticipants")
+  competences       Competence[]        @relation("PlatformOrganizationCompetences")
+  userCompetences    UserCompetence[]    @relation("PlatformOrganizationUserCompetences")
+  knowledgeCategories KnowledgeCategory[] @relation("PlatformOrganizationKnowledgeCategories")
+  knowledgeArticles    KnowledgeArticle[]  @relation("PlatformOrganizationKnowledgeArticles")
+  leaves                Leave[]             @relation("PlatformOrganizationLeaves")
+  events                 Event[]             @relation("PlatformOrganizationEvents")
+  objectives              Objective[]         @relation("PlatformOrganizationObjectives")
+  indicators               Indicator[]         @relation("PlatformOrganizationIndicators")
+  evaluations               Evaluation[]        @relation("PlatformOrganizationEvaluations")
+  evaluationCriteres        EvaluationCritere[] @relation("PlatformOrganizationEvaluationCriteres")
 }
 
 enum PlatformOrganizationStatut {
@@ -2604,6 +2614,11 @@ model Competence {
   id          String   @id @default(cuid())
   nom         String   @unique
   categorie   String?
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationCompetences", fields: [organizationId], references: [id])
   createdById String
   createdBy   User     @relation("CompetenceCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -2616,6 +2631,9 @@ model UserCompetence {
   id           String           @id @default(cuid())
   userId       String
   user         User             @relation(fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationUserCompetences", fields: [organizationId], references: [id])
   competenceId String
   competence   Competence       @relation(fields: [competenceId], references: [id])
   niveau       CompetenceNiveau @default(DEBUTANT)
@@ -2633,6 +2651,9 @@ model KnowledgeCategory {
   parentId    String?
   parent      KnowledgeCategory?  @relation("KnowledgeCategoryHierarchy", fields: [parentId], references: [id])
   children    KnowledgeCategory[] @relation("KnowledgeCategoryHierarchy")
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationKnowledgeCategories", fields: [organizationId], references: [id])
   createdById String
   createdBy   User                @relation("KnowledgeCategoryCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime            @default(now())
@@ -2648,6 +2669,9 @@ model KnowledgeArticle {
   content     String
   tags        String?
   statut      KnowledgeArticleStatus @default(BROUILLON)
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationKnowledgeArticles", fields: [organizationId], references: [id])
   categoryId  String?
   category    KnowledgeCategory?     @relation(fields: [categoryId], references: [id])
   authorId    String
@@ -2668,6 +2692,10 @@ model Leave {
   id          String      @id @default(cuid())
   userId      String
   user        User        @relation("LeaveRequestedBy", fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
+  // denormalise depuis user.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationLeaves", fields: [organizationId], references: [id])
   type        LeaveType   @default(CONGE_PAYE)
   dateDebut   DateTime
   dateFin     DateTime
@@ -2694,6 +2722,10 @@ model Event {
   dateFin     DateTime?
   projectId   String?
   project     Project?  @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
+  // denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationEvents", fields: [organizationId], references: [id])
   createdById String
   createdBy   User      @relation("EventCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime  @default(now())
@@ -2720,6 +2752,11 @@ model Objective {
   project      Project?        @relation(fields: [projectId], references: [id])
   departmentId String?
   department   Department?     @relation(fields: [departmentId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
+  // denormalise depuis createdBy.organizationId (createdById toujours
+  // renseigne, contrairement a user/project/department).
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationObjectives", fields: [organizationId], references: [id])
   // Portee PROGRAMME (cahier des charges §V, menu "Objectifs" du programme).
   programmeId  String?
   programme    Programme?      @relation(fields: [programmeId], references: [id])
@@ -2766,6 +2803,10 @@ model Indicator {
   project        Project?   @relation(fields: [projectId], references: [id])
   taskId         String?
   task           Task?      @relation(fields: [taskId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
+  // denormalise depuis l'un des trois parents (Objective/Project/Task).
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationIndicators", fields: [organizationId], references: [id])
   nom            String
   unite          String?
   valeurCible    Decimal    @db.Decimal(12, 2)
@@ -2821,6 +2862,10 @@ model Evaluation {
   // Renseigne seulement pour type=PROJET (cahier des charges §XII).
   projectId             String?
   project               Project?          @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
+  // denormalise depuis createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationEvaluations", fields: [organizationId], references: [id])
   pointsForts           String?
   axesAmelioration      String?
   commentaireEvaluateur String?
@@ -2849,6 +2894,10 @@ model EvaluationCritere {
   id           String     @id @default(cuid())
   evaluationId String
   evaluation   Evaluation @relation(fields: [evaluationId], references: [id])
+  // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
+  // denormalise depuis evaluation.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationEvaluationCriteres", fields: [organizationId], references: [id])
   libelle      String
   note         Decimal    @db.Decimal(3, 2)
   commentaire  String?

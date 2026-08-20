@@ -74,6 +74,26 @@ let crmContactA: { id: string };
 let crmContactB: { id: string };
 let meetingExternalParticipantA: { id: string };
 let meetingExternalParticipantB: { id: string };
+let competenceA: { id: string };
+let competenceB: { id: string };
+let userCompetenceA: { id: string };
+let userCompetenceB: { id: string };
+let knowledgeCategoryA: { id: string };
+let knowledgeCategoryB: { id: string };
+let knowledgeArticleA: { id: string };
+let knowledgeArticleB: { id: string };
+let leaveA: { id: string };
+let leaveB: { id: string };
+let eventA: { id: string };
+let eventB: { id: string };
+let objectiveA: { id: string };
+let objectiveB: { id: string };
+let indicatorA: { id: string };
+let indicatorB: { id: string };
+let evaluationA: { id: string };
+let evaluationB: { id: string };
+let evaluationCritereA: { id: string };
+let evaluationCritereB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -368,16 +388,144 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     meetingExternalParticipantB = await admin.meetingExternalParticipant.create({
       data: { meetingId: meetingB.id, contactId: crmContactB.id, organizationId: orgB.id },
     });
+
+    competenceA = await admin.competence.create({
+      data: { nom: `Competence A ${Date.now()}`, createdById: userA.id, organizationId: orgA.id },
+    });
+    competenceB = await admin.competence.create({
+      data: { nom: `Competence B ${Date.now()}`, createdById: userB.id, organizationId: orgB.id },
+    });
+
+    userCompetenceA = await admin.userCompetence.create({
+      data: { userId: userA.id, competenceId: competenceA.id, organizationId: orgA.id },
+    });
+    userCompetenceB = await admin.userCompetence.create({
+      data: { userId: userB.id, competenceId: competenceB.id, organizationId: orgB.id },
+    });
+
+    knowledgeCategoryA = await admin.knowledgeCategory.create({
+      data: { nom: "Categorie A", createdById: userA.id, organizationId: orgA.id },
+    });
+    knowledgeCategoryB = await admin.knowledgeCategory.create({
+      data: { nom: "Categorie B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    knowledgeArticleA = await admin.knowledgeArticle.create({
+      data: { titre: "Article A", content: "Contenu A", authorId: userA.id, organizationId: orgA.id },
+    });
+    knowledgeArticleB = await admin.knowledgeArticle.create({
+      data: { titre: "Article B", content: "Contenu B", authorId: userB.id, organizationId: orgB.id },
+    });
+
+    leaveA = await admin.leave.create({
+      data: {
+        userId: userA.id,
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        organizationId: orgA.id,
+      },
+    });
+    leaveB = await admin.leave.create({
+      data: {
+        userId: userB.id,
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        organizationId: orgB.id,
+      },
+    });
+
+    eventA = await admin.event.create({
+      data: { titre: "Event A", dateDebut: new Date(), createdById: userA.id, organizationId: orgA.id },
+    });
+    eventB = await admin.event.create({
+      data: { titre: "Event B", dateDebut: new Date(), createdById: userB.id, organizationId: orgB.id },
+    });
+
+    objectiveA = await admin.objective.create({
+      data: {
+        titre: "Objectif A",
+        periode: "ANNUEL",
+        scope: "INDIVIDUEL",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        userId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    objectiveB = await admin.objective.create({
+      data: {
+        titre: "Objectif B",
+        periode: "ANNUEL",
+        scope: "INDIVIDUEL",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        userId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    indicatorA = await admin.indicator.create({
+      data: { objectiveId: objectiveA.id, nom: "Indicateur A", valeurCible: 100, organizationId: orgA.id },
+    });
+    indicatorB = await admin.indicator.create({
+      data: { objectiveId: objectiveB.id, nom: "Indicateur B", valeurCible: 100, organizationId: orgB.id },
+    });
+
+    evaluationA = await admin.evaluation.create({
+      data: {
+        periode: "ANNUELLE",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        evalueId: userA.id,
+        evaluateurId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    evaluationB = await admin.evaluation.create({
+      data: {
+        periode: "ANNUELLE",
+        dateDebut: new Date(),
+        dateFin: new Date(),
+        evalueId: userB.id,
+        evaluateurId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    evaluationCritereA = await admin.evaluationCritere.create({
+      data: { evaluationId: evaluationA.id, libelle: "Critere A", note: 5, organizationId: orgA.id },
+    });
+    evaluationCritereB = await admin.evaluationCritere.create({
+      data: { evaluationId: evaluationB.id, libelle: "Critere B", note: 5, organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lot 7) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-8) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
     // qui referencent PlatformOrganization.
+    await admin.evaluationCritere.deleteMany({
+      where: { id: { in: [evaluationCritereA.id, evaluationCritereB.id] } },
+    });
+    await admin.evaluation.deleteMany({ where: { id: { in: [evaluationA.id, evaluationB.id] } } });
+    await admin.indicator.deleteMany({ where: { id: { in: [indicatorA.id, indicatorB.id] } } });
+    await admin.objective.deleteMany({ where: { id: { in: [objectiveA.id, objectiveB.id] } } });
+    await admin.event.deleteMany({ where: { id: { in: [eventA.id, eventB.id] } } });
+    await admin.leave.deleteMany({ where: { id: { in: [leaveA.id, leaveB.id] } } });
+    await admin.knowledgeArticle.deleteMany({ where: { id: { in: [knowledgeArticleA.id, knowledgeArticleB.id] } } });
+    await admin.knowledgeCategory.deleteMany({
+      where: { id: { in: [knowledgeCategoryA.id, knowledgeCategoryB.id] } },
+    });
+    await admin.userCompetence.deleteMany({ where: { id: { in: [userCompetenceA.id, userCompetenceB.id] } } });
+    await admin.competence.deleteMany({ where: { id: { in: [competenceA.id, competenceB.id] } } });
     await admin.meetingExternalParticipant.deleteMany({
       where: { id: { in: [meetingExternalParticipantA.id, meetingExternalParticipantB.id] } },
     });
@@ -719,5 +867,115 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
       })
     );
     expect(participants.map((p) => p.id)).toEqual([meetingExternalParticipantB.id]);
+  });
+
+  it("Competence : un role scope a l'organisation A ne voit que les competences de A", async () => {
+    const competences = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.competence.findMany({ where: { id: { in: [competenceA.id, competenceB.id] } } })
+    );
+    expect(competences.map((c) => c.id)).toEqual([competenceA.id]);
+  });
+
+  it("Competence : le role non-proprietaire ne peut pas modifier une competence hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.competence.update({ where: { id: competenceB.id }, data: { categorie: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("UserCompetence : un role scope a l'organisation B ne voit que les competences utilisateur de B", async () => {
+    const items = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.userCompetence.findMany({ where: { id: { in: [userCompetenceA.id, userCompetenceB.id] } } })
+    );
+    expect(items.map((i) => i.id)).toEqual([userCompetenceB.id]);
+  });
+
+  it("KnowledgeCategory : un role scope a l'organisation A ne voit que les categories de A", async () => {
+    const categories = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.knowledgeCategory.findMany({ where: { id: { in: [knowledgeCategoryA.id, knowledgeCategoryB.id] } } })
+    );
+    expect(categories.map((c) => c.id)).toEqual([knowledgeCategoryA.id]);
+  });
+
+  it("KnowledgeArticle : un role scope a l'organisation B ne voit que les articles de B", async () => {
+    const articles = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.knowledgeArticle.findMany({ where: { id: { in: [knowledgeArticleA.id, knowledgeArticleB.id] } } })
+    );
+    expect(articles.map((a) => a.id)).toEqual([knowledgeArticleB.id]);
+  });
+
+  it("KnowledgeArticle : le role non-proprietaire ne peut pas modifier un article hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.knowledgeArticle.update({ where: { id: knowledgeArticleB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Leave : un role scope a l'organisation A ne voit que les conges de A", async () => {
+    const leaves = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.leave.findMany({ where: { id: { in: [leaveA.id, leaveB.id] } } })
+    );
+    expect(leaves.map((l) => l.id)).toEqual([leaveA.id]);
+  });
+
+  it("Leave : le role non-proprietaire ne peut pas modifier un conge hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.leave.update({ where: { id: leaveB.id }, data: { motif: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Event : un role scope a l'organisation B ne voit que les evenements de B", async () => {
+    const events = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.event.findMany({ where: { id: { in: [eventA.id, eventB.id] } } })
+    );
+    expect(events.map((e) => e.id)).toEqual([eventB.id]);
+  });
+
+  it("Objective : un role scope a l'organisation A ne voit que les objectifs de A", async () => {
+    const objectives = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.objective.findMany({ where: { id: { in: [objectiveA.id, objectiveB.id] } } })
+    );
+    expect(objectives.map((o) => o.id)).toEqual([objectiveA.id]);
+  });
+
+  it("Objective : le role non-proprietaire ne peut pas modifier un objectif hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.objective.update({ where: { id: objectiveB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Indicator : un role scope a l'organisation B ne voit que les indicateurs de B", async () => {
+    const indicators = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.indicator.findMany({ where: { id: { in: [indicatorA.id, indicatorB.id] } } })
+    );
+    expect(indicators.map((i) => i.id)).toEqual([indicatorB.id]);
+  });
+
+  it("Evaluation : un role scope a l'organisation A ne voit que les evaluations de A", async () => {
+    const evaluations = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.evaluation.findMany({ where: { id: { in: [evaluationA.id, evaluationB.id] } } })
+    );
+    expect(evaluations.map((e) => e.id)).toEqual([evaluationA.id]);
+  });
+
+  it("Evaluation : le role non-proprietaire ne peut pas modifier une evaluation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.evaluation.update({ where: { id: evaluationB.id }, data: { pointsForts: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("EvaluationCritere : un role scope a l'organisation B ne voit que les criteres de B", async () => {
+    const criteres = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.evaluationCritere.findMany({ where: { id: { in: [evaluationCritereA.id, evaluationCritereB.id] } } })
+    );
+    expect(criteres.map((c) => c.id)).toEqual([evaluationCritereB.id]);
   });
 });

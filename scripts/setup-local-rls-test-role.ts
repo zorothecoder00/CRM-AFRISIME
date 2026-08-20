@@ -46,6 +46,16 @@ const COVERED_TABLES = [
   "MeetingParticipant",
   "MeetingDecision",
   "MeetingExternalParticipant",
+  "Competence",
+  "UserCompetence",
+  "KnowledgeCategory",
+  "KnowledgeArticle",
+  "Leave",
+  "Event",
+  "Objective",
+  "Indicator",
+  "Evaluation",
+  "EvaluationCritere",
 ];
 
 async function main() {
