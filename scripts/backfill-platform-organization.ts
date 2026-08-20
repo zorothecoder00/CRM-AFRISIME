@@ -3,8 +3,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lot 2) — rattache toutes
- * les lignes User/Department/Team/Project existantes (sans organizationId)
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-3) — rattache toutes
+ * les lignes User/Department/Team/Project/Task existantes (sans organizationId)
  * a une PlatformOrganization "AfriSime", conformement a la decision actee
  * le 2026-08-20 : les donnees actuelles de ce deploiement deviennent
  * l'organisation n°1. Idempotent (upsert sur le slug + where organizationId
@@ -34,7 +34,7 @@ async function main() {
     },
   });
 
-  const [usersResult, departmentsResult, teamsResult, projectsResult] = await Promise.all([
+  const [usersResult, departmentsResult, teamsResult, projectsResult, tasksResult] = await Promise.all([
     prisma.user.updateMany({
       where: { organizationId: null },
       data: { organizationId: afrisime.id },
@@ -51,6 +51,10 @@ async function main() {
       where: { organizationId: null },
       data: { organizationId: afrisime.id },
     }),
+    prisma.task.updateMany({
+      where: { organizationId: null },
+      data: { organizationId: afrisime.id },
+    }),
   ]);
 
   console.log(`PlatformOrganization "AfriSime" (id: ${afrisime.id})`);
@@ -58,6 +62,7 @@ async function main() {
   console.log(`  Départements rattachés : ${departmentsResult.count}`);
   console.log(`  Équipes rattachées : ${teamsResult.count}`);
   console.log(`  Projets rattachés : ${projectsResult.count}`);
+  console.log(`  Tâches rattachées : ${tasksResult.count}`);
 
   await prisma.$disconnect();
 }

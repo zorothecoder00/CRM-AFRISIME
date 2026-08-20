@@ -32,10 +32,12 @@ let teamA: { id: string };
 let teamB: { id: string };
 let projectA: { id: string };
 let projectB: { id: string };
+let taskA: { id: string };
+let taskB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
-describe("RLS — isolation User/Department/Team/Project par organisation", () => {
+describe("RLS — isolation User/Department/Team/Project/Task par organisation", () => {
   beforeAll(async () => {
     // Fixtures créées via le role admin (proprietaire, exempte de RLS) — un
     // role/utilisateur "arbitraire" existant sert de createdBy/roleId.
@@ -101,13 +103,33 @@ describe("RLS — isolation User/Department/Team/Project par organisation", () =
         organizationId: orgB.id,
       },
     });
+
+    taskA = await admin.task.create({
+      data: {
+        titre: "Task A",
+        projectId: projectA.id,
+        responsablePrincipalId: userA.id,
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    taskB = await admin.task.create({
+      data: {
+        titre: "Task B",
+        projectId: projectB.id,
+        responsablePrincipalId: userB.id,
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : Project/Team referencent User+Department, qui referencent
-    // PlatformOrganization.
+    // des FK : Task referencene Project+User, Project/Team referencent
+    // User+Department, qui referencent PlatformOrganization.
+    await admin.task.deleteMany({ where: { id: { in: [taskA.id, taskB.id] } } });
     await admin.project.deleteMany({ where: { id: { in: [projectA.id, projectB.id] } } });
     await admin.team.deleteMany({ where: { id: { in: [teamA.id, teamB.id] } } });
     await admin.user.deleteMany({ where: { id: { in: [userA.id, userB.id] } } });
@@ -172,6 +194,21 @@ describe("RLS — isolation User/Department/Team/Project par organisation", () =
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.project.update({ where: { id: projectB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Task : un role scope a l'organisation A ne voit que les taches de A", async () => {
+    const tasks = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.task.findMany({ where: { id: { in: [taskA.id, taskB.id] } } })
+    );
+    expect(tasks.map((t) => t.id)).toEqual([taskA.id]);
+  });
+
+  it("Task : le role non-proprietaire ne peut pas modifier une tache hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.task.update({ where: { id: taskB.id }, data: { titre: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
   });
