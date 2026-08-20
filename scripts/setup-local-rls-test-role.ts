@@ -56,6 +56,11 @@ const COVERED_TABLES = [
   "Indicator",
   "Evaluation",
   "EvaluationCritere",
+  "Conversation",
+  "ConversationParticipant",
+  "Message",
+  "Reaction",
+  "Notification",
 ];
 
 async function main() {

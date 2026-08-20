@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
 /**
- * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-8) — rattache toutes
+ * Multi-tenant Phase 1 (V3.0 §27, plan Phase 1 + lots 2-9) — rattache toutes
  * les lignes existantes (sans organizationId) des modeles couverts par le
  * retrofit multi-tenant a une PlatformOrganization "AfriSime", conformement
  * a la decision actee le 2026-08-20 : les donnees actuelles de ce
@@ -58,6 +58,11 @@ const MODELS = [
   { label: "Indicateurs", client: prisma.indicator },
   { label: "Évaluations", client: prisma.evaluation },
   { label: "Critères d'évaluation", client: prisma.evaluationCritere },
+  { label: "Conversations", client: prisma.conversation },
+  { label: "Participants de conversation", client: prisma.conversationParticipant },
+  { label: "Messages", client: prisma.message },
+  { label: "Réactions", client: prisma.reaction },
+  { label: "Notifications", client: prisma.notification },
 ] as const;
 
 async function main() {

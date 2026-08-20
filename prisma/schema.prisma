@@ -903,6 +903,11 @@ model PlatformOrganization {
   indicators               Indicator[]         @relation("PlatformOrganizationIndicators")
   evaluations               Evaluation[]        @relation("PlatformOrganizationEvaluations")
   evaluationCriteres        EvaluationCritere[] @relation("PlatformOrganizationEvaluationCriteres")
+  conversations            Conversation[]            @relation("PlatformOrganizationConversations")
+  conversationParticipants ConversationParticipant[] @relation("PlatformOrganizationConversationParticipants")
+  messages                  Message[]                 @relation("PlatformOrganizationMessages")
+  reactions                  Reaction[]                @relation("PlatformOrganizationReactions")
+  notifications                Notification[]            @relation("PlatformOrganizationNotifications")
 }
 
 enum PlatformOrganizationStatut {
@@ -2927,6 +2932,11 @@ model Conversation {
   team        Team?    @relation(fields: [teamId], references: [id])
   createdById String
   createdBy   User     @relation("ConversationCreatedBy", fields: [createdById], references: [id])
+  // Multi-tenant Phase 1 lot 9 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationConversations", fields: [organizationId], references: [id])
   createdAt   DateTime @default(now())
 
   participants ConversationParticipant[]
@@ -2938,6 +2948,10 @@ model ConversationParticipant {
   userId         String
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   user           User         @relation(fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 9 (2026-08-20) — meme statut que Conversation,
+  // denormalise depuis conversation.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationConversationParticipants", fields: [organizationId], references: [id])
   joinedAt       DateTime     @default(now())
   // Horodatage de la derniere ouverture de la conversation par ce
   // participant (mis a jour par markConversationRead). Les messages des
@@ -2959,6 +2973,10 @@ model Message {
   conversation        Conversation @relation(fields: [conversationId], references: [id])
   authorId            String
   author              User         @relation("MessageAuthor", fields: [authorId], references: [id])
+  // Multi-tenant Phase 1 lot 9 (2026-08-20) — meme statut que Conversation,
+  // denormalise depuis conversation.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationMessages", fields: [organizationId], references: [id])
   content             String
   attachmentUrl       String?
   attachmentNom       String?
@@ -2986,6 +3004,10 @@ model Reaction {
   emoji         String
   userId        String
   user          User         @relation(fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 9 (2026-08-20) — meme statut que Conversation,
+  // denormalise depuis user.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationReactions", fields: [organizationId], references: [id])
   taskCommentId String?
   taskComment   TaskComment? @relation(fields: [taskCommentId], references: [id])
   messageId     String?
@@ -3003,6 +3025,10 @@ model Notification {
   id         String           @id @default(cuid())
   userId     String
   user       User             @relation(fields: [userId], references: [id])
+  // Multi-tenant Phase 1 lot 9 (2026-08-20) — meme statut que Conversation,
+  // denormalise depuis user.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationNotifications", fields: [organizationId], references: [id])
   type       NotificationType
   titre      String
   lien       String?

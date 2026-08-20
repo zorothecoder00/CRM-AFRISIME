@@ -94,6 +94,14 @@ let evaluationA: { id: string };
 let evaluationB: { id: string };
 let evaluationCritereA: { id: string };
 let evaluationCritereB: { id: string };
+let conversationA: { id: string };
+let conversationB: { id: string };
+let messageA: { id: string };
+let messageB: { id: string };
+let reactionA: { id: string };
+let reactionB: { id: string };
+let notificationA: { id: string };
+let notificationB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -502,16 +510,58 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     evaluationCritereB = await admin.evaluationCritere.create({
       data: { evaluationId: evaluationB.id, libelle: "Critere B", note: 5, organizationId: orgB.id },
     });
+
+    conversationA = await admin.conversation.create({
+      data: { createdById: userA.id, organizationId: orgA.id },
+    });
+    conversationB = await admin.conversation.create({
+      data: { createdById: userB.id, organizationId: orgB.id },
+    });
+
+    await admin.conversationParticipant.create({
+      data: { conversationId: conversationA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    await admin.conversationParticipant.create({
+      data: { conversationId: conversationB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    messageA = await admin.message.create({
+      data: { conversationId: conversationA.id, authorId: userA.id, content: "Message A", organizationId: orgA.id },
+    });
+    messageB = await admin.message.create({
+      data: { conversationId: conversationB.id, authorId: userB.id, content: "Message B", organizationId: orgB.id },
+    });
+
+    reactionA = await admin.reaction.create({
+      data: { emoji: "👍", userId: userA.id, messageId: messageA.id, organizationId: orgA.id },
+    });
+    reactionB = await admin.reaction.create({
+      data: { emoji: "👍", userId: userB.id, messageId: messageB.id, organizationId: orgB.id },
+    });
+
+    notificationA = await admin.notification.create({
+      data: { userId: userA.id, type: "COMMENTAIRE", titre: "Notif A", organizationId: orgA.id },
+    });
+    notificationB = await admin.notification.create({
+      data: { userId: userB.id, type: "COMMENTAIRE", titre: "Notif B", organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-8) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-9) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
     // qui referencent PlatformOrganization.
+    await admin.notification.deleteMany({ where: { id: { in: [notificationA.id, notificationB.id] } } });
+    await admin.reaction.deleteMany({ where: { id: { in: [reactionA.id, reactionB.id] } } });
+    await admin.message.deleteMany({ where: { id: { in: [messageA.id, messageB.id] } } });
+    await admin.conversationParticipant.deleteMany({
+      where: { conversationId: { in: [conversationA.id, conversationB.id] } },
+    });
+    await admin.conversation.deleteMany({ where: { id: { in: [conversationA.id, conversationB.id] } } });
     await admin.evaluationCritere.deleteMany({
       where: { id: { in: [evaluationCritereA.id, evaluationCritereB.id] } },
     });
@@ -977,5 +1027,57 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
       tx.evaluationCritere.findMany({ where: { id: { in: [evaluationCritereA.id, evaluationCritereB.id] } } })
     );
     expect(criteres.map((c) => c.id)).toEqual([evaluationCritereB.id]);
+  });
+
+  it("Conversation : un role scope a l'organisation A ne voit que les conversations de A", async () => {
+    const conversations = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.conversation.findMany({ where: { id: { in: [conversationA.id, conversationB.id] } } })
+    );
+    expect(conversations.map((c) => c.id)).toEqual([conversationA.id]);
+  });
+
+  it("Conversation : le role non-proprietaire ne peut pas modifier une conversation hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.conversation.update({ where: { id: conversationB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Message : un role scope a l'organisation B ne voit que les messages de B", async () => {
+    const messages = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.message.findMany({ where: { id: { in: [messageA.id, messageB.id] } } })
+    );
+    expect(messages.map((m) => m.id)).toEqual([messageB.id]);
+  });
+
+  it("Message : le role non-proprietaire ne peut pas modifier un message hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.message.update({ where: { id: messageB.id }, data: { content: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Reaction : un role scope a l'organisation A ne voit que les reactions de A", async () => {
+    const reactions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.reaction.findMany({ where: { id: { in: [reactionA.id, reactionB.id] } } })
+    );
+    expect(reactions.map((r) => r.id)).toEqual([reactionA.id]);
+  });
+
+  it("Notification : un role scope a l'organisation B ne voit que les notifications de B", async () => {
+    const notifications = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.notification.findMany({ where: { id: { in: [notificationA.id, notificationB.id] } } })
+    );
+    expect(notifications.map((n) => n.id)).toEqual([notificationB.id]);
+  });
+
+  it("Notification : le role non-proprietaire ne peut pas modifier une notification hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.notification.update({ where: { id: notificationB.id }, data: { isRead: true } })
+      )
+    ).rejects.toThrow();
   });
 });
