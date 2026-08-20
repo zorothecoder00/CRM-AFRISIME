@@ -74,17 +74,24 @@ const nextConfig: NextConfig = {
 //   API-first        : ✅ toute mutation passe par une server action typée
 //     (jamais de logique métier directement dans un composant serveur).
 //   Sécurité         : ✅ permissions granulaires + MFA + audit (§18/§22/§44).
-//   Multi-tenant     : 🟡 Phase 1 (organizationId nullable sur User/
-//     Department, JWT) + preuve de concept Phase 2/3 (RLS + rôle Postgres
-//     non-propriétaire + 5 tests d'intégration réels, tous verts — voir
-//     src/lib/tenant-scoped-prisma.ts et son .integration.test.ts) actées
-//     le 2026-08-20. Mécanisme prouvé sur 2 modèles, PAS encore étendu aux
-//     ~148 autres (Project, Task, CRM, gouvernance...), et withTenantScope
-//     n'est pas encore appliqué par le reste de l'app (qui continue
-//     d'utiliser le client Prisma non scopé, exempté de RLS en tant que
-//     propriétaire) — toujours pas d'isolation de données effective en
-//     pratique. Voir le commentaire détaillé sur PlatformOrganization dans
-//     schema.prisma.
+//   Multi-tenant     : 🟡 Phase 1 TERMINÉE (2026-08-20, 17 lots) : organizationId
+//     (ou platformOrganizationId sur le cluster CRM, nom deja pris par le
+//     sens CRM existant) nullable + RLS (ENABLE sans FORCE) sur 129/138
+//     modeles — les seuls 9 exclus (Role/Permission/RolePermission,
+//     OrganizationProfile, ExchangeRate, HealthScoreWeight, AppCatalogEntry,
+//     RetentionPolicy) portent une contrainte unique globale sur leur cle
+//     catalogue (key/id/dataType/dimension/nom @unique) : les rendre
+//     reellement multi-tenant est la Phase 4 (contraintes composites), pas
+//     une simple colonne additive — decision actee avec l'utilisateur le
+//     2026-08-20, voir le commentaire sur PlatformOrganization dans
+//     schema.prisma. 178 tests d'integration reels (role Postgres non-
+//     proprietaire, voir src/lib/tenant-scoped-prisma.ts), tous verts.
+//     withTenantScope N'EST TOUJOURS PAS applique par le reste de l'app
+//     (qui continue d'utiliser le client Prisma non scope, exempte de RLS
+//     en tant que proprietaire) — toujours pas d'isolation de donnees
+//     effective en pratique : le mecanisme est prouve et le schema est pret,
+//     mais Phase 2 (brancher les call sites applicatifs sur withTenantScope)
+//     reste entierement a faire.
 //   Multi-entités    : ✅ Entity + Department.entityId (V2.2 §22-23), déjà
 //     opérationnel (consolidation, benchmarking §32).
 //   Extensibilité    : ✅ modèles génériques ouverts (Dependency, EntityTag,

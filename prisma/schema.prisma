@@ -875,15 +875,41 @@ model ExchangeRate {
 // pilotée par cette instance) : chaque ligne représente un futur tenant de
 // la plateforme, avec son branding et son abonnement.
 //
-// Retrofit Phase 1 (2026-08-20, plan détaillé en Artifact "Isolation
-// multi-tenant réelle pour AfriFlow") : organizationId nullable ajouté
-// UNIQUEMENT sur User et Department (les 2 modèles-pivots) — PAS encore
-// sur les ~148 autres modèles (Project, Task, tout le CRM...), PAS de
-// politique Row-Level Security (Phase 3), PAS de contrainte NOT NULL
-// (irréversible, différée). C'est un premier socle réversible, pas une
-// isolation effective : voir scripts/backfill-platform-organization.ts
-// pour le rattachement de "AfriSime" comme organisation n°1, et le JWT
-// NextAuth (src/lib/auth.ts) qui porte désormais organizationId.
+// Retrofit Phase 1 — TERMINÉE le 2026-08-20 en 17 lots (plan détaillé en
+// Artifact "Isolation multi-tenant réelle pour AfriFlow") : organizationId
+// nullable (ou platformOrganizationId sur le cluster CRM — CrmContact/
+// CrmOpportunity/CrmInteraction/Contract avaient déjà un organizationId
+// pointant vers CrmOrganization, sens totalement différent) + RLS (ENABLE
+// sans FORCE, jamais FORCE — voir plus bas pourquoi) ajoutés sur 129 des 138
+// modèles du schéma. PAS de contrainte NOT NULL (irréversible, différée à
+// une Phase non planifiée). Mécanisme prouvé par 178 tests d'intégration
+// réels contre un rôle Postgres non-propriétaire (seul moyen de tester une
+// policy RLS pour de vrai, voir src/lib/tenant-scoped-prisma.ts) — mais
+// withTenantScope N'EST PAS encore appelé par le reste de l'app, qui
+// continue d'utiliser le client Prisma non scopé (exempté de RLS en tant que
+// propriétaire). Zéro isolation effective en pratique tant que Phase 2
+// (brancher les call sites applicatifs) n'est pas faite — c'est le schéma et
+// la preuve du mécanisme qui sont prêts, pas l'app.
+//
+// 9 modèles volontairement EXCLUS de ce retrofit (décision actée avec
+// l'utilisateur le 2026-08-20, pas un oubli) : Role, Permission,
+// RolePermission, OrganizationProfile, ExchangeRate, HealthScoreWeight,
+// AppCatalogEntry, RetentionPolicy. Point commun : une contrainte unique
+// GLOBALE sur leur clé catalogue (Role.key, Permission.key,
+// OrganizationProfile.id fixé à "org-profile", ExchangeRate
+// @@unique([fromDevise, toDevise]), HealthScoreWeight.dimension @id,
+// AppCatalogEntry.nom, RetentionPolicy.dataType). Ajouter organizationId
+// sans changer ces contraintes en composites (organizationId, clé) serait
+// cosmétique : deux organisations ne pourraient toujours pas avoir chacune
+// leur propre ligne "MANAGER" ou leur propre OrganizationProfile. Les
+// rendre réellement multi-tenant est la Phase 4 (contraintes composites),
+// un changement de comportement, pas une extension mécanique du pattern
+// des 17 lots.
+//
+// scripts/backfill-platform-organization.ts rattache toutes les lignes
+// existantes à "AfriSime" (organisation n°1) — étendu à chaque lot via sa
+// liste MODELS pilotée par données. Le JWT NextAuth (src/lib/auth.ts) porte
+// organizationId depuis la Phase 1 initiale.
 model PlatformOrganization {
   id              String                     @id @default(cuid())
   nom             String
