@@ -42,10 +42,22 @@ let meetingA: { id: string };
 let meetingB: { id: string };
 let folderA: { id: string };
 let folderB: { id: string };
+let whiteboardA: { id: string };
+let whiteboardB: { id: string };
+let projectMemberA: { id: string };
+let projectMemberB: { id: string };
+let riskA: { id: string };
+let riskB: { id: string };
+let milestoneA: { id: string };
+let milestoneB: { id: string };
+let deliverableA: { id: string };
+let deliverableB: { id: string };
+let resourceA: { id: string };
+let resourceB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
-describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Document/Meeting/DocumentFolder par organisation", () => {
+describe("RLS — isolation multi-tenant (User..ProjectResource) par organisation", () => {
   beforeAll(async () => {
     // Fixtures créées via le role admin (proprietaire, exempte de RLS) — un
     // role/utilisateur "arbitraire" existant sert de createdBy/roleId.
@@ -192,14 +204,74 @@ describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Doc
         organizationId: orgB.id,
       },
     });
+
+    whiteboardA = await admin.whiteboard.create({
+      data: { projectId: projectA.id, content: {}, updatedById: userA.id, organizationId: orgA.id },
+    });
+    whiteboardB = await admin.whiteboard.create({
+      data: { projectId: projectB.id, content: {}, updatedById: userB.id, organizationId: orgB.id },
+    });
+
+    projectMemberA = await admin.projectMember.create({
+      data: { projectId: projectA.id, userId: userA.id, organizationId: orgA.id },
+    });
+    projectMemberB = await admin.projectMember.create({
+      data: { projectId: projectB.id, userId: userB.id, organizationId: orgB.id },
+    });
+
+    riskA = await admin.projectRisk.create({
+      data: { projectId: projectA.id, titre: "Risque A", createdById: userA.id, organizationId: orgA.id },
+    });
+    riskB = await admin.projectRisk.create({
+      data: { projectId: projectB.id, titre: "Risque B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    milestoneA = await admin.projectMilestone.create({
+      data: {
+        projectId: projectA.id,
+        nom: "Jalon A",
+        dateCible: new Date(),
+        organizationId: orgA.id,
+      },
+    });
+    milestoneB = await admin.projectMilestone.create({
+      data: {
+        projectId: projectB.id,
+        nom: "Jalon B",
+        dateCible: new Date(),
+        organizationId: orgB.id,
+      },
+    });
+
+    deliverableA = await admin.projectDeliverable.create({
+      data: { projectId: projectA.id, nom: "Livrable A", createdById: userA.id, organizationId: orgA.id },
+    });
+    deliverableB = await admin.projectDeliverable.create({
+      data: { projectId: projectB.id, nom: "Livrable B", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    resourceA = await admin.projectResource.create({
+      data: { projectId: projectA.id, nom: "Ressource A", createdById: userA.id, organizationId: orgA.id },
+    });
+    resourceB = await admin.projectResource.create({
+      data: { projectId: projectB.id, nom: "Ressource B", createdById: userB.id, organizationId: orgB.id },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : Meeting/DocumentFolder/Document/Task/ProjectSection
-    // referencent Project+User, Project/Team referencent User+Department,
-    // qui referencent PlatformOrganization.
+    // des FK : Meeting/DocumentFolder/Document/Task/ProjectSection/
+    // Whiteboard/ProjectMember/ProjectRisk/ProjectMilestone/
+    // ProjectDeliverable/ProjectResource referencent Project+User,
+    // Project/Team referencent User+Department, qui referencent
+    // PlatformOrganization.
+    await admin.whiteboard.deleteMany({ where: { id: { in: [whiteboardA.id, whiteboardB.id] } } });
+    await admin.projectMember.deleteMany({ where: { id: { in: [projectMemberA.id, projectMemberB.id] } } });
+    await admin.projectRisk.deleteMany({ where: { id: { in: [riskA.id, riskB.id] } } });
+    await admin.projectMilestone.deleteMany({ where: { id: { in: [milestoneA.id, milestoneB.id] } } });
+    await admin.projectDeliverable.deleteMany({ where: { id: { in: [deliverableA.id, deliverableB.id] } } });
+    await admin.projectResource.deleteMany({ where: { id: { in: [resourceA.id, resourceB.id] } } });
     await admin.meeting.deleteMany({ where: { id: { in: [meetingA.id, meetingB.id] } } });
     await admin.documentFolder.deleteMany({ where: { id: { in: [folderA.id, folderB.id] } } });
     await admin.document.deleteMany({ where: { id: { in: [docA.id, docB.id] } } });
@@ -336,6 +408,80 @@ describe("RLS — isolation User/Department/Team/Project/Task/ProjectSection/Doc
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.documentFolder.update({ where: { id: folderB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("Whiteboard : un role scope a l'organisation A ne voit que le tableau blanc de A", async () => {
+    const whiteboards = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.whiteboard.findMany({ where: { id: { in: [whiteboardA.id, whiteboardB.id] } } })
+    );
+    expect(whiteboards.map((w) => w.id)).toEqual([whiteboardA.id]);
+  });
+
+  it("ProjectMember : un role scope a l'organisation B ne voit que les membres de B", async () => {
+    const members = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.projectMember.findMany({ where: { id: { in: [projectMemberA.id, projectMemberB.id] } } })
+    );
+    expect(members.map((m) => m.id)).toEqual([projectMemberB.id]);
+  });
+
+  it("ProjectMember : le role non-proprietaire ne peut pas modifier un membre hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.projectMember.update({ where: { id: projectMemberB.id }, data: { roleOnProject: "CHEF_PROJET" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ProjectRisk : un role scope a l'organisation A ne voit que les risques de A", async () => {
+    const risks = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.projectRisk.findMany({ where: { id: { in: [riskA.id, riskB.id] } } })
+    );
+    expect(risks.map((r) => r.id)).toEqual([riskA.id]);
+  });
+
+  it("ProjectRisk : le role non-proprietaire ne peut pas modifier un risque hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.projectRisk.update({ where: { id: riskB.id }, data: { titre: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ProjectMilestone : un role scope a l'organisation B ne voit que les jalons de B", async () => {
+    const milestones = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.projectMilestone.findMany({ where: { id: { in: [milestoneA.id, milestoneB.id] } } })
+    );
+    expect(milestones.map((m) => m.id)).toEqual([milestoneB.id]);
+  });
+
+  it("ProjectDeliverable : un role scope a l'organisation A ne voit que les livrables de A", async () => {
+    const deliverables = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.projectDeliverable.findMany({ where: { id: { in: [deliverableA.id, deliverableB.id] } } })
+    );
+    expect(deliverables.map((d) => d.id)).toEqual([deliverableA.id]);
+  });
+
+  it("ProjectDeliverable : le role non-proprietaire ne peut pas modifier un livrable hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.projectDeliverable.update({ where: { id: deliverableB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("ProjectResource : un role scope a l'organisation B ne voit que les ressources de B", async () => {
+    const resources = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.projectResource.findMany({ where: { id: { in: [resourceA.id, resourceB.id] } } })
+    );
+    expect(resources.map((r) => r.id)).toEqual([resourceB.id]);
+  });
+
+  it("ProjectResource : le role non-proprietaire ne peut pas modifier une ressource hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.projectResource.update({ where: { id: resourceB.id }, data: { nom: "Tentative depuis A" } })
       )
     ).rejects.toThrow();
   });

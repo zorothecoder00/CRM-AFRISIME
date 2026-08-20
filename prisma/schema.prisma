@@ -877,6 +877,12 @@ model PlatformOrganization {
   documents       Document[]       @relation("PlatformOrganizationDocuments")
   meetings        Meeting[]        @relation("PlatformOrganizationMeetings")
   documentFolders DocumentFolder[] @relation("PlatformOrganizationDocumentFolders")
+  whiteboards          Whiteboard[]         @relation("PlatformOrganizationWhiteboards")
+  projectMembers       ProjectMember[]      @relation("PlatformOrganizationProjectMembers")
+  projectRisks         ProjectRisk[]        @relation("PlatformOrganizationProjectRisks")
+  projectMilestones    ProjectMilestone[]   @relation("PlatformOrganizationProjectMilestones")
+  projectDeliverables  ProjectDeliverable[] @relation("PlatformOrganizationProjectDeliverables")
+  projectResources     ProjectResource[]    @relation("PlatformOrganizationProjectResources")
 }
 
 enum PlatformOrganizationStatut {
@@ -1297,6 +1303,11 @@ model Whiteboard {
   id          String   @id @default(cuid())
   projectId   String   @unique
   project     Project  @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Meeting/
+  // DocumentFolder : nullable, reversible, denormalise depuis
+  // project.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationWhiteboards", fields: [organizationId], references: [id])
   content     Json
   updatedById String
   updatedBy   User     @relation("WhiteboardUpdatedBy", fields: [updatedById], references: [id])
@@ -1311,6 +1322,9 @@ model ProjectMember {
   project       Project           @relation(fields: [projectId], references: [id])
   user          User              @relation(fields: [userId], references: [id])
   addedAt       DateTime          @default(now())
+  // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectMembers", fields: [organizationId], references: [id])
 
   @@unique([projectId, userId])
 }
@@ -1343,6 +1357,9 @@ model ProjectRisk {
   id             String          @id @default(cuid())
   projectId      String
   project        Project         @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectRisks", fields: [organizationId], references: [id])
   titre          String
   description    String?
   probabilite    RiskProbability @default(MOYENNE)
@@ -1458,6 +1475,9 @@ model ProjectMilestone {
   id          String          @id @default(cuid())
   projectId   String
   project     Project         @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectMilestones", fields: [organizationId], references: [id])
   nom         String
   description String?
   dateCible   DateTime
@@ -1485,6 +1505,9 @@ model ProjectDeliverable {
   id            String            @id @default(cuid())
   projectId     String
   project       Project           @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectDeliverables", fields: [organizationId], references: [id])
   nom           String
   description   String?
   statut        DeliverableStatus @default(A_FAIRE)
@@ -1507,6 +1530,9 @@ model ProjectResource {
   id           String   @id @default(cuid())
   projectId    String
   project      Project  @relation(fields: [projectId], references: [id])
+  // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectResources", fields: [organizationId], references: [id])
   nom          String
   type         String?
   quantite     Decimal? @db.Decimal(10, 2)
