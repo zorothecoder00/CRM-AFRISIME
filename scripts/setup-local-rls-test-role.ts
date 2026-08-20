@@ -118,6 +118,11 @@ const COVERED_TABLES = [
   "AdminRequestValidationRun",
   "AdminRequestApproval",
   "Courrier",
+  "AutomationCondition",
+  "OrchestrationPlaybook",
+  "AutomationRule",
+  "AutomationExecution",
+  "PendingAiAction",
 ];
 
 async function main() {

@@ -307,6 +307,11 @@ enum AutomationConditionConnector {
 
 model AutomationCondition {
   id         String                       @id @default(cuid())
+  // Multi-tenant Phase 1 lot 15 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // rule.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAutomationConditions", fields: [organizationId], references: [id])
   ruleId     String
   rule       AutomationRule               @relation(fields: [ruleId], references: [id], onDelete: Cascade)
   champ      String
@@ -326,6 +331,11 @@ model AutomationCondition {
 // comme avant ; une regle avec playbookId est une etape ordonnee du playbook.
 model OrchestrationPlaybook {
   id          String            @id @default(cuid())
+  // Multi-tenant Phase 1 lot 15 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationOrchestrationPlaybooks", fields: [organizationId], references: [id])
   nom         String
   description String?
   trigger     AutomationTrigger
@@ -965,6 +975,11 @@ model PlatformOrganization {
   adminRequestValidationRuns              AdminRequestValidationRun[]   @relation("PlatformOrganizationAdminRequestValidationRuns")
   adminRequestApprovals                       AdminRequestApproval[]        @relation("PlatformOrganizationAdminRequestApprovals")
   courriers                                          Courrier[]                     @relation("PlatformOrganizationCourriers")
+  automationConditions       AutomationCondition[]     @relation("PlatformOrganizationAutomationConditions")
+  orchestrationPlaybooks       OrchestrationPlaybook[]   @relation("PlatformOrganizationOrchestrationPlaybooks")
+  automationRules                AutomationRule[]          @relation("PlatformOrganizationAutomationRules")
+  automationExecutions              AutomationExecution[]    @relation("PlatformOrganizationAutomationExecutions")
+  pendingAiActions                     PendingAiAction[]         @relation("PlatformOrganizationPendingAiActions")
 }
 
 enum PlatformOrganizationStatut {
@@ -3233,6 +3248,11 @@ model Notification {
 // indépendante.
 model AutomationRule {
   id        String               @id @default(cuid())
+  // Multi-tenant Phase 1 lot 15 (2026-08-20) — meme statut que les lots
+  // precedents : nullable, reversible, denormalise depuis
+  // createdBy.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAutomationRules", fields: [organizationId], references: [id])
   projectId String?
   project   Project?             @relation(fields: [projectId], references: [id])
   nom       String
@@ -3331,6 +3351,10 @@ model AutomationRule {
 // on peut voir quand une règle s'est déclenchée et ce qu'elle a produit.
 model AutomationExecution {
   id         String         @id @default(cuid())
+  // Multi-tenant Phase 1 lot 15 (2026-08-20) — meme statut que
+  // AutomationRule, denormalise depuis rule.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationAutomationExecutions", fields: [organizationId], references: [id])
   ruleId     String
   rule       AutomationRule @relation(fields: [ruleId], references: [id])
   entityType String
@@ -3362,6 +3386,10 @@ enum PendingAiActionStatut {
 // l'approbation puisse rejouer exactement le meme contexte via performAction().
 model PendingAiAction {
   id            String                @id @default(cuid())
+  // Multi-tenant Phase 1 lot 15 (2026-08-20) — meme statut que
+  // AutomationRule, denormalise depuis rule.organizationId.
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPendingAiActions", fields: [organizationId], references: [id])
   ruleId        String
   rule          AutomationRule        @relation(fields: [ruleId], references: [id])
   entityType    String

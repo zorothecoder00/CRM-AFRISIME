@@ -208,6 +208,16 @@ let adminRequestApprovalA: { id: string };
 let adminRequestApprovalB: { id: string };
 let courrierA: { id: string };
 let courrierB: { id: string };
+let automationRuleA: { id: string };
+let automationRuleB: { id: string };
+let automationConditionA: { id: string };
+let automationConditionB: { id: string };
+let orchestrationPlaybookA: { id: string };
+let orchestrationPlaybookB: { id: string };
+let automationExecutionA: { id: string };
+let automationExecutionB: { id: string };
+let pendingAiActionA: { id: string };
+let pendingAiActionB: { id: string };
 let adminUser: { id: string };
 let roleId: string;
 
@@ -1270,12 +1280,95 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
         organizationId: orgB.id,
       },
     });
+
+    automationRuleA = await admin.automationRule.create({
+      data: {
+        nom: "Regle A",
+        trigger: "TASK_COMPLETED",
+        action: "SEND_REMINDER",
+        createdById: userA.id,
+        organizationId: orgA.id,
+      },
+    });
+    automationRuleB = await admin.automationRule.create({
+      data: {
+        nom: "Regle B",
+        trigger: "TASK_COMPLETED",
+        action: "SEND_REMINDER",
+        createdById: userB.id,
+        organizationId: orgB.id,
+      },
+    });
+
+    automationConditionA = await admin.automationCondition.create({
+      data: {
+        ruleId: automationRuleA.id,
+        champ: "task.retardJours",
+        operateur: "GREATER_THAN",
+        valeur: "3",
+        organizationId: orgA.id,
+      },
+    });
+    automationConditionB = await admin.automationCondition.create({
+      data: {
+        ruleId: automationRuleB.id,
+        champ: "task.retardJours",
+        operateur: "GREATER_THAN",
+        valeur: "3",
+        organizationId: orgB.id,
+      },
+    });
+
+    orchestrationPlaybookA = await admin.orchestrationPlaybook.create({
+      data: { nom: "Playbook A", trigger: "TASK_COMPLETED", createdById: userA.id, organizationId: orgA.id },
+    });
+    orchestrationPlaybookB = await admin.orchestrationPlaybook.create({
+      data: { nom: "Playbook B", trigger: "TASK_COMPLETED", createdById: userB.id, organizationId: orgB.id },
+    });
+
+    automationExecutionA = await admin.automationExecution.create({
+      data: {
+        ruleId: automationRuleA.id,
+        entityType: "Task",
+        entityId: taskA.id,
+        resultat: "OK",
+        organizationId: orgA.id,
+      },
+    });
+    automationExecutionB = await admin.automationExecution.create({
+      data: {
+        ruleId: automationRuleB.id,
+        entityType: "Task",
+        entityId: taskB.id,
+        resultat: "OK",
+        organizationId: orgB.id,
+      },
+    });
+
+    pendingAiActionA = await admin.pendingAiAction.create({
+      data: {
+        ruleId: automationRuleA.id,
+        entityType: "Task",
+        entityId: taskA.id,
+        label: "Action A",
+        organizationId: orgA.id,
+      },
+    });
+    pendingAiActionB = await admin.pendingAiAction.create({
+      data: {
+        ruleId: automationRuleB.id,
+        entityType: "Task",
+        entityId: taskB.id,
+        label: "Action B",
+        organizationId: orgB.id,
+      },
+    });
   });
 
   afterAll(async () => {
     // Nettoyage via le role admin (le role restreint ne peut de toute facon
     // pas voir/supprimer les lignes hors de son organisation). Ordre inverse
-    // des FK : les modeles "feuilles" (lots 7-14) d'abord, puis Meeting/
+    // des FK : les modeles "feuilles" (lots 7-15) d'abord, puis Meeting/
     // DocumentFolder/Document/Task/ProjectSection/Whiteboard/ProjectMember/
     // ProjectRisk/ProjectMilestone/ProjectDeliverable/ProjectResource
     // referencent Project+User, Project/Team referencent User+Department,
@@ -1283,6 +1376,17 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     // AdminRequestValidationRun/AdminRequest/TaskApproval/TaskValidationRun/
     // ValidationWorkflowStep/ValidationWorkflow/Courrier avant taskA2/taskB2
     // (TaskValidationRun.taskId les referme).
+    await admin.pendingAiAction.deleteMany({ where: { id: { in: [pendingAiActionA.id, pendingAiActionB.id] } } });
+    await admin.automationExecution.deleteMany({
+      where: { id: { in: [automationExecutionA.id, automationExecutionB.id] } },
+    });
+    await admin.orchestrationPlaybook.deleteMany({
+      where: { id: { in: [orchestrationPlaybookA.id, orchestrationPlaybookB.id] } },
+    });
+    await admin.automationCondition.deleteMany({
+      where: { id: { in: [automationConditionA.id, automationConditionB.id] } },
+    });
+    await admin.automationRule.deleteMany({ where: { id: { in: [automationRuleA.id, automationRuleB.id] } } });
     await admin.courrier.deleteMany({ where: { id: { in: [courrierA.id, courrierB.id] } } });
     await admin.adminRequestApproval.deleteMany({
       where: { id: { in: [adminRequestApprovalA.id, adminRequestApprovalB.id] } },
@@ -2456,6 +2560,57 @@ describe("RLS — isolation multi-tenant (User..ProjectResource) par organisatio
     await expect(
       withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
         tx.courrier.update({ where: { id: courrierB.id }, data: { objet: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("AutomationRule : un role scope a l'organisation A ne voit que les regles de A", async () => {
+    const rules = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.automationRule.findMany({ where: { id: { in: [automationRuleA.id, automationRuleB.id] } } })
+    );
+    expect(rules.map((r) => r.id)).toEqual([automationRuleA.id]);
+  });
+
+  it("AutomationRule : le role non-proprietaire ne peut pas modifier une regle hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.automationRule.update({ where: { id: automationRuleB.id }, data: { nom: "Tentative depuis A" } })
+      )
+    ).rejects.toThrow();
+  });
+
+  it("AutomationCondition : un role scope a l'organisation B ne voit que les conditions de B", async () => {
+    const conditions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.automationCondition.findMany({ where: { id: { in: [automationConditionA.id, automationConditionB.id] } } })
+    );
+    expect(conditions.map((c) => c.id)).toEqual([automationConditionB.id]);
+  });
+
+  it("OrchestrationPlaybook : un role scope a l'organisation A ne voit que les playbooks de A", async () => {
+    const playbooks = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.orchestrationPlaybook.findMany({ where: { id: { in: [orchestrationPlaybookA.id, orchestrationPlaybookB.id] } } })
+    );
+    expect(playbooks.map((p) => p.id)).toEqual([orchestrationPlaybookA.id]);
+  });
+
+  it("AutomationExecution : un role scope a l'organisation B ne voit que les executions de B", async () => {
+    const executions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgB.id, (tx) =>
+      tx.automationExecution.findMany({ where: { id: { in: [automationExecutionA.id, automationExecutionB.id] } } })
+    );
+    expect(executions.map((e) => e.id)).toEqual([automationExecutionB.id]);
+  });
+
+  it("PendingAiAction : un role scope a l'organisation A ne voit que les actions IA de A", async () => {
+    const actions = await withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+      tx.pendingAiAction.findMany({ where: { id: { in: [pendingAiActionA.id, pendingAiActionB.id] } } })
+    );
+    expect(actions.map((a) => a.id)).toEqual([pendingAiActionA.id]);
+  });
+
+  it("PendingAiAction : le role non-proprietaire ne peut pas modifier une action IA hors de son organisation", async () => {
+    await expect(
+      withTenantScope(TENANT_ROLE_CONNECTION_STRING, orgA.id, (tx) =>
+        tx.pendingAiAction.update({ where: { id: pendingAiActionB.id }, data: { statut: "APPROUVE" } })
       )
     ).rejects.toThrow();
   });
