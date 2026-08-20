@@ -8,6 +8,7 @@ const INCIDENTS_FENETRE_JOURS = 14;
 const SURCHARGE_PCT_SEUIL = 50;
 const KPI_ECART_SEUIL_PERCENT = -20;
 const SIGNAUX_MIN_POUR_ALERTE = 3;
+const CONTRATS_EXPIRES_FENETRE_JOURS = 7;
 
 export type WeakSignal = { cle: string; label: string; actif: boolean; detail: string };
 
@@ -16,11 +17,17 @@ export type WeakSignal = { cle: string; label: string; actif: boolean; detail: s
 // surcharge, KPI en baisse, retards fournisseurs), individuellement pas
 // critiques, mais combinés révélant un risque organisationnel émergent.
 // "Retards fournisseurs" n'a pas de modèle de livraison dédié dans ce
-// MVP : approximé par les contrats encore ACTIF dont la date d'expiration
-// est dépassée (meilleur proxy disponible, documenté comme tel côté UI).
+// MVP : approximé par les contrats récemment basculés EXPIRE (meilleur
+// proxy disponible, documenté comme tel côté UI). Avant l'ajout de
+// contract-lifecycle.ts (bascule quotidienne ACTIF -> EXPIRE), ce proxy
+// comptait les contrats encore ACTIF dont la date d'expiration était
+// dépassée — devenu quasi toujours nul depuis que la bascule est
+// automatique, d'où ce recentrage sur "vient d'expirer" plutôt que "est
+// resté ACTIF trop longtemps sans qu'on s'en aperçoive".
 export async function computeWeakSignals(): Promise<WeakSignal[]> {
   const now = new Date();
   const fenetreIncidents = new Date(now.getTime() - INCIDENTS_FENETRE_JOURS * 24 * 60 * 60 * 1000);
+  const fenetreContratsExpires = new Date(now.getTime() - CONTRATS_EXPIRES_FENETRE_JOURS * 24 * 60 * 60 * 1000);
 
   const [tachesEnRetard, incidentsRecents, users, tasks, leaves, indicators, contratsExpires] = await Promise.all([
     prisma.task.count({
@@ -45,7 +52,7 @@ export async function computeWeakSignals(): Promise<WeakSignal[]> {
     }),
     prisma.leave.findMany({ where: { statut: "APPROUVE" }, select: { userId: true, dateDebut: true, dateFin: true, statut: true } }),
     prisma.indicator.findMany({ where: { valeurCible: { gt: 0 } }, select: { nom: true, valeurCible: true, valeurActuelle: true } }),
-    prisma.contract.count({ where: { statut: "ACTIF", dateExpiration: { lt: now } } }),
+    prisma.contract.count({ where: { statut: "EXPIRE", dateExpiration: { gte: fenetreContratsExpires, lt: now } } }),
   ]);
 
   const workload = computeWorkload(
@@ -100,7 +107,7 @@ export async function computeWeakSignals(): Promise<WeakSignal[]> {
       cle: "retards_fournisseurs",
       label: "Retards fournisseurs",
       actif: contratsExpires > 0,
-      detail: `${contratsExpires} contrat(s) actif(s) au-delà de leur date d'expiration.`,
+      detail: `${contratsExpires} contrat(s) expiré(s) au cours des ${CONTRATS_EXPIRES_FENETRE_JOURS} derniers jours.`,
     },
   ];
 }

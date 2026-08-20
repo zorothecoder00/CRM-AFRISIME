@@ -159,6 +159,10 @@ enum NotificationType {
   // (cron), notifie plutot que de stocker le fichier genere (recalcule a la
   // demande au clic, voir /rapports?type=REVUE_HEBDOMADAIRE).
   RAPPORT_HEBDOMADAIRE
+  // Comble V2.2 §7.1 — Contract.statut ne basculait jamais tout seul
+  // (voir src/lib/contract-lifecycle.ts) : notifie le createur du contrat
+  // quand le cron quotidien le bascule ACTIF -> EXPIRE.
+  CONTRAT_EXPIRE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine

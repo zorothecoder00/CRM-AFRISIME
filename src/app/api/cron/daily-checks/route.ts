@@ -14,6 +14,7 @@ import { captureDailySnapshots } from "@/lib/metric-snapshots";
 import { runDependencyRiskChecks } from "@/lib/dependencies";
 import { enforceRetentionPolicies, notifyTrashOverdue } from "@/lib/retention";
 import { runEarlyWarningCheck } from "@/lib/early-warning";
+import { expireOutdatedContracts } from "@/lib/contract-lifecycle";
 
 // Numéro de semaine ISO — utilisé pour que l'alerte de surcharge (§14) ne se
 // répète qu'une fois par semaine par utilisateur (idempotence via la
@@ -243,6 +244,10 @@ export async function GET(request: NextRequest) {
     )
   );
 
+  // Contrats expirés (comble V2.2 §7.1) : bascule ACTIF -> EXPIRE + notifie
+  // le créateur — voir src/lib/contract-lifecycle.ts.
+  const { expiredCount } = await expireOutdatedContracts();
+
   // Budget dépassé (§14) : coût réel saisi manuellement au-delà du budget.
   const overBudgetProjects = await prisma.project.findMany({
     where: { budget: { not: null }, coutReel: { not: null } },
@@ -331,6 +336,7 @@ export async function GET(request: NextRequest) {
     blockedValidationsCount: blockedTaskRuns.length + blockedAdminRequestRuns.length,
     staleClientsCount: staleClients.length,
     dueRelancesCount: dueRelances.length,
+    expiredContractsCount: expiredCount,
     overBudgetCount: overBudget.length,
     criticalTasksCount: criticalTasks.length,
     retention: retentionResult,
