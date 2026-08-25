@@ -134,7 +134,7 @@ export async function addIndicator(input: AddIndicatorInput) {
   });
 
   revalidatePath(`/objectifs/${data.objectiveId}`);
-  return indicator;
+  return { ...indicator, valeurCible: Number(indicator.valeurCible), valeurActuelle: Number(indicator.valeurActuelle) };
 }
 
 export async function updateIndicatorValue(input: UpdateIndicatorValueInput) {
@@ -161,7 +161,7 @@ export async function updateIndicatorValue(input: UpdateIndicatorValueInput) {
   if (indicator.taskId) revalidatePath(`/taches/${indicator.taskId}`);
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
-  return indicator;
+  return { ...indicator, valeurCible: Number(indicator.valeurCible), valeurActuelle: Number(indicator.valeurActuelle) };
 }
 
 /** Rattache (ou detache si parentId absent) un objectif a son objectif parent (cahier des charges §III). */

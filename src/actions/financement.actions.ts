@@ -51,7 +51,7 @@ export async function createFinancement(input: CreateFinancementInput) {
 
   revalidatePath(`/projets/${financement.projectId}`);
   revalidatePath("/projets/portefeuille");
-  return financement;
+  return { ...financement, montant: Number(financement.montant) };
 }
 
 export async function updateFinancementStatut(input: UpdateFinancementStatutInput) {
@@ -82,7 +82,7 @@ export async function updateFinancementStatut(input: UpdateFinancementStatutInpu
 
   revalidatePath(`/projets/${financement.projectId}`);
   revalidatePath("/projets/portefeuille");
-  return financement;
+  return { ...financement, montant: Number(financement.montant) };
 }
 
 /** Donor/Bailleur Management (§25) — convention, période, exigences de reporting. */
@@ -110,7 +110,7 @@ export async function updateFinancementDetails(input: UpdateFinancementDetailsIn
   );
 
   revalidatePath(`/projets/${financement.projectId}`);
-  return financement;
+  return { ...financement, montant: Number(financement.montant) };
 }
 
 export async function deleteFinancement(input: DeleteFinancementInput) {
@@ -134,5 +134,5 @@ export async function deleteFinancement(input: DeleteFinancementInput) {
 
   revalidatePath(`/projets/${financement.projectId}`);
   revalidatePath("/projets/portefeuille");
-  return financement;
+  return { ...financement, montant: Number(financement.montant) };
 }

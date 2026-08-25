@@ -47,7 +47,7 @@ export async function upsertExchangeRate(input: UpsertExchangeRateInput) {
   });
 
   revalidatePath("/administration/devises");
-  return rate;
+  return { ...rate, taux: Number(rate.taux) };
 }
 
 export async function deleteExchangeRate(input: DeleteExchangeRateInput) {
@@ -66,5 +66,5 @@ export async function deleteExchangeRate(input: DeleteExchangeRateInput) {
   });
 
   revalidatePath("/administration/devises");
-  return rate;
+  return { ...rate, taux: Number(rate.taux) };
 }

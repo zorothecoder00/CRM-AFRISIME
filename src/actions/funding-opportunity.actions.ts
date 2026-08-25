@@ -52,7 +52,7 @@ export async function createFundingOpportunity(input: CreateFundingOpportunityIn
 
   revalidatePath("/projets/appels-a-projets");
   if (data.projectId) revalidatePath(`/projets/${data.projectId}`);
-  return opportunity;
+  return { ...opportunity, budgetDisponible: opportunity.budgetDisponible ? Number(opportunity.budgetDisponible) : null };
 }
 
 export async function linkFundingOpportunityToProject(input: LinkFundingOpportunityToProjectInput) {
@@ -71,7 +71,7 @@ export async function linkFundingOpportunityToProject(input: LinkFundingOpportun
 
   revalidatePath("/projets/appels-a-projets");
   revalidatePath(`/projets/${data.projectId}`);
-  return opportunity;
+  return { ...opportunity, budgetDisponible: opportunity.budgetDisponible ? Number(opportunity.budgetDisponible) : null };
 }
 
 export async function deleteFundingOpportunity(input: DeleteFundingOpportunityInput) {
@@ -87,5 +87,5 @@ export async function deleteFundingOpportunity(input: DeleteFundingOpportunityIn
 
   revalidatePath("/projets/appels-a-projets");
   if (opportunity.projectId) revalidatePath(`/projets/${opportunity.projectId}`);
-  return opportunity;
+  return { ...opportunity, budgetDisponible: opportunity.budgetDisponible ? Number(opportunity.budgetDisponible) : null };
 }

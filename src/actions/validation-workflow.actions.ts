@@ -71,7 +71,7 @@ export async function createValidationWorkflow(input: CreateValidationWorkflowIn
   });
 
   revalidatePath("/administration/workflows");
-  return workflow;
+  return { ...workflow, montantMin: workflow.montantMin ? Number(workflow.montantMin) : null };
 }
 
 export async function toggleValidationWorkflowActive(workflowId: string, isActive: boolean) {
@@ -91,5 +91,5 @@ export async function toggleValidationWorkflowActive(workflowId: string, isActiv
   });
 
   revalidatePath("/administration/workflows");
-  return workflow;
+  return { ...workflow, montantMin: workflow.montantMin ? Number(workflow.montantMin) : null };
 }

@@ -247,7 +247,7 @@ export async function createOpportunity(input: CreateOpportunityInput) {
 
   revalidatePath("/crm/pipeline");
   revalidatePath("/crm");
-  return opportunity;
+  return { ...opportunity, montantEstime: opportunity.montantEstime ? Number(opportunity.montantEstime) : null };
 }
 
 export async function updateOpportunity(input: UpdateOpportunityInput) {
@@ -280,7 +280,7 @@ export async function updateOpportunity(input: UpdateOpportunityInput) {
 
   revalidatePath(`/crm/opportunites/${data.id}`);
   revalidatePath("/crm/pipeline");
-  return opportunity;
+  return { ...opportunity, montantEstime: opportunity.montantEstime ? Number(opportunity.montantEstime) : null };
 }
 
 /** Changement de statut (drag-and-drop du pipeline ou sélecteur sur la fiche) — miroir d'updateTaskStatus. */
@@ -308,7 +308,7 @@ export async function updateOpportunityStatus(input: UpdateOpportunityStatusInpu
   revalidatePath("/crm/pipeline");
   revalidatePath(`/crm/opportunites/${data.id}`);
   revalidatePath("/crm");
-  return opportunity;
+  return { ...opportunity, montantEstime: opportunity.montantEstime ? Number(opportunity.montantEstime) : null };
 }
 
 export async function addInteraction(input: CreateInteractionInput) {

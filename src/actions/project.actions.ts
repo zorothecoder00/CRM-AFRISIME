@@ -96,7 +96,7 @@ export async function createProject(input: CreateProjectInput) {
   });
 
   revalidatePath("/projets");
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 
 export async function createSection(input: CreateSectionInput) {
@@ -194,7 +194,7 @@ export async function updateProjectCoutReel(input: UpdateProjectCoutReelInput) {
   });
 
   revalidatePath(`/projets/${data.projectId}`);
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 
 /** Changement de statut depuis la vue Kanban (cahier des charges §VI) — meme principe que updateTaskStatus. */
@@ -229,7 +229,7 @@ export async function updateProjectStatus(projectId: string, statut: string) {
 
   revalidatePath("/projets");
   revalidatePath(`/projets/${data.projectId}`);
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 
 export async function updateProjectSponsor(input: UpdateProjectSponsorInput) {
@@ -255,7 +255,7 @@ export async function updateProjectSponsor(input: UpdateProjectSponsorInput) {
   });
 
   revalidatePath(`/projets/${data.projectId}`);
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 
 export async function updateProjectLocation(input: UpdateProjectLocationInput) {
@@ -292,7 +292,7 @@ export async function updateProjectLocation(input: UpdateProjectLocationInput) {
 
   revalidatePath(`/projets/${data.projectId}`);
   revalidatePath("/projets/carte");
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 
 // ---- Risques (cahier des charges §VI) ----
@@ -659,7 +659,7 @@ export async function createProjectIndicator(input: CreateProjectIndicatorInput)
   });
 
   revalidatePath(`/projets/${data.projectId}`);
-  return indicator;
+  return { ...indicator, valeurCible: Number(indicator.valeurCible), valeurActuelle: Number(indicator.valeurActuelle) };
 }
 
 export async function createTaskIndicator(input: CreateTaskIndicatorInput) {
@@ -690,7 +690,7 @@ export async function createTaskIndicator(input: CreateTaskIndicatorInput) {
   });
 
   revalidatePath(`/taches/${data.taskId}`);
-  return indicator;
+  return { ...indicator, valeurCible: Number(indicator.valeurCible), valeurActuelle: Number(indicator.valeurActuelle) };
 }
 
 // ---- Ressources (cahier des charges §VI) ----
@@ -728,7 +728,7 @@ export async function createProjectResource(input: CreateProjectResourceInput) {
   });
 
   revalidatePath(`/projets/${data.projectId}`);
-  return resource;
+  return { ...resource, quantite: resource.quantite ? Number(resource.quantite) : null, coutUnitaire: resource.coutUnitaire ? Number(resource.coutUnitaire) : null };
 }
 
 export async function deleteProjectResource(input: DeleteProjectResourceInput) {
@@ -751,7 +751,7 @@ export async function deleteProjectResource(input: DeleteProjectResourceInput) {
   });
 
   revalidatePath(`/projets/${resource.projectId}`);
-  return resource;
+  return { ...resource, quantite: resource.quantite ? Number(resource.quantite) : null, coutUnitaire: resource.coutUnitaire ? Number(resource.coutUnitaire) : null };
 }
 
 // ---- WBS (Project Studio §15) ----
@@ -860,5 +860,5 @@ export async function updateProjectScope(input: UpdateProjectScopeInput) {
   });
 
   revalidatePath(`/projets/${project.id}`);
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }

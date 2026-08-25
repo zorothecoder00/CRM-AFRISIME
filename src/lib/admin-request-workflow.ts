@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { RoleKey, AdminRequestType } from "@/generated/prisma/enums";
 
 /**
@@ -58,6 +59,63 @@ function stepConditionSatisfied(
   if (min !== null && montant < min) return false;
   if (max !== null && montant > max) return false;
   return true;
+}
+
+/**
+ * Alerte les personnes habilitées à configurer les circuits de validation
+ * quand une demande ne peut pas être soumise faute de circuit actif — sinon
+ * ce blocage ne serait visible que du demandeur, qui n'a le plus souvent
+ * pas la permission d'y remédier lui-même. Idempotent par type de demande
+ * (entityId) pour ne pas spammer à chaque nouvelle tentative de soumission.
+ */
+async function notifyMissingWorkflowManagers(adminRequestType: AdminRequestType, excludeUserId?: string) {
+  const managers = await prisma.user.findMany({
+    where: {
+      isActive: true,
+      id: { not: excludeUserId },
+      role: { permissions: { some: { permission: { key: PERMISSIONS.WORKFLOW_MANAGE } } } },
+    },
+    select: { id: true },
+  });
+  await Promise.all(
+    managers.map((m) =>
+      createNotification({
+        userId: m.id,
+        type: "VALIDATION",
+        titre: `Aucun circuit de validation configuré pour les demandes « ${adminRequestType} »`,
+        lien: "/administration/workflows",
+        entityType: "ValidationWorkflow",
+        entityId: adminRequestType,
+      })
+    )
+  );
+}
+
+/**
+ * Résout le circuit actif pour ce type/montant, ou lève une erreur explicite
+ * après avoir alerté les bonnes personnes (voir notifyMissingWorkflowManagers)
+ * — utilisé à la fois avant la création de la demande (soumission manuelle,
+ * pour ne pas créer de demande orpheline sans circuit) et par
+ * startAdminRequestValidationRun (déclenchement automatisé, où la demande
+ * existe déjà — voir automation.ts).
+ */
+export async function assertActiveAdminRequestWorkflow(
+  type: AdminRequestType,
+  montant: number | null,
+  opts: { submittedById: string; submitterCanManageWorkflows?: boolean }
+) {
+  const workflow = await getActiveAdminRequestWorkflow(type, montant);
+  if (workflow && workflow.steps.length > 0) return workflow;
+
+  if (opts.submitterCanManageWorkflows) {
+    throw new Error(
+      "Aucun circuit de validation n'est configuré pour ce type de demande. Vous allez être redirigé vers Administration > Circuits de validation pour en créer un."
+    );
+  }
+  await notifyMissingWorkflowManagers(type, opts.submittedById);
+  throw new Error(
+    "Aucun circuit de validation n'est configuré pour ce type de demande. Les personnes habilitées à configurer les circuits de validation ont été notifiées."
+  );
 }
 
 async function notifyApproversForStep(params: {
@@ -133,13 +191,13 @@ export async function startAdminRequestValidationRun(params: {
   submittedById: string;
   type: AdminRequestType;
   montant: number | null;
+  /** Le demandeur a-t-il lui-même la permission de configurer un circuit ? Si oui, on le redirige plutôt que de notifier des tiers (voir admin-request.actions.ts). */
+  submitterCanManageWorkflows?: boolean;
 }) {
-  const workflow = await getActiveAdminRequestWorkflow(params.type, params.montant);
-  if (!workflow || workflow.steps.length === 0) {
-    throw new Error(
-      "Aucun circuit de validation n'est configuré pour les demandes administratives. Un administrateur doit en créer un dans Administration > Circuits de validation."
-    );
-  }
+  const workflow = await assertActiveAdminRequestWorkflow(params.type, params.montant, {
+    submittedById: params.submittedById,
+    submitterCanManageWorkflows: params.submitterCanManageWorkflows,
+  });
 
   const run = await prisma.adminRequestValidationRun.create({
     data: {

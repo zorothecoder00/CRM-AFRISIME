@@ -57,7 +57,7 @@ export async function createProgramme(input: CreateProgrammeInput) {
   });
 
   revalidatePath("/programmes");
-  return programme;
+  return { ...programme, budget: programme.budget ? Number(programme.budget) : null, coutReel: programme.coutReel ? Number(programme.coutReel) : null };
 }
 
 export async function updateProgramme(input: UpdateProgrammeInput) {
@@ -89,7 +89,7 @@ export async function updateProgramme(input: UpdateProgrammeInput) {
 
   revalidatePath(`/programmes/${data.id}`);
   revalidatePath("/programmes");
-  return programme;
+  return { ...programme, budget: programme.budget ? Number(programme.budget) : null, coutReel: programme.coutReel ? Number(programme.coutReel) : null };
 }
 
 /** Rattache (ou detache si programmeId absent) un projet existant a un programme. */
@@ -114,7 +114,7 @@ export async function linkProjectToProgramme(input: LinkProjectToProgrammeInput)
   if (data.programmeId) revalidatePath(`/programmes/${data.programmeId}`);
   revalidatePath("/programmes");
   revalidatePath(`/projets/${data.projectId}`);
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 
 export async function updateProgrammeCoutReel(input: UpdateProgrammeCoutReelInput) {
@@ -136,7 +136,7 @@ export async function updateProgrammeCoutReel(input: UpdateProgrammeCoutReelInpu
   });
 
   revalidatePath(`/programmes/${data.programmeId}`);
-  return programme;
+  return { ...programme, budget: programme.budget ? Number(programme.budget) : null, coutReel: programme.coutReel ? Number(programme.coutReel) : null };
 }
 
 // ---- Risques (cahier des charges §V) ----

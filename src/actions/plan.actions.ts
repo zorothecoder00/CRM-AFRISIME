@@ -75,7 +75,7 @@ export async function createPlan(input: CreatePlanInput) {
   });
 
   revalidatePath("/planification");
-  return plan;
+  return { ...plan, budgetIndicatif: plan.budgetIndicatif ? Number(plan.budgetIndicatif) : null };
 }
 
 export async function updatePlan(input: UpdatePlanInput) {
@@ -114,7 +114,7 @@ export async function updatePlan(input: UpdatePlanInput) {
 
   revalidatePath(`/planification/${data.id}`);
   revalidatePath("/planification");
-  return plan;
+  return { ...plan, budgetIndicatif: plan.budgetIndicatif ? Number(plan.budgetIndicatif) : null };
 }
 
 /** Rattache (ou detache si planId absent) un objectif existant a un plan. */

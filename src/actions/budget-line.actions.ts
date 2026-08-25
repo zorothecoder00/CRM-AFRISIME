@@ -46,7 +46,7 @@ export async function createBudgetLine(input: CreateBudgetLineInput) {
   });
 
   revalidatePath(`/projets/${data.projectId}`);
-  return line;
+  return { ...line, montantPrevu: Number(line.montantPrevu), montantEngage: Number(line.montantEngage), montantPaye: Number(line.montantPaye) };
 }
 
 export async function updateBudgetLineRealisation(input: UpdateBudgetLineRealisationInput) {
@@ -67,7 +67,7 @@ export async function updateBudgetLineRealisation(input: UpdateBudgetLineRealisa
   );
 
   revalidatePath(`/projets/${line.projectId}`);
-  return line;
+  return { ...line, montantPrevu: Number(line.montantPrevu), montantEngage: Number(line.montantEngage), montantPaye: Number(line.montantPaye) };
 }
 
 export async function deleteBudgetLine(input: DeleteBudgetLineInput) {
@@ -82,5 +82,5 @@ export async function deleteBudgetLine(input: DeleteBudgetLineInput) {
   );
 
   revalidatePath(`/projets/${line.projectId}`);
-  return line;
+  return { ...line, montantPrevu: Number(line.montantPrevu), montantEngage: Number(line.montantEngage), montantPaye: Number(line.montantPaye) };
 }

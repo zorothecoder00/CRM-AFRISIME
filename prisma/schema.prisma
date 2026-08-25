@@ -174,6 +174,9 @@ enum NotificationType {
   // (voir src/lib/contract-lifecycle.ts) : notifie le createur du contrat
   // quand le cron quotidien le bascule ACTIF -> EXPIRE.
   CONTRAT_EXPIRE
+  // Comble — un participant ajoute a une reunion (a la creation ou apres
+  // coup) n'etait jamais informe (voir src/actions/meeting.actions.ts).
+  REUNION_INVITATION
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -2725,6 +2728,10 @@ model MeetingParticipant {
   // denormalise depuis meeting.organizationId.
   organizationId String?
   organization   PlatformOrganization? @relation("PlatformOrganizationMeetingParticipants", fields: [organizationId], references: [id])
+  // Comble — suivi de presence : null = pas encore renseigne, true/false =
+  // present/absent. Renseigne manuellement par l'organisateur (meme
+  // permission que le compte-rendu), pas de detection automatique.
+  present        Boolean?
 
   @@id([meetingId, userId])
 }

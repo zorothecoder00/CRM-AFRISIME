@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
@@ -34,6 +35,7 @@ type Option = { id: string; label: string };
 
 export function AdminRequestFormDialog({ departments }: { departments: Option[] }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -53,6 +55,14 @@ export function AdminRequestFormDialog({ departments }: { departments: Option[] 
     if (result.ok) {
       reset();
       setOpen(false);
+      return;
+    }
+    // Aucun circuit configuré pour ce type de demande : si l'utilisateur peut
+    // lui-même en créer un, on l'y emmène directement plutôt que de le laisser
+    // avec un simple message d'erreur (voir assertActiveAdminRequestWorkflow).
+    if (result.error instanceof Error && result.error.message.includes("redirigé vers Administration")) {
+      setOpen(false);
+      router.push("/administration/workflows");
     }
   }
 

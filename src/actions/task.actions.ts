@@ -105,7 +105,7 @@ export async function createTask(input: CreateTaskInput) {
 
   revalidatePath("/taches");
   revalidatePath(`/projets/${data.projectId}`);
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 /** V2.2 §9.2 — allocation intelligente : profils suggérés pour une tâche à créer. */
@@ -170,7 +170,7 @@ export async function updateTaskStatus(taskId: string, statut: string) {
   revalidatePath("/taches");
   revalidatePath(`/taches/${taskId}`);
   revalidatePath(`/projets/${task.projectId}`);
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 /**
@@ -196,7 +196,7 @@ export async function submitForValidation(taskId: string) {
   });
 
   revalidatePath(`/taches/${taskId}`);
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 /**
@@ -228,7 +228,7 @@ export async function validateTask(taskId: string, approved: boolean, commentair
   if (finalStatus === "EN_COURS") {
     // Étape franchie, encore d'autres approbateurs à venir : la tâche reste en révision.
     revalidatePath(`/taches/${taskId}`);
-    return existing;
+    return { ...existing, tempsEstimeHeures: existing.tempsEstimeHeures ? Number(existing.tempsEstimeHeures) : null, tempsReelHeures: existing.tempsReelHeures ? Number(existing.tempsReelHeures) : null };
   }
 
   if (finalStatus === "APPROUVE") {
@@ -257,7 +257,7 @@ export async function validateTask(taskId: string, approved: boolean, commentair
     }
     revalidatePath(`/taches/${taskId}`);
     revalidatePath(`/projets/${task.projectId}`);
-    return task;
+    return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
   }
 
   // REJETE
@@ -287,7 +287,7 @@ export async function validateTask(taskId: string, approved: boolean, commentair
   });
 
   revalidatePath(`/taches/${taskId}`);
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 export async function addComment(taskId: string, content: string) {
@@ -478,7 +478,7 @@ export async function convertSectionToTask(input: ConvertSectionToTaskInput) {
   });
 
   revalidatePath(`/projets/${section.projectId}`);
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 export async function updateActualTime(taskId: string, tempsReelHeures: string) {
@@ -504,7 +504,7 @@ export async function updateActualTime(taskId: string, tempsReelHeures: string) 
 
   revalidatePath(`/taches/${taskId}`);
   revalidatePath("/charge-de-travail");
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 /**
@@ -534,7 +534,7 @@ export async function linkTaskExternalContact(input: LinkTaskExternalContactInpu
   });
 
   revalidatePath(`/taches/${data.taskId}`);
-  return task;
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 const TASK_VIEWS = ["liste", "kanban", "chronologie", "gantt", "mindmap", "portefeuille", "blanc"];

@@ -78,7 +78,7 @@ export async function createEvaluation(input: CreateEvaluationInput) {
   });
 
   revalidatePath("/evaluations");
-  return evaluation;
+  return { ...evaluation, scoreGlobal: evaluation.scoreGlobal ? Number(evaluation.scoreGlobal) : null };
 }
 
 // Les fonctions suivantes (edition/soumission) ne verifient pas
@@ -120,7 +120,7 @@ export async function updateEvaluation(input: UpdateEvaluationInput) {
   });
 
   revalidatePath(`/evaluations/${data.id}`);
-  return evaluation;
+  return { ...evaluation, scoreGlobal: evaluation.scoreGlobal ? Number(evaluation.scoreGlobal) : null };
 }
 
 export async function addEvaluationCritere(input: AddEvaluationCritereInput) {
@@ -158,7 +158,7 @@ export async function addEvaluationCritere(input: AddEvaluationCritereInput) {
   });
 
   revalidatePath(`/evaluations/${data.evaluationId}`);
-  return critere;
+  return { ...critere, note: Number(critere.note) };
 }
 
 export async function updateEvaluationCritere(input: UpdateEvaluationCritereInput) {
@@ -195,7 +195,7 @@ export async function updateEvaluationCritere(input: UpdateEvaluationCritereInpu
   });
 
   revalidatePath(`/evaluations/${critere.evaluationId}`);
-  return updated;
+  return { ...updated, note: Number(updated.note) };
 }
 
 export async function submitEvaluation(evaluationId: string) {
@@ -242,7 +242,7 @@ export async function submitEvaluation(evaluationId: string) {
 
   revalidatePath(`/evaluations/${evaluationId}`);
   revalidatePath("/evaluations");
-  return updated;
+  return { ...updated, scoreGlobal: updated.scoreGlobal ? Number(updated.scoreGlobal) : null };
 }
 
 export async function acknowledgeEvaluation(input: AcknowledgeEvaluationInput) {
@@ -285,5 +285,5 @@ export async function acknowledgeEvaluation(input: AcknowledgeEvaluationInput) {
 
   revalidatePath(`/evaluations/${data.evaluationId}`);
   revalidatePath("/evaluations");
-  return updated;
+  return { ...updated, scoreGlobal: updated.scoreGlobal ? Number(updated.scoreGlobal) : null };
 }

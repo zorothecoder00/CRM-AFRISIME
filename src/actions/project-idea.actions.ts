@@ -56,7 +56,7 @@ export async function createProjectIdea(input: CreateProjectIdeaInput) {
   });
 
   revalidatePath("/projets/idees");
-  return idea;
+  return { ...idea, estimationBudgetaire: idea.estimationBudgetaire ? Number(idea.estimationBudgetaire) : null };
 }
 
 export async function updateProjectIdea(input: UpdateProjectIdeaInput) {
@@ -96,7 +96,7 @@ export async function updateProjectIdea(input: UpdateProjectIdeaInput) {
 
   revalidatePath("/projets/idees");
   revalidatePath(`/projets/idees/${idea.id}`);
-  return idea;
+  return { ...idea, estimationBudgetaire: idea.estimationBudgetaire ? Number(idea.estimationBudgetaire) : null };
 }
 
 export async function updateProjectIdeaStatus(input: UpdateProjectIdeaStatusInput) {
@@ -127,7 +127,7 @@ export async function updateProjectIdeaStatus(input: UpdateProjectIdeaStatusInpu
 
   revalidatePath("/projets/idees");
   revalidatePath(`/projets/idees/${idea.id}`);
-  return idea;
+  return { ...idea, estimationBudgetaire: idea.estimationBudgetaire ? Number(idea.estimationBudgetaire) : null };
 }
 
 export async function deleteProjectIdea(input: DeleteProjectIdeaInput) {
@@ -150,7 +150,7 @@ export async function deleteProjectIdea(input: DeleteProjectIdeaInput) {
   });
 
   revalidatePath("/projets/idees");
-  return idea;
+  return { ...idea, estimationBudgetaire: idea.estimationBudgetaire ? Number(idea.estimationBudgetaire) : null };
 }
 
 /**
@@ -235,5 +235,5 @@ export async function convertProjectIdeaToProject(input: ConvertProjectIdeaInput
   revalidatePath("/projets/idees");
   revalidatePath(`/projets/idees/${data.ideaId}`);
   revalidatePath("/projets");
-  return project;
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }

@@ -58,7 +58,7 @@ export async function generateProjectConceptNote(input: GenerateProjectConceptNo
   });
 
   revalidatePath(`/projets/idees/${data.ideaId}`);
-  return note;
+  return { ...note, budgetIndicatif: note.budgetIndicatif ? Number(note.budgetIndicatif) : null, financementRecherche: note.financementRecherche ? Number(note.financementRecherche) : null };
 }
 
 export async function updateProjectConceptNote(input: UpdateProjectConceptNoteInput) {
@@ -97,5 +97,5 @@ export async function updateProjectConceptNote(input: UpdateProjectConceptNoteIn
   });
 
   revalidatePath(`/projets/idees/${note.ideaId}`);
-  return note;
+  return { ...note, budgetIndicatif: note.budgetIndicatif ? Number(note.budgetIndicatif) : null, financementRecherche: note.financementRecherche ? Number(note.financementRecherche) : null };
 }

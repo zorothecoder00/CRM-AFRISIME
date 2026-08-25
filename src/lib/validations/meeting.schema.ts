@@ -4,7 +4,7 @@ export const createMeetingSchema = z.object({
   projectId: z.string().min(1, "Un projet est requis."),
   titre: z.string().min(2, "Le titre est requis."),
   dateHeure: z.string().min(1, "La date et l'heure sont requises."),
-  lieu: z.string().optional(),
+  lieu: z.string().min(1, "Indiquez un lieu ou un lien visio."),
   ordreDuJour: z.string().optional(),
   participantIds: z.array(z.string()).default([]),
   recurrence: z.enum(["AUCUNE", "HEBDOMADAIRE", "MENSUELLE"]).default("AUCUNE"),
@@ -44,3 +44,11 @@ export const addParticipantSchema = z.object({
   meetingId: z.string().min(1),
   userId: z.string().min(1),
 });
+
+export const updateParticipantPresenceSchema = z.object({
+  meetingId: z.string().min(1),
+  userId: z.string().min(1),
+  present: z.boolean().nullable(),
+});
+
+export type UpdateParticipantPresenceInput = z.infer<typeof updateParticipantPresenceSchema>;

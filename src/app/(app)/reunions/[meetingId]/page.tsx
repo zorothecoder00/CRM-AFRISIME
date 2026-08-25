@@ -13,6 +13,7 @@ import { DocumentFormDialog } from "@/components/documents/document-form-dialog"
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { documentUploaderName } from "@/lib/document-uploader";
 import { MeetingExternalParticipantsSection } from "@/components/meetings/meeting-external-participants-section";
+import { MeetingParticipantsSection } from "@/components/meetings/meeting-participants-section";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 
@@ -173,11 +174,15 @@ export default async function MeetingDetailPage({
             <CardTitle className="text-base">Participants</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1 text-sm">
-              {meeting.participants.map((p) => (
-                <li key={p.userId}>{p.user.name}</li>
-              ))}
-            </ul>
+            <MeetingParticipantsSection
+              meetingId={meeting.id}
+              participants={meeting.participants.map((p) => ({
+                userId: p.userId,
+                userName: p.user.name,
+                present: p.present,
+              }))}
+              canManage={canTag}
+            />
           </CardContent>
         </Card>
 

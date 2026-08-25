@@ -15,16 +15,41 @@ import {
   addDecisionSchema,
   updateDecisionStatusSchema,
   addParticipantSchema,
+  updateParticipantPresenceSchema,
   type CreateMeetingInput,
   type UpdateCompteRenduInput,
   type AddDecisionInput,
   type UpdateDecisionStatusInput,
+  type UpdateParticipantPresenceInput,
 } from "@/lib/validations/meeting.schema";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
   return session;
+}
+
+/** Comble — un participant n'etait jamais informe qu'il etait invite a une reunion. */
+async function notifyParticipantsInvited(params: {
+  meetingId: string;
+  titre: string;
+  participantIds: string[];
+  excludeUserId: string;
+}) {
+  await Promise.all(
+    params.participantIds
+      .filter((userId) => userId !== params.excludeUserId)
+      .map((userId) =>
+        createNotification({
+          userId,
+          type: "REUNION_INVITATION",
+          titre: `Vous êtes invité(e) à la réunion : ${params.titre}`,
+          lien: `/reunions/${params.meetingId}`,
+          entityType: "Meeting",
+          entityId: params.meetingId,
+        })
+      )
+  );
 }
 
 export async function createMeeting(input: CreateMeetingInput) {
@@ -81,6 +106,13 @@ export async function createMeeting(input: CreateMeetingInput) {
     createdById: meeting.createdById,
   });
 
+  await notifyParticipantsInvited({
+    meetingId: meeting.id,
+    titre: meeting.titre,
+    participantIds,
+    excludeUserId: session.user.id,
+  });
+
   revalidatePath("/reunions");
   return meeting;
 }
@@ -91,11 +123,37 @@ export async function addParticipant(meetingId: string, userId: string) {
 
   const data = addParticipantSchema.parse({ meetingId, userId });
 
-  const participant = await prisma.meetingParticipant.create({
-    data: { meetingId: data.meetingId, userId: data.userId },
+  const [participant, meeting] = await Promise.all([
+    prisma.meetingParticipant.create({
+      data: { meetingId: data.meetingId, userId: data.userId },
+    }),
+    prisma.meeting.findUniqueOrThrow({ where: { id: data.meetingId }, select: { titre: true } }),
+  ]);
+
+  await notifyParticipantsInvited({
+    meetingId: data.meetingId,
+    titre: meeting.titre,
+    participantIds: [data.userId],
+    excludeUserId: session.user.id,
   });
 
   revalidatePath(`/reunions/${meetingId}`);
+  return participant;
+}
+
+/** Comble — suivi de presence, renseigne manuellement (aucune reunion en video n'est instrumentee). */
+export async function updateParticipantPresence(input: UpdateParticipantPresenceInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.MEETING_UPDATE);
+
+  const data = updateParticipantPresenceSchema.parse(input);
+
+  const participant = await prisma.meetingParticipant.update({
+    where: { meetingId_userId: { meetingId: data.meetingId, userId: data.userId } },
+    data: { present: data.present },
+  });
+
+  revalidatePath(`/reunions/${data.meetingId}`);
   return participant;
 }
 

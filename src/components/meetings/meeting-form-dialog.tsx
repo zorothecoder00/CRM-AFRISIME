@@ -117,7 +117,8 @@ export function MeetingFormDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="lieu">Lieu / lien visio</Label>
-              <Input id="lieu" {...register("lieu")} />
+              <Input id="lieu" placeholder="Ex. Salle 2 ou https://meet..." {...register("lieu")} />
+              {errors.lieu && <p className="text-sm text-destructive">{errors.lieu.message}</p>}
             </div>
           </div>
 

@@ -122,7 +122,7 @@ export function PlaybookFormDialog({ projects, users }: { projects: Option[]; us
                 defaultValue="PROJECT_STATUS_CHANGED"
                 onValueChange={(v) => setValue("trigger", v as CreatePlaybookInput["trigger"])}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,7 +137,7 @@ export function PlaybookFormDialog({ projects, users }: { projects: Option[]; us
             <div className="space-y-2">
               <Label>Projet (facultatif — vide = global)</Label>
               <Select onValueChange={(v) => setValue("projectId", v)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Global" />
                 </SelectTrigger>
                 <SelectContent>

@@ -32,5 +32,5 @@ export async function updateCapacity(input: UpdateCapacityInput) {
   });
 
   revalidatePath("/charge-de-travail");
-  return user;
+  return { ...user, capaciteHebdomadaireHeures: Number(user.capaciteHebdomadaireHeures) };
 }

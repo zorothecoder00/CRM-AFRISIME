@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
 import {
+  assertActiveAdminRequestWorkflow,
   startAdminRequestValidationRun,
   decideAdminRequestCurrentStep,
 } from "@/lib/admin-request-workflow";
@@ -23,13 +24,23 @@ export async function createAdminRequest(input: CreateAdminRequestInput) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.ADMIN_REQUEST_CREATE);
   const data = createAdminRequestSchema.parse(input);
+  const montant = data.montant ? Number(data.montant) : null;
+  const canManageWorkflows = session.user.permissions.includes(PERMISSIONS.WORKFLOW_MANAGE);
+
+  // Verifie qu'un circuit existe AVANT de creer la demande : sinon une
+  // demande orpheline (sans validation run) resterait "en attente" pour
+  // toujours, invisible de tout approbateur (voir assertActiveAdminRequestWorkflow).
+  await assertActiveAdminRequestWorkflow(data.type, montant, {
+    submittedById: session.user.id,
+    submitterCanManageWorkflows: canManageWorkflows,
+  });
 
   const request = await prisma.adminRequest.create({
     data: {
       type: data.type,
       titre: data.titre,
       description: data.description || undefined,
-      montant: data.montant ? Number(data.montant) : undefined,
+      montant: montant ?? undefined,
       dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
       dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
       departmentId: data.departmentId || undefined,
@@ -42,11 +53,12 @@ export async function createAdminRequest(input: CreateAdminRequestInput) {
     titre: request.titre,
     submittedById: session.user.id,
     type: request.type,
-    montant: request.montant ? Number(request.montant) : null,
+    montant,
+    submitterCanManageWorkflows: canManageWorkflows,
   });
 
   revalidatePath("/demandes");
-  return request;
+  return { ...request, montant: request.montant ? Number(request.montant) : null };
 }
 
 /** Decide l'etape courante du circuit — miroir de validateTask. */
@@ -69,7 +81,7 @@ export async function decideAdminRequest(requestId: string, approved: boolean, c
 
   if (finalStatus === "EN_COURS") {
     revalidatePath(`/demandes/${requestId}`);
-    return existing;
+    return { ...existing, montant: existing.montant ? Number(existing.montant) : null };
   }
 
   const request = await prisma.adminRequest.update({
@@ -93,5 +105,5 @@ export async function decideAdminRequest(requestId: string, approved: boolean, c
 
   revalidatePath(`/demandes/${requestId}`);
   revalidatePath("/demandes");
-  return request;
+  return { ...request, montant: request.montant ? Number(request.montant) : null };
 }
