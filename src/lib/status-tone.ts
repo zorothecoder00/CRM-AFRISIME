@@ -238,8 +238,11 @@ export function toneForProjectIdeaStatus(status: string): BadgeTone {
 
 /** Statut d'un financement (Project Studio §10). */
 const FINANCEMENT_TONES: Record<string, StatusTone> = {
+  IDENTIFIE: "secondary",
+  SOLLICITE: "info",
   RECHERCHE: "secondary",
   NEGOCIATION: "warning",
+  APPROUVE: "warning",
   OBTENU: "success",
   REFUSE: "destructive",
   ANNULE: "secondary",

@@ -59,6 +59,12 @@ import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
+import { RaciMatrixView, type RaciSectionData, type RaciConsistencyIssueData } from "@/components/projects/raci-matrix-view";
+import { checkRaciConsistency } from "@/lib/raci-consistency";
+import { AssumptionRegisterView, type AssumptionRow } from "@/components/projects/assumption-register-view";
+import { ProjectBudgetSection, type BudgetLineRow, type BudgetRollupRow } from "@/components/projects/project-budget-section";
+import { computeBudgetRollup } from "@/lib/budget-rollup";
+import { ProjectFundingOpportunitiesSection, type FundingOpportunityRow } from "@/components/projects/project-funding-opportunities-section";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -121,6 +127,10 @@ export default async function ProjectDetailPage({
     logframeRows,
     objectives,
     taskDependencies,
+    raciAssignments,
+    assumptions,
+    budgetLines,
+    fundingOpportunities,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -215,6 +225,10 @@ export default async function ProjectDetailPage({
       orderBy: { createdAt: "asc" },
     }),
     prisma.taskDependency.findMany({ where: { task: { projectId } }, select: { taskId: true, dependsOnTaskId: true, type: true } }),
+    prisma.raciAssignment.findMany({ where: { section: { projectId } }, include: { user: true } }),
+    prisma.projectAssumption.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
+    prisma.budgetLine.findMany({ where: { projectId }, include: { section: true }, orderBy: { createdAt: "asc" } }),
+    prisma.fundingOpportunity.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
   ]);
 
   if (!project) {
@@ -369,7 +383,9 @@ export default async function ProjectDetailPage({
     probabilite: r.probabilite,
     impact: r.impact,
     statut: r.statut,
+    categorie: r.categorie,
     planMitigation: r.planMitigation,
+    planContingence: r.planContingence,
     responsableName: r.responsable?.name ?? null,
   }));
 
@@ -421,9 +437,74 @@ export default async function ProjectDetailPage({
     bailleur: f.bailleur,
     montant: Number(f.montant),
     statut: f.statut,
+    source: f.source,
+    convention: f.convention,
+    periodeDebut: f.periodeDebut ? f.periodeDebut.toISOString() : null,
+    periodeFin: f.periodeFin ? f.periodeFin.toISOString() : null,
+    conditions: f.conditions,
+    livrablesRequis: f.livrablesRequis,
+    rapportsRequis: f.rapportsRequis,
+    indicateursImposes: f.indicateursImposes,
     dateObtention: f.dateObtention ? f.dateObtention.toISOString() : null,
     dateEcheance: f.dateEcheance ? f.dateEcheance.toISOString() : null,
     notes: f.notes,
+  }));
+
+  const raciSections: RaciSectionData[] = sections.map((s) => ({
+    id: s.id,
+    nom: s.nom,
+    assignments: raciAssignments
+      .filter((a) => a.sectionId === s.id)
+      .map((a) => ({ id: a.id, userId: a.userId, userName: a.user.name, role: a.role })),
+  }));
+  const raciIssuesRaw = await checkRaciConsistency(project.id);
+  const raciIssues: RaciConsistencyIssueData[] = raciIssuesRaw.map((issue) => ({
+    userName: issue.userName,
+    ancestorSectionNom: issue.ancestorSectionNom,
+    descendantSectionNom: issue.descendantSectionNom,
+  }));
+
+  const assumptionRows: AssumptionRow[] = assumptions.map((a) => ({
+    id: a.id,
+    hypothese: a.hypothese,
+    statut: a.statut,
+    notes: a.notes,
+  }));
+
+  const budgetLineRows: BudgetLineRow[] = budgetLines.map((l) => ({
+    id: l.id,
+    sectionId: l.sectionId,
+    sectionNom: l.section?.nom ?? null,
+    categorie: l.categorie,
+    libelle: l.libelle,
+    montantPrevu: Number(l.montantPrevu),
+    montantEngage: Number(l.montantEngage),
+    montantPaye: Number(l.montantPaye),
+  }));
+  const budgetRollup = await computeBudgetRollup(project.id);
+  const budgetByActivity: BudgetRollupRow[] = budgetRollup.byActivity.map((row) => ({
+    id: row.sectionId,
+    label: row.sectionNom,
+    prevu: row.totals.prevu,
+    engage: row.totals.engage,
+    paye: row.totals.paye,
+  }));
+  const budgetByToCNode: BudgetRollupRow[] = budgetRollup.byToCNode.map((row) => ({
+    id: row.nodeId,
+    label: row.nodeTitre,
+    sub: row.niveau,
+    prevu: row.totals.prevu,
+    engage: row.totals.engage,
+    paye: row.totals.paye,
+  }));
+
+  const fundingOpportunityRows: FundingOpportunityRow[] = fundingOpportunities.map((o) => ({
+    id: o.id,
+    bailleur: o.bailleur,
+    deadline: o.deadline ? o.deadline.toISOString() : null,
+    budgetDisponible: o.budgetDisponible ? Number(o.budgetDisponible) : null,
+    criteres: o.criteres,
+    exigences: o.exigences,
   }));
 
   const beneficiaireRows: BeneficiaireRow[] = beneficiaires.map((b) => ({
@@ -647,7 +728,11 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="decisions">Décisions</TabsTrigger>
           <TabsTrigger value="kpi">KPI</TabsTrigger>
           <TabsTrigger value="ressources">Ressources</TabsTrigger>
+          <TabsTrigger value="raci">RACI</TabsTrigger>
+          <TabsTrigger value="budget">Budget</TabsTrigger>
           <TabsTrigger value="financement">Financement</TabsTrigger>
+          <TabsTrigger value="appels-a-projets">Appels à projets</TabsTrigger>
+          <TabsTrigger value="hypotheses">Hypothèses</TabsTrigger>
           <TabsTrigger value="beneficiaires">Bénéficiaires</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
           <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
@@ -861,6 +946,22 @@ export default async function ProjectDetailPage({
           <ProjectResourcesSection projectId={project.id} resources={resourceRows} tasks={taskOptions} devise={devise} />
         </TabsContent>
 
+        <TabsContent value="raci" className="mt-4">
+          <RaciMatrixView sections={raciSections} users={userOptions} issues={raciIssues} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="budget" className="mt-4">
+          <ProjectBudgetSection
+            projectId={project.id}
+            sections={sections.map((s) => ({ id: s.id, nom: s.nom }))}
+            lines={budgetLineRows}
+            byActivity={budgetByActivity}
+            byToCNode={budgetByToCNode}
+            devise={devise}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
         <TabsContent value="financement" className="mt-4">
           <ProjectFinancementsSection
             projectId={project.id}
@@ -868,6 +969,22 @@ export default async function ProjectDetailPage({
             devise={devise}
             canManage={canUpdateProject}
           />
+        </TabsContent>
+
+        <TabsContent value="appels-a-projets" className="mt-4 space-y-2">
+          <ProjectFundingOpportunitiesSection
+            projectId={project.id}
+            opportunities={fundingOpportunityRows}
+            devise={devise}
+            canManage={canUpdateProject}
+          />
+          <Link href="/projets/appels-a-projets" className="text-xs text-primary hover:underline">
+            Voir le pipeline global des appels à projets →
+          </Link>
+        </TabsContent>
+
+        <TabsContent value="hypotheses" className="mt-4">
+          <AssumptionRegisterView projectId={project.id} assumptions={assumptionRows} canManage={canUpdateProject} />
         </TabsContent>
 
         <TabsContent value="beneficiaires" className="mt-4">

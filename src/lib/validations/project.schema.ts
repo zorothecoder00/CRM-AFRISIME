@@ -75,7 +75,10 @@ export const createProjectRiskSchema = z.object({
   description: z.string().optional(),
   probabilite: z.enum(["FAIBLE", "MOYENNE", "ELEVEE"]),
   impact: z.enum(["FAIBLE", "MOYEN", "ELEVE"]),
+  // Project Studio §28 (Risk Management)
+  categorie: z.string().optional(),
   planMitigation: z.string().optional(),
+  planContingence: z.string().optional(),
   responsableId: z.string().optional(),
 });
 

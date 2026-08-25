@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { createProjectRisk, updateProjectRiskStatus, deleteProjectRisk } from "@/actions/project.actions";
 import { createProjectRiskSchema, type CreateProjectRiskInput } from "@/lib/validations/project.schema";
+import { computeRiskScore, riskScoreSeverity } from "@/lib/risk-score";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,12 +27,16 @@ export type RiskRow = {
   probabilite: string;
   impact: string;
   statut: string;
+  categorie: string | null;
   planMitigation: string | null;
+  planContingence: string | null;
   responsableName: string | null;
 };
 
 const PROBABILITE_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYENNE: "Moyenne", ELEVEE: "Élevée" };
 const IMPACT_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
+const PROBABILITES = ["FAIBLE", "MOYENNE", "ELEVEE"];
+const IMPACTS = ["FAIBLE", "MOYEN", "ELEVE"];
 const STATUT_LABELS: Record<string, string> = {
   IDENTIFIE: "Identifié",
   EN_TRAITEMENT: "En traitement",
@@ -39,6 +44,60 @@ const STATUT_LABELS: Record<string, string> = {
   SURVENU: "Survenu",
   CLOS: "Clos",
 };
+const SEVERITY_TONE: Record<string, "success" | "warning" | "destructive"> = {
+  FAIBLE: "success",
+  MOYEN: "warning",
+  ELEVE: "destructive",
+};
+
+/** Matrice Probabilite x Impact (Project Studio §28) — nombre de risques actifs par cellule. */
+function RiskMatrix({ risks }: { risks: RiskRow[] }) {
+  const active = risks.filter((r) => r.statut !== "CLOS");
+  if (active.length === 0) return null;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="border-collapse text-xs">
+        <thead>
+          <tr>
+            <th className="p-2" />
+            {IMPACTS.map((impact) => (
+              <th key={impact} className="p-2 text-center font-medium text-muted-foreground">
+                Impact {IMPACT_LABELS[impact]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[...PROBABILITES].reverse().map((probabilite) => (
+            <tr key={probabilite}>
+              <th className="p-2 text-right font-medium text-muted-foreground">Probabilité {PROBABILITE_LABELS[probabilite]}</th>
+              {IMPACTS.map((impact) => {
+                const count = active.filter((r) => r.probabilite === probabilite && r.impact === impact).length;
+                const severity = riskScoreSeverity(computeRiskScore(probabilite, impact));
+                return (
+                  <td key={impact} className="p-1">
+                    <div
+                      className={`flex h-12 w-16 items-center justify-center rounded-md text-sm font-semibold ${
+                        severity === "ELEVE"
+                          ? "bg-destructive/15 text-destructive"
+                          : severity === "MOYEN"
+                            ? "bg-warning/15 text-warning"
+                            : "bg-success/15 text-success"
+                      }`}
+                    >
+                      {count > 0 ? count : ""}
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export function ProjectRisksSection({
   projectId,
@@ -55,7 +114,7 @@ export function ProjectRisksSection({
   const { run: remove } = useAction(deleteProjectRisk, { successMessage: "Risque supprimé." });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Registre des risques identifiés pour ce projet, avec probabilité, impact et plan de mitigation.
@@ -63,57 +122,70 @@ export function ProjectRisksSection({
         {canManage && <RiskFormDialog projectId={projectId} users={users} />}
       </div>
 
+      <RiskMatrix risks={risks} />
+
       {risks.length === 0 ? (
         <p className="text-sm text-muted-foreground">Aucun risque identifié.</p>
       ) : (
         <div className="space-y-2">
-          {risks.map((risk) => (
-            <Card key={risk.id} size="sm">
-              <CardContent className="space-y-2 px-(--card-spacing)">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="font-medium">{risk.titre}</div>
-                    {risk.description && (
-                      <p className="text-sm text-muted-foreground">{risk.description}</p>
+          {risks.map((risk) => {
+            const score = computeRiskScore(risk.probabilite, risk.impact);
+            const severity = riskScoreSeverity(score);
+            return (
+              <Card key={risk.id} size="sm">
+                <CardContent className="space-y-2 px-(--card-spacing)">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <div className="font-medium">{risk.titre}</div>
+                      {risk.categorie && <p className="text-xs text-muted-foreground">Catégorie : {risk.categorie}</p>}
+                      {risk.description && (
+                        <p className="text-sm text-muted-foreground">{risk.description}</p>
+                      )}
+                    </div>
+                    {canManage && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => remove({ riskId: risk.id })} aria-label="Supprimer">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     )}
                   </div>
-                  {canManage && (
-                    <Button variant="ghost" size="icon-sm" onClick={() => remove({ riskId: risk.id })} aria-label="Supprimer">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant={toneForNiveau(risk.probabilite)}>Probabilité : {PROBABILITE_LABELS[risk.probabilite]}</Badge>
+                    <Badge variant={toneForNiveau(risk.impact)}>Impact : {IMPACT_LABELS[risk.impact]}</Badge>
+                    <Badge variant={SEVERITY_TONE[severity]}>Score : {score}/9</Badge>
+                    {risk.responsableName && (
+                      <span className="text-muted-foreground">Responsable : {risk.responsableName}</span>
+                    )}
+                    {canManage ? (
+                      <Select value={risk.statut} onValueChange={(v) => setStatus({ riskId: risk.id, statut: v as never })}>
+                        <SelectTrigger className="h-7 w-auto text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(STATUT_LABELS).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant={toneForRiskStatus(risk.statut)}>{STATUT_LABELS[risk.statut]}</Badge>
+                    )}
+                  </div>
+                  {risk.planMitigation && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Mesure préventive :</span> {risk.planMitigation}
+                    </p>
                   )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <Badge variant={toneForNiveau(risk.probabilite)}>Probabilité : {PROBABILITE_LABELS[risk.probabilite]}</Badge>
-                  <Badge variant={toneForNiveau(risk.impact)}>Impact : {IMPACT_LABELS[risk.impact]}</Badge>
-                  {risk.responsableName && (
-                    <span className="text-muted-foreground">Responsable : {risk.responsableName}</span>
+                  {risk.planContingence && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Plan de contingence :</span> {risk.planContingence}
+                    </p>
                   )}
-                  {canManage ? (
-                    <Select value={risk.statut} onValueChange={(v) => setStatus({ riskId: risk.id, statut: v as never })}>
-                      <SelectTrigger className="h-7 w-auto text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(STATUT_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge variant={toneForRiskStatus(risk.statut)}>{STATUT_LABELS[risk.statut]}</Badge>
-                  )}
-                </div>
-                {risk.planMitigation && (
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Mitigation :</span> {risk.planMitigation}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -159,6 +231,10 @@ function RiskFormDialog({ projectId, users }: { projectId: string; users: Option
             <Label htmlFor="titre">Titre</Label>
             <Input id="titre" placeholder="Ex. Retard de livraison fournisseur" {...register("titre")} />
             {errors.titre && <p className="text-sm text-destructive">{errors.titre.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="categorie">Catégorie</Label>
+            <Input id="categorie" placeholder="Ex. Financier, opérationnel, sécurité..." {...register("categorie")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
@@ -212,8 +288,12 @@ function RiskFormDialog({ projectId, users }: { projectId: string; users: Option
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="planMitigation">Plan de mitigation</Label>
+            <Label htmlFor="planMitigation">Mesure préventive</Label>
             <Textarea id="planMitigation" {...register("planMitigation")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="planContingence">Plan de contingence (si le risque survient)</Label>
+            <Textarea id="planContingence" {...register("planContingence")} />
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ajout..." : "Ajouter le risque"}

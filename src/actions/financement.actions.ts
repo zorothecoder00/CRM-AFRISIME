@@ -9,9 +9,11 @@ import { logAudit } from "@/lib/audit";
 import {
   createFinancementSchema,
   updateFinancementStatutSchema,
+  updateFinancementDetailsSchema,
   deleteFinancementSchema,
   type CreateFinancementInput,
   type UpdateFinancementStatutInput,
+  type UpdateFinancementDetailsInput,
   type DeleteFinancementInput,
 } from "@/lib/validations/financement.schema";
 
@@ -29,6 +31,7 @@ export async function createFinancement(input: CreateFinancementInput) {
         bailleur: data.bailleur,
         montant: Number(data.montant),
         statut: data.statut,
+        source: data.source,
         dateObtention: data.dateObtention ? new Date(data.dateObtention) : undefined,
         dateEcheance: data.dateEcheance ? new Date(data.dateEcheance) : undefined,
         notes: data.notes,
@@ -79,6 +82,34 @@ export async function updateFinancementStatut(input: UpdateFinancementStatutInpu
 
   revalidatePath(`/projets/${financement.projectId}`);
   revalidatePath("/projets/portefeuille");
+  return financement;
+}
+
+/** Donor/Bailleur Management (§25) — convention, période, exigences de reporting. */
+export async function updateFinancementDetails(input: UpdateFinancementDetailsInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateFinancementDetailsSchema.parse(input);
+
+  const financement = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.financement.update({
+      where: { id: data.financementId },
+      data: {
+        source: data.source,
+        convention: data.convention,
+        periodeDebut: data.periodeDebut ? new Date(data.periodeDebut) : undefined,
+        periodeFin: data.periodeFin ? new Date(data.periodeFin) : undefined,
+        conditions: data.conditions,
+        livrablesRequis: data.livrablesRequis,
+        rapportsRequis: data.rapportsRequis,
+        indicateursImposes: data.indicateursImposes,
+      },
+    })
+  );
+
+  revalidatePath(`/projets/${financement.projectId}`);
   return financement;
 }
 

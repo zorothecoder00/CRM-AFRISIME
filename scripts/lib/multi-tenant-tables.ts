@@ -150,4 +150,8 @@ export const COVERED_TABLES = [
   "SolutionTreeNode",
   "TheoryOfChangeNode",
   "LogframeRow",
+  "RaciAssignment",
+  "BudgetLine",
+  "FundingOpportunity",
+  "ProjectAssumption",
 ];

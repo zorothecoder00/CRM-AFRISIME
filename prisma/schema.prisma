@@ -477,6 +477,11 @@ model User {
   solutionTreeNodesCreated           SolutionTreeNode[]             @relation("SolutionTreeNodeCreatedBy")
   theoryOfChangeNodesCreated         TheoryOfChangeNode[]           @relation("TheoryOfChangeNodeCreatedBy")
   logframeRowsCreated                LogframeRow[]                  @relation("LogframeRowCreatedBy")
+  raciAssignments                    RaciAssignment[]               @relation("RaciAssignmentUser")
+  raciAssignmentsCreated             RaciAssignment[]               @relation("RaciAssignmentCreatedBy")
+  budgetLinesCreated                 BudgetLine[]                   @relation("BudgetLineCreatedBy")
+  fundingOpportunitiesCreated        FundingOpportunity[]           @relation("FundingOpportunityCreatedBy")
+  assumptionsCreated                 ProjectAssumption[]            @relation("ProjectAssumptionCreatedBy")
   stakeholderLinks                   Stakeholder[]                  @relation("StakeholderUser")
   stakeholderResponsableFor          Stakeholder[]                  @relation("StakeholderResponsable")
   stakeholdersCreated                Stakeholder[]                  @relation("StakeholderCreatedBy")
@@ -968,6 +973,10 @@ model PlatformOrganization {
   solutionTreeNodes             SolutionTreeNode[]             @relation("PlatformOrganizationSolutionTreeNodes")
   theoryOfChangeNodes           TheoryOfChangeNode[]           @relation("PlatformOrganizationTheoryOfChangeNodes")
   logframeRows                  LogframeRow[]                  @relation("PlatformOrganizationLogframeRows")
+  raciAssignments               RaciAssignment[]               @relation("PlatformOrganizationRaciAssignments")
+  budgetLines                   BudgetLine[]                   @relation("PlatformOrganizationBudgetLines")
+  fundingOpportunities          FundingOpportunity[]           @relation("PlatformOrganizationFundingOpportunities")
+  assumptions                   ProjectAssumption[]            @relation("PlatformOrganizationProjectAssumptions")
   sectionComments               SectionComment[]               @relation("PlatformOrganizationSectionComments")
   taskAssignees                 TaskAssignee[]                 @relation("PlatformOrganizationTaskAssignees")
   checklistItems                ChecklistItem[]                @relation("PlatformOrganizationChecklistItems")
@@ -1561,6 +1570,10 @@ model Project {
   limites                String?
   criteresReussite       String?
   gouvernance            String?
+  // Project Studio §22, §26, §29 — idem.
+  budgetLines            BudgetLine[]
+  fundingOpportunities   FundingOpportunity[]
+  assumptions            ProjectAssumption[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1627,24 +1640,32 @@ enum RiskStatus {
 // affichees cote a cote ; pas de score calcule automatiquement, le statut
 // resume l'etat reel du risque.
 model ProjectRisk {
-  id             String                @id @default(cuid())
-  projectId      String
-  project        Project               @relation(fields: [projectId], references: [id])
+  id              String                @id @default(cuid())
+  projectId       String
+  project         Project               @relation(fields: [projectId], references: [id])
   // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationProjectRisks", fields: [organizationId], references: [id])
-  titre          String
-  description    String?
-  probabilite    RiskProbability       @default(MOYENNE)
-  impact         RiskImpact            @default(MOYEN)
-  statut         RiskStatus            @default(IDENTIFIE)
-  planMitigation String?
-  responsableId  String?
-  responsable    User?                 @relation("RiskResponsable", fields: [responsableId], references: [id])
-  createdById    String
-  createdBy      User                  @relation("RiskCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  organizationId  String?
+  organization    PlatformOrganization? @relation("PlatformOrganizationProjectRisks", fields: [organizationId], references: [id])
+  titre           String
+  description     String?
+  probabilite     RiskProbability       @default(MOYENNE)
+  impact          RiskImpact            @default(MOYEN)
+  statut          RiskStatus            @default(IDENTIFIE)
+  // Project Studio §28 (Risk Management) — planMitigation existant
+  // correspond a la "mesure preventive" du cahier ; planContingence est la
+  // reponse SI le risque survient, un champ distinct. `categorie` reste
+  // texte libre (comme Stakeholder.categorie au §9) : trop variable pour un
+  // enum ferme. Le score (probabilite x impact) est calcule a la volee
+  // (voir computeRiskScore dans src/lib/risk-score.ts), pas stocke.
+  categorie       String?
+  planMitigation  String?
+  planContingence String?
+  responsableId   String?
+  responsable     User?                 @relation("RiskResponsable", fields: [responsableId], references: [id])
+  createdById     String
+  createdBy       User                  @relation("RiskCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   @@index([projectId])
 }
@@ -2168,38 +2189,48 @@ model Contract {
 // `type`. Chaque niveau a son responsable, ses échéances (dateDebut/dateFin),
 // ses documents et ses commentaires (cahier des charges §5).
 model ProjectSection {
-  id             String                @id @default(cuid())
-  projectId      String
-  project        Project               @relation(fields: [projectId], references: [id])
+  id                   String                @id @default(cuid())
+  projectId            String
+  project              Project               @relation(fields: [projectId], references: [id])
   // Multi-tenant Phase 1 lot 4 (2026-08-20) — meme statut que Task (voir
   // PlatformOrganization dans schema.prisma) : nullable, reversible,
   // denormalise depuis project.organizationId.
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationProjectSections", fields: [organizationId], references: [id])
-  parentId       String?
-  parent         ProjectSection?       @relation("SectionHierarchy", fields: [parentId], references: [id])
-  children       ProjectSection[]      @relation("SectionHierarchy")
-  type           SectionType
-  nom            String
-  description    String?
-  responsableId  String?
-  responsable    User?                 @relation("SectionResponsable", fields: [responsableId], references: [id])
-  dateDebut      DateTime?
-  dateFin        DateTime?
-  statut         SectionStatus         @default(A_VENIR)
-  ordre          Int                   @default(0)
-  tasks          Task[]
-  documents      Document[]
-  comments       SectionComment[]
+  organizationId       String?
+  organization         PlatformOrganization? @relation("PlatformOrganizationProjectSections", fields: [organizationId], references: [id])
+  parentId             String?
+  parent               ProjectSection?       @relation("SectionHierarchy", fields: [parentId], references: [id])
+  children             ProjectSection[]      @relation("SectionHierarchy")
+  type                 SectionType
+  nom                  String
+  description          String?
+  responsableId        String?
+  responsable          User?                 @relation("SectionResponsable", fields: [responsableId], references: [id])
+  dateDebut            DateTime?
+  dateFin              DateTime?
+  statut               SectionStatus         @default(A_VENIR)
+  ordre                Int                   @default(0)
+  tasks                Task[]
+  documents            Document[]
+  comments             SectionComment[]
   // Project Studio §15 (WBS) — voir convertSectionToDeliverable/Milestone.
-  deliverables   ProjectDeliverable[]
-  milestones     ProjectMilestone[]
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  deliverables         ProjectDeliverable[]
+  milestones           ProjectMilestone[]
+  // Project Studio §21 (RACI) — qui est R/A/C/I sur cette activite.
+  raciAssignments      RaciAssignment[]
+  // Project Studio §22-23 (Budget Builder / Budget par activite) — lignes de
+  // budget rattachees a cette activite.
+  budgetLines          BudgetLine[]
+  // Project Studio §23 — vers quel Output/Outcome de la Theory of Change
+  // cette activite contribue, pour agreger le cout WBS jusqu'a ce niveau.
+  theoryOfChangeNodeId String?
+  theoryOfChangeNode   TheoryOfChangeNode?   @relation(fields: [theoryOfChangeNodeId], references: [id])
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@index([projectId])
   @@index([parentId])
   @@index([responsableId])
+  @@index([theoryOfChangeNodeId])
 }
 
 // Commentaire sur une section (Phase/Sous-phase/Lot) — miroir de TaskComment
@@ -5313,6 +5344,28 @@ enum FinancementStatut {
   OBTENU
   REFUSE
   ANNULE
+  // Project Studio §24 — vocabulaire plus fin du cahier, ajoute a cote des
+  // valeurs existantes plutot que de les remplacer (aucune valeur d'enum
+  // retiree/renommee, migration additive uniquement — voir la meme decision
+  // pour DependencyType au §18). RECHERCHE/NEGOCIATION/OBTENU/REFUSE restent
+  // les etapes generiques deja utilisees (ex. generation automatique de
+  // financement a la conversion d'une idee, §4) ; ces trois-la couvrent les
+  // etapes plus formelles d'un cycle bailleur.
+  IDENTIFIE
+  SOLLICITE
+  APPROUVE
+}
+
+// Project Studio §24 — nature de la source de financement.
+enum FinancementSource {
+  FONDS_PROPRES
+  SUBVENTION
+  PRET
+  INVESTISSEMENT
+  BAILLEUR
+  PARTENAIRE
+  SPONSORING
+  CONTRIBUTION_NATURE
 }
 
 // Financement (Project Studio §10 "Budget & financement") — une ligne par
@@ -5320,21 +5373,35 @@ enum FinancementStatut {
 // projet et portefeuille sans supposer un bailleur unique par projet
 // (jusqu'ici "bailleur" n'existait qu'en texte libre sur Stakeholder.relation).
 model Financement {
-  id             String                @id @default(cuid())
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationFinancements", fields: [organizationId], references: [id])
-  projectId      String
-  project        Project               @relation(fields: [projectId], references: [id])
-  bailleur       String
-  montant        Decimal               @db.Decimal(14, 2)
-  statut         FinancementStatut     @default(RECHERCHE)
-  dateObtention  DateTime?
-  dateEcheance   DateTime?
-  notes          String?
-  createdById    String
-  createdBy      User                  @relation("FinancementCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  id                 String                @id @default(cuid())
+  organizationId     String?
+  organization       PlatformOrganization? @relation("PlatformOrganizationFinancements", fields: [organizationId], references: [id])
+  projectId          String
+  project            Project               @relation(fields: [projectId], references: [id])
+  bailleur           String
+  montant            Decimal               @db.Decimal(14, 2)
+  statut             FinancementStatut     @default(RECHERCHE)
+  dateObtention      DateTime?
+  dateEcheance       DateTime?
+  notes              String?
+  // Project Studio §24 (Sources) — nature de la source, optionnelle (les
+  // lignes deja existantes n'en ont pas).
+  source             FinancementSource?
+  // Project Studio §25 (Donor/Bailleur Management) — profil detaille d'une
+  // convention de financement, sur le meme Financement plutot qu'un nouveau
+  // modele : une ligne Financement EST deja "bailleur X donne montant Y",
+  // ces champs l'enrichissent quand une convention formelle existe.
+  convention         String?
+  periodeDebut       DateTime?
+  periodeFin         DateTime?
+  conditions         String?
+  livrablesRequis    String?
+  rapportsRequis     String?
+  indicateursImposes String?
+  createdById        String
+  createdBy          User                  @relation("FinancementCreatedBy", fields: [createdById], references: [id])
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 
   @@index([projectId])
   @@index([statut])
@@ -5480,12 +5547,23 @@ model TheoryOfChangeNode {
   indicateurs         String?
   sourcesVerification String?
   ordre               Int                   @default(0)
+  // Project Studio §23 (Budget par activite) — lien optionnel vers le
+  // niveau superieur de la chaine (Output -> Outcome -> Impact), pour
+  // permettre l'agregation des couts WBS (voir ProjectSection.
+  // theoryOfChangeNodeId) au-dela du simple niveau Output. Volontairement
+  // absent du §11 initial (chaine groupee par niveau, pas un arbre) : ajoute
+  // ici uniquement pour ce cas d'usage precis, reste optionnel partout.
+  parentId            String?
+  parent              TheoryOfChangeNode?   @relation("TheoryOfChangeNodeParent", fields: [parentId], references: [id])
+  children            TheoryOfChangeNode[]  @relation("TheoryOfChangeNodeParent")
+  sections            ProjectSection[]
   createdById         String
   createdBy           User                  @relation("TheoryOfChangeNodeCreatedBy", fields: [createdById], references: [id])
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([parentId])
 }
 
 enum LogframeLevel {
@@ -5526,4 +5604,135 @@ enum ObjectiveNiveau {
   GENERAL
   SPECIFIQUE
   RESULTAT
+}
+
+// ===================== PROJECT STUDIO — §21-29 (RACI / Budget / Financement / Risques / Hypotheses) =====================
+
+enum RaciRole {
+  RESPONSIBLE
+  ACCOUNTABLE
+  CONSULTED
+  INFORMED
+}
+
+// RACI Matrix (Project Studio §21) — au niveau de l'activite WBS
+// (ProjectSection), coherent avec la convention deja etablie au §13/§15/§23
+// (Activites = ProjectSection). Plusieurs personnes peuvent partager un
+// meme role sur une activite (plusieurs R par ex.) ; @@unique empeche
+// seulement le doublon exact (meme personne, meme role, meme activite).
+// Le controle "pas de A accidentel sur des niveaux incompatibles" est
+// calcule a la volee (voir checkRaciConsistency dans
+// src/lib/raci-consistency.ts : signale une meme personne Accountable a la
+// fois sur une section ET l'un de ses descendants WBS), pas stocke ici.
+model RaciAssignment {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationRaciAssignments", fields: [organizationId], references: [id])
+  sectionId      String
+  section        ProjectSection        @relation(fields: [sectionId], references: [id])
+  userId         String
+  user           User                  @relation("RaciAssignmentUser", fields: [userId], references: [id])
+  role           RaciRole
+  createdById    String
+  createdBy      User                  @relation("RaciAssignmentCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@unique([sectionId, userId, role])
+  @@index([sectionId])
+  @@index([userId])
+}
+
+enum BudgetCategorie {
+  PERSONNEL
+  EQUIPEMENT
+  TRANSPORT
+  FORMATION
+  COMMUNICATION
+  PRESTATIONS
+  ACHATS
+  LOGISTIQUE
+  FONCTIONNEMENT
+  IMPREVUS
+}
+
+// Budget Builder (Project Studio §22) — une ligne par categorie/activite,
+// avec le cycle prevu -> engage -> paye demande par le cahier (montant
+// restant = prevu - engage, calcule a la volee, pas stocke pour eviter
+// toute desynchronisation). `sectionId` optionnel relie la ligne a une
+// activite WBS precise pour le rollup du §23 (Budget par activite) ; une
+// ligne sans section reste un cout de projet general (ex. FONCTIONNEMENT).
+model BudgetLine {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationBudgetLines", fields: [organizationId], references: [id])
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id])
+  sectionId      String?
+  section        ProjectSection?       @relation(fields: [sectionId], references: [id])
+  categorie      BudgetCategorie
+  libelle        String
+  montantPrevu   Decimal               @db.Decimal(14, 2)
+  montantEngage  Decimal               @default(0) @db.Decimal(14, 2)
+  montantPaye    Decimal               @default(0) @db.Decimal(14, 2)
+  createdById    String
+  createdBy      User                  @relation("BudgetLineCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([projectId])
+  @@index([sectionId])
+}
+
+// Appel à projets / Funding Opportunity (Project Studio §26) — peut exister
+// avant tout projet (pipeline d'opportunites a suivre), d'ou projectId
+// optionnel ; se lie a un projet existant une fois la decision prise de
+// candidater/l'opportunite confirmee.
+model FundingOpportunity {
+  id               String                @id @default(cuid())
+  organizationId   String?
+  organization     PlatformOrganization? @relation("PlatformOrganizationFundingOpportunities", fields: [organizationId], references: [id])
+  projectId        String?
+  project          Project?              @relation(fields: [projectId], references: [id])
+  bailleur         String
+  deadline         DateTime?
+  budgetDisponible Decimal?              @db.Decimal(14, 2)
+  paysEligibles    String?
+  secteurs         String?
+  beneficiaires    String?
+  criteres         String?
+  documents        String?
+  exigences        String?
+  createdById      String
+  createdBy        User                  @relation("FundingOpportunityCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([projectId])
+}
+
+enum AssumptionStatus {
+  VALIDE
+  INCERTAINE
+  INVALIDEE
+}
+
+// Assumption Register (Project Studio §29) — deliberement un modele
+// separe de ProjectRisk : le cahier insiste "c'est different du registre
+// des risques" (une hypothese est une condition supposee vraie pour que le
+// projet marche, pas un evenement negatif potentiel).
+model ProjectAssumption {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectAssumptions", fields: [organizationId], references: [id])
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id])
+  hypothese      String
+  statut         AssumptionStatus      @default(INCERTAINE)
+  notes          String?
+  createdById    String
+  createdBy      User                  @relation("ProjectAssumptionCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([projectId])
 }
