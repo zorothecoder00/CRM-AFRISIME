@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
-import { updateIncidentStatut, escalateIncident } from "@/actions/incident.actions";
+import { updateIncidentStatut, updateIncidentDetails, escalateIncident } from "@/actions/incident.actions";
 import { INCIDENT_STATUTS } from "@/lib/validations/incident.schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -36,6 +38,8 @@ export type IncidentCardData = {
   dateDeclaration: Date;
   project: { nom: string } | null;
   photos: string[];
+  impact: string | null;
+  actionCorrective: string | null;
 };
 
 export function IncidentCard({
@@ -50,6 +54,9 @@ export function IncidentCard({
   const router = useRouter();
   const statutAction = useAction(updateIncidentStatut);
   const escalateAction = useAction(escalateIncident, { successMessage: "Incident escaladé." });
+  const detailsAction = useAction(updateIncidentDetails, { successMessage: "Détails mis à jour." });
+  const [impact, setImpact] = useState(incident.impact ?? "");
+  const [actionCorrective, setActionCorrective] = useState(incident.actionCorrective ?? "");
 
   return (
     <Card>
@@ -113,6 +120,38 @@ export function IncidentCard({
           </div>
         ) : (
           <Badge variant="outline">{STATUT_LABELS[incident.statut]}</Badge>
+        )}
+
+        {canManage ? (
+          <div className="grid gap-2 border-t pt-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Impact</label>
+              <Textarea
+                rows={2}
+                className="text-sm"
+                value={impact}
+                onChange={(e) => setImpact(e.target.value)}
+                onBlur={() => detailsAction.run({ id: incident.id, impact, actionCorrective })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Action corrective</label>
+              <Textarea
+                rows={2}
+                className="text-sm"
+                value={actionCorrective}
+                onChange={(e) => setActionCorrective(e.target.value)}
+                onBlur={() => detailsAction.run({ id: incident.id, impact, actionCorrective })}
+              />
+            </div>
+          </div>
+        ) : (
+          (incident.impact || incident.actionCorrective) && (
+            <div className="space-y-1 border-t pt-2 text-xs text-muted-foreground">
+              {incident.impact && <p>Impact : {incident.impact}</p>}
+              {incident.actionCorrective && <p>Action corrective : {incident.actionCorrective}</p>}
+            </div>
+          )
         )}
       </CardContent>
     </Card>

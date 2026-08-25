@@ -154,4 +154,9 @@ export const COVERED_TABLES = [
   "BudgetLine",
   "FundingOpportunity",
   "ProjectAssumption",
+  "ProjectChangeRequest",
+  "ProcurementItem",
+  "ProjectContract",
+  "ProjectContractPayment",
+  "CommunicationPlanEntry",
 ];

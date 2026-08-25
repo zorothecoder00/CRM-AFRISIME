@@ -65,6 +65,18 @@ import { AssumptionRegisterView, type AssumptionRow } from "@/components/project
 import { ProjectBudgetSection, type BudgetLineRow, type BudgetRollupRow } from "@/components/projects/project-budget-section";
 import { computeBudgetRollup } from "@/lib/budget-rollup";
 import { ProjectFundingOpportunitiesSection, type FundingOpportunityRow } from "@/components/projects/project-funding-opportunities-section";
+import { ProjectIssuesSection } from "@/components/projects/project-issues-section";
+import type { IncidentCardData } from "@/components/incidents/incident-card";
+import {
+  ProjectChangeRequestsSection,
+  type ChangeRequestRow,
+} from "@/components/projects/project-change-requests-section";
+import { ProjectQualitySection, type QualityPlanData, type QualityControlRow } from "@/components/projects/project-quality-section";
+import { ProjectProcurementSection, type ProcurementItemRow } from "@/components/projects/project-procurement-section";
+import { ProjectContractsSection, type ContractRow } from "@/components/projects/project-contracts-section";
+import { CommunicationPlanSection, type CommunicationPlanEntryRow } from "@/components/projects/communication-plan-section";
+import { ProjectExecutionView } from "@/components/projects/project-execution-view";
+import { GenerateStandardFoldersButton } from "@/components/documents/generate-standard-folders-button";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -131,6 +143,14 @@ export default async function ProjectDetailPage({
     assumptions,
     budgetLines,
     fundingOpportunities,
+    issues,
+    changeRequests,
+    qualityPlanDoc,
+    qualityControls,
+    procurementItems,
+    projectContracts,
+    fournisseurs,
+    communicationPlanEntries,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -229,6 +249,22 @@ export default async function ProjectDetailPage({
     prisma.projectAssumption.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.budgetLine.findMany({ where: { projectId }, include: { section: true }, orderBy: { createdAt: "asc" } }),
     prisma.fundingOpportunity.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
+    prisma.incident.findMany({ where: { projectId }, include: { declarePar: true }, orderBy: { dateDeclaration: "desc" } }),
+    prisma.projectChangeRequest.findMany({ where: { projectId }, include: { demandePar: true }, orderBy: { createdAt: "desc" } }),
+    prisma.qualityDocument.findFirst({ where: { projectId, type: "PLAN_QUALITE" } }),
+    prisma.qualityControl.findMany({
+      where: { projectId },
+      include: { deliverable: true, responsable: true, controlePar: true },
+      orderBy: { dateControle: "desc" },
+    }),
+    prisma.procurementItem.findMany({ where: { projectId }, include: { fournisseur: true }, orderBy: { createdAt: "desc" } }),
+    prisma.projectContract.findMany({
+      where: { projectId },
+      include: { fournisseur: true, deliverables: true, payments: { orderBy: { createdAt: "asc" } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.crmOrganization.findMany({ where: { type: "FOURNISSEUR" }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    prisma.communicationPlanEntry.findMany({ where: { projectId }, include: { responsable: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
   if (!project) {
@@ -406,10 +442,12 @@ export default async function ProjectDetailPage({
     id: d.id,
     description: d.description,
     motif: d.motif,
+    impact: d.impact,
     statut: d.statut,
     responsableName: d.responsable?.name ?? null,
     echeance: d.echeance ? d.echeance.toISOString() : null,
     taskId: d.taskId,
+    createdAt: d.createdAt.toISOString(),
   }));
 
   const indicatorRows: IndicatorData[] = indicators.map((i) => ({
@@ -505,6 +543,94 @@ export default async function ProjectDetailPage({
     budgetDisponible: o.budgetDisponible ? Number(o.budgetDisponible) : null,
     criteres: o.criteres,
     exigences: o.exigences,
+  }));
+
+  const issueRows: IncidentCardData[] = issues.map((i) => ({
+    id: i.id,
+    type: i.type,
+    titre: i.titre,
+    description: i.description,
+    criticite: i.criticite,
+    statut: i.statut,
+    estEscalade: i.estEscalade,
+    declarePar: { name: i.declarePar.name },
+    dateDeclaration: i.dateDeclaration,
+    project: null,
+    photos: i.photos,
+    impact: i.impact,
+    actionCorrective: i.actionCorrective,
+  }));
+
+  const changeRequestRows: ChangeRequestRow[] = changeRequests.map((cr) => ({
+    id: cr.id,
+    titre: cr.titre,
+    description: cr.description,
+    budgetPropose: cr.budgetPropose ? Number(cr.budgetPropose) : null,
+    dateFinProposee: cr.dateFinProposee ? cr.dateFinProposee.toISOString() : null,
+    impactRessources: cr.impactRessources,
+    impactRisques: cr.impactRisques,
+    impactResultats: cr.impactResultats,
+    statut: cr.statut,
+    demandeParName: cr.demandePar.name,
+    commentaireDecision: cr.commentaireDecision,
+  }));
+
+  const qualityPlanData: QualityPlanData | null = qualityPlanDoc
+    ? { id: qualityPlanDoc.id, titre: qualityPlanDoc.titre, contenu: qualityPlanDoc.contenu, statut: qualityPlanDoc.statut }
+    : null;
+
+  const qualityControlRows: QualityControlRow[] = qualityControls.map((c) => ({
+    id: c.id,
+    titre: c.titre,
+    resultat: c.resultat,
+    commentaire: c.commentaire,
+    nonConformite: c.nonConformite,
+    actionCorrective: c.actionCorrective,
+    dateControle: c.dateControle.toISOString(),
+    deliverableNom: c.deliverable?.nom ?? null,
+    responsableName: c.responsable?.name ?? null,
+    controleParName: c.controlePar.name,
+  }));
+
+  const procurementItemRows: ProcurementItemRow[] = procurementItems.map((p) => ({
+    id: p.id,
+    besoin: p.besoin,
+    specifications: p.specifications,
+    quantite: p.quantite ? Number(p.quantite) : null,
+    budget: p.budget ? Number(p.budget) : null,
+    fournisseurNom: p.fournisseur?.nom ?? null,
+    methodeAchat: p.methodeAchat,
+    echeance: p.echeance ? p.echeance.toISOString() : null,
+    statut: p.statut,
+  }));
+
+  const contractRows: ContractRow[] = projectContracts.map((c) => ({
+    id: c.id,
+    nom: c.nom,
+    fournisseurNom: c.fournisseur.nom,
+    montant: c.montant ? Number(c.montant) : null,
+    statut: c.statut,
+    evaluationNote: c.evaluationNote,
+    evaluationCommentaire: c.evaluationCommentaire,
+    deliverableNoms: c.deliverables.map((d) => d.nom),
+    payments: c.payments.map((p) => ({
+      id: p.id,
+      montant: Number(p.montant),
+      datePaiement: p.datePaiement ? p.datePaiement.toISOString() : null,
+      statut: p.statut,
+      reference: p.reference,
+    })),
+  }));
+  const fournisseurOptions = fournisseurs.map((f) => ({ id: f.id, label: f.nom }));
+  const unlinkedDeliverableOptions = deliverables.filter((d) => !d.contractId).map((d) => ({ id: d.id, label: d.nom }));
+
+  const communicationPlanEntryRows: CommunicationPlanEntryRow[] = communicationPlanEntries.map((e) => ({
+    id: e.id,
+    public: e.public,
+    message: e.message,
+    canal: e.canal,
+    frequence: e.frequence,
+    responsableName: e.responsable?.name ?? null,
   }));
 
   const beneficiaireRows: BeneficiaireRow[] = beneficiaires.map((b) => ({
@@ -716,6 +842,7 @@ export default async function ProjectDetailPage({
       <Tabs defaultValue="apercu">
         <TabsList>
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
+          <TabsTrigger value="execution">Exécution</TabsTrigger>
           <TabsTrigger value="pilotage">Pilotage</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
           <TabsTrigger value="taches">Tâches</TabsTrigger>
@@ -724,12 +851,18 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="jalons">Jalons</TabsTrigger>
           <TabsTrigger value="livrables">Livrables</TabsTrigger>
           <TabsTrigger value="risques">Risques</TabsTrigger>
+          <TabsTrigger value="problemes">Problèmes</TabsTrigger>
           <TabsTrigger value="parties-prenantes">Parties prenantes</TabsTrigger>
+          <TabsTrigger value="communication">Communication</TabsTrigger>
           <TabsTrigger value="decisions">Décisions</TabsTrigger>
+          <TabsTrigger value="modifications">Modifications</TabsTrigger>
+          <TabsTrigger value="qualite">Qualité</TabsTrigger>
           <TabsTrigger value="kpi">KPI</TabsTrigger>
           <TabsTrigger value="ressources">Ressources</TabsTrigger>
           <TabsTrigger value="raci">RACI</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
+          <TabsTrigger value="achats">Achats</TabsTrigger>
+          <TabsTrigger value="contrats">Contrats</TabsTrigger>
           <TabsTrigger value="financement">Financement</TabsTrigger>
           <TabsTrigger value="appels-a-projets">Appels à projets</TabsTrigger>
           <TabsTrigger value="hypotheses">Hypothèses</TabsTrigger>
@@ -816,6 +949,20 @@ export default async function ProjectDetailPage({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="execution" className="mt-4">
+          <ProjectExecutionView
+            tasks={ganttRows}
+            milestones={milestoneRows}
+            deliverables={deliverableRows}
+            risks={riskRows}
+            budgetPrevu={budgetRollup.projectTotal.prevu}
+            budgetEngage={budgetRollup.projectTotal.engage}
+            budgetPaye={budgetRollup.projectTotal.paye}
+            devise={devise}
+            avancement={project.avancement}
+          />
         </TabsContent>
 
         <TabsContent value="pilotage" className="mt-4 space-y-3">
@@ -919,6 +1066,10 @@ export default async function ProjectDetailPage({
           <ProjectRisksSection projectId={project.id} risks={riskRows} users={userOptions} canManage={canUpdateProject} />
         </TabsContent>
 
+        <TabsContent value="problemes" className="mt-4">
+          <ProjectIssuesSection projectId={project.id} issues={issueRows} users={userOptions} canManage={canUpdateProject} />
+        </TabsContent>
+
         <TabsContent value="parties-prenantes" className="mt-4">
           <ProjectStakeholdersSection
             projectId={project.id}
@@ -930,8 +1081,39 @@ export default async function ProjectDetailPage({
           />
         </TabsContent>
 
+        <TabsContent value="communication" className="mt-4">
+          <CommunicationPlanSection
+            projectId={project.id}
+            entries={communicationPlanEntryRows}
+            users={userOptions}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
         <TabsContent value="decisions" className="mt-4">
           <ProjectDecisionsSection projectId={project.id} decisions={decisionRows} users={userOptions} />
+        </TabsContent>
+
+        <TabsContent value="modifications" className="mt-4">
+          <ProjectChangeRequestsSection
+            projectId={project.id}
+            changeRequests={changeRequestRows}
+            budgetActuel={project.budget ? Number(project.budget) : null}
+            dateFinActuelle={project.dateFin ? project.dateFin.toISOString() : null}
+            devise={devise}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="qualite" className="mt-4">
+          <ProjectQualitySection
+            projectId={project.id}
+            plan={qualityPlanData}
+            controls={qualityControlRows}
+            deliverables={deliverables.map((d) => ({ id: d.id, label: d.nom }))}
+            users={userOptions}
+            canManage={canUpdateProject}
+          />
         </TabsContent>
 
         <TabsContent value="kpi" className="mt-4 space-y-3">
@@ -957,6 +1139,27 @@ export default async function ProjectDetailPage({
             lines={budgetLineRows}
             byActivity={budgetByActivity}
             byToCNode={budgetByToCNode}
+            devise={devise}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="achats" className="mt-4">
+          <ProjectProcurementSection
+            projectId={project.id}
+            items={procurementItemRows}
+            fournisseurs={fournisseurOptions}
+            devise={devise}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="contrats" className="mt-4">
+          <ProjectContractsSection
+            projectId={project.id}
+            contracts={contractRows}
+            fournisseurs={fournisseurOptions}
+            unlinkedDeliverables={unlinkedDeliverableOptions}
             devise={devise}
             canManage={canUpdateProject}
           />
@@ -1125,6 +1328,7 @@ export default async function ProjectDetailPage({
               Aperçu de la racine de l&apos;espace documentaire.
             </p>
             <div className="flex gap-2">
+              <GenerateStandardFoldersButton projectId={project.id} />
               <FolderFormDialog projectId={project.id} triggerLabel="Nouveau dossier" />
               <DocumentFormDialog projectId={project.id} folders={folderOptions} />
               <Link href={`/documents?projetId=${project.id}`}>

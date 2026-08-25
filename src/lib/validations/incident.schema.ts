@@ -20,6 +20,11 @@ export const createIncidentSchema = z.object({
   criticite: z.enum(INCIDENT_CRITICITES),
   projectId: z.string().optional(),
   photos: z.array(z.string().url()).max(5).optional(),
+  // Issue Management (Project Studio §30) — un Incident deja rattache a un
+  // projet EST l'Issue du cahier (probleme deja survenu, vs ProjectRisk =
+  // potentiel).
+  impact: z.string().optional(),
+  actionCorrective: z.string().optional(),
 });
 
 export type CreateIncidentInput = z.infer<typeof createIncidentSchema>;
@@ -30,6 +35,14 @@ export const updateIncidentStatutSchema = z.object({
 });
 
 export type UpdateIncidentStatutInput = z.infer<typeof updateIncidentStatutSchema>;
+
+export const updateIncidentDetailsSchema = z.object({
+  id: z.string().min(1),
+  impact: z.string().optional(),
+  actionCorrective: z.string().optional(),
+});
+
+export type UpdateIncidentDetailsInput = z.infer<typeof updateIncidentDetailsSchema>;
 
 export const escalateIncidentSchema = z.object({
   id: z.string().min(1),

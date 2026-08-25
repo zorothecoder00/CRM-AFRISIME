@@ -10,9 +10,11 @@ import { createNotification } from "@/lib/notify";
 import {
   createIncidentSchema,
   updateIncidentStatutSchema,
+  updateIncidentDetailsSchema,
   escalateIncidentSchema,
   type CreateIncidentInput,
   type UpdateIncidentStatutInput,
+  type UpdateIncidentDetailsInput,
   type EscalateIncidentInput,
 } from "@/lib/validations/incident.schema";
 
@@ -44,6 +46,8 @@ export async function createIncident(input: CreateIncidentInput) {
       projectId: data.projectId || undefined,
       declareParId: session.user.id,
       photos: data.photos ?? [],
+      impact: data.impact || undefined,
+      actionCorrective: data.actionCorrective || undefined,
     },
   });
 
@@ -56,6 +60,23 @@ export async function createIncident(input: CreateIncidentInput) {
   });
 
   revalidatePath("/incidents");
+  if (data.projectId) revalidatePath(`/projets/${data.projectId}`);
+  return { id: incident.id };
+}
+
+/** Issue Management (Project Studio §30) — impact et action corrective d'un incident/issue. */
+export async function updateIncidentDetails(input: UpdateIncidentDetailsInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.RISK_MANAGE);
+  const data = updateIncidentDetailsSchema.parse(input);
+
+  const incident = await prisma.incident.update({
+    where: { id: data.id },
+    data: { impact: data.impact, actionCorrective: data.actionCorrective },
+  });
+
+  revalidatePath("/incidents");
+  if (incident.projectId) revalidatePath(`/projets/${incident.projectId}`);
   return { id: incident.id };
 }
 

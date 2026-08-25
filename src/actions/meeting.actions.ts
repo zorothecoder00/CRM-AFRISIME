@@ -220,6 +220,7 @@ export async function addDecision(input: AddDecisionInput) {
       meetingId: data.meetingId,
       description: data.description,
       motif: data.motif || undefined,
+      impact: data.impact || undefined,
       responsableId: data.responsableId,
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       taskId: task.id,

@@ -16,10 +16,12 @@ export type ProjectDecisionData = {
   id: string;
   description: string;
   motif: string | null;
+  impact: string | null;
   statut: string;
   responsableName: string | null;
   echeance: string | null;
   taskId: string | null;
+  createdAt: string;
 };
 
 const STATUT_LABELS: Record<string, string> = {
@@ -58,6 +60,7 @@ export function ProjectDecisionsSection({
 }) {
   const [description, setDescription] = useState("");
   const [motif, setMotif] = useState("");
+  const [impact, setImpact] = useState("");
   const [responsableId, setResponsableId] = useState<string | undefined>();
   const [echeance, setEcheance] = useState("");
   const { run, isPending } = useAction(createProjectDecision, {
@@ -70,12 +73,14 @@ export function ProjectDecisionsSection({
       projectId,
       description: description.trim(),
       motif: motif.trim() || undefined,
+      impact: impact.trim() || undefined,
       responsableId,
       echeance: echeance || undefined,
     });
     if (result.ok) {
       setDescription("");
       setMotif("");
+      setImpact("");
       setResponsableId(undefined);
       setEcheance("");
     }
@@ -90,7 +95,9 @@ export function ProjectDecisionsSection({
             <DecisionStatusSelect decisionId={d.id} statut={d.statut} />
           </div>
           {d.motif && <p className="mt-1 text-xs text-muted-foreground">Motif : {d.motif}</p>}
+          {d.impact && <p className="mt-1 text-xs text-muted-foreground">Impact : {d.impact}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{new Date(d.createdAt).toLocaleDateString("fr-FR")}</span>
             {d.responsableName && <span>Responsable : {d.responsableName}</span>}
             {d.echeance && <span>Échéance : {new Date(d.echeance).toLocaleDateString("fr-FR")}</span>}
             {d.taskId && (
@@ -110,6 +117,7 @@ export function ProjectDecisionsSection({
           onChange={(e) => setDescription(e.target.value)}
         />
         <Input placeholder="Motif (optionnel)" value={motif} onChange={(e) => setMotif(e.target.value)} />
+        <Input placeholder="Impact (optionnel)" value={impact} onChange={(e) => setImpact(e.target.value)} />
         <div className="grid grid-cols-2 gap-2">
           <Select value={responsableId} onValueChange={setResponsableId}>
             <SelectTrigger>

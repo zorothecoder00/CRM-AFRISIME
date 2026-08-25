@@ -27,6 +27,8 @@ export const addDecisionSchema = z.object({
   meetingId: z.string().min(1),
   description: z.string().min(2, "La description est requise."),
   motif: z.string().optional(),
+  // Decision Register (Project Studio §32).
+  impact: z.string().optional(),
   responsableId: z.string().min(1, "Un responsable est requis."),
   echeance: z.string().optional(),
 });

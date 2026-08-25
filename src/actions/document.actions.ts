@@ -57,6 +57,54 @@ export async function createFolder(input: CreateFolderInput) {
   return folder;
 }
 
+// Project Data Room (Project Studio §38) — dossiers standards suggeres par
+// le cahier des charges. Ignore silencieusement les noms deja presents a la
+// racine plutot que de dupliquer si l'utilisateur relance l'action.
+const STANDARD_FOLDER_NAMES = [
+  "Conception",
+  "Contrats",
+  "Budget",
+  "Financement",
+  "Rapports",
+  "Études",
+  "Données",
+  "Communication",
+  "Évaluations",
+  "Pièces justificatives",
+];
+
+export async function generateStandardDocumentFolders(projectId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
+
+  const existing = await prisma.documentFolder.findMany({
+    where: { projectId, parentId: null },
+    select: { nom: true },
+  });
+  const existingNames = new Set(existing.map((f) => f.nom));
+  const toCreate = STANDARD_FOLDER_NAMES.filter((nom) => !existingNames.has(nom));
+
+  if (toCreate.length === 0) {
+    return { created: 0 };
+  }
+
+  await prisma.documentFolder.createMany({
+    data: toCreate.map((nom) => ({ projectId, nom, createdById: session.user.id })),
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document_folder.standard_generated",
+    entityType: "DocumentFolder",
+    entityId: projectId,
+    changes: { count: toCreate.length },
+  });
+
+  revalidatePath("/documents");
+  revalidatePath(`/projets/${projectId}`);
+  return { created: toCreate.length };
+}
+
 export async function createDocument(input: CreateDocumentInput) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_CREATE);
