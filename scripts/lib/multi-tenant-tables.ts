@@ -136,4 +136,13 @@ export const COVERED_TABLES = [
   "StakeholderProject",
   "StakeholderCommunication",
   "UserSession",
+  // Project Studio (2026-08-25) — pas de migration organizationId/RLS
+  // dediee (retrofit multi-tenant en pause), mais ces tables ont deja la
+  // colonne organizationId et passent par withTenantScopedSession comme le
+  // reste des actions projet : sans l'octroi ci-dessous, le role scope
+  // (proprietaire zero) n'a aucun droit dessus et toute ecriture echoue des
+  // qu'un organizationId est renseigne.
+  "ProjectIdea",
+  "ProjectConceptNote",
+  "Financement",
 ];

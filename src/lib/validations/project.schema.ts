@@ -20,6 +20,7 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export const updateProjectLocationSchema = z.object({
   projectId: z.string().min(1),
   localisation: z.string().optional(),
+  pays: z.string().optional(),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
 });

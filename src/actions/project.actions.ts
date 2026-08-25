@@ -266,6 +266,7 @@ export async function updateProjectLocation(input: UpdateProjectLocationInput) {
       where: { id: data.projectId },
       data: {
         localisation: data.localisation || null,
+        pays: data.pays || null,
         latitude: data.latitude ? Number(data.latitude) : null,
         longitude: data.longitude ? Number(data.longitude) : null,
       },
@@ -277,7 +278,12 @@ export async function updateProjectLocation(input: UpdateProjectLocationInput) {
     action: "project.location_updated",
     entityType: "Project",
     entityId: project.id,
-    changes: { localisation: data.localisation ?? null, latitude: data.latitude ?? null, longitude: data.longitude ?? null },
+    changes: {
+      localisation: data.localisation ?? null,
+      pays: data.pays ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+    },
   });
 
   revalidatePath(`/projets/${data.projectId}`);

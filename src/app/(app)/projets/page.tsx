@@ -132,8 +132,18 @@ export default async function ProjetsPage({
             ))}
           </div>
           <div className="flex rounded-md border">
-            <Link href="/projets/roadmap">
+            <Link href="/projets/portefeuille">
               <Button variant="ghost" size="sm" className="rounded-r-none">
+                Portefeuille
+              </Button>
+            </Link>
+            <Link href="/projets/idees">
+              <Button variant="ghost" size="sm" className="rounded-none">
+                Idées
+              </Button>
+            </Link>
+            <Link href="/projets/roadmap">
+              <Button variant="ghost" size="sm" className="rounded-none">
                 Roadmap
               </Button>
             </Link>

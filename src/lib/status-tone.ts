@@ -204,6 +204,35 @@ export function accentForCriticite(criticite: string): CardAccent {
   return toCardAccent(CRITICITE_TONES[criticite.toUpperCase()] ?? "secondary");
 }
 
+/** Statut d'une idée de projet (Project Studio §4). */
+const PROJECT_IDEA_TONES: Record<string, StatusTone> = {
+  IDEE: "secondary",
+  A_ETUDIER: "info",
+  ETUDE_FAISABILITE: "info",
+  APPROUVEE: "warning",
+  EN_CONCEPTION: "warning",
+  PROJET_CREE: "success",
+  REJETEE: "destructive",
+  ARCHIVEE: "secondary",
+};
+
+export function toneForProjectIdeaStatus(status: string): BadgeTone {
+  return PROJECT_IDEA_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+/** Statut d'un financement (Project Studio §10). */
+const FINANCEMENT_TONES: Record<string, StatusTone> = {
+  RECHERCHE: "secondary",
+  NEGOCIATION: "warning",
+  OBTENU: "success",
+  REFUSE: "destructive",
+  ANNULE: "secondary",
+};
+
+export function toneForFinancementStatut(status: string): BadgeTone {
+  return FINANCEMENT_TONES[status.toUpperCase()] ?? "secondary";
+}
+
 /**
  * Niveau generique FAIBLE/MOYEN(NE)/ELEVE(E) — reutilise pour la probabilite
  * et l'impact d'un risque, ainsi que l'influence et l'interet d'une partie

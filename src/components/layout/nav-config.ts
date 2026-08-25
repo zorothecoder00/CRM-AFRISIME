@@ -61,6 +61,7 @@ import {
   History,
   Mic,
   TriangleAlert,
+  Briefcase,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -117,6 +118,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "planification", href: "/planification", icon: Milestone, permission: PERMISSIONS.PLAN_READ },
       { titleKey: "programmes", href: "/programmes", icon: Layers, permission: PERMISSIONS.PROGRAM_READ },
       { titleKey: "projets", href: "/projets", icon: FolderKanban, permission: PERMISSIONS.PROJECT_READ },
+      { titleKey: "portefeuilleProjets", href: "/projets/portefeuille", icon: Briefcase, permission: PERMISSIONS.PROJECT_READ },
+      { titleKey: "ideesProjets", href: "/projets/idees", icon: Lightbulb, permission: PERMISSIONS.PROJECT_READ },
       { titleKey: "taches", href: "/taches", icon: ListChecks, permission: PERMISSIONS.TASK_READ },
       { titleKey: "chargeDeTravail", href: "/charge-de-travail", icon: Gauge, permission: PERMISSIONS.WORKLOAD_READ },
       { titleKey: "objectifs", href: "/objectifs", icon: Target, permission: PERMISSIONS.OBJECTIVE_READ },

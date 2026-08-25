@@ -39,6 +39,7 @@ import { ProjectDecisionsSection, type ProjectDecisionData } from "@/components/
 import { IndicatorList, type IndicatorData } from "@/components/objectives/indicator-list";
 import { AddProjectIndicatorDialog } from "@/components/projects/add-project-indicator-dialog";
 import { ProjectResourcesSection, type ProjectResourceData } from "@/components/projects/project-resources-section";
+import { ProjectFinancementsSection, type FinancementRow } from "@/components/projects/project-financements-section";
 import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
 import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-view";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
@@ -99,6 +100,7 @@ export default async function ProjectDetailPage({
     resources,
     availableStakeholdersRaw,
     tags,
+    financements,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -180,6 +182,7 @@ export default async function ProjectDetailPage({
       select: { id: true, nom: true },
     }),
     getTagsFor("Project", projectId),
+    prisma.financement.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
   ]);
 
   if (!project) {
@@ -379,6 +382,16 @@ export default async function ProjectDetailPage({
     avancement: t.avancement,
   }));
 
+  const financementRows: FinancementRow[] = financements.map((f) => ({
+    id: f.id,
+    bailleur: f.bailleur,
+    montant: Number(f.montant),
+    statut: f.statut,
+    dateObtention: f.dateObtention ? f.dateObtention.toISOString() : null,
+    dateEcheance: f.dateEcheance ? f.dateEcheance.toISOString() : null,
+    notes: f.notes,
+  }));
+
   const resourceRows: ProjectResourceData[] = resources.map((r) => ({
     id: r.id,
     nom: r.nom,
@@ -495,6 +508,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="decisions">Décisions</TabsTrigger>
           <TabsTrigger value="kpi">KPI</TabsTrigger>
           <TabsTrigger value="ressources">Ressources</TabsTrigger>
+          <TabsTrigger value="financement">Financement</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
@@ -537,11 +551,14 @@ export default async function ProjectDetailPage({
                 <ProjectLocationForm
                   projectId={project.id}
                   initialLocalisation={project.localisation}
+                  initialPays={project.pays}
                   initialLatitude={project.latitude}
                   initialLongitude={project.longitude}
                 />
               ) : (
-                <p className="text-sm font-medium">{project.localisation || "—"}</p>
+                <p className="text-sm font-medium">
+                  {[project.localisation, project.pays].filter(Boolean).join(", ") || "—"}
+                </p>
               )}
             </CardContent>
             <CardContent className="pt-0">
@@ -693,6 +710,15 @@ export default async function ProjectDetailPage({
 
         <TabsContent value="ressources" className="mt-4">
           <ProjectResourcesSection projectId={project.id} resources={resourceRows} devise={devise} />
+        </TabsContent>
+
+        <TabsContent value="financement" className="mt-4">
+          <ProjectFinancementsSection
+            projectId={project.id}
+            financements={financementRows}
+            devise={devise}
+            canManage={canUpdateProject}
+          />
         </TabsContent>
 
         {canReadWorkload && (
