@@ -126,6 +126,8 @@ export const createProjectDeliverableSchema = z.object({
   description: z.string().optional(),
   echeance: z.string().optional(),
   responsableId: z.string().optional(),
+  // Project Studio §13 — relie le livrable au Resultat (Objective.niveau = RESULTAT) dont il decoule.
+  objectiveId: z.string().optional(),
 });
 
 export type CreateProjectDeliverableInput = z.infer<typeof createProjectDeliverableSchema>;
@@ -183,6 +185,8 @@ export const createProjectResourceSchema = z.object({
   unite: z.string().optional(),
   coutUnitaire: z.string().optional(),
   notes: z.string().optional(),
+  // Project Studio §20 (Resource Planning) — assignation optionnelle a une activite (Task) precise.
+  taskId: z.string().optional(),
 });
 
 export type CreateProjectResourceInput = z.infer<typeof createProjectResourceSchema>;
@@ -190,3 +194,23 @@ export type CreateProjectResourceInput = z.infer<typeof createProjectResourceSch
 export const deleteProjectResourceSchema = z.object({ resourceId: z.string().min(1) });
 
 export type DeleteProjectResourceInput = z.infer<typeof deleteProjectResourceSchema>;
+
+// ---- WBS (Project Studio §15) ----
+
+export const convertSectionSchema = z.object({ sectionId: z.string().min(1) });
+
+export type ConvertSectionInput = z.infer<typeof convertSectionSchema>;
+
+// ---- Scope Management (Project Studio §17) / Project Charter (§16) ----
+
+export const updateProjectScopeSchema = z.object({
+  projectId: z.string().min(1),
+  perimetreInclus: z.string().optional(),
+  perimetreExclus: z.string().optional(),
+  contraintes: z.string().optional(),
+  limites: z.string().optional(),
+  criteresReussite: z.string().optional(),
+  gouvernance: z.string().optional(),
+});
+
+export type UpdateProjectScopeInput = z.infer<typeof updateProjectScopeSchema>;

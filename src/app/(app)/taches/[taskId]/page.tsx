@@ -422,6 +422,7 @@ export default async function TaskDetailPage({
               dependencies={task.dependsOn.map((d) => ({
                 id: d.dependsOnTask.id,
                 titre: d.dependsOnTask.titre,
+                type: d.type,
               }))}
               otherTasks={otherTasks}
             />

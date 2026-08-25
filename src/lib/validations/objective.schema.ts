@@ -14,6 +14,9 @@ export const createObjectiveSchema = z
     programmeId: z.string().optional(),
     axisId: z.string().optional(),
     parentId: z.string().optional(),
+    // Project Studio §13 (Objectives Builder) — chaine Objectif general ->
+    // specifique -> Resultat, independante du scope organisationnel ci-dessus.
+    niveau: z.enum(["GENERAL", "SPECIFIQUE", "RESULTAT"]).optional(),
   })
   .refine((data) => data.scope !== "INDIVIDUEL" || !!data.userId, {
     message: "Un utilisateur est requis pour un objectif individuel.",
@@ -61,3 +64,16 @@ export const linkObjectiveParentSchema = z.object({
 });
 
 export type LinkObjectiveParentInput = z.infer<typeof linkObjectiveParentSchema>;
+
+// ---- SMART Objectives (Project Studio §14) ----
+
+export const updateObjectiveSmartSchema = z.object({
+  objectiveId: z.string().min(1),
+  smartSpecifique: z.boolean(),
+  smartMesurable: z.boolean(),
+  smartAtteignable: z.boolean(),
+  smartPertinent: z.boolean(),
+  smartTemporel: z.boolean(),
+});
+
+export type UpdateObjectiveSmartInput = z.infer<typeof updateObjectiveSmartSchema>;

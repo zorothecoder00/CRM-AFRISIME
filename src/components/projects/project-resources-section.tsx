@@ -5,6 +5,7 @@ import { useAction } from "@/hooks/use-action";
 import { createProjectResource, deleteProjectResource } from "@/actions/project.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus } from "lucide-react";
 
 export type ProjectResourceData = {
@@ -14,7 +15,11 @@ export type ProjectResourceData = {
   quantite: number | null;
   unite: string | null;
   coutUnitaire: number | null;
+  taskId: string | null;
+  taskTitre: string | null;
 };
+
+type Option = { id: string; label: string };
 
 function ResourceRow({ resource, devise }: { resource: ProjectResourceData; devise: string }) {
   const { run, isPending } = useAction(deleteProjectResource);
@@ -31,6 +36,7 @@ function ResourceRow({ resource, devise }: { resource: ProjectResourceData; devi
             </span>
           )}
           {resource.coutUnitaire !== null && <span>{resource.coutUnitaire} {devise} / unité</span>}
+          {resource.taskTitre && <span>Activité : {resource.taskTitre}</span>}
         </div>
       </div>
       <Button
@@ -46,30 +52,46 @@ function ResourceRow({ resource, devise }: { resource: ProjectResourceData; devi
   );
 }
 
-/** Ressources de projet (cahier des charges §VI) — registre distinct de l'équipe. */
+/**
+ * Ressources de projet (cahier des charges §VI, assignation par activité
+ * Project Studio §20) — charge de travail personne/équipe déjà calculée par
+ * l'onglet Charge de travail ; ceci trace en plus quelle activité consomme
+ * quelle ressource matérielle/logicielle/prestataire.
+ */
 export function ProjectResourcesSection({
   projectId,
   resources,
+  tasks,
   devise,
 }: {
   projectId: string;
   resources: ProjectResourceData[];
+  tasks: Option[];
   devise: string;
 }) {
   const [nom, setNom] = useState("");
   const [type, setType] = useState("");
   const [quantite, setQuantite] = useState("");
   const [unite, setUnite] = useState("");
+  const [taskId, setTaskId] = useState<string | undefined>();
   const { run: add, isPending } = useAction(createProjectResource, { successMessage: "Ressource ajoutée." });
 
   async function handleAdd() {
     if (!nom.trim()) return;
-    const result = await add({ projectId, nom: nom.trim(), type: type || undefined, quantite: quantite || undefined, unite: unite || undefined });
+    const result = await add({
+      projectId,
+      nom: nom.trim(),
+      type: type || undefined,
+      quantite: quantite || undefined,
+      unite: unite || undefined,
+      taskId,
+    });
     if (result.ok) {
       setNom("");
       setType("");
       setQuantite("");
       setUnite("");
+      setTaskId(undefined);
     }
   }
 
@@ -88,12 +110,24 @@ export function ProjectResourcesSection({
       <div className="space-y-2 rounded-md border p-3">
         <div className="grid grid-cols-2 gap-2">
           <Input placeholder="Nom de la ressource" value={nom} onChange={(e) => setNom(e.target.value)} />
-          <Input placeholder="Type (matériel, humain...)" value={type} onChange={(e) => setType(e.target.value)} />
+          <Input placeholder="Type (matériel, logiciel, prestataire...)" value={type} onChange={(e) => setType(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Input placeholder="Quantité" type="number" value={quantite} onChange={(e) => setQuantite(e.target.value)} />
           <Input placeholder="Unité" value={unite} onChange={(e) => setUnite(e.target.value)} />
         </div>
+        <Select value={taskId} onValueChange={setTaskId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Assigner à une activité (optionnel)" />
+          </SelectTrigger>
+          <SelectContent>
+            {tasks.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button size="sm" onClick={handleAdd} disabled={isPending || !nom.trim()}>
           <Plus className="mr-1 h-4 w-4" />
           Ajouter

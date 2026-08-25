@@ -29,6 +29,8 @@ import {
   createTaskIndicatorSchema,
   createProjectResourceSchema,
   deleteProjectResourceSchema,
+  convertSectionSchema,
+  updateProjectScopeSchema,
   type CreateProjectInput,
   type CreateSectionInput,
   type AddSectionCommentInput,
@@ -49,6 +51,8 @@ import {
   type CreateTaskIndicatorInput,
   type CreateProjectResourceInput,
   type DeleteProjectResourceInput,
+  type ConvertSectionInput,
+  type UpdateProjectScopeInput,
 } from "@/lib/validations/project.schema";
 import { createNotification } from "@/lib/notify";
 
@@ -485,6 +489,7 @@ export async function createProjectDeliverable(input: CreateProjectDeliverableIn
         description: data.description,
         echeance: data.echeance ? new Date(data.echeance) : undefined,
         responsableId: data.responsableId || undefined,
+        objectiveId: data.objectiveId || undefined,
         createdById: session.user.id,
         organizationId: session.user.organizationId,
       },
@@ -705,6 +710,7 @@ export async function createProjectResource(input: CreateProjectResourceInput) {
         unite: data.unite || undefined,
         coutUnitaire: data.coutUnitaire ? Number(data.coutUnitaire) : undefined,
         notes: data.notes || undefined,
+        taskId: data.taskId || undefined,
         createdById: session.user.id,
         organizationId: session.user.organizationId,
       },
@@ -744,4 +750,113 @@ export async function deleteProjectResource(input: DeleteProjectResourceInput) {
 
   revalidatePath(`/projets/${resource.projectId}`);
   return resource;
+}
+
+// ---- WBS (Project Studio §15) ----
+
+/** Convertit un noeud du WBS (ProjectSection) en livrable. */
+export async function convertSectionToDeliverable(input: ConvertSectionInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = convertSectionSchema.parse(input);
+
+  const deliverable = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const section = await tx.projectSection.findUniqueOrThrow({ where: { id: data.sectionId } });
+    return tx.projectDeliverable.create({
+      data: {
+        projectId: section.projectId,
+        sectionId: section.id,
+        nom: section.nom,
+        description: section.description,
+        echeance: section.dateFin ?? undefined,
+        responsableId: section.responsableId ?? undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    });
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "section.converted_to_deliverable",
+    entityType: "ProjectDeliverable",
+    entityId: deliverable.id,
+    changes: { sectionId: data.sectionId },
+  });
+
+  revalidatePath(`/projets/${deliverable.projectId}`);
+  return deliverable;
+}
+
+/** Convertit un noeud du WBS (ProjectSection) en jalon. */
+export async function convertSectionToMilestone(input: ConvertSectionInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = convertSectionSchema.parse(input);
+
+  const milestone = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const section = await tx.projectSection.findUniqueOrThrow({ where: { id: data.sectionId } });
+    if (!section.dateFin) {
+      throw new Error("Cette section n'a pas de date de fin — impossible d'en déduire la date cible du jalon.");
+    }
+    return tx.projectMilestone.create({
+      data: {
+        projectId: section.projectId,
+        sectionId: section.id,
+        nom: section.nom,
+        description: section.description,
+        dateCible: section.dateFin,
+      },
+    });
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "section.converted_to_milestone",
+    entityType: "ProjectMilestone",
+    entityId: milestone.id,
+    changes: { sectionId: data.sectionId },
+  });
+
+  revalidatePath(`/projets/${milestone.projectId}`);
+  return milestone;
+}
+
+// ---- Scope Management (Project Studio §17) / Project Charter (§16) ----
+
+export async function updateProjectScope(input: UpdateProjectScopeInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectScopeSchema.parse(input);
+
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: {
+        perimetreInclus: data.perimetreInclus || null,
+        perimetreExclus: data.perimetreExclus || null,
+        contraintes: data.contraintes || null,
+        limites: data.limites || null,
+        criteresReussite: data.criteresReussite || null,
+        gouvernance: data.gouvernance || null,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.scope_updated",
+    entityType: "Project",
+    entityId: project.id,
+    changes: {},
+  });
+
+  revalidatePath(`/projets/${project.id}`);
+  return project;
 }

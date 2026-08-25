@@ -41,7 +41,14 @@ export const addChecklistItemSchema = z.object({
 export const addDependencySchema = z.object({
   taskId: z.string().min(1),
   dependsOnTaskId: z.string().min(1),
+  // Project Studio §18 (Gantt Builder) — type de dependance standard
+  // (Finish-to-Start par defaut, voir TaskDependency.type dans schema.prisma).
+  type: z.enum(["FINISH_TO_START", "START_TO_START", "FINISH_TO_FINISH", "START_TO_FINISH"]).optional(),
 });
+
+// Project Studio §15 (WBS) — convertit un noeud du WBS (ProjectSection) en tache.
+export const convertSectionToTaskSchema = z.object({ sectionId: z.string().min(1) });
+export type ConvertSectionToTaskInput = z.infer<typeof convertSectionToTaskSchema>;
 
 export const updateActualTimeSchema = z.object({
   taskId: z.string().min(1),

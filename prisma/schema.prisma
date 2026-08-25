@@ -88,6 +88,17 @@ enum TaskPriority {
 enum DependencyType {
   BLOQUE
   LIE_A
+  // Project Studio §18 (Gantt Builder) — types standards de dependance de
+  // planification. Ajoutes a l'enum partage avec le modele Dependency
+  // generique (cross-entite) plutot qu'un enum dedie a TaskDependency : evite
+  // toute migration de colonne sur les lignes BLOQUE/LIE_A deja en base.
+  // L'UI de creation d'une Dependency generique ne propose que BLOQUE/LIE_A ;
+  // seule celle de TaskDependency (dependency-section.tsx) propose ces
+  // quatre valeurs.
+  FINISH_TO_START
+  START_TO_START
+  FINISH_TO_FINISH
+  START_TO_FINISH
 }
 
 enum ProjectMemberRole {
@@ -464,6 +475,8 @@ model User {
   projectDiagnosticsUpdated          ProjectDiagnostic[]            @relation("ProjectDiagnosticUpdatedBy")
   problemTreeNodesCreated            ProblemTreeNode[]              @relation("ProblemTreeNodeCreatedBy")
   solutionTreeNodesCreated           SolutionTreeNode[]             @relation("SolutionTreeNodeCreatedBy")
+  theoryOfChangeNodesCreated         TheoryOfChangeNode[]           @relation("TheoryOfChangeNodeCreatedBy")
+  logframeRowsCreated                LogframeRow[]                  @relation("LogframeRowCreatedBy")
   stakeholderLinks                   Stakeholder[]                  @relation("StakeholderUser")
   stakeholderResponsableFor          Stakeholder[]                  @relation("StakeholderResponsable")
   stakeholdersCreated                Stakeholder[]                  @relation("StakeholderCreatedBy")
@@ -953,6 +966,8 @@ model PlatformOrganization {
   projectDiagnostics            ProjectDiagnostic[]            @relation("PlatformOrganizationProjectDiagnostics")
   problemTreeNodes              ProblemTreeNode[]              @relation("PlatformOrganizationProblemTreeNodes")
   solutionTreeNodes             SolutionTreeNode[]             @relation("PlatformOrganizationSolutionTreeNodes")
+  theoryOfChangeNodes           TheoryOfChangeNode[]           @relation("PlatformOrganizationTheoryOfChangeNodes")
+  logframeRows                  LogframeRow[]                  @relation("PlatformOrganizationLogframeRows")
   sectionComments               SectionComment[]               @relation("PlatformOrganizationSectionComments")
   taskAssignees                 TaskAssignee[]                 @relation("PlatformOrganizationTaskAssignees")
   checklistItems                ChecklistItem[]                @relation("PlatformOrganizationChecklistItems")
@@ -1534,6 +1549,18 @@ model Project {
   diagnostic             ProjectDiagnostic?
   problemTreeNodes       ProblemTreeNode[]
   solutionTreeNodes      SolutionTreeNode[]
+  // Project Studio §11-12 — idem.
+  theoryOfChangeNodes    TheoryOfChangeNode[]
+  logframeRows           LogframeRow[]
+  // Project Studio §16/§17 (Project Charter / Scope Management) — champs
+  // partages entre les deux : la charte affiche perimetre/contraintes/
+  // criteres/gouvernance en lecture, Scope Management les edite.
+  perimetreInclus        String?
+  perimetreExclus        String?
+  contraintes            String?
+  limites                String?
+  criteresReussite       String?
+  gouvernance            String?
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1753,6 +1780,10 @@ model ProjectMilestone {
   dateCible      DateTime
   statut         MilestoneStatus       @default(A_VENIR)
   ordre          Int                   @default(0)
+  // Project Studio §15 (WBS) — trace qu'un jalon a ete genere depuis un
+  // noeud du WBS (ProjectSection), voir convertSectionToMilestone.
+  sectionId      String?
+  section        ProjectSection?       @relation(fields: [sectionId], references: [id])
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -1784,12 +1815,23 @@ model ProjectDeliverable {
   echeance       DateTime?
   responsableId  String?
   responsable    User?                 @relation("DeliverableResponsable", fields: [responsableId], references: [id])
+  // Project Studio §13 (Objectives Builder) — relie le livrable au Resultat
+  // (Objective.niveau = RESULTAT) dont il decoule ; sert au controle de
+  // coherence entre niveaux (voir checkObjectivesConsistency).
+  objectiveId    String?
+  objective      Objective?            @relation(fields: [objectiveId], references: [id])
+  // Project Studio §15 (WBS) — trace qu'un livrable a ete genere depuis un
+  // noeud du WBS (ProjectSection), voir convertSectionToDeliverable.
+  sectionId      String?
+  section        ProjectSection?       @relation(fields: [sectionId], references: [id])
   createdById    String
   createdBy      User                  @relation("DeliverableCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([objectiveId])
+  @@index([sectionId])
 }
 
 // Ressource de projet (cahier des charges §VI) : registre distinct de
@@ -1809,11 +1851,19 @@ model ProjectResource {
   unite          String?
   coutUnitaire   Decimal?              @db.Decimal(14, 2)
   notes          String?
+  // Project Studio §20 (Resource Planning) — assignation optionnelle a une
+  // activite precise (Task) plutot qu'au projet entier uniquement ; la
+  // charge de travail personne/equipe reste calculee par
+  // src/lib/workload.ts, ceci ne fait que tracer quelle activite consomme
+  // quelle ressource materielle/logicielle/prestataire.
+  taskId         String?
+  task           Task?                 @relation(fields: [taskId], references: [id])
   createdById    String
   createdBy      User                  @relation("ProjectResourceCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime              @default(now())
 
   @@index([projectId])
+  @@index([taskId])
 }
 
 // ─── CRM relationnel ──────────────────────────────────────────────────────
@@ -2141,6 +2191,9 @@ model ProjectSection {
   tasks          Task[]
   documents      Document[]
   comments       SectionComment[]
+  // Project Studio §15 (WBS) — voir convertSectionToDeliverable/Milestone.
+  deliverables   ProjectDeliverable[]
+  milestones     ProjectMilestone[]
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -2212,6 +2265,7 @@ model Task {
   // independantes du projet, purement traceabilite.
   objectiveId            String?
   objective              Objective?            @relation(fields: [objectiveId], references: [id])
+  resources              ProjectResource[]
   planId                 String?
   plan                   Plan?                 @relation(fields: [planId], references: [id])
   // Traçabilité de l'origine "workflow" (cahier des charges §IX) : vrai
@@ -2310,7 +2364,10 @@ model TaskDependency {
   id              String                @id @default(cuid())
   taskId          String
   dependsOnTaskId String
-  type            DependencyType        @default(BLOQUE)
+  // Project Studio §18 — nouvelles dependances par defaut en FINISH_TO_START
+  // (le cas standard) ; BLOQUE reste le defaut historique deja stocke sur
+  // les lignes existantes, jamais reecrit par cette migration.
+  type            DependencyType        @default(FINISH_TO_START)
   task            Task                  @relation("DependentTask", fields: [taskId], references: [id])
   dependsOnTask   Task                  @relation("PrerequisiteTask", fields: [dependsOnTaskId], references: [id])
   createdAt       DateTime              @default(now())
@@ -3062,43 +3119,59 @@ model Event {
 // individuel/équipe (= membres d'un Projet)/département. Exactement un des
 // champs userId/projectId/departmentId est renseigné selon `scope`.
 model Objective {
-  id             String                @id @default(cuid())
-  titre          String
-  description    String?
-  periode        ObjectivePeriod
-  scope          ObjectiveScope
-  dateDebut      DateTime
-  dateFin        DateTime
-  statut         ObjectiveStatus       @default(EN_COURS)
-  userId         String?
-  user           User?                 @relation("ObjectiveUser", fields: [userId], references: [id])
-  projectId      String?
-  project        Project?              @relation(fields: [projectId], references: [id])
-  departmentId   String?
-  department     Department?           @relation(fields: [departmentId], references: [id])
+  id               String                @id @default(cuid())
+  titre            String
+  description      String?
+  periode          ObjectivePeriod
+  scope            ObjectiveScope
+  dateDebut        DateTime
+  dateFin          DateTime
+  statut           ObjectiveStatus       @default(EN_COURS)
+  userId           String?
+  user             User?                 @relation("ObjectiveUser", fields: [userId], references: [id])
+  projectId        String?
+  project          Project?              @relation(fields: [projectId], references: [id])
+  departmentId     String?
+  department       Department?           @relation(fields: [departmentId], references: [id])
   // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
   // denormalise depuis createdBy.organizationId (createdById toujours
   // renseigne, contrairement a user/project/department).
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationObjectives", fields: [organizationId], references: [id])
+  organizationId   String?
+  organization     PlatformOrganization? @relation("PlatformOrganizationObjectives", fields: [organizationId], references: [id])
   // Portee PROGRAMME (cahier des charges §V, menu "Objectifs" du programme).
-  programmeId    String?
-  programme      Programme?            @relation(fields: [programmeId], references: [id])
-  planId         String?
-  plan           Plan?                 @relation(fields: [planId], references: [id])
+  programmeId      String?
+  programme        Programme?            @relation(fields: [programmeId], references: [id])
+  planId           String?
+  plan             Plan?                 @relation(fields: [planId], references: [id])
   // Rattachement a un axe strategique (cahier des charges §III), optionnel
   // quelle que soit la portee de l'objectif.
-  axisId         String?
-  axis           StrategicAxis?        @relation(fields: [axisId], references: [id])
+  axisId           String?
+  axis             StrategicAxis?        @relation(fields: [axisId], references: [id])
   // Cahier des charges §III — cascade d'objectifs (entreprise -> direction
   // -> equipe -> individuel), independante du rattachement a un Plan.
-  parentId       String?
-  parent         Objective?            @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
-  children       Objective[]           @relation("ObjectiveHierarchy")
-  createdById    String
-  createdBy      User                  @relation("ObjectiveCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  parentId         String?
+  parent           Objective?            @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
+  children         Objective[]           @relation("ObjectiveHierarchy")
+  // Project Studio §13 (Objectives Builder) — reutilise la cascade
+  // parentId/children ci-dessus pour la chaine Objectif general ->
+  // spécifique -> Resultat plutot qu'une hierarchie parallele ; `niveau`
+  // reste optionnel car les Objective crees hors Project Studio (cascade
+  // entreprise -> direction -> equipe du §III) n'en ont pas besoin.
+  niveau           ObjectiveNiveau?
+  // Project Studio §14 (SMART Objectives) — un booleen par critere plutot
+  // qu'un champ texte : permet le calcul du score et la liste des criteres
+  // manquants (voir computeSmartScore dans src/lib/smart-score.ts) ; null =
+  // pas encore evalue, compte comme non satisfait dans le score.
+  smartSpecifique  Boolean?
+  smartMesurable   Boolean?
+  smartAtteignable Boolean?
+  smartPertinent   Boolean?
+  smartTemporel    Boolean?
+  deliverables     ProjectDeliverable[]
+  createdById      String
+  createdBy        User                  @relation("ObjectiveCreatedBy", fields: [createdById], references: [id])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
   indicators Indicator[]
   tasks      Task[]
@@ -5375,4 +5448,82 @@ model SolutionTreeNode {
 
   @@index([projectId])
   @@index([parentId])
+}
+
+// ===================== PROJECT STUDIO — §11-12 (Theorie du changement / Cadre logique) =====================
+
+enum TheoryOfChangeLevel {
+  INPUT
+  ACTIVITE
+  OUTPUT
+  OUTCOME
+  IMPACT
+}
+
+// Theorie du changement (Project Studio §11) — liste groupee par niveau
+// plutot qu'un arbre a parentId : le cahier decrit une chaine de niveaux
+// (Inputs -> Activites -> Outputs -> Outcomes -> Impact), pas des relations
+// causales explicites noeud-a-noeud comme le Problem Tree (§7) qui, lui,
+// affiche vraiment des fleches entre elements precis.
+model TheoryOfChangeNode {
+  id                  String                @id @default(cuid())
+  organizationId      String?
+  organization        PlatformOrganization? @relation("PlatformOrganizationTheoryOfChangeNodes", fields: [organizationId], references: [id])
+  projectId           String
+  project             Project               @relation(fields: [projectId], references: [id])
+  niveau              TheoryOfChangeLevel
+  titre               String
+  description         String?
+  hypotheses          String?
+  risques             String?
+  conditions          String?
+  indicateurs         String?
+  sourcesVerification String?
+  ordre               Int                   @default(0)
+  createdById         String
+  createdBy           User                  @relation("TheoryOfChangeNodeCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([projectId])
+}
+
+enum LogframeLevel {
+  IMPACT
+  OUTCOME
+  OUTPUT
+  ACTIVITES
+}
+
+// Cadre logique (Project Studio §12) — genere depuis TheoryOfChangeNode
+// (une ligne par noeud de niveau IMPACT/OUTCOME/OUTPUT/ACTIVITE, INPUT
+// exclu comme dans un cadre logique standard), puis copie independante et
+// editable (meme principe que ProjectConceptNote genere depuis ProjectIdea :
+// pas de synchronisation live avec la ToC apres generation).
+model LogframeRow {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationLogframeRows", fields: [organizationId], references: [id])
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id])
+  niveau         LogframeLevel
+  resultats      String?
+  indicateurs    String?
+  sources        String?
+  hypotheses     String?
+  ordre          Int                   @default(0)
+  createdById    String
+  createdBy      User                  @relation("LogframeRowCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([projectId])
+}
+
+// Project Studio §13 (Objectives Builder) — niveau de la chaine Objectif
+// general -> specifique -> Resultat, voir le champ `niveau` sur Objective.
+enum ObjectiveNiveau {
+  GENERAL
+  SPECIFIQUE
+  RESULTAT
 }

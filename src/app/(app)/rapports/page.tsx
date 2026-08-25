@@ -37,6 +37,8 @@ const DESCRIPTIONS: Record<ReportType, string> = {
   GOUVERNANCE: "Décisions de gouvernance, toutes instances confondues.",
   REVUE_HEBDOMADAIRE:
     "Weekly Business Review (§31) : activités, résultats, objectifs, projets, risques, incidents, décisions, CRM, performances et recommandations de la semaine.",
+  CHARTE_PROJET:
+    "Charte de projet — accessible depuis l'onglet Charte de chaque fiche projet (nécessite de choisir un projet).",
 };
 
 export default async function RapportsPage() {
@@ -58,7 +60,7 @@ export default async function RapportsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {REPORT_TYPES.map((type) => (
+        {REPORT_TYPES.filter((type) => type !== "CHARTE_PROJET").map((type) => (
           <Card key={type}>
             <CardHeader>
               <CardTitle className="text-base">{REPORT_LABELS[type]}</CardTitle>

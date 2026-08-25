@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus } from "@/lib/status-tone";
 import { SectionFormDialog } from "@/components/projects/section-form-dialog";
+import { SectionConversionButtons } from "@/components/projects/section-conversion-buttons";
 
 export type SectionNode = {
   id: string;
@@ -73,12 +74,15 @@ export function HierarchyTree({
                 {node.taskCount} tâche(s)
               </span>
             </div>
-            <SectionFormDialog
-              projectId={projectId}
-              parentId={node.id}
-              users={users}
-              triggerLabel="Ajouter un enfant"
-            />
+            <div className="flex items-center gap-1">
+              <SectionConversionButtons sectionId={node.id} />
+              <SectionFormDialog
+                projectId={projectId}
+                parentId={node.id}
+                users={users}
+                triggerLabel="Ajouter un enfant"
+              />
+            </div>
           </div>
           {node.children.length > 0 && (
             <div className="mt-2">

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { requireScopedPermission } from "@/lib/permissions-scoped";
@@ -26,8 +27,10 @@ import {
   addDependencySchema,
   updateActualTimeSchema,
   linkTaskExternalContactSchema,
+  convertSectionToTaskSchema,
   type CreateTaskInput,
   type LinkTaskExternalContactInput,
+  type ConvertSectionToTaskInput,
 } from "@/lib/validations/task.schema";
 
 async function requireSession() {
@@ -407,11 +410,11 @@ export async function toggleChecklistItem(itemId: string, isDone: boolean) {
   return item;
 }
 
-export async function addDependency(taskId: string, dependsOnTaskId: string) {
+export async function addDependency(taskId: string, dependsOnTaskId: string, type?: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
 
-  const data = addDependencySchema.parse({ taskId, dependsOnTaskId });
+  const data = addDependencySchema.parse({ taskId, dependsOnTaskId, type });
 
   if (data.taskId === data.dependsOnTaskId) {
     throw new Error("Une tâche ne peut pas dépendre d'elle-même.");
@@ -422,6 +425,7 @@ export async function addDependency(taskId: string, dependsOnTaskId: string) {
       data: {
         taskId: data.taskId,
         dependsOnTaskId: data.dependsOnTaskId,
+        type: data.type,
         organizationId: session.user.organizationId,
       },
     })
@@ -437,6 +441,44 @@ export async function addDependency(taskId: string, dependsOnTaskId: string) {
 
   revalidatePath(`/taches/${taskId}`);
   return dependency;
+}
+
+/** Convertit un noeud du WBS (ProjectSection) en tache (Project Studio §15). */
+export async function convertSectionToTask(input: ConvertSectionToTaskInput) {
+  const session = await requireSession();
+  const data = convertSectionToTaskSchema.parse(input);
+
+  const section = await prisma.projectSection.findUniqueOrThrow({ where: { id: data.sectionId } });
+  await requireScopedPermission(session.user.permissions, PERMISSIONS.TASK_CREATE, session.user.id, {
+    projectId: section.projectId,
+  });
+
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.create({
+      data: {
+        projectId: section.projectId,
+        sectionId: section.id,
+        titre: section.nom,
+        description: section.description,
+        responsablePrincipalId: section.responsableId ?? session.user.id,
+        dateDebut: section.dateDebut ?? undefined,
+        echeance: section.dateFin ?? undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "section.converted_to_task",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { sectionId: section.id },
+  });
+
+  revalidatePath(`/projets/${section.projectId}`);
+  return task;
 }
 
 export async function updateActualTime(taskId: string, tempsReelHeures: string) {

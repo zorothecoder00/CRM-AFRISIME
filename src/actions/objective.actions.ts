@@ -12,10 +12,12 @@ import {
   addIndicatorSchema,
   updateIndicatorValueSchema,
   linkObjectiveParentSchema,
+  updateObjectiveSmartSchema,
   type CreateObjectiveInput,
   type AddIndicatorInput,
   type UpdateIndicatorValueInput,
   type LinkObjectiveParentInput,
+  type UpdateObjectiveSmartInput,
 } from "@/lib/validations/objective.schema";
 
 async function requireSession() {
@@ -65,6 +67,7 @@ export async function createObjective(input: CreateObjectiveInput) {
       programmeId: data.scope === "PROGRAMME" ? data.programmeId : undefined,
       axisId: data.axisId || undefined,
       parentId: data.parentId || undefined,
+      niveau: data.niveau || undefined,
       createdById: session.user.id,
     },
   });
@@ -186,5 +189,36 @@ export async function linkObjectiveParent(input: LinkObjectiveParentInput) {
 
   revalidatePath(`/objectifs/${data.objectiveId}`);
   revalidatePath("/objectifs");
+  return objective;
+}
+
+/** Évaluation SMART (Project Studio §14) — un booléen par critère, voir computeSmartScore. */
+export async function updateObjectiveSmart(input: UpdateObjectiveSmartInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.OBJECTIVE_UPDATE);
+  const data = updateObjectiveSmartSchema.parse(input);
+
+  const objective = await prisma.objective.update({
+    where: { id: data.objectiveId },
+    data: {
+      smartSpecifique: data.smartSpecifique,
+      smartMesurable: data.smartMesurable,
+      smartAtteignable: data.smartAtteignable,
+      smartPertinent: data.smartPertinent,
+      smartTemporel: data.smartTemporel,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "objective.smart_updated",
+    entityType: "Objective",
+    entityId: objective.id,
+    changes: { ...data },
+  });
+
+  revalidatePath(`/objectifs/${data.objectiveId}`);
+  revalidatePath("/objectifs");
+  if (objective.projectId) revalidatePath(`/projets/${objective.projectId}`);
   return objective;
 }

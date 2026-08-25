@@ -45,8 +45,15 @@ import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/
 import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
 import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
 import { buildTree } from "@/lib/tree";
+import { TheoryOfChangeView, type TheoryOfChangeNodeData } from "@/components/projects/theory-of-change-view";
+import { LogframeView, type LogframeRowData } from "@/components/projects/logframe-view";
+import { ProjectObjectivesBuilder, type ObjectiveNodeData } from "@/components/projects/project-objectives-builder";
+import { checkObjectivesConsistency } from "@/lib/objectives-consistency";
+import { ProjectScopeForm } from "@/components/projects/project-scope-form";
+import { CriticalPathView } from "@/components/projects/critical-path-view";
+import { computeCriticalPath } from "@/lib/critical-path";
 import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
-import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-view";
+import { TaskGanttView, type GanttTaskRow, type GanttDependency } from "@/components/tasks/task-gantt-view";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
@@ -110,6 +117,10 @@ export default async function ProjectDetailPage({
     diagnostic,
     problemTree,
     solutionTree,
+    theoryOfChangeNodes,
+    logframeRows,
+    objectives,
+    taskDependencies,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -196,6 +207,14 @@ export default async function ProjectDetailPage({
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
     prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
     prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
+    prisma.theoryOfChangeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
+    prisma.logframeRow.findMany({ where: { projectId } }),
+    prisma.objective.findMany({
+      where: { projectId, niveau: { not: null } },
+      include: { children: true, deliverables: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.taskDependency.findMany({ where: { task: { projectId } }, select: { taskId: true, dependsOnTaskId: true, type: true } }),
   ]);
 
   if (!project) {
@@ -278,6 +297,8 @@ export default async function ProjectDetailPage({
   });
 
   const prediction = project.statut === "EN_COURS" ? await computeProjectPrediction(project.id) : null;
+
+  const objectivesConsistencyIssues = await checkObjectivesConsistency(project.id);
 
   const { upstream: projectDependsOn } = await getDependenciesFor("Project", project.id);
   const dependencyLabels = await resolveDependencyLabels(
@@ -452,6 +473,7 @@ export default async function ProjectDetailPage({
   }));
   const solutionTreeRoots = buildTree(solutionTreeFlat);
 
+  const taskTitreById = new Map(tasks.map((t) => [t.id, t.titre]));
   const resourceRows: ProjectResourceData[] = resources.map((r) => ({
     id: r.id,
     nom: r.nom,
@@ -459,7 +481,64 @@ export default async function ProjectDetailPage({
     quantite: r.quantite !== null ? Number(r.quantite) : null,
     unite: r.unite,
     coutUnitaire: r.coutUnitaire !== null ? Number(r.coutUnitaire) : null,
+    taskId: r.taskId,
+    taskTitre: r.taskId ? (taskTitreById.get(r.taskId) ?? null) : null,
   }));
+  const taskOptions = tasks.map((t) => ({ id: t.id, label: t.titre }));
+
+  const ganttDependencies: GanttDependency[] = taskDependencies.map((d) => ({
+    taskId: d.taskId,
+    dependsOnTaskId: d.dependsOnTaskId,
+    type: d.type,
+  }));
+
+  const theoryOfChangeData: TheoryOfChangeNodeData[] = theoryOfChangeNodes.map((n) => ({
+    id: n.id,
+    niveau: n.niveau,
+    titre: n.titre,
+    description: n.description,
+    hypotheses: n.hypotheses,
+    risques: n.risques,
+    conditions: n.conditions,
+    indicateurs: n.indicateurs,
+    sourcesVerification: n.sourcesVerification,
+  }));
+
+  const logframeData: LogframeRowData[] = logframeRows.map((r) => ({
+    id: r.id,
+    niveau: r.niveau,
+    resultats: r.resultats,
+    indicateurs: r.indicateurs,
+    sources: r.sources,
+    hypotheses: r.hypotheses,
+  }));
+
+  const objectiveNodes: ObjectiveNodeData[] = objectives.map((o) => ({
+    id: o.id,
+    titre: o.titre,
+    niveau: o.niveau!,
+    parentId: o.parentId,
+    statut: o.statut,
+    smartSpecifique: o.smartSpecifique,
+    smartMesurable: o.smartMesurable,
+    smartAtteignable: o.smartAtteignable,
+    smartPertinent: o.smartPertinent,
+    smartTemporel: o.smartTemporel,
+  }));
+  const objectiveTree = buildTree(objectiveNodes).filter((n) => n.niveau === "GENERAL");
+
+  const criticalPath = computeCriticalPath(
+    tasks.map((t) => ({
+      id: t.id,
+      titre: t.titre,
+      dateDebut: t.dateDebut,
+      echeance: t.echeance,
+      tempsEstimeHeures: t.tempsEstimeHeures !== null ? Number(t.tempsEstimeHeures) : null,
+    })),
+    taskDependencies
+  );
+  const tasksWithDateDebut = tasks.filter((t) => t.dateDebut).map((t) => t.dateDebut!.getTime());
+  const criticalPathAnchor = tasksWithDateDebut.length > 0 ? new Date(Math.min(...tasksWithDateDebut)).toISOString() : null;
 
   const milestoneRows: MilestoneRow[] = milestones.map((m) => ({
     id: m.id,
@@ -573,6 +652,12 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
           <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
           <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
+          <TabsTrigger value="theorie-changement">Théorie du changement</TabsTrigger>
+          <TabsTrigger value="cadre-logique">Cadre logique</TabsTrigger>
+          <TabsTrigger value="objectifs-builder">Objectifs</TabsTrigger>
+          <TabsTrigger value="scope">Périmètre</TabsTrigger>
+          <TabsTrigger value="charte">Charte</TabsTrigger>
+          <TabsTrigger value="chemin-critique">Chemin critique</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
@@ -729,7 +814,7 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="gantt" className="mt-4">
-          <TaskGanttView tasks={ganttRows} />
+          <TaskGanttView tasks={ganttRows} dependencies={ganttDependencies} />
         </TabsContent>
 
         <TabsContent value="jalons" className="mt-4">
@@ -773,7 +858,7 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="ressources" className="mt-4">
-          <ProjectResourcesSection projectId={project.id} resources={resourceRows} devise={devise} />
+          <ProjectResourcesSection projectId={project.id} resources={resourceRows} tasks={taskOptions} devise={devise} />
         </TabsContent>
 
         <TabsContent value="financement" className="mt-4">
@@ -803,6 +888,104 @@ export default async function ProjectDetailPage({
             nodes={solutionTreeRoots}
             hasProblemTree={problemTree.length > 0}
             canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="theorie-changement" className="mt-4">
+          <TheoryOfChangeView projectId={project.id} nodes={theoryOfChangeData} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="cadre-logique" className="mt-4">
+          <LogframeView
+            projectId={project.id}
+            rows={logframeData}
+            hasTheoryOfChange={theoryOfChangeData.length > 0}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="objectifs-builder" className="mt-4">
+          <ProjectObjectivesBuilder
+            projectId={project.id}
+            tree={objectiveTree}
+            issues={objectivesConsistencyIssues}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="scope" className="mt-4">
+          <ProjectScopeForm
+            projectId={project.id}
+            scope={{
+              perimetreInclus: project.perimetreInclus,
+              perimetreExclus: project.perimetreExclus,
+              contraintes: project.contraintes,
+              limites: project.limites,
+              criteresReussite: project.criteresReussite,
+              gouvernance: project.gouvernance,
+            }}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="charte" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Charte générée à partir des informations déjà renseignées sur ce projet (aperçu, périmètre, livrables,
+              risques, parties prenantes).
+            </p>
+            <a href={`/api/rapports/CHARTE_PROJET?format=pdf&targetId=${project.id}`} target="_blank" rel="noreferrer">
+              <Button size="sm" variant="outline">
+                Télécharger en PDF
+              </Button>
+            </a>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Informations générales</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm md:grid-cols-2">
+              <Info label="Sponsor" value={project.sponsor?.name || "—"} />
+              <Info label="Chef de projet" value={project.responsable.name} />
+              <Info label="Objectif" value={project.objectif || "—"} />
+              <Info label="Budget" value={project.budget ? `${project.budget} ${devise}` : "—"} />
+              <Info
+                label="Calendrier"
+                value={`${project.dateDebut ? new Date(project.dateDebut).toLocaleDateString("fr-FR") : "—"} → ${project.dateFin ? new Date(project.dateFin).toLocaleDateString("fr-FR") : "—"}`}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Périmètre</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm md:grid-cols-2">
+              <Info label="Inclus" value={project.perimetreInclus || "—"} />
+              <Info label="Exclu" value={project.perimetreExclus || "—"} />
+              <Info label="Contraintes" value={project.contraintes || "—"} />
+              <Info label="Limites" value={project.limites || "—"} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Gouvernance & critères de réussite</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm md:grid-cols-2">
+              <Info label="Gouvernance" value={project.gouvernance || "—"} />
+              <Info label="Critères de réussite" value={project.criteresReussite || "—"} />
+            </CardContent>
+          </Card>
+          <p className="text-xs text-muted-foreground">
+            Livrables, risques majeurs et parties prenantes détaillés dans les onglets dédiés — repris dans le PDF.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="chemin-critique" className="mt-4">
+          <CriticalPathView
+            results={criticalPath?.tasks ?? null}
+            projectEndDays={criticalPath?.projectEndDays ?? null}
+            anchorDate={criticalPathAnchor}
+            projectDateFin={project.dateFin ? project.dateFin.toISOString() : null}
           />
         </TabsContent>
 

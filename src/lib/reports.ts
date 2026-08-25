@@ -24,12 +24,16 @@ export const REPORT_TYPES = [
   "GOUVERNANCE",
   // V2.2 §31 — Weekly Business Review IA (agrégation, pas de génération LLM).
   "REVUE_HEBDOMADAIRE",
+  // Project Studio §16 — Project Charter genere depuis les donnees deja
+  // presentes sur le Project (sponsor, budget, risques, parties prenantes...).
+  "CHARTE_PROJET",
 ] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
-// Types necessitant un parametre targetId (identifiant de Department) en
-// plus du type — les autres l'ignorent silencieusement.
-export const REPORT_TYPES_REQUIRING_TARGET: ReportType[] = ["DEPARTEMENT", "DIRECTION"];
+// Types necessitant un parametre targetId (identifiant de Department, ou de
+// Project pour CHARTE_PROJET) en plus du type — les autres l'ignorent
+// silencieusement.
+export const REPORT_TYPES_REQUIRING_TARGET: ReportType[] = ["DEPARTEMENT", "DIRECTION", "CHARTE_PROJET"];
 
 export const REPORT_LABELS: Record<ReportType, string> = {
   PROJETS: "Rapport des projets",
@@ -50,6 +54,7 @@ export const REPORT_LABELS: Record<ReportType, string> = {
   RISQUES: "Rapport de risques",
   GOUVERNANCE: "Rapport de gouvernance",
   REVUE_HEBDOMADAIRE: "Weekly Business Review",
+  CHARTE_PROJET: "Charte de projet",
 };
 
 export type ReportColumn = { key: string; label: string };
@@ -76,6 +81,104 @@ export type ReportDocument = {
 
 function singleSection(title: string, generatedAt: Date, columns: ReportColumn[], rows: Record<string, string>[]): ReportDocument {
   return { title, generatedAt, sections: [{ heading: title, columns, rows }] };
+}
+
+/**
+ * Charte de projet (Project Studio §16) — agrege des donnees deja presentes
+ * ailleurs sur le Project (sponsor, budget, calendrier, perimetre, risques,
+ * parties prenantes) plutot que de dupliquer un formulaire de saisie : les
+ * seuls champs propres a la charte (perimetre/criteres/gouvernance) vivent
+ * sur Project, edites via Scope Management (§17).
+ */
+async function getProjectCharterReport(generatedAt: Date, projectId: string): Promise<ReportDocument> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      responsable: true,
+      sponsor: true,
+      department: true,
+      risks: { where: { impact: { in: ["MOYEN", "ELEVE"] } } },
+      stakeholders: { include: { stakeholder: true } },
+      deliverables: true,
+    },
+  });
+
+  if (!project) {
+    return { title: REPORT_LABELS.CHARTE_PROJET, generatedAt, sections: [{ heading: "Projet introuvable", columns: [], rows: [] }] };
+  }
+
+  return {
+    title: `${REPORT_LABELS.CHARTE_PROJET} — ${project.nom}`,
+    generatedAt,
+    sections: [
+      {
+        heading: "Informations générales",
+        columns: [],
+        rows: [],
+        note: [
+          `Sponsor : ${project.sponsor?.name ?? "—"}`,
+          `Chef de projet : ${project.responsable.name}`,
+          `Département : ${project.department.name}`,
+          `Objectif : ${project.objectif ?? "—"}`,
+          `Budget : ${project.budget ? Number(project.budget).toLocaleString("fr-FR") : "—"}`,
+          `Calendrier : ${project.dateDebut?.toLocaleDateString("fr-FR") ?? "—"} → ${project.dateFin?.toLocaleDateString("fr-FR") ?? "—"}`,
+        ].join("\n"),
+      },
+      {
+        heading: "Périmètre",
+        columns: [],
+        rows: [],
+        note: [
+          `Inclus : ${project.perimetreInclus ?? "—"}`,
+          `Exclu : ${project.perimetreExclus ?? "—"}`,
+          `Contraintes : ${project.contraintes ?? "—"}`,
+          `Limites : ${project.limites ?? "—"}`,
+        ].join("\n"),
+      },
+      {
+        heading: "Livrables",
+        columns: [
+          { key: "nom", label: "Livrable" },
+          { key: "statut", label: "Statut" },
+          { key: "echeance", label: "Échéance" },
+        ],
+        rows: project.deliverables.map((d) => ({
+          nom: d.nom,
+          statut: d.statut,
+          echeance: d.echeance ? d.echeance.toLocaleDateString("fr-FR") : "—",
+        })),
+      },
+      {
+        heading: "Gouvernance",
+        columns: [],
+        rows: [],
+        note: project.gouvernance ?? "—",
+      },
+      {
+        heading: "Risques majeurs",
+        columns: [
+          { key: "titre", label: "Risque" },
+          { key: "probabilite", label: "Probabilité" },
+          { key: "impact", label: "Impact" },
+        ],
+        rows: project.risks.map((r) => ({ titre: r.titre, probabilite: r.probabilite, impact: r.impact })),
+      },
+      {
+        heading: "Parties prenantes",
+        columns: [
+          { key: "nom", label: "Nom" },
+          { key: "role", label: "Rôle" },
+        ],
+        rows: project.stakeholders.map((s) => ({ nom: s.stakeholder.nom, role: s.role ?? "—" })),
+      },
+      {
+        heading: "Critères de réussite",
+        columns: [],
+        rows: [],
+        note: project.criteresReussite ?? "—",
+      },
+    ],
+  };
 }
 
 async function getDepartmentScopedReport(title: string, generatedAt: Date, departmentId: string): Promise<ReportDocument> {
@@ -493,6 +596,13 @@ export async function getReportData(type: ReportType, params: { targetId?: strin
         entite: e.entityType,
       }))
     );
+  }
+
+  if (type === "CHARTE_PROJET") {
+    if (!params.targetId) {
+      return { title: REPORT_LABELS[type], generatedAt, sections: [{ heading: "Aucun projet sélectionné", columns: [], rows: [] }] };
+    }
+    return getProjectCharterReport(generatedAt, params.targetId);
   }
 
   if (type === "DEPARTEMENT" || type === "DIRECTION") {
