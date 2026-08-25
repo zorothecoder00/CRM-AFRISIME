@@ -143,6 +143,7 @@ export default async function MeetingDetailPage({
                 id: d.id,
                 description: d.description,
                 motif: d.motif,
+                impact: d.impact,
                 statut: d.statut,
                 responsableName: d.responsable?.name ?? null,
                 echeance: d.echeance ? d.echeance.toISOString() : null,
