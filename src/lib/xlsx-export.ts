@@ -224,7 +224,7 @@ export async function exportToXlsx<T extends Record<string, any>>(
   if (rows.length === 0) return;
   const { sheetName = "Export" } = options;
   const wb = new ExcelJS.Workbook();
-  wb.creator = "AfriFlow";
+  wb.creator = "AfriSime Work-Space";
   wb.created = new Date();
   const ws = wb.addWorksheet(sheetName);
   writeObjectSheet(ws, rows, columns, options);
@@ -247,7 +247,7 @@ export async function exportRowsToXlsx(
   if (rows.length === 0) return;
   const { sheetName = "Export" } = options;
   const wb = new ExcelJS.Workbook();
-  wb.creator = "AfriFlow";
+  wb.creator = "AfriSime Work-Space";
   wb.created = new Date();
   const ws = wb.addWorksheet(sheetName);
   writeMatrixSheet(ws, rows, options);
@@ -273,7 +273,7 @@ export async function exportMultiSheetXlsx(
   const utiles = sheets.filter((s) => s.rows.length > 0);
   if (utiles.length === 0) return;
   const wb = new ExcelJS.Workbook();
-  wb.creator = "AfriFlow";
+  wb.creator = "AfriSime Work-Space";
   wb.created = new Date();
   for (const sheet of utiles) {
     const ws = wb.addWorksheet(sheet.sheetName.slice(0, 31));

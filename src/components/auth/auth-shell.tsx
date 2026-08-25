@@ -1,4 +1,4 @@
-import { Workflow } from "lucide-react";
+import Image from "next/image";
 
 /**
  * Habillage partagé des pages d'authentification (login, mot de passe
@@ -20,10 +20,8 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="pointer-events-none absolute right-0 -bottom-16 h-80 w-80 translate-x-1/4 rounded-full bg-[#fab219]/20 blur-3xl" />
 
         <div className="relative flex items-center gap-2.5 text-lg font-semibold">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
-            <Workflow className="h-5 w-5" />
-          </div>
-          AfriFlow
+          <Image src="/logo.png" alt="AfriSime Work-Space" width={72} height={48} className="h-12 w-auto" priority />
+          AfriSime Work-Space
         </div>
 
         <div className="relative space-y-4">
@@ -39,20 +37,15 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <p className="relative text-sm text-white/50">
-          AfriSime Work-Flow — {new Date().getFullYear()}
+          AfriSime Work-Space — {new Date().getFullYear()}
         </p>
       </div>
 
       <div className="flex flex-1 items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="show-mobile-lg items-center gap-2.5 text-lg font-semibold">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-              style={{ backgroundColor: "#2a78d6" }}
-            >
-              <Workflow className="h-5 w-5" />
-            </div>
-            AfriFlow
+            <Image src="/logo.png" alt="AfriSime Work-Space" width={72} height={48} className="h-12 w-auto" />
+            AfriSime Work-Space
           </div>
           {children}
         </div>

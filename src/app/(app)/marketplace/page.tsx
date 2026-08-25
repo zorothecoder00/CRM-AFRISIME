@@ -46,9 +46,9 @@ export default async function MarketplacePage() {
       <div className="flex items-center gap-2">
         <Store className="size-6" />
         <div>
-          <h1 className="text-2xl font-semibold">Marketplace — Work-Flow Apps</h1>
+          <h1 className="text-2xl font-semibold">Marketplace — AfriSime Work-Space Apps</h1>
           <p className="text-sm text-muted-foreground">
-            Applications prévues pour étendre AfriSime Work-Flow à d&apos;autres métiers. Aucune n&apos;est encore
+            Applications prévues pour étendre AfriSime Work-Space à d&apos;autres métiers. Aucune n&apos;est encore
             installable — ce catalogue prépare l&apos;architecture.
           </p>
         </div>

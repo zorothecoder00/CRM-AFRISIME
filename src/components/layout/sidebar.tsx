@@ -1,14 +1,15 @@
-import { Workflow } from "lucide-react";
+import Image from "next/image";
 import { SidebarNav } from "./sidebar-nav";
 
 export function Sidebar({ permissions, roleKey }: { permissions: string[]; roleKey?: string }) {
   return (
     <aside className="show-desktop w-64 flex-col border-r bg-sidebar">
-      <div className="flex h-14 items-center gap-2.5 border-b px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm shadow-primary/30">
-          <Workflow className="h-4 w-4" />
-        </div>
-        <span className="text-lg font-semibold">AfriFlow</span>
+      <div className="flex h-16 items-center border-b px-4">
+        {/* Le logo contient deja le nom complet ("AfriSime Work Space") — pas
+            de libelle texte a cote : les deux se disputaient la largeur
+            reduite de la sidebar (w-64) et forcaient le texte sur deux
+            lignes. Un seul element, plus grand, lisible sur une ligne. */}
+        <Image src="/logo.png" alt="AfriSime Work-Space" width={168} height={112} className="h-12 w-auto" priority />
       </div>
       <SidebarNav permissions={permissions} roleKey={roleKey} />
     </aside>

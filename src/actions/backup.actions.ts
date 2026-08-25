@@ -18,7 +18,7 @@ export async function importBackup(jsonText: string): Promise<ImportResult> {
     throw new Error("Fichier invalide : JSON illisible.");
   }
   if (typeof payload.version !== "number" || !payload.tables) {
-    throw new Error("Fichier invalide : ce n'est pas une sauvegarde AfriFlow.");
+    throw new Error("Fichier invalide : ce n'est pas une sauvegarde AfriSime Work-Space.");
   }
 
   const results = await importBackupData(payload);

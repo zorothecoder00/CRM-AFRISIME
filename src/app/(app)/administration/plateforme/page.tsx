@@ -45,14 +45,14 @@ export default async function PlateformePage() {
         <PlatformOrganizationFormDialog />
       </div>
 
-      {/* Open Ecosystem (cahier des charges V3.0 §49) — Work-Flow Core + API +
-          Apps + AI Agents + Integrations + External Portals = Work-Flow
+      {/* Open Ecosystem (cahier des charges V3.0 §49) — Work-Space Core + API +
+          Apps + AI Agents + Integrations + External Portals = Work-Space
           Ecosystem. Statut agrégé plutôt qu'un nouveau schéma : chaque couche
           existe déjà (marketplace §33 v2.2, clés API §34 v2.2, agents IA
           §16, intégrations §21, portails §16-20 v2.2). */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Écosystème Work-Flow</CardTitle>
+          <CardTitle className="text-base">Écosystème AfriSime Work-Space</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <div className="space-y-1">

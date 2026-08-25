@@ -7,8 +7,8 @@ import type { MetadataRoute } from "next";
 // haute résolution est fourni.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AfriFlow — AfriSime Work-Flow",
-    short_name: "AfriFlow",
+    name: "AfriSime Work-Space",
+    short_name: "AfriSime",
     description: "Plateforme collaborative de gestion des projets, des tâches et de la performance.",
     start_url: "/dashboard",
     display: "standalone",

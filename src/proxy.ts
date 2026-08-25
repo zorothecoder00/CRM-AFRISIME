@@ -43,6 +43,12 @@ export const config = {
   // manifest.webmanifest exclu (V3.0 §43) : un navigateur peut le requêter
   // avant toute connexion (éligibilité "Ajouter à l'écran d'accueil") — le
   // laisser passer par la garde d'authentification le redirigeait vers
-  // /login au lieu de servir le JSON attendu.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest).*)"],
+  // /login au lieu de servir le JSON attendu. Meme probleme decouvert pour
+  // les fichiers statiques de /public (ex. logo.png affiche sur l'ecran de
+  // connexion lui-meme) : la regle `.*\..*` exclut tout chemin contenant un
+  // point (donc toute extension de fichier), motif standard recommande par
+  // Next.js pour ce cas — favicon.ico/manifest.webmanifest restent cites
+  // explicitement pour la documentation, meme si desormais couverts aussi
+  // par cette regle.
+  matcher: ["/((?!api|_next/static|_next/image|.*\\..*|favicon.ico|manifest.webmanifest).*)"],
 };

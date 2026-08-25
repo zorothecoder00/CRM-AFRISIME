@@ -1,4 +1,4 @@
-// AfriFlow (AfriSime Work-Flow) — schéma
+// AfriSime Work-Space — schéma
 // Domaines couverts : Auth/Rôles/Permissions (+ dérogations scopées
 // département/projet via PermissionOverride), Départements, Projets
 // (hiérarchie Phase/Sous-phase/Lot, chaque niveau avec responsable/
@@ -370,8 +370,8 @@ model OrchestrationPlaybook {
 //
 // AFRIGES RESTE LE SYSTÈME OPÉRATIONNEL (cahier des charges V3.0 §55,
 // règle fondamentale) — AfriGes est l'ERP opérationnel de l'organisation
-// (ventes, achats, stock, comptabilité, crédit, opérations) ; AfriFlow/
-// Work-Flow (CE projet) est le système d'exploitation ORGANISATIONNEL
+// (ventes, achats, stock, comptabilité, crédit, opérations) ; AfriSime
+// Work-Space (CE projet) est le système d'exploitation ORGANISATIONNEL
 // (stratégie, CRM, projets, collaboration, gouvernance, processus,
 // intelligence, IA, simulation, performance) — les deux communiquent
 // UNIQUEMENT via cette couche d'intégration (IntegrationType.AFRIGES ici,

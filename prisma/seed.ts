@@ -39,7 +39,7 @@ const DEMO_PASSWORD = "Password123!";
 const DEMO_MFA_SECRET = "JBSWY3DPEHPK3PXP";
 
 async function main() {
-  console.log("Seed AfriFlow — démarrage...");
+  console.log("Seed AfriSime Work-Space — démarrage...");
 
   // Départements
   const [directionGenerale, departementIT, departementCommercial] =
@@ -779,9 +779,11 @@ async function main() {
     ],
   });
 
-  // Catalogue Work-Flow Apps (V2.2 §33 — "préparer une architecture") : les
-  // 10 apps citées par le cahier des charges, toutes PLANIFIE par défaut —
-  // aucune n'est réellement installable dans cette version.
+  // Catalogue AfriSime Work-Space Apps (V2.2 §33 — "préparer une architecture") :
+  // les 10 apps citées par le cahier des charges, toutes PLANIFIE par défaut —
+  // aucune n'est réellement installable dans cette version. Noms "Work-Flow
+  // X" laissés tels quels : citation littérale du cahier des charges, pas le
+  // nom de l'application elle-même (renommée AfriSime Work-Space).
   const APP_CATALOG: { nom: string; categorie: string; description: string }[] = [
     { nom: "Work-Flow RH", categorie: "RH", description: "Gestion RH — recrutement, congés, évaluations." },
     { nom: "Work-Flow Juridique", categorie: "JURIDIQUE", description: "Suivi contractuel et contentieux." },

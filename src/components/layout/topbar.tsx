@@ -41,7 +41,7 @@ export function Topbar({
     .toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
+    <header className="flex h-16 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
       <div className="flex items-center gap-2">
         <MobileSidebar permissions={permissions} roleKey={roleKey} />
         <div className="show-from-lg text-sm text-muted-foreground">

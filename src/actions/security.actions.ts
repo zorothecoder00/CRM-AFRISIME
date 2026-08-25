@@ -26,7 +26,7 @@ function generateBackupCodes(count = 8): string[] {
 export async function initiateMfaSetup() {
   const session = await requireSession();
   const secret = authenticator.generateSecret();
-  const uri = authenticator.keyuri(session.user.email ?? session.user.id, "AfriFlow", secret);
+  const uri = authenticator.keyuri(session.user.email ?? session.user.id, "AfriSime Work-Space", secret);
   const qrCodeDataUrl = await QRCode.toDataURL(uri);
   return { secret, qrCodeDataUrl };
 }
