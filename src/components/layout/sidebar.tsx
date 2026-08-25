@@ -3,7 +3,7 @@ import { SidebarNav } from "./sidebar-nav";
 
 export function Sidebar({ permissions, roleKey }: { permissions: string[]; roleKey?: string }) {
   return (
-    <aside className="show-desktop w-64 flex-col border-r bg-sidebar">
+    <aside className="show-desktop w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="flex flex-col items-center gap-1 border-b px-4 py-3">
         {/* Logo et nom empiles verticalement plutot que cote a cote : la
             largeur reduite de la sidebar (w-64) ne laisse pas la place pour

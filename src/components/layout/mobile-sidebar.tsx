@@ -17,7 +17,7 @@ export function MobileSidebar({ permissions, roleKey }: { permissions: string[];
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" showCloseButton={false} aria-describedby={undefined}>
+      <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
         <SheetHeader className="flex flex-col items-center gap-1 border-b px-4 py-3">
           {/* Meme choix que sidebar.tsx : logo et nom empiles verticalement
               plutot que cote a cote, pour un grand logo lisible sans repasser

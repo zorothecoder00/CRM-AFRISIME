@@ -31,7 +31,7 @@ export function SidebarNav({
       return (
         <div
           key={item.href}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/50"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/30"
           title={t("moduleAVenir")}
         >
           <Icon className="h-4 w-4" />
@@ -46,10 +46,10 @@ export function SidebarNav({
         href={item.href}
         onClick={onNavigate}
         className={cn(
-          "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
           isActive
-            ? "bg-primary/10 text-primary before:absolute before:top-1/2 before:left-0 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-primary"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         )}
       >
         <Icon className="h-4 w-4" />
@@ -62,7 +62,7 @@ export function SidebarNav({
     <nav className={cn("flex-1 space-y-5 overflow-y-auto p-3", className)}>
       {contextualItems.length > 0 && (
         <div className="space-y-1">
-          <div className="px-3 text-xs font-semibold tracking-wide text-primary/80 uppercase">{t("pourVous")}</div>
+          <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{t("pourVous")}</div>
           {contextualItems.map(renderItem)}
         </div>
       )}
@@ -72,7 +72,7 @@ export function SidebarNav({
 
         return (
           <div key={group.labelKey} className="space-y-1">
-            <div className="px-3 text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase">
+            <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-foreground/50 uppercase">
               {t(`groups.${group.labelKey}`)}
             </div>
             {items.map(renderItem)}
