@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Multi-tenant Phase 3 (V3.0 §27, preuve de concept — voir migration
@@ -35,4 +36,35 @@ export async function withTenantScope<T>(
   } finally {
     await client.$disconnect();
   }
+}
+
+/**
+ * Multi-tenant Phase 2 (2026-08-20, premier rollout applicatif) — variante de
+ * withTenantScope pensee pour les server actions : prend directement
+ * l'organizationId de la session NextAuth (session.user.organizationId) et
+ * lit la connexion scopee depuis DATABASE_URL_TENANT_SCOPED (role Postgres
+ * non-proprietaire, voir scripts/setup-production-tenant-role.ts et
+ * scripts/setup-local-rls-test-role.ts en local).
+ *
+ * Repli explicite si organizationId est absent (compte cree avant le
+ * rattachement ecrit par les actions, ou avant le backfill initial) :
+ * utilise le client Prisma non scope habituel plutot que d'echouer — aucune
+ * regression pour ce cas, mais AUCUNE isolation non plus pour cet appel
+ * precis. `prisma` (PrismaClient) est structurellement compatible avec
+ * Prisma.TransactionClient (memes delegates de modele) ; le cast est sur.
+ */
+export async function withTenantScopedSession<T>(
+  organizationId: string | null | undefined,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  if (!organizationId) {
+    return fn(prisma as unknown as Prisma.TransactionClient);
+  }
+  const connectionString = process.env.DATABASE_URL_TENANT_SCOPED;
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_URL_TENANT_SCOPED non configuré — isolation multi-tenant indisponible pour cette action."
+    );
+  }
+  return withTenantScope(connectionString, organizationId, fn);
 }

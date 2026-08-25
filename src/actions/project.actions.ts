@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { runProjectStatusChangedRules, runProjectRiskCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
@@ -59,26 +59,29 @@ export async function createProject(input: CreateProjectInput) {
 
   const data = createProjectSchema.parse(input);
 
-  const project = await prisma.project.create({
-    data: {
-      nom: data.nom,
-      description: data.description,
-      objectif: data.objectif,
-      responsableId: data.responsableId,
-      departmentId: data.departmentId,
-      priorite: data.priorite,
-      dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
-      dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
-      budget: data.budget ? Number(data.budget) : undefined,
-      localisation: data.localisation,
-      latitude: data.latitude ? Number(data.latitude) : undefined,
-      longitude: data.longitude ? Number(data.longitude) : undefined,
-      createdById: session.user.id,
-      members: {
-        create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET" }],
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.create({
+      data: {
+        nom: data.nom,
+        description: data.description,
+        objectif: data.objectif,
+        responsableId: data.responsableId,
+        departmentId: data.departmentId,
+        priorite: data.priorite,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
+        dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
+        budget: data.budget ? Number(data.budget) : undefined,
+        localisation: data.localisation,
+        latitude: data.latitude ? Number(data.latitude) : undefined,
+        longitude: data.longitude ? Number(data.longitude) : undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+        members: {
+          create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET", organizationId: session.user.organizationId }],
+        },
       },
-    },
-  });
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -99,17 +102,20 @@ export async function createSection(input: CreateSectionInput) {
 
   const data = createSectionSchema.parse(input);
 
-  const section = await prisma.projectSection.create({
-    data: {
-      projectId: data.projectId,
-      parentId: data.parentId || undefined,
-      type: data.type,
-      nom: data.nom,
-      responsableId: data.responsableId || undefined,
-      dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
-      dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
-    },
-  });
+  const section = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectSection.create({
+      data: {
+        projectId: data.projectId,
+        parentId: data.parentId || undefined,
+        type: data.type,
+        nom: data.nom,
+        responsableId: data.responsableId || undefined,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
+        dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -131,13 +137,22 @@ export async function addSectionComment(input: AddSectionCommentInput) {
 
   const data = addSectionCommentSchema.parse(input);
 
-  const section = await prisma.projectSection.findUniqueOrThrow({
-    where: { id: data.sectionId },
-    select: { projectId: true },
-  });
+  const { section, comment } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const section = await tx.projectSection.findUniqueOrThrow({
+      where: { id: data.sectionId },
+      select: { projectId: true },
+    });
 
-  const comment = await prisma.sectionComment.create({
-    data: { sectionId: data.sectionId, content: data.content, authorId: session.user.id },
+    const comment = await tx.sectionComment.create({
+      data: {
+        sectionId: data.sectionId,
+        content: data.content,
+        authorId: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    });
+
+    return { section, comment };
   });
 
   await logAudit({
@@ -159,10 +174,12 @@ export async function updateProjectCoutReel(input: UpdateProjectCoutReelInput) {
 
   const data = updateProjectCoutReelSchema.parse(input);
 
-  const project = await prisma.project.update({
-    where: { id: data.projectId },
-    data: { coutReel: Number(data.coutReel) },
-  });
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: { coutReel: Number(data.coutReel) },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -184,10 +201,12 @@ export async function updateProjectStatus(projectId: string, statut: string) {
 
   const data = updateProjectStatusSchema.parse({ projectId, statut });
 
-  const project = await prisma.project.update({
-    where: { id: data.projectId },
-    data: { statut: data.statut },
-  });
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: { statut: data.statut },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -216,10 +235,12 @@ export async function updateProjectSponsor(input: UpdateProjectSponsorInput) {
 
   const data = updateProjectSponsorSchema.parse(input);
 
-  const project = await prisma.project.update({
-    where: { id: data.projectId },
-    data: { sponsorId: data.sponsorId || null },
-  });
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: { sponsorId: data.sponsorId || null },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -240,14 +261,16 @@ export async function updateProjectLocation(input: UpdateProjectLocationInput) {
 
   const data = updateProjectLocationSchema.parse(input);
 
-  const project = await prisma.project.update({
-    where: { id: data.projectId },
-    data: {
-      localisation: data.localisation || null,
-      latitude: data.latitude ? Number(data.latitude) : null,
-      longitude: data.longitude ? Number(data.longitude) : null,
-    },
-  });
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: {
+        localisation: data.localisation || null,
+        latitude: data.latitude ? Number(data.latitude) : null,
+        longitude: data.longitude ? Number(data.longitude) : null,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -271,18 +294,21 @@ export async function createProjectRisk(input: CreateProjectRiskInput) {
 
   const data = createProjectRiskSchema.parse(input);
 
-  const risk = await prisma.projectRisk.create({
-    data: {
-      projectId: data.projectId,
-      titre: data.titre,
-      description: data.description,
-      probabilite: data.probabilite,
-      impact: data.impact,
-      planMitigation: data.planMitigation,
-      responsableId: data.responsableId || undefined,
-      createdById: session.user.id,
-    },
-  });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectRisk.create({
+      data: {
+        projectId: data.projectId,
+        titre: data.titre,
+        description: data.description,
+        probabilite: data.probabilite,
+        impact: data.impact,
+        planMitigation: data.planMitigation,
+        responsableId: data.responsableId || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -312,10 +338,12 @@ export async function updateProjectRiskStatus(input: UpdateProjectRiskStatusInpu
 
   const data = updateProjectRiskStatusSchema.parse(input);
 
-  const risk = await prisma.projectRisk.update({
-    where: { id: data.riskId },
-    data: { statut: data.statut },
-  });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectRisk.update({
+      where: { id: data.riskId },
+      data: { statut: data.statut },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -336,7 +364,9 @@ export async function deleteProjectRisk(input: DeleteProjectRiskInput) {
 
   const data = deleteProjectRiskSchema.parse(input);
 
-  const risk = await prisma.projectRisk.delete({ where: { id: data.riskId } });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectRisk.delete({ where: { id: data.riskId } })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -359,14 +389,17 @@ export async function createProjectMilestone(input: CreateProjectMilestoneInput)
 
   const data = createProjectMilestoneSchema.parse(input);
 
-  const milestone = await prisma.projectMilestone.create({
-    data: {
-      projectId: data.projectId,
-      nom: data.nom,
-      description: data.description,
-      dateCible: new Date(data.dateCible),
-    },
-  });
+  const milestone = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMilestone.create({
+      data: {
+        projectId: data.projectId,
+        nom: data.nom,
+        description: data.description,
+        dateCible: new Date(data.dateCible),
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -387,10 +420,12 @@ export async function updateProjectMilestoneStatus(input: UpdateProjectMilestone
 
   const data = updateProjectMilestoneStatusSchema.parse(input);
 
-  const milestone = await prisma.projectMilestone.update({
-    where: { id: data.milestoneId },
-    data: { statut: data.statut },
-  });
+  const milestone = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMilestone.update({
+      where: { id: data.milestoneId },
+      data: { statut: data.statut },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -411,7 +446,9 @@ export async function deleteProjectMilestone(input: DeleteProjectMilestoneInput)
 
   const data = deleteProjectMilestoneSchema.parse(input);
 
-  const milestone = await prisma.projectMilestone.delete({ where: { id: data.milestoneId } });
+  const milestone = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMilestone.delete({ where: { id: data.milestoneId } })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -434,16 +471,19 @@ export async function createProjectDeliverable(input: CreateProjectDeliverableIn
 
   const data = createProjectDeliverableSchema.parse(input);
 
-  const deliverable = await prisma.projectDeliverable.create({
-    data: {
-      projectId: data.projectId,
-      nom: data.nom,
-      description: data.description,
-      echeance: data.echeance ? new Date(data.echeance) : undefined,
-      responsableId: data.responsableId || undefined,
-      createdById: session.user.id,
-    },
-  });
+  const deliverable = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectDeliverable.create({
+      data: {
+        projectId: data.projectId,
+        nom: data.nom,
+        description: data.description,
+        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        responsableId: data.responsableId || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -464,10 +504,12 @@ export async function updateProjectDeliverableStatus(input: UpdateProjectDeliver
 
   const data = updateProjectDeliverableStatusSchema.parse(input);
 
-  const deliverable = await prisma.projectDeliverable.update({
-    where: { id: data.deliverableId },
-    data: { statut: data.statut },
-  });
+  const deliverable = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectDeliverable.update({
+      where: { id: data.deliverableId },
+      data: { statut: data.statut },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -488,7 +530,9 @@ export async function deleteProjectDeliverable(input: DeleteProjectDeliverableIn
 
   const data = deleteProjectDeliverableSchema.parse(input);
 
-  const deliverable = await prisma.projectDeliverable.delete({ where: { id: data.deliverableId } });
+  const deliverable = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectDeliverable.delete({ where: { id: data.deliverableId } })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -512,28 +556,34 @@ export async function createProjectDecision(input: CreateProjectDecisionInput) {
 
   const data = createProjectDecisionSchema.parse(input);
 
-  const task = await prisma.task.create({
-    data: {
-      projectId: data.projectId,
-      titre: data.description,
-      statut: "A_FAIRE",
-      priorite: "MOYENNE",
-      echeance: data.echeance ? new Date(data.echeance) : undefined,
-      responsablePrincipalId: data.responsableId,
-      createdById: session.user.id,
-      creeParWorkflow: true,
-    },
-  });
+  const { task, decision } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const task = await tx.task.create({
+      data: {
+        projectId: data.projectId,
+        titre: data.description,
+        statut: "A_FAIRE",
+        priorite: "MOYENNE",
+        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        responsablePrincipalId: data.responsableId,
+        createdById: session.user.id,
+        creeParWorkflow: true,
+        organizationId: session.user.organizationId,
+      },
+    });
 
-  const decision = await prisma.meetingDecision.create({
-    data: {
-      projectId: data.projectId,
-      description: data.description,
-      motif: data.motif || undefined,
-      responsableId: data.responsableId,
-      echeance: data.echeance ? new Date(data.echeance) : undefined,
-      taskId: task.id,
-    },
+    const decision = await tx.meetingDecision.create({
+      data: {
+        projectId: data.projectId,
+        description: data.description,
+        motif: data.motif || undefined,
+        responsableId: data.responsableId,
+        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        taskId: task.id,
+        organizationId: session.user.organizationId,
+      },
+    });
+
+    return { task, decision };
   });
 
   await logAudit({
@@ -575,9 +625,17 @@ export async function createProjectIndicator(input: CreateProjectIndicatorInput)
 
   const data = createProjectIndicatorSchema.parse(input);
 
-  const indicator = await prisma.indicator.create({
-    data: { projectId: data.projectId, nom: data.nom, unite: data.unite, valeurCible: Number(data.valeurCible) },
-  });
+  const indicator = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.indicator.create({
+      data: {
+        projectId: data.projectId,
+        nom: data.nom,
+        unite: data.unite,
+        valeurCible: Number(data.valeurCible),
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -598,9 +656,17 @@ export async function createTaskIndicator(input: CreateTaskIndicatorInput) {
 
   const data = createTaskIndicatorSchema.parse(input);
 
-  const indicator = await prisma.indicator.create({
-    data: { taskId: data.taskId, nom: data.nom, unite: data.unite, valeurCible: Number(data.valeurCible) },
-  });
+  const indicator = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.indicator.create({
+      data: {
+        taskId: data.taskId,
+        nom: data.nom,
+        unite: data.unite,
+        valeurCible: Number(data.valeurCible),
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -623,18 +689,21 @@ export async function createProjectResource(input: CreateProjectResourceInput) {
 
   const data = createProjectResourceSchema.parse(input);
 
-  const resource = await prisma.projectResource.create({
-    data: {
-      projectId: data.projectId,
-      nom: data.nom,
-      type: data.type || undefined,
-      quantite: data.quantite ? Number(data.quantite) : undefined,
-      unite: data.unite || undefined,
-      coutUnitaire: data.coutUnitaire ? Number(data.coutUnitaire) : undefined,
-      notes: data.notes || undefined,
-      createdById: session.user.id,
-    },
-  });
+  const resource = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectResource.create({
+      data: {
+        projectId: data.projectId,
+        nom: data.nom,
+        type: data.type || undefined,
+        quantite: data.quantite ? Number(data.quantite) : undefined,
+        unite: data.unite || undefined,
+        coutUnitaire: data.coutUnitaire ? Number(data.coutUnitaire) : undefined,
+        notes: data.notes || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -655,7 +724,9 @@ export async function deleteProjectResource(input: DeleteProjectResourceInput) {
 
   const data = deleteProjectResourceSchema.parse(input);
 
-  const resource = await prisma.projectResource.delete({ where: { id: data.resourceId } });
+  const resource = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectResource.delete({ where: { id: data.resourceId } })
+  );
 
   await logAudit({
     userId: session.user.id,

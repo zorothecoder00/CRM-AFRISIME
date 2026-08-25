@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { requireScopedPermission } from "@/lib/permissions-scoped";
 import { createNotification, notifyMany } from "@/lib/notify";
@@ -52,25 +52,28 @@ export async function createTask(input: CreateTaskInput) {
     new Set(data.assigneeIds.filter((id) => id !== data.responsablePrincipalId))
   );
 
-  const task = await prisma.task.create({
-    data: {
-      projectId: data.projectId,
-      sectionId: data.sectionId || undefined,
-      titre: data.titre,
-      description: data.description,
-      priorite: data.priorite,
-      responsablePrincipalId: data.responsablePrincipalId,
-      echeance: data.echeance ? new Date(data.echeance) : undefined,
-      tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : undefined,
-      objectiveId: data.objectiveId || undefined,
-      planId: data.planId || undefined,
-      createdById: session.user.id,
-      assignees: {
-        create: assigneeIds.map((userId) => ({ userId })),
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.create({
+      data: {
+        projectId: data.projectId,
+        sectionId: data.sectionId || undefined,
+        titre: data.titre,
+        description: data.description,
+        priorite: data.priorite,
+        responsablePrincipalId: data.responsablePrincipalId,
+        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : undefined,
+        objectiveId: data.objectiveId || undefined,
+        planId: data.planId || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+        assignees: {
+          create: assigneeIds.map((userId) => ({ userId, organizationId: session.user.organizationId })),
+        },
+        competencesRequises: data.competenceIds.length > 0 ? { connect: data.competenceIds.map((id) => ({ id })) } : undefined,
       },
-      competencesRequises: data.competenceIds.length > 0 ? { connect: data.competenceIds.map((id) => ({ id })) } : undefined,
-    },
-  });
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -124,14 +127,16 @@ export async function updateTaskStatus(taskId: string, statut: string) {
 
   const data = updateTaskStatusSchema.parse({ taskId, statut });
 
-  const task = await prisma.task.update({
-    where: { id: data.taskId },
-    data: {
-      statut: data.statut,
-      avancement: data.statut === "TERMINEE" ? 100 : undefined,
-      completedAt: data.statut === "TERMINEE" ? new Date() : null,
-    },
-  });
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: data.taskId },
+      data: {
+        statut: data.statut,
+        avancement: data.statut === "TERMINEE" ? 100 : undefined,
+        completedAt: data.statut === "TERMINEE" ? new Date() : null,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -174,10 +179,12 @@ export async function submitForValidation(taskId: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
 
-  const task = await prisma.task.update({
-    where: { id: taskId },
-    data: { statut: "EN_REVISION" },
-  });
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: taskId },
+      data: { statut: "EN_REVISION" },
+    })
+  );
 
   await startValidationRun({
     taskId: task.id,
@@ -200,7 +207,9 @@ export async function validateTask(taskId: string, approved: boolean, commentair
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.TASK_VALIDATE);
 
-  const existing = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+  const existing = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.findUniqueOrThrow({ where: { id: taskId } })
+  );
   if (existing.statut !== "EN_REVISION") {
     throw new Error("Cette tâche n'est pas en attente de validation.");
   }
@@ -220,10 +229,12 @@ export async function validateTask(taskId: string, approved: boolean, commentair
   }
 
   if (finalStatus === "APPROUVE") {
-    const task = await prisma.task.update({
-      where: { id: taskId },
-      data: { statut: "TERMINEE", avancement: 100, completedAt: new Date() },
-    });
+    const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+      tx.task.update({
+        where: { id: taskId },
+        data: { statut: "TERMINEE", avancement: 100, completedAt: new Date() },
+      })
+    );
     await recomputeProjectProgress(task.projectId);
     await runTaskCompletedRules({
       id: task.id,
@@ -247,10 +258,12 @@ export async function validateTask(taskId: string, approved: boolean, commentair
   }
 
   // REJETE
-  const task = await prisma.task.update({
-    where: { id: taskId },
-    data: { statut: "A_FAIRE", responsablePrincipalId: existing.createdById },
-  });
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: taskId },
+      data: { statut: "A_FAIRE", responsablePrincipalId: existing.createdById },
+    })
+  );
 
   if (task.createdById !== session.user.id) {
     await createNotification({
@@ -280,17 +293,26 @@ export async function addComment(taskId: string, content: string) {
 
   const data = addCommentSchema.parse({ taskId, content });
 
-  const task = await prisma.task.findUniqueOrThrow({
-    where: { id: data.taskId },
-    include: {
-      responsablePrincipal: true,
-      assignees: { include: { user: true } },
-      project: { include: { members: { include: { user: true } } } },
-    },
-  });
+  const { task, comment } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const task = await tx.task.findUniqueOrThrow({
+      where: { id: data.taskId },
+      include: {
+        responsablePrincipal: true,
+        assignees: { include: { user: true } },
+        project: { include: { members: { include: { user: true } } } },
+      },
+    });
 
-  const comment = await prisma.taskComment.create({
-    data: { taskId: data.taskId, content: data.content, authorId: session.user.id },
+    const comment = await tx.taskComment.create({
+      data: {
+        taskId: data.taskId,
+        content: data.content,
+        authorId: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    });
+
+    return { task, comment };
   });
 
   await logAudit({
@@ -339,14 +361,17 @@ export async function addChecklistItem(
 
   const data = addChecklistItemSchema.parse({ taskId, label, responsableId, echeance });
 
-  const item = await prisma.checklistItem.create({
-    data: {
-      taskId: data.taskId,
-      label: data.label,
-      responsableId: data.responsableId || undefined,
-      echeance: data.echeance ? new Date(data.echeance) : undefined,
-    },
-  });
+  const item = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.checklistItem.create({
+      data: {
+        taskId: data.taskId,
+        label: data.label,
+        responsableId: data.responsableId || undefined,
+        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -363,10 +388,12 @@ export async function addChecklistItem(
 export async function toggleChecklistItem(itemId: string, isDone: boolean) {
   const session = await requireSession();
 
-  const item = await prisma.checklistItem.update({
-    where: { id: itemId },
-    data: { isDone },
-  });
+  const item = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.checklistItem.update({
+      where: { id: itemId },
+      data: { isDone },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -390,9 +417,15 @@ export async function addDependency(taskId: string, dependsOnTaskId: string) {
     throw new Error("Une tâche ne peut pas dépendre d'elle-même.");
   }
 
-  const dependency = await prisma.taskDependency.create({
-    data: { taskId: data.taskId, dependsOnTaskId: data.dependsOnTaskId },
-  });
+  const dependency = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.taskDependency.create({
+      data: {
+        taskId: data.taskId,
+        dependsOnTaskId: data.dependsOnTaskId,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -412,10 +445,12 @@ export async function updateActualTime(taskId: string, tempsReelHeures: string) 
 
   const data = updateActualTimeSchema.parse({ taskId, tempsReelHeures });
 
-  const task = await prisma.task.update({
-    where: { id: data.taskId },
-    data: { tempsReelHeures: Number(data.tempsReelHeures) },
-  });
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: data.taskId },
+      data: { tempsReelHeures: Number(data.tempsReelHeures) },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -441,10 +476,12 @@ export async function linkTaskExternalContact(input: LinkTaskExternalContactInpu
   requirePermission(session.user.permissions, PERMISSIONS.TASK_ASSIGN);
   const data = linkTaskExternalContactSchema.parse(input);
 
-  const task = await prisma.task.update({
-    where: { id: data.taskId },
-    data: { externalContactId: data.externalContactId || null },
-  });
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: data.taskId },
+      data: { externalContactId: data.externalContactId || null },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -465,8 +502,10 @@ export async function setDefaultTaskView(vue: string) {
   const session = await requireSession();
   if (!TASK_VIEWS.includes(vue)) return;
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { defaultTaskView: vue },
-  });
+  await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.user.update({
+      where: { id: session.user.id },
+      data: { defaultTaskView: vue },
+    })
+  );
 }
