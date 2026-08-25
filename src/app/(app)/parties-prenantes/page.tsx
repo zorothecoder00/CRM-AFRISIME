@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForNiveau } from "@/lib/status-tone";
+import { toneForNiveau, stakeholderQuadrant } from "@/lib/status-tone";
 import { StakeholderFormDialog } from "@/components/stakeholders/stakeholder-form-dialog";
 import { Users as UsersIcon } from "lucide-react";
 
@@ -63,6 +63,7 @@ export default async function PartiesPrenantesPage() {
                   <Badge variant={toneForNiveau(s.influence)}>Influence : {NIVEAU_LABELS[s.influence]}</Badge>
                   <Badge variant={toneForNiveau(s.niveauEngagement)}>Engagement : {NIVEAU_LABELS[s.niveauEngagement]}</Badge>
                   {s.position && <Badge variant="outline">{POSITION_LABELS[s.position]}</Badge>}
+                  <Badge variant="outline">{stakeholderQuadrant(s.influence, s.interet)}</Badge>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {s._count.projects} projet(s) associé(s)

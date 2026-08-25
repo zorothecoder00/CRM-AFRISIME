@@ -204,6 +204,22 @@ export function accentForCriticite(criticite: string): CardAccent {
   return toCardAccent(CRITICITE_TONES[criticite.toUpperCase()] ?? "secondary");
 }
 
+/**
+ * Quadrant de la matrice Influence x Intérêt (Project Studio §9, Stakeholder
+ * Analysis) — calculé à la volée depuis influence/intérêt existants plutôt
+ * que stocké, pour ne jamais désynchroniser matrice et niveaux affichés.
+ * FAIBLE/MOYEN/ELEVE se lit "MOYEN" comme fort côté intérêt (seul FAIBLE
+ * compte comme faible), même logique que toneForNiveau.
+ */
+export function stakeholderQuadrant(influence: string, interet: string): string {
+  const forteInfluence = influence.toUpperCase() !== "FAIBLE";
+  const fortInteret = interet.toUpperCase() !== "FAIBLE";
+  if (forteInfluence && fortInteret) return "Gérer de près";
+  if (forteInfluence && !fortInteret) return "Satisfaire";
+  if (!forteInfluence && fortInteret) return "Informer";
+  return "Surveiller";
+}
+
 /** Statut d'une idée de projet (Project Studio §4). */
 const PROJECT_IDEA_TONES: Record<string, StatusTone> = {
   IDEE: "secondary",

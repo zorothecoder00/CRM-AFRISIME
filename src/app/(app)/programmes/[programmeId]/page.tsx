@@ -248,7 +248,18 @@ export default async function ProgrammeDetailPage({
             <CardContent>
               <BeneficiairesSection
                 programmeId={programme.id}
-                beneficiaires={programme.beneficiaires.map((b) => ({ id: b.id, nom: b.nom, description: b.description }))}
+                beneficiaires={programme.beneficiaires.map((b) => ({
+                  id: b.id,
+                  nom: b.nom,
+                  description: b.description,
+                  type: b.type,
+                  nombre: b.nombre,
+                  caracteristiques: b.caracteristiques,
+                  localisation: b.localisation,
+                  besoins: b.besoins,
+                  vulnerabilites: b.vulnerabilites,
+                  criteresSelection: b.criteresSelection,
+                }))}
                 canManage={canManage}
               />
             </CardContent>

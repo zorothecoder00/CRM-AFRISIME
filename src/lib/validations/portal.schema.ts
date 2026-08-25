@@ -32,10 +32,20 @@ export const togglePartageExterneSchema = z.object({
 });
 export type TogglePartageExterneInput = z.infer<typeof togglePartageExterneSchema>;
 
+// Project Studio §10 (Beneficiary Analysis)
+const beneficiaireTypeEnum = z.enum(["DIRECT", "INDIRECT"]);
+
 export const createBeneficiaireSchema = z
   .object({
     nom: z.string().min(2, "Le nom est requis."),
     description: z.string().optional(),
+    type: beneficiaireTypeEnum.default("DIRECT"),
+    nombre: z.string().optional(),
+    caracteristiques: z.string().optional(),
+    localisation: z.string().optional(),
+    besoins: z.string().optional(),
+    vulnerabilites: z.string().optional(),
+    criteresSelection: z.string().optional(),
     programmeId: z.string().optional(),
     projectId: z.string().optional(),
   })
@@ -44,3 +54,17 @@ export const createBeneficiaireSchema = z
     path: ["programmeId"],
   });
 export type CreateBeneficiaireInput = z.infer<typeof createBeneficiaireSchema>;
+
+export const updateBeneficiaireSchema = z.object({
+  id: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  description: z.string().optional(),
+  type: beneficiaireTypeEnum,
+  nombre: z.string().optional(),
+  caracteristiques: z.string().optional(),
+  localisation: z.string().optional(),
+  besoins: z.string().optional(),
+  vulnerabilites: z.string().optional(),
+  criteresSelection: z.string().optional(),
+});
+export type UpdateBeneficiaireInput = z.infer<typeof updateBeneficiaireSchema>;

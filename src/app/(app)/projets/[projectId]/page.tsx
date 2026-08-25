@@ -40,6 +40,11 @@ import { IndicatorList, type IndicatorData } from "@/components/objectives/indic
 import { AddProjectIndicatorDialog } from "@/components/projects/add-project-indicator-dialog";
 import { ProjectResourcesSection, type ProjectResourceData } from "@/components/projects/project-resources-section";
 import { ProjectFinancementsSection, type FinancementRow } from "@/components/projects/project-financements-section";
+import { BeneficiairesSection, type BeneficiaireRow } from "@/components/programmes/beneficiaires-section";
+import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
+import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
+import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
+import { buildTree } from "@/lib/tree";
 import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
 import { TaskGanttView, type GanttTaskRow } from "@/components/tasks/task-gantt-view";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
@@ -101,6 +106,10 @@ export default async function ProjectDetailPage({
     availableStakeholdersRaw,
     tags,
     financements,
+    beneficiaires,
+    diagnostic,
+    problemTree,
+    solutionTree,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -183,6 +192,10 @@ export default async function ProjectDetailPage({
     }),
     getTagsFor("Project", projectId),
     prisma.financement.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
+    prisma.beneficiaire.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
+    prisma.projectDiagnostic.findUnique({ where: { projectId } }),
+    prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
+    prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
   ]);
 
   if (!project) {
@@ -392,6 +405,53 @@ export default async function ProjectDetailPage({
     notes: f.notes,
   }));
 
+  const beneficiaireRows: BeneficiaireRow[] = beneficiaires.map((b) => ({
+    id: b.id,
+    nom: b.nom,
+    description: b.description,
+    type: b.type,
+    nombre: b.nombre,
+    caracteristiques: b.caracteristiques,
+    localisation: b.localisation,
+    besoins: b.besoins,
+    vulnerabilites: b.vulnerabilites,
+    criteresSelection: b.criteresSelection,
+  }));
+
+  const diagnosticData: ProjectDiagnosticData | null = diagnostic
+    ? {
+        id: diagnostic.id,
+        analyseContexte: diagnostic.analyseContexte,
+        analyseBesoins: diagnostic.analyseBesoins,
+        analyseCauses: diagnostic.analyseCauses,
+        analyseConsequences: diagnostic.analyseConsequences,
+        donneesStatistiques: diagnostic.donneesStatistiques,
+        enquetes: diagnostic.enquetes,
+        consultations: diagnostic.consultations,
+        etudesExistantes: diagnostic.etudesExistantes,
+        analyseDocumentaire: diagnostic.analyseDocumentaire,
+      }
+    : null;
+
+  const problemTreeFlat: ProblemTreeNodeData[] = problemTree.map((n) => ({
+    id: n.id,
+    parentId: n.parentId,
+    type: n.type,
+    titre: n.titre,
+    description: n.description,
+    sources: n.sources,
+  }));
+  const problemTreeRoots = buildTree(problemTreeFlat);
+
+  const solutionTreeFlat: SolutionTreeNodeData[] = solutionTree.map((n) => ({
+    id: n.id,
+    parentId: n.parentId,
+    type: n.type,
+    titre: n.titre,
+    description: n.description,
+  }));
+  const solutionTreeRoots = buildTree(solutionTreeFlat);
+
   const resourceRows: ProjectResourceData[] = resources.map((r) => ({
     id: r.id,
     nom: r.nom,
@@ -509,6 +569,10 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="kpi">KPI</TabsTrigger>
           <TabsTrigger value="ressources">Ressources</TabsTrigger>
           <TabsTrigger value="financement">Financement</TabsTrigger>
+          <TabsTrigger value="beneficiaires">Bénéficiaires</TabsTrigger>
+          <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
+          <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
+          <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
@@ -717,6 +781,27 @@ export default async function ProjectDetailPage({
             projectId={project.id}
             financements={financementRows}
             devise={devise}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="beneficiaires" className="mt-4">
+          <BeneficiairesSection projectId={project.id} beneficiaires={beneficiaireRows} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="diagnostic" className="mt-4">
+          <ProjectDiagnosticForm projectId={project.id} diagnostic={diagnosticData} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="arbre-problemes" className="mt-4">
+          <ProblemTreeView projectId={project.id} nodes={problemTreeRoots} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="arbre-solutions" className="mt-4">
+          <SolutionTreeView
+            projectId={project.id}
+            nodes={solutionTreeRoots}
+            hasProblemTree={problemTree.length > 0}
             canManage={canUpdateProject}
           />
         </TabsContent>

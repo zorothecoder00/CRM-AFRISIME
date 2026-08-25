@@ -461,6 +461,9 @@ model User {
   projectIdeasCreated                ProjectIdea[]                  @relation("ProjectIdeaCreatedBy")
   projectConceptNotesCreated         ProjectConceptNote[]           @relation("ProjectConceptNoteCreatedBy")
   financementsCreated                Financement[]                  @relation("FinancementCreatedBy")
+  projectDiagnosticsUpdated          ProjectDiagnostic[]            @relation("ProjectDiagnosticUpdatedBy")
+  problemTreeNodesCreated            ProblemTreeNode[]              @relation("ProblemTreeNodeCreatedBy")
+  solutionTreeNodesCreated           SolutionTreeNode[]             @relation("SolutionTreeNodeCreatedBy")
   stakeholderLinks                   Stakeholder[]                  @relation("StakeholderUser")
   stakeholderResponsableFor          Stakeholder[]                  @relation("StakeholderResponsable")
   stakeholdersCreated                Stakeholder[]                  @relation("StakeholderCreatedBy")
@@ -947,6 +950,9 @@ model PlatformOrganization {
   projectIdeas                  ProjectIdea[]                  @relation("PlatformOrganizationProjectIdeas")
   projectConceptNotes           ProjectConceptNote[]           @relation("PlatformOrganizationProjectConceptNotes")
   financements                  Financement[]                  @relation("PlatformOrganizationFinancements")
+  projectDiagnostics            ProjectDiagnostic[]            @relation("PlatformOrganizationProjectDiagnostics")
+  problemTreeNodes              ProblemTreeNode[]              @relation("PlatformOrganizationProblemTreeNodes")
+  solutionTreeNodes             SolutionTreeNode[]             @relation("PlatformOrganizationSolutionTreeNodes")
   sectionComments               SectionComment[]               @relation("PlatformOrganizationSectionComments")
   taskAssignees                 TaskAssignee[]                 @relation("PlatformOrganizationTaskAssignees")
   checklistItems                ChecklistItem[]                @relation("PlatformOrganizationChecklistItems")
@@ -1524,6 +1530,10 @@ model Project {
   // Project Studio §4/§10 — voir modeles en fin de fichier.
   financements           Financement[]
   ideaOrigin             ProjectIdea?
+  // Project Studio §6-8 — idem.
+  diagnostic             ProjectDiagnostic?
+  problemTreeNodes       ProblemTreeNode[]
+  solutionTreeNodes      SolutionTreeNode[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1651,6 +1661,17 @@ model Stakeholder {
   // Nature de la relation (ex. "Client historique", "Sponsor politique",
   // "Bailleur") — texte libre, trop variable pour un enum ferme.
   relation            String?
+  // Project Studio §9 (Stakeholder Analysis) — categorie (ex. "Institution",
+  // "Bailleur", "Partenaire technique") et organisation d'appartenance,
+  // distinctes de `relation` qui decrit la nature du lien avec l'organisation
+  // plutot que la partie prenante elle-meme. La matrice influence x interet
+  // du cahier (Informer/Gerer de pres/Surveiller/Satisfaire) est calculee a
+  // la volee depuis influence/interet existants (voir stakeholderQuadrant
+  // dans src/lib/status-tone.ts), pas stockee.
+  categorie           String?
+  organisation        String?
+  attentes            String?
+  strategieEngagement String?
   responsableId       String?
   responsable         User?                 @relation("StakeholderResponsable", fields: [responsableId], references: [id])
   risquesRelationnels String?
@@ -4847,24 +4868,39 @@ model MeetingExternalParticipant {
 // Beneficiaire d'un programme/projet (V2.2 §20, portail Institution/Bailleur)
 // — registre minimal, pas de gestion beneficiaire complete (hors perimetre).
 model Beneficiaire {
-  id             String                @id @default(cuid())
+  id                String                @id @default(cuid())
   // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que les lots
   // precedents : nullable, reversible, denormalise depuis
   // createdBy.organizationId.
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationBeneficiaires", fields: [organizationId], references: [id])
-  nom            String
-  description    String?
-  programmeId    String?
-  programme      Programme?            @relation(fields: [programmeId], references: [id])
-  projectId      String?
-  project        Project?              @relation(fields: [projectId], references: [id])
-  createdById    String
-  createdBy      User                  @relation("BeneficiaireCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
+  organizationId    String?
+  organization      PlatformOrganization? @relation("PlatformOrganizationBeneficiaires", fields: [organizationId], references: [id])
+  nom               String
+  description       String?
+  // Project Studio §10 (Beneficiary Analysis) — champs ajoutes sans casser
+  // le registre minimal existant : `type` distingue direct/indirect,
+  // `nombre` reste une estimation manuelle (pas de decompte individuel).
+  type              BeneficiaireType      @default(DIRECT)
+  nombre            Int?
+  caracteristiques  String?
+  localisation      String?
+  besoins           String?
+  vulnerabilites    String?
+  criteresSelection String?
+  programmeId       String?
+  programme         Programme?            @relation(fields: [programmeId], references: [id])
+  projectId         String?
+  project           Project?              @relation(fields: [projectId], references: [id])
+  createdById       String
+  createdBy         User                  @relation("BeneficiaireCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime              @default(now())
 
   @@index([programmeId])
   @@index([projectId])
+}
+
+enum BeneficiaireType {
+  DIRECT
+  INDIRECT
 }
 
 // ===================== V2.2 §22-25 — Multi-entites / Multi-pays / =====================
@@ -5229,4 +5265,114 @@ model Financement {
 
   @@index([projectId])
   @@index([statut])
+}
+
+// ===================== PROJECT STUDIO — §6-8 (Diagnostic / arbres) =====================
+
+// Espace de diagnostic (Project Studio §6) — un champ texte libre par outil
+// du cahier, plutot qu'un sous-modele par outil (enquetes/consultations/
+// etudes restent trop heterogenes pour un schema structure dans cette V1).
+// Les "donnees/documents" cites dans le cahier restent geres par les modules
+// existants (Document, Indicator) rattaches au meme Project, pas dupliques ici.
+model ProjectDiagnostic {
+  id                  String                @id @default(cuid())
+  organizationId      String?
+  organization        PlatformOrganization? @relation("PlatformOrganizationProjectDiagnostics", fields: [organizationId], references: [id])
+  projectId           String                @unique
+  project             Project               @relation(fields: [projectId], references: [id])
+  analyseContexte     String?
+  analyseBesoins      String?
+  analyseCauses       String?
+  analyseConsequences String?
+  donneesStatistiques String?
+  enquetes            String?
+  consultations       String?
+  etudesExistantes    String?
+  analyseDocumentaire String?
+  updatedById         String
+  updatedBy           User                  @relation("ProjectDiagnosticUpdatedBy", fields: [updatedById], references: [id])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+}
+
+enum ProblemTreeNodeType {
+  CONSEQUENCE
+  PROBLEME_CENTRAL
+  CAUSE_DIRECTE
+  CAUSE_PROFONDE
+}
+
+// Arbre a problemes (Project Studio §7) — le PROBLEME_CENTRAL est la racine
+// (parentId null) ; CONSEQUENCE et CAUSE_DIRECTE sont ses enfants directs
+// (distingues par `type`, pas par la position dans l'arbre — le cahier place
+// les consequences "au-dessus" et les causes "en-dessous" du meme noeud
+// central) ; CAUSE_PROFONDE est enfant d'une CAUSE_DIRECTE. `sources`
+// consolide en texte libre les liens vers donnees/documents/indicateurs/
+// commentaires du cahier plutot que des tables de liaison par type — les
+// documents/indicateurs du projet restent accessibles via les onglets
+// existants de la fiche projet. Reordonnancement par glisser-deposer (`ordre`
+// + reorderProblemTreeNodes) limite aux freres d'un meme parent, comme
+// EtapesDesigner ; la reparentation se fait explicitement via `parentId`
+// (memes principe que HierarchyTree pour ProjectSection), pas par glisser
+// entre branches.
+model ProblemTreeNode {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProblemTreeNodes", fields: [organizationId], references: [id])
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id])
+  parentId       String?
+  parent         ProblemTreeNode?      @relation("ProblemTreeHierarchy", fields: [parentId], references: [id])
+  children       ProblemTreeNode[]     @relation("ProblemTreeHierarchy")
+  type           ProblemTreeNodeType
+  titre          String
+  description    String?
+  sources        String?
+  ordre          Int                   @default(0)
+  createdById    String
+  createdBy      User                  @relation("ProblemTreeNodeCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  solutionNodes SolutionTreeNode[]
+
+  @@index([projectId])
+  @@index([parentId])
+}
+
+enum SolutionTreeNodeType {
+  OBJECTIF_GLOBAL
+  SOLUTION
+  RESULTAT_ATTENDU
+}
+
+// Arbre des solutions (Project Studio §8) — genere depuis le Problem Tree
+// (PROBLEME_CENTRAL -> OBJECTIF_GLOBAL, CAUSE_* -> SOLUTION, CONSEQUENCE ->
+// RESULTAT_ATTENDU, meme structure parent/enfant), voir
+// generateSolutionTreeFromProblemTree ; `problemNodeId` trace l'origine mais
+// reste optionnel pour permettre l'ajout manuel de noeuds hors generation.
+// onDelete: SetNull (pas Cascade) : supprimer un noeud du Problem Tree ne
+// doit pas effacer la solution deja redigee en face, seulement son origine.
+model SolutionTreeNode {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationSolutionTreeNodes", fields: [organizationId], references: [id])
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id])
+  problemNodeId  String?
+  problemNode    ProblemTreeNode?      @relation(fields: [problemNodeId], references: [id], onDelete: SetNull)
+  parentId       String?
+  parent         SolutionTreeNode?     @relation("SolutionTreeHierarchy", fields: [parentId], references: [id])
+  children       SolutionTreeNode[]    @relation("SolutionTreeHierarchy")
+  type           SolutionTreeNodeType
+  titre          String
+  description    String?
+  ordre          Int                   @default(0)
+  createdById    String
+  createdBy      User                  @relation("SolutionTreeNodeCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([projectId])
+  @@index([parentId])
 }

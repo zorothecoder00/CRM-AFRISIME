@@ -12,6 +12,11 @@ export const createStakeholderSchema = z.object({
   niveauEngagement: niveauEnum.default("MOYEN"),
   position: positionEnum.optional(),
   relation: z.string().optional(),
+  // Project Studio §9 (Stakeholder Analysis)
+  categorie: z.string().optional(),
+  organisation: z.string().optional(),
+  attentes: z.string().optional(),
+  strategieEngagement: z.string().optional(),
   responsableId: z.string().optional(),
   risquesRelationnels: z.string().optional(),
   notes: z.string().optional(),

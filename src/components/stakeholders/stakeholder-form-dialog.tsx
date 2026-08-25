@@ -26,6 +26,10 @@ type StakeholderEdit = {
   niveauEngagement: string;
   position: string | null;
   relation: string | null;
+  categorie: string | null;
+  organisation: string | null;
+  attentes: string | null;
+  strategieEngagement: string | null;
   responsableId: string | null;
   risquesRelationnels: string | null;
   notes: string | null;
@@ -65,6 +69,10 @@ export function StakeholderFormDialog({
           niveauEngagement: stakeholder.niveauEngagement as CreateStakeholderInput["niveauEngagement"],
           position: (stakeholder.position ?? undefined) as CreateStakeholderInput["position"],
           relation: stakeholder.relation ?? "",
+          categorie: stakeholder.categorie ?? "",
+          organisation: stakeholder.organisation ?? "",
+          attentes: stakeholder.attentes ?? "",
+          strategieEngagement: stakeholder.strategieEngagement ?? "",
           responsableId: stakeholder.responsableId ?? undefined,
           risquesRelationnels: stakeholder.risquesRelationnels ?? "",
           notes: stakeholder.notes ?? "",
@@ -80,7 +88,19 @@ export function StakeholderFormDialog({
   async function onSubmit(data: CreateStakeholderInput) {
     const result = isEdit ? await updateRun({ ...data, id: stakeholder.id }) : await createRun(data);
     if (result.ok) {
-      reset({ influence: "MOYEN", interet: "MOYEN", niveauEngagement: "MOYEN", nom: "", relation: "", risquesRelationnels: "", notes: "" });
+      reset({
+        influence: "MOYEN",
+        interet: "MOYEN",
+        niveauEngagement: "MOYEN",
+        nom: "",
+        relation: "",
+        categorie: "",
+        organisation: "",
+        attentes: "",
+        strategieEngagement: "",
+        risquesRelationnels: "",
+        notes: "",
+      });
       setOpen(false);
     }
   }
@@ -236,6 +256,24 @@ export function StakeholderFormDialog({
           <div className="space-y-2">
             <Label htmlFor="relation">Nature de la relation</Label>
             <Input id="relation" placeholder="Ex. Client historique, sponsor politique..." {...register("relation")} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="categorie">Catégorie</Label>
+              <Input id="categorie" placeholder="Ex. Institution, bailleur..." {...register("categorie")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="organisation">Organisation</Label>
+              <Input id="organisation" {...register("organisation")} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="attentes">Attentes</Label>
+            <Textarea id="attentes" {...register("attentes")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="strategieEngagement">Stratégie d&apos;engagement</Label>
+            <Textarea id="strategieEngagement" {...register("strategieEngagement")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="risquesRelationnels">Risques relationnels</Label>

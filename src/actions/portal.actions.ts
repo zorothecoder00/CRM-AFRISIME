@@ -16,12 +16,14 @@ import {
   inviteContactToMeetingSchema,
   togglePartageExterneSchema,
   createBeneficiaireSchema,
+  updateBeneficiaireSchema,
   type SendPortalMessageInput,
   type ReplyPortalMessageInput,
   type UpdateMeetingRsvpInput,
   type InviteContactToMeetingInput,
   type TogglePartageExterneInput,
   type CreateBeneficiaireInput,
+  type UpdateBeneficiaireInput,
 } from "@/lib/validations/portal.schema";
 
 async function requireSession() {
@@ -245,6 +247,13 @@ export async function createBeneficiaire(input: CreateBeneficiaireInput) {
     data: {
       nom: data.nom,
       description: data.description,
+      type: data.type,
+      nombre: data.nombre ? Number(data.nombre) : undefined,
+      caracteristiques: data.caracteristiques || undefined,
+      localisation: data.localisation || undefined,
+      besoins: data.besoins || undefined,
+      vulnerabilites: data.vulnerabilites || undefined,
+      criteresSelection: data.criteresSelection || undefined,
       programmeId: data.programmeId || undefined,
       projectId: data.projectId || undefined,
       createdById: session.user.id,
@@ -261,6 +270,39 @@ export async function createBeneficiaire(input: CreateBeneficiaireInput) {
 
   if (data.programmeId) revalidatePath(`/programmes/${data.programmeId}`);
   if (data.projectId) revalidatePath(`/projets/${data.projectId}`);
+  return { id: beneficiaire.id };
+}
+
+export async function updateBeneficiaire(input: UpdateBeneficiaireInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
+  const data = updateBeneficiaireSchema.parse(input);
+
+  const beneficiaire = await prisma.beneficiaire.update({
+    where: { id: data.id },
+    data: {
+      nom: data.nom,
+      description: data.description || null,
+      type: data.type,
+      nombre: data.nombre ? Number(data.nombre) : null,
+      caracteristiques: data.caracteristiques || null,
+      localisation: data.localisation || null,
+      besoins: data.besoins || null,
+      vulnerabilites: data.vulnerabilites || null,
+      criteresSelection: data.criteresSelection || null,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "beneficiaire.updated",
+    entityType: "Beneficiaire",
+    entityId: beneficiaire.id,
+    changes: { nom: beneficiaire.nom },
+  });
+
+  if (beneficiaire.programmeId) revalidatePath(`/programmes/${beneficiaire.programmeId}`);
+  if (beneficiaire.projectId) revalidatePath(`/projets/${beneficiaire.projectId}`);
   return { id: beneficiaire.id };
 }
 

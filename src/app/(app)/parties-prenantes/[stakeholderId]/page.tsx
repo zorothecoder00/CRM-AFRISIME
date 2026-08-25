@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForNiveau } from "@/lib/status-tone";
+import { toneForNiveau, stakeholderQuadrant } from "@/lib/status-tone";
 import { StakeholderFormDialog } from "@/components/stakeholders/stakeholder-form-dialog";
 import { StakeholderProjectsSection } from "@/components/stakeholders/stakeholder-projects-section";
 import { StakeholderCommunications } from "@/components/stakeholders/stakeholder-communications";
@@ -79,6 +79,10 @@ export default async function StakeholderDetailPage({
                 niveauEngagement: stakeholder.niveauEngagement,
                 position: stakeholder.position,
                 relation: stakeholder.relation,
+                categorie: stakeholder.categorie,
+                organisation: stakeholder.organisation,
+                attentes: stakeholder.attentes,
+                strategieEngagement: stakeholder.strategieEngagement,
                 responsableId: stakeholder.responsableId,
                 risquesRelationnels: stakeholder.risquesRelationnels,
                 notes: stakeholder.notes,
@@ -139,11 +143,38 @@ export default async function StakeholderDetailPage({
                 Engagement : {NIVEAU_LABELS[stakeholder.niveauEngagement]}
               </Badge>
               {stakeholder.position && <Badge variant="outline">{POSITION_LABELS[stakeholder.position]}</Badge>}
+              <Badge variant="outline">
+                Matrice : {stakeholderQuadrant(stakeholder.influence, stakeholder.interet)}
+              </Badge>
             </div>
+            {stakeholder.categorie && (
+              <div>
+                <div className="text-xs text-muted-foreground">Catégorie</div>
+                <div>{stakeholder.categorie}</div>
+              </div>
+            )}
+            {stakeholder.organisation && (
+              <div>
+                <div className="text-xs text-muted-foreground">Organisation</div>
+                <div>{stakeholder.organisation}</div>
+              </div>
+            )}
             {stakeholder.relation && (
               <div>
                 <div className="text-xs text-muted-foreground">Nature de la relation</div>
                 <div>{stakeholder.relation}</div>
+              </div>
+            )}
+            {stakeholder.attentes && (
+              <div>
+                <div className="text-xs text-muted-foreground">Attentes</div>
+                <p className="whitespace-pre-wrap">{stakeholder.attentes}</p>
+              </div>
+            )}
+            {stakeholder.strategieEngagement && (
+              <div>
+                <div className="text-xs text-muted-foreground">Stratégie d&apos;engagement</div>
+                <p className="whitespace-pre-wrap">{stakeholder.strategieEngagement}</p>
               </div>
             )}
             {stakeholder.responsable && (

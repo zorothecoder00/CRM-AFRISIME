@@ -145,4 +145,7 @@ export const COVERED_TABLES = [
   "ProjectIdea",
   "ProjectConceptNote",
   "Financement",
+  "ProjectDiagnostic",
+  "ProblemTreeNode",
+  "SolutionTreeNode",
 ];
