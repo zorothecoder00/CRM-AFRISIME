@@ -16,6 +16,7 @@ import { TaskPortfolioView } from "@/components/tasks/task-portfolio-view";
 import { TaskWhiteboardView } from "@/components/tasks/task-whiteboard-view";
 import { TaskViewSwitcher } from "@/components/tasks/task-view-switcher";
 import { PeriodFilter } from "@/components/ui/period-filter";
+import { ProjectFilter } from "@/components/ui/project-filter";
 import { buildDateRangeFilter } from "@/lib/date-filter";
 import type { WhiteboardNote } from "@/actions/whiteboard.actions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -140,6 +141,7 @@ export default async function TachesPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
           <PeriodFilter dateLabel="Échéance" />
           <Link href={mineHref}>
             <Button variant={onlyMine ? "default" : "outline"} size="sm">
