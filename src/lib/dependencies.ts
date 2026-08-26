@@ -76,6 +76,10 @@ export async function resolveDependencyLabels(entities: { type: string; id: stri
     const rows = await prisma.transformation.findMany({ where: { id: { in: idsByType.get("Transformation")! } }, select: { id: true, nom: true } });
     for (const r of rows) labels.set(`Transformation:${r.id}`, r.nom);
   }
+  if (idsByType.has("ProjectMilestone")) {
+    const rows = await prisma.projectMilestone.findMany({ where: { id: { in: idsByType.get("ProjectMilestone")! } }, select: { id: true, nom: true } });
+    for (const r of rows) labels.set(`ProjectMilestone:${r.id}`, r.nom);
+  }
 
   return labels;
 }

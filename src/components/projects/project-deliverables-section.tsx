@@ -6,10 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import {
   createProjectDeliverable,
+  updateProjectDeliverable,
   updateProjectDeliverableStatus,
   deleteProjectDeliverable,
 } from "@/actions/project.actions";
-import { createProjectDeliverableSchema, type CreateProjectDeliverableInput } from "@/lib/validations/project.schema";
+import {
+  createProjectDeliverableSchema,
+  updateProjectDeliverableSchema,
+  type CreateProjectDeliverableInput,
+  type UpdateProjectDeliverableInput,
+} from "@/lib/validations/project.schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toneForDeliverableStatus } from "@/lib/status-tone";
-import { Plus, Trash2, Package } from "lucide-react";
+import { Plus, Trash2, Package, Pencil, BadgeCheck } from "lucide-react";
 
 type Option = { id: string; label: string };
 
@@ -29,7 +35,12 @@ export type DeliverableRow = {
   description: string | null;
   statut: string;
   echeance: string | null;
+  responsableId: string | null;
   responsableName: string | null;
+  criteresAcceptation: string | null;
+  version: string | null;
+  valideurName: string | null;
+  valideLe: string | null;
 };
 
 const STATUT_LABELS: Record<string, string> = {
@@ -69,41 +80,58 @@ export function ProjectDeliverablesSection({
         <div className="space-y-2">
           {deliverables.map((d) => (
             <Card key={d.id} size="sm">
-              <CardContent className="flex flex-wrap items-center justify-between gap-2 px-(--card-spacing)">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm font-medium">{d.nom}</div>
-                    {d.description && <div className="text-xs text-muted-foreground">{d.description}</div>}
-                    <div className="text-xs text-muted-foreground">
-                      {d.responsableName && <>Responsable : {d.responsableName} · </>}
-                      {d.echeance ? `Échéance : ${new Date(d.echeance).toLocaleDateString("fr-FR")}` : "Sans échéance"}
+              <CardContent className="space-y-2 px-(--card-spacing)">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div>
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        {d.nom}
+                        {d.version && <Badge variant="outline">{d.version}</Badge>}
+                      </div>
+                      {d.description && <div className="text-xs text-muted-foreground">{d.description}</div>}
+                      <div className="text-xs text-muted-foreground">
+                        {d.responsableName && <>Responsable : {d.responsableName} · </>}
+                        {d.echeance ? `Échéance : ${new Date(d.echeance).toLocaleDateString("fr-FR")}` : "Sans échéance"}
+                      </div>
+                      {d.criteresAcceptation && (
+                        <div className="text-xs text-muted-foreground">
+                          Critères d&apos;acceptation : {d.criteresAcceptation}
+                        </div>
+                      )}
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {canManage ? (
+                      <Select value={d.statut} onValueChange={(v) => setStatus({ deliverableId: d.id, statut: v as never })}>
+                        <SelectTrigger className="h-7 w-auto text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(STATUT_LABELS).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant={toneForDeliverableStatus(d.statut)}>{STATUT_LABELS[d.statut]}</Badge>
+                    )}
+                    {canManage && <DeliverableEditDialog deliverable={d} users={users} />}
+                    {canManage && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => remove({ deliverableId: d.id })} aria-label="Supprimer">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {canManage ? (
-                    <Select value={d.statut} onValueChange={(v) => setStatus({ deliverableId: d.id, statut: v as never })}>
-                      <SelectTrigger className="h-7 w-auto text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(STATUT_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge variant={toneForDeliverableStatus(d.statut)}>{STATUT_LABELS[d.statut]}</Badge>
-                  )}
-                  {canManage && (
-                    <Button variant="ghost" size="icon-sm" onClick={() => remove({ deliverableId: d.id })} aria-label="Supprimer">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
+                {d.valideurName && d.valideLe && (
+                  <p className="flex items-center gap-1 text-xs text-success">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    Validé par {d.valideurName} le {new Date(d.valideLe).toLocaleDateString("fr-FR")}
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -176,8 +204,99 @@ function DeliverableFormDialog({ projectId, users }: { projectId: string; users:
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="version">Version</Label>
+            <Input id="version" placeholder="Ex. v1.0" {...register("version")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="criteresAcceptation">Critères d&apos;acceptation</Label>
+            <Textarea id="criteresAcceptation" {...register("criteresAcceptation")} />
+          </div>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ajout..." : "Ajouter le livrable"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeliverableEditDialog({ deliverable, users }: { deliverable: DeliverableRow; users: Option[] }) {
+  const [open, setOpen] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<UpdateProjectDeliverableInput>({
+    resolver: zodResolver(updateProjectDeliverableSchema),
+    defaultValues: {
+      deliverableId: deliverable.id,
+      nom: deliverable.nom,
+      description: deliverable.description ?? "",
+      echeance: deliverable.echeance ? deliverable.echeance.slice(0, 10) : "",
+      responsableId: deliverable.responsableId ?? undefined,
+      version: deliverable.version ?? "",
+      criteresAcceptation: deliverable.criteresAcceptation ?? "",
+    },
+  });
+  const { run: submit, isPending } = useAction(updateProjectDeliverable, { successMessage: "Livrable mis à jour." });
+
+  async function onSubmit(data: UpdateProjectDeliverableInput) {
+    const result = await submit(data);
+    if (result.ok) setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label="Modifier">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Modifier le livrable</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-nom">Nom</Label>
+            <Input id="edit-nom" {...register("nom")} />
+            {errors.nom && <p className="text-sm text-destructive">{errors.nom.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-description">Description</Label>
+            <Textarea id="edit-description" {...register("description")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-echeance">Échéance</Label>
+            <Input id="edit-echeance" type="date" {...register("echeance")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Responsable</Label>
+            <Select defaultValue={deliverable.responsableId ?? undefined} onValueChange={(v) => setValue("responsableId", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Non assigné" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-version">Version</Label>
+            <Input id="edit-version" placeholder="Ex. v1.0" {...register("version")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-criteres">Critères d&apos;acceptation</Label>
+            <Textarea id="edit-criteres" {...register("criteresAcceptation")} />
+          </div>
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </form>
       </DialogContent>

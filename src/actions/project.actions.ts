@@ -22,6 +22,7 @@ import {
   updateProjectMilestoneStatusSchema,
   deleteProjectMilestoneSchema,
   createProjectDeliverableSchema,
+  updateProjectDeliverableSchema,
   updateProjectDeliverableStatusSchema,
   deleteProjectDeliverableSchema,
   createProjectDecisionSchema,
@@ -44,6 +45,7 @@ import {
   type UpdateProjectMilestoneStatusInput,
   type DeleteProjectMilestoneInput,
   type CreateProjectDeliverableInput,
+  type UpdateProjectDeliverableInput,
   type UpdateProjectDeliverableStatusInput,
   type DeleteProjectDeliverableInput,
   type CreateProjectDecisionInput,
@@ -432,10 +434,21 @@ export async function updateProjectMilestoneStatus(input: UpdateProjectMilestone
 
   const data = updateProjectMilestoneStatusSchema.parse(input);
 
+  // Project Studio §44 — passage a ATTEINT horodate automatiquement la date
+  // reelle (si non fournie) et la validation (qui/quand), sans etape separee.
   const milestone = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.projectMilestone.update({
       where: { id: data.milestoneId },
-      data: { statut: data.statut },
+      data: {
+        statut: data.statut,
+        ...(data.statut === "ATTEINT"
+          ? {
+              dateReelle: data.dateReelle ? new Date(data.dateReelle) : new Date(),
+              valideParId: session.user.id,
+              valideLe: new Date(),
+            }
+          : {}),
+      },
     })
   );
 
@@ -492,6 +505,8 @@ export async function createProjectDeliverable(input: CreateProjectDeliverableIn
         echeance: data.echeance ? new Date(data.echeance) : undefined,
         responsableId: data.responsableId || undefined,
         objectiveId: data.objectiveId || undefined,
+        criteresAcceptation: data.criteresAcceptation || undefined,
+        version: data.version || undefined,
         createdById: session.user.id,
         organizationId: session.user.organizationId,
       },
@@ -510,6 +525,39 @@ export async function createProjectDeliverable(input: CreateProjectDeliverableIn
   return deliverable;
 }
 
+export async function updateProjectDeliverable(input: UpdateProjectDeliverableInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectDeliverableSchema.parse(input);
+
+  const deliverable = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectDeliverable.update({
+      where: { id: data.deliverableId },
+      data: {
+        nom: data.nom,
+        description: data.description,
+        echeance: data.echeance ? new Date(data.echeance) : null,
+        responsableId: data.responsableId || null,
+        criteresAcceptation: data.criteresAcceptation,
+        version: data.version,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.deliverable_updated",
+    entityType: "ProjectDeliverable",
+    entityId: deliverable.id,
+    changes: { nom: deliverable.nom, version: deliverable.version },
+  });
+
+  revalidatePath(`/projets/${deliverable.projectId}`);
+  return deliverable;
+}
+
 export async function updateProjectDeliverableStatus(input: UpdateProjectDeliverableStatusInput) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
@@ -517,10 +565,15 @@ export async function updateProjectDeliverableStatus(input: UpdateProjectDeliver
 
   const data = updateProjectDeliverableStatusSchema.parse(input);
 
+  // Project Studio §45 — passage a VALIDE horodate automatiquement la
+  // validation (qui/quand), sans etape separee.
   const deliverable = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.projectDeliverable.update({
       where: { id: data.deliverableId },
-      data: { statut: data.statut },
+      data: {
+        statut: data.statut,
+        ...(data.statut === "VALIDE" ? { valideParId: session.user.id, valideLe: new Date() } : {}),
+      },
     })
   );
 

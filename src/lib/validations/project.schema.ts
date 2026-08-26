@@ -113,6 +113,9 @@ export type CreateProjectMilestoneInput = z.infer<typeof createProjectMilestoneS
 export const updateProjectMilestoneStatusSchema = z.object({
   milestoneId: z.string().min(1),
   statut: z.enum(["A_VENIR", "ATTEINT", "MANQUE"]),
+  // Project Studio §44 — date reelle d'atteinte ; si omise et statut=ATTEINT,
+  // l'action retombe sur la date du jour.
+  dateReelle: z.string().optional(),
 });
 
 export type UpdateProjectMilestoneStatusInput = z.infer<typeof updateProjectMilestoneStatusSchema>;
@@ -131,9 +134,24 @@ export const createProjectDeliverableSchema = z.object({
   responsableId: z.string().optional(),
   // Project Studio §13 — relie le livrable au Resultat (Objective.niveau = RESULTAT) dont il decoule.
   objectiveId: z.string().optional(),
+  // Project Studio §45 (Deliverable Management).
+  criteresAcceptation: z.string().optional(),
+  version: z.string().optional(),
 });
 
 export type CreateProjectDeliverableInput = z.infer<typeof createProjectDeliverableSchema>;
+
+export const updateProjectDeliverableSchema = z.object({
+  deliverableId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  description: z.string().optional(),
+  echeance: z.string().optional(),
+  responsableId: z.string().optional(),
+  criteresAcceptation: z.string().optional(),
+  version: z.string().optional(),
+});
+
+export type UpdateProjectDeliverableInput = z.infer<typeof updateProjectDeliverableSchema>;
 
 export const updateProjectDeliverableStatusSchema = z.object({
   deliverableId: z.string().min(1),

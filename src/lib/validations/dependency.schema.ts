@@ -10,6 +10,8 @@ import { z } from "zod";
 // Team/Project, la chaîne Équipe->Prestataire->Projet passe par Dependency.
 // Transformation ajouté pour le Change Impact Analysis (V3.0 §20) — relier
 // une transformation aux processus/projets qu'elle affecte.
+// ProjectMilestone ajouté pour Project Studio §44 (Milestone Management) —
+// un jalon peut dépendre d'un autre jalon (ou d'une autre entité déjà listée).
 export const DEPENDENCY_ENTITY_TYPES = [
   "Project",
   "Team",
@@ -21,6 +23,7 @@ export const DEPENDENCY_ENTITY_TYPES = [
   "CrmOrganization",
   "CrmContact",
   "Transformation",
+  "ProjectMilestone",
 ] as const;
 
 export const createDependencySchema = z

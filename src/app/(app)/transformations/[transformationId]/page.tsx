@@ -56,6 +56,7 @@ export default async function TransformationDetailPage({
     CrmOrganization: [],
     CrmContact: [],
     Transformation: [],
+    ProjectMilestone: [],
   };
 
   return (

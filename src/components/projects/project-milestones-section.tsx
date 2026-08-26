@@ -19,14 +19,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toneForMilestoneStatus } from "@/lib/status-tone";
-import { Plus, Trash2, Milestone as MilestoneIcon } from "lucide-react";
+import { Plus, Trash2, Milestone as MilestoneIcon, ChevronDown, ChevronUp, BadgeCheck } from "lucide-react";
+import { DependencyFormDialog } from "@/components/dependencies/dependency-form-dialog";
+import { DependencyList, type DependencyRow } from "@/components/dependencies/dependency-list";
+import { DEPENDENCY_ENTITY_TYPES } from "@/lib/validations/dependency.schema";
+
+type Option = { id: string; label: string };
+type DependencyEntityType = (typeof DEPENDENCY_ENTITY_TYPES)[number];
 
 export type MilestoneRow = {
   id: string;
   nom: string;
   description: string | null;
   dateCible: string;
+  dateReelle: string | null;
   statut: string;
+  valideurName: string | null;
+  valideLe: string | null;
+  dependencies: DependencyRow[];
 };
 
 const STATUT_LABELS: Record<string, string> = { A_VENIR: "À venir", ATTEINT: "Atteint", MANQUE: "Manqué" };
@@ -35,13 +45,16 @@ export function ProjectMilestonesSection({
   projectId,
   milestones,
   canManage,
+  dependencyOptionsByType,
 }: {
   projectId: string;
   milestones: MilestoneRow[];
   canManage: boolean;
+  dependencyOptionsByType: Record<DependencyEntityType, Option[]>;
 }) {
   const { run: setStatus } = useAction(updateProjectMilestoneStatus, { successMessage: "Statut mis à jour." });
   const { run: remove } = useAction(deleteProjectMilestone, { successMessage: "Jalon supprimé." });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sorted = [...milestones].sort((a, b) => new Date(a.dateCible).getTime() - new Date(b.dateCible).getTime());
 
@@ -59,40 +72,77 @@ export function ProjectMilestonesSection({
           {sorted.map((m) => (
             <li key={m.id}>
               <Card size="sm">
-                <CardContent className="flex flex-wrap items-center justify-between gap-2 px-(--card-spacing)">
-                  <div className="flex items-center gap-2">
-                    <MilestoneIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div>
-                      <div className="text-sm font-medium">{m.nom}</div>
-                      {m.description && <div className="text-xs text-muted-foreground">{m.description}</div>}
+                <CardContent className="space-y-2 px-(--card-spacing)">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <MilestoneIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div>
+                        <div className="text-sm font-medium">{m.nom}</div>
+                        {m.description && <div className="text-xs text-muted-foreground">{m.description}</div>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Prévu : {new Date(m.dateCible).toLocaleDateString("fr-FR")}
+                        {m.dateReelle && ` · Atteint : ${new Date(m.dateReelle).toLocaleDateString("fr-FR")}`}
+                      </span>
+                      {canManage ? (
+                        <Select value={m.statut} onValueChange={(v) => setStatus({ milestoneId: m.id, statut: v as never })}>
+                          <SelectTrigger className="h-7 w-auto text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(STATUT_LABELS).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant={toneForMilestoneStatus(m.statut)}>{STATUT_LABELS[m.statut]}</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                      >
+                        Dépendances ({m.dependencies.length})
+                        {expandedId === m.id ? (
+                          <ChevronUp className="ml-1 h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        )}
+                      </Button>
+                      {canManage && (
+                        <Button variant="ghost" size="icon-sm" onClick={() => remove({ milestoneId: m.id })} aria-label="Supprimer">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(m.dateCible).toLocaleDateString("fr-FR")}
-                    </span>
-                    {canManage ? (
-                      <Select value={m.statut} onValueChange={(v) => setStatus({ milestoneId: m.id, statut: v as never })}>
-                        <SelectTrigger className="h-7 w-auto text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(STATUT_LABELS).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Badge variant={toneForMilestoneStatus(m.statut)}>{STATUT_LABELS[m.statut]}</Badge>
-                    )}
-                    {canManage && (
-                      <Button variant="ghost" size="icon-sm" onClick={() => remove({ milestoneId: m.id })} aria-label="Supprimer">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
+                  {m.valideurName && m.valideLe && (
+                    <p className="flex items-center gap-1 text-xs text-success">
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      Validé par {m.valideurName} le {new Date(m.valideLe).toLocaleDateString("fr-FR")}
+                    </p>
+                  )}
+                  {expandedId === m.id && (
+                    <div className="space-y-2 border-t pt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Dépendances du jalon</span>
+                        {canManage && (
+                          <DependencyFormDialog
+                            optionsByType={dependencyOptionsByType}
+                            defaultSourceType="ProjectMilestone"
+                            defaultSourceId={m.id}
+                          />
+                        )}
+                      </div>
+                      <DependencyList dependencies={m.dependencies} canManage={canManage} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </li>

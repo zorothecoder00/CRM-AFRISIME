@@ -500,6 +500,10 @@ model User {
   holidaysCreated                     Holiday[]                      @relation("HolidayCreatedBy")
   deliverablesResponsable             ProjectDeliverable[]           @relation("DeliverableResponsable")
   deliverablesCreated                 ProjectDeliverable[]           @relation("DeliverableCreatedBy")
+  // Project Studio §45 (Deliverable Management) — validation formelle, distincte du createdBy.
+  deliverablesValidated               ProjectDeliverable[]           @relation("DeliverableValidatedBy")
+  // Project Studio §44 (Milestone Management) — validation formelle du jalon.
+  milestonesValidated                 ProjectMilestone[]              @relation("MilestoneValidatedBy")
   programmeRisksResponsable           ProgrammeRisk[]                @relation("ProgrammeRiskResponsable")
   programmeRisksCreated               ProgrammeRisk[]                @relation("ProgrammeRiskCreatedBy")
   delegationsGiven                    Delegation[]                   @relation("DelegationDelegant")
@@ -1828,8 +1832,18 @@ model ProjectMilestone {
   nom            String
   description    String?
   dateCible      DateTime
+  // Project Studio §44 (Milestone Management) — date reelle d'atteinte,
+  // distincte de dateCible (prevue) ; horodatee automatiquement au passage
+  // du statut a ATTEINT si non fournie explicitement.
+  dateReelle     DateTime?
   statut         MilestoneStatus       @default(A_VENIR)
   ordre          Int                   @default(0)
+  // Project Studio §44 — validation formelle du jalon (qui/quand), distincte
+  // du statut ATTEINT : horodatee automatiquement au meme moment que
+  // dateReelle, cf. updateProjectMilestoneStatus.
+  valideParId    String?
+  valideur       User?                 @relation("MilestoneValidatedBy", fields: [valideParId], references: [id])
+  valideLe       DateTime?
   // Project Studio §15 (WBS) — trace qu'un jalon a ete genere depuis un
   // noeud du WBS (ProjectSection), voir convertSectionToMilestone.
   sectionId      String?
@@ -1861,10 +1875,21 @@ model ProjectDeliverable {
   organization    PlatformOrganization? @relation("PlatformOrganizationProjectDeliverables", fields: [organizationId], references: [id])
   nom             String
   description     String?
+  // Project Studio §45 (Deliverable Management) — criteres d'acceptation
+  // (texte libre : conditions a remplir pour que le livrable soit accepte)
+  // et version courante (texte libre, ex. "v1.0" — le livrable peut evoluer
+  // au fil des iterations sans changer d'identite).
+  criteresAcceptation String?
+  version         String?
   statut          DeliverableStatus     @default(A_FAIRE)
   echeance        DateTime?
   responsableId   String?
   responsable     User?                 @relation("DeliverableResponsable", fields: [responsableId], references: [id])
+  // Project Studio §45 — validation formelle (qui/quand), horodatee
+  // automatiquement au passage du statut a VALIDE, cf. updateProjectDeliverableStatus.
+  valideParId     String?
+  valideur        User?                 @relation("DeliverableValidatedBy", fields: [valideParId], references: [id])
+  valideLe        DateTime?
   // Project Studio §13 (Objectives Builder) — relie le livrable au Resultat
   // (Objective.niveau = RESULTAT) dont il decoule ; sert au controle de
   // coherence entre niveaux (voir checkObjectivesConsistency).

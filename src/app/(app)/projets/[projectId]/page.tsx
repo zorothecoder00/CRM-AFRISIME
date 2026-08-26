@@ -210,10 +210,14 @@ export default async function ProjectDetailPage({
       include: { stakeholder: { include: { user: true, contact: true } } },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.projectMilestone.findMany({ where: { projectId }, orderBy: { dateCible: "asc" } }),
+    prisma.projectMilestone.findMany({
+      where: { projectId },
+      include: { valideur: true },
+      orderBy: { dateCible: "asc" },
+    }),
     prisma.projectDeliverable.findMany({
       where: { projectId },
-      include: { responsable: true },
+      include: { responsable: true, valideur: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.crmContact.findMany({ orderBy: { nom: "asc" }, select: { id: true, prenom: true, nom: true } }),
@@ -385,7 +389,34 @@ export default async function ProjectDetailPage({
     CrmOrganization: [],
     CrmContact: [],
     Transformation: [],
+    // Project Studio §44 — un jalon peut dependre d'un autre jalon du meme projet.
+    ProjectMilestone: milestones.map((m) => ({ id: m.id, label: m.nom })),
   };
+
+  // Project Studio §44 — dependances des jalons (source = ProjectMilestone),
+  // recuperees en une seule requete groupee plutot qu'une par jalon.
+  const milestoneIds = milestones.map((m) => m.id);
+  const milestoneDependencies =
+    milestoneIds.length > 0
+      ? await prisma.dependency.findMany({ where: { sourceType: "ProjectMilestone", sourceId: { in: milestoneIds } } })
+      : [];
+  const milestoneDependencyLabels = await resolveDependencyLabels(
+    milestoneDependencies.map((d) => ({ type: d.targetType, id: d.targetId }))
+  );
+  const milestoneDependencyRowsById = new Map<string, DependencyRow[]>();
+  for (const d of milestoneDependencies) {
+    const row: DependencyRow = {
+      id: d.id,
+      sourceLabel: milestones.find((m) => m.id === d.sourceId)?.nom ?? "Jalon",
+      targetLabel: milestoneDependencyLabels.get(`${d.targetType}:${d.targetId}`) ?? `${d.targetType} (introuvable)`,
+      type: d.type,
+      atRisk: false,
+      riskMessage: null,
+    };
+    const list = milestoneDependencyRowsById.get(d.sourceId) ?? [];
+    list.push(row);
+    milestoneDependencyRowsById.set(d.sourceId, list);
+  }
 
   const responsableById = new Map(users.map((u) => [u.id, u.name]));
 
@@ -772,7 +803,11 @@ export default async function ProjectDetailPage({
     nom: m.nom,
     description: m.description,
     dateCible: m.dateCible.toISOString(),
+    dateReelle: m.dateReelle ? m.dateReelle.toISOString() : null,
     statut: m.statut,
+    valideurName: m.valideur?.name ?? null,
+    valideLe: m.valideLe ? m.valideLe.toISOString() : null,
+    dependencies: milestoneDependencyRowsById.get(m.id) ?? [],
   }));
 
   const deliverableRows: DeliverableRow[] = deliverables.map((d) => ({
@@ -781,7 +816,12 @@ export default async function ProjectDetailPage({
     description: d.description,
     statut: d.statut,
     echeance: d.echeance ? d.echeance.toISOString() : null,
+    responsableId: d.responsableId,
     responsableName: d.responsable?.name ?? null,
+    criteresAcceptation: d.criteresAcceptation,
+    version: d.version,
+    valideurName: d.valideur?.name ?? null,
+    valideLe: d.valideLe ? d.valideLe.toISOString() : null,
   }));
 
   const folderNodeById = new Map<string, FolderNode>();
@@ -1087,7 +1127,12 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="jalons" className="mt-4">
-          <ProjectMilestonesSection projectId={project.id} milestones={milestoneRows} canManage={canUpdateProject} />
+          <ProjectMilestonesSection
+            projectId={project.id}
+            milestones={milestoneRows}
+            canManage={canUpdateProject}
+            dependencyOptionsByType={dependencyOptionsByType}
+          />
         </TabsContent>
 
         <TabsContent value="livrables" className="mt-4">
