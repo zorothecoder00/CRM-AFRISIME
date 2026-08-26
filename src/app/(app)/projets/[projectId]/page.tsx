@@ -142,6 +142,7 @@ export default async function ProjectDetailPage({
       </div>
 
       <Tabs defaultValue="apercu">
+        <div className="overflow-x-auto pb-1">
         <TabsList>
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
           <TabsTrigger value="pilotage">Pilotage</TabsTrigger>
@@ -162,6 +163,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
           <TabsTrigger value="automatisations">Automatisations</TabsTrigger>
         </TabsList>
+        </div>
         <TabsContent value="apercu" className="mt-4">
           <Card accent={accentForStatus(project.statut)}>
             <CardHeader>

@@ -13,8 +13,9 @@ import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
 import { ProjectListCard } from "@/components/projects/project-list-card";
 import { PeriodFilter } from "@/components/ui/period-filter";
 import { buildDateRangeFilter } from "@/lib/date-filter";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Prisma } from "@/generated/prisma/client";
-import { User } from "lucide-react";
+import { User, ChevronDown } from "lucide-react";
 
 const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
   ONG: "ONG",
@@ -147,43 +148,37 @@ export default async function ProjetsPage({
               </Link>
             ))}
           </div>
-          <div className="flex rounded-md border">
-            <Link href="/projets/portefeuille">
-              <Button variant="ghost" size="sm" className="rounded-r-none">
-                Portefeuille
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                Autres vues
+                <ChevronDown className="ml-1 h-3.5 w-3.5" />
               </Button>
-            </Link>
-            <Link href="/projets/idees">
-              <Button variant="ghost" size="sm" className="rounded-none">
-                Idées
-              </Button>
-            </Link>
-            <Link href="/projets/roadmap">
-              <Button variant="ghost" size="sm" className="rounded-none">
-                Roadmap
-              </Button>
-            </Link>
-            <Link href="/projets/calendrier">
-              <Button variant="ghost" size="sm" className="rounded-none">
-                Calendrier
-              </Button>
-            </Link>
-            <Link href="/projets/carte">
-              <Button variant="ghost" size="sm" className="rounded-none">
-                Carte
-              </Button>
-            </Link>
-            <Link href="/projets/control-tower">
-              <Button variant="ghost" size="sm" className="rounded-none">
-                Control Tower
-              </Button>
-            </Link>
-            <Link href="/projets/modeles">
-              <Button variant="ghost" size="sm" className="rounded-l-none">
-                Modèles
-              </Button>
-            </Link>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/projets/portefeuille">Portefeuille</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/projets/idees">Idées</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/projets/roadmap">Roadmap</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/projets/calendrier">Calendrier</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/projets/carte">Carte</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/projets/control-tower">Control Tower</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/projets/modeles">Modèles</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {canCreate && (
             <ProjectFormDialog
               departments={departments.map((d) => ({ id: d.id, label: d.name }))}
