@@ -31,6 +31,17 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITIQUE: "Critique",
 };
 
+const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
+  ONG: "ONG",
+  IT: "IT",
+  EVENEMENTIEL: "Événementiel",
+  FORMATION: "Formation",
+  AGRICOLE: "Agricole",
+  BTP: "BTP",
+  DONOR_FUNDED: "Financé par bailleur",
+  AUTRE: "Autre",
+};
+
 const VIEWS = [
   { key: "liste", label: "Liste" },
   { key: "table", label: "Table" },
@@ -69,7 +80,7 @@ export default async function ProjetsPage({
   andClauses.push({ deletedAt: null });
   const where: Prisma.ProjectWhereInput = { AND: andClauses };
 
-  const [projects, departments, users] = await Promise.all([
+  const [projects, departments, users, templates] = await Promise.all([
     prisma.project.findMany({
       where,
       include: { department: true, responsable: true },
@@ -80,6 +91,9 @@ export default async function ProjetsPage({
       : Promise.resolve([]),
     canCreate
       ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
+    canCreate
+      ? prisma.projectTemplate.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true, categorie: true } })
       : Promise.resolve([]),
   ]);
 
@@ -158,8 +172,13 @@ export default async function ProjetsPage({
               </Button>
             </Link>
             <Link href="/projets/control-tower">
-              <Button variant="ghost" size="sm" className="rounded-l-none">
+              <Button variant="ghost" size="sm" className="rounded-none">
                 Control Tower
+              </Button>
+            </Link>
+            <Link href="/projets/modeles">
+              <Button variant="ghost" size="sm" className="rounded-l-none">
+                Modèles
               </Button>
             </Link>
           </div>
@@ -167,6 +186,7 @@ export default async function ProjetsPage({
             <ProjectFormDialog
               departments={departments.map((d) => ({ id: d.id, label: d.name }))}
               users={users.map((u) => ({ id: u.id, label: u.name }))}
+              templates={templates.map((t) => ({ id: t.id, label: `${t.nom} (${TEMPLATE_CATEGORY_LABELS[t.categorie]})` }))}
             />
           )}
         </div>

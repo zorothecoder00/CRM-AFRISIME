@@ -13,6 +13,8 @@ export const createProjectSchema = z.object({
   localisation: z.string().optional(),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
+  // Project Studio §60 (Project Templates) — genere les phases WBS de depart si fourni.
+  templateId: z.string().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
@@ -52,6 +54,14 @@ export const updateProjectCoutReelSchema = z.object({
 });
 
 export type UpdateProjectCoutReelInput = z.infer<typeof updateProjectCoutReelSchema>;
+
+// Project Studio §54 (Post-Mortem) — date de fin reelle.
+export const updateProjectDateFinReelleSchema = z.object({
+  projectId: z.string().min(1),
+  dateFinReelle: z.string().min(1, "Une date est requise."),
+});
+
+export type UpdateProjectDateFinReelleInput = z.infer<typeof updateProjectDateFinReelleSchema>;
 
 export const updateProjectStatusSchema = z.object({
   projectId: z.string().min(1),
@@ -300,3 +310,71 @@ export const updateProjectScopeSchema = z.object({
 });
 
 export type UpdateProjectScopeInput = z.infer<typeof updateProjectScopeSchema>;
+
+// ---- Checklist de clôture (Project Studio §52) ----
+
+export const updateProjectClosureChecklistSchema = z.object({
+  projectId: z.string().min(1),
+  documentsArchives: z.boolean().optional(),
+  actifsTransferes: z.boolean().optional(),
+  rapportsRemis: z.boolean().optional(),
+  beneficiairesInformes: z.boolean().optional(),
+  partenairesInformes: z.boolean().optional(),
+});
+
+export type UpdateProjectClosureChecklistInput = z.infer<typeof updateProjectClosureChecklistSchema>;
+
+// ---- Lessons Learned (Project Studio §53) ----
+
+export const createProjectLessonLearnedSchema = z.object({
+  projectId: z.string().min(1),
+  type: z.enum(["SUCCES", "ECHEC"]),
+  titre: z.string().min(2, "Le titre est requis."),
+  pourquoi: z.string().optional(),
+  actionRetenue: z.string().optional(),
+  recommandations: z.string().optional(),
+});
+
+export type CreateProjectLessonLearnedInput = z.infer<typeof createProjectLessonLearnedSchema>;
+
+export const deleteProjectLessonLearnedSchema = z.object({ lessonId: z.string().min(1) });
+
+export type DeleteProjectLessonLearnedInput = z.infer<typeof deleteProjectLessonLearnedSchema>;
+
+// ---- Bibliothèque de modèles (Project Studio §60) ----
+
+export const PROJECT_TEMPLATE_CATEGORIES = [
+  "ONG",
+  "IT",
+  "EVENEMENTIEL",
+  "FORMATION",
+  "AGRICOLE",
+  "BTP",
+  "DONOR_FUNDED",
+  "AUTRE",
+] as const;
+
+export const createProjectTemplateSchema = z.object({
+  nom: z.string().min(2, "Le nom est requis."),
+  categorie: z.enum(PROJECT_TEMPLATE_CATEGORIES),
+  description: z.string().optional(),
+});
+
+export type CreateProjectTemplateInput = z.infer<typeof createProjectTemplateSchema>;
+
+export const deleteProjectTemplateSchema = z.object({ templateId: z.string().min(1) });
+
+export type DeleteProjectTemplateInput = z.infer<typeof deleteProjectTemplateSchema>;
+
+export const addProjectTemplatePhaseSchema = z.object({
+  templateId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  type: z.enum(["PHASE", "SOUS_PHASE", "LOT"]),
+  description: z.string().optional(),
+});
+
+export type AddProjectTemplatePhaseInput = z.infer<typeof addProjectTemplatePhaseSchema>;
+
+export const deleteProjectTemplatePhaseSchema = z.object({ phaseId: z.string().min(1) });
+
+export type DeleteProjectTemplatePhaseInput = z.infer<typeof deleteProjectTemplatePhaseSchema>;

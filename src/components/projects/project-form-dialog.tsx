@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 
 type Option = { id: string; label: string };
@@ -34,9 +35,11 @@ type Option = { id: string; label: string };
 export function ProjectFormDialog({
   departments,
   users,
+  templates = [],
 }: {
   departments: Option[];
   users: Option[];
+  templates?: Option[];
 }) {
   const [open, setOpen] = useState(false);
   const {
@@ -74,6 +77,29 @@ export function ProjectFormDialog({
           <DialogTitle>Créer un projet</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {templates.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Modèle (facultatif)</Label>
+                <Link href="/projets/modeles" className="text-xs text-primary hover:underline">
+                  Gérer les modèles →
+                </Link>
+              </div>
+              <Select onValueChange={(v) => setValue("templateId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Partir de zéro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Génère automatiquement les phases WBS de départ du modèle.</p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="nom">Nom</Label>
             <Input id="nom" {...register("nom")} />

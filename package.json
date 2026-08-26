@@ -14,6 +14,7 @@
     "backfill-platform-organization": "tsx scripts/backfill-platform-organization.ts",
     "setup-local-rls-test-role": "tsx scripts/setup-local-rls-test-role.ts",
     "setup-production-tenant-role": "tsx scripts/setup-production-tenant-role.ts",
+    "seed-project-templates": "tsx scripts/seed-project-templates.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"

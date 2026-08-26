@@ -612,6 +612,10 @@ model User {
   // Project Studio §48 (Data Collection).
   projectDataFormsCreated              ProjectDataForm[]              @relation("ProjectDataFormCreatedBy")
   projectDataFormSubmissions           ProjectDataFormSubmission[]    @relation("ProjectDataFormSubmissionBy")
+  // Project Studio §53 (Lessons Learned).
+  projectLessonsLearnedCreated          ProjectLessonLearned[]         @relation("ProjectLessonLearnedCreatedBy")
+  // Project Studio §60 (Project Templates).
+  projectTemplatesCreated               ProjectTemplate[]              @relation("ProjectTemplateCreatedBy")
   dashboardPreference                 DashboardWidgetPreference?
   integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
@@ -1117,6 +1121,12 @@ model PlatformOrganization {
   projectDataForms                ProjectDataForm[]              @relation("PlatformOrganizationProjectDataForms")
   projectDataFormFields           ProjectDataFormField[]         @relation("PlatformOrganizationProjectDataFormFields")
   projectDataFormSubmissions      ProjectDataFormSubmission[]    @relation("PlatformOrganizationProjectDataFormSubmissions")
+  // Project Studio §52 (Project Closure) / §53 (Lessons Learned).
+  projectClosureChecklists        ProjectClosureChecklist[]      @relation("PlatformOrganizationProjectClosureChecklists")
+  projectLessonsLearned           ProjectLessonLearned[]         @relation("PlatformOrganizationProjectLessonsLearned")
+  // Project Studio §60 (Project Templates).
+  projectTemplates                ProjectTemplate[]              @relation("PlatformOrganizationProjectTemplates")
+  projectTemplatePhases           ProjectTemplatePhase[]         @relation("PlatformOrganizationProjectTemplatePhases")
   entities                      Entity[]                       @relation("PlatformOrganizationEntities")
   holidays                      Holiday[]                      @relation("PlatformOrganizationHolidays")
   tags                          Tag[]                          @relation("PlatformOrganizationTags")
@@ -1533,6 +1543,10 @@ model Project {
   sponsor        User?                 @relation("ProjectSponsor", fields: [sponsorId], references: [id])
   dateDebut      DateTime?
   dateFin        DateTime?
+  // Project Studio §54 (Post-Mortem) — date de fin reelle, saisie
+  // manuellement (meme principe que coutReel) : aucun evenement systeme ne
+  // marque fiablement "le projet est vraiment termine ce jour-la".
+  dateFinReelle  DateTime?
   // Localisation (cahier des charges §VI, vue "Carte") — libelle libre
   // (ville/pays) affiche dans les popups, latitude/longitude pour le
   // placement du pin. Les trois sont optionnels : un projet sans
@@ -1594,6 +1608,9 @@ model Project {
   meEvaluations            ProjectMEEvaluation[]
   // Project Studio §48 (Data Collection).
   dataForms                ProjectDataForm[]
+  // Project Studio §52 (Project Closure) / §53 (Lessons Learned).
+  closureChecklist         ProjectClosureChecklist?
+  lessonsLearned           ProjectLessonLearned[]
   decisionMatrices         DecisionMatrix[]
   // Project Studio §4/§10 — voir modeles en fin de fichier.
   financements             Financement[]
@@ -5318,6 +5335,98 @@ model ProjectDataFormSubmission {
   submittedAt    DateTime              @default(now())
 
   @@index([formId])
+}
+
+// Checklist de cloture (cahier des charges Project Studio §52) — 5 items
+// declaratifs (pas de source de donnees fiable dans le modele existant :
+// archivage documentaire, transfert d'actifs, remise de rapports,
+// information beneficiaires/partenaires sont des actes administratifs hors
+// systeme). Les 4 autres items du cahier (livrables/contrats/paiements/
+// risques clotures) sont deja calculables depuis ProjectDeliverable/
+// ProjectContract/ProjectContractPayment/ProjectRisk — voir
+// computeClosureChecklist dans src/lib/project-closure.ts, pas dupliques ici.
+model ProjectClosureChecklist {
+  id                    String                @id @default(cuid())
+  projectId             String                @unique
+  project               Project               @relation(fields: [projectId], references: [id])
+  organizationId        String?
+  organization          PlatformOrganization? @relation("PlatformOrganizationProjectClosureChecklists", fields: [organizationId], references: [id])
+  documentsArchives     Boolean               @default(false)
+  actifsTransferes      Boolean               @default(false)
+  rapportsRemis         Boolean               @default(false)
+  beneficiairesInformes Boolean               @default(false)
+  partenairesInformes   Boolean               @default(false)
+  updatedAt             DateTime              @updatedAt
+}
+
+enum LessonType {
+  SUCCES
+  ECHEC
+}
+
+// Base de capitalisation (cahier des charges Project Studio §53).
+model ProjectLessonLearned {
+  id              String                @id @default(cuid())
+  projectId       String
+  project         Project               @relation(fields: [projectId], references: [id])
+  organizationId  String?
+  organization    PlatformOrganization? @relation("PlatformOrganizationProjectLessonsLearned", fields: [organizationId], references: [id])
+  type            LessonType
+  titre           String
+  pourquoi        String?
+  // "Que faut-il reproduire" (succes) ou "Que faut-il eviter" (echec) — un
+  // seul champ, son sens depend de `type` plutot que deux colonnes dont une
+  // toujours vide.
+  actionRetenue   String?
+  recommandations String?
+  createdById     String
+  createdBy       User                  @relation("ProjectLessonLearnedCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime              @default(now())
+
+  @@index([projectId])
+}
+
+enum ProjectTemplateCategorie {
+  ONG
+  IT
+  EVENEMENTIEL
+  FORMATION
+  AGRICOLE
+  BTP
+  DONOR_FUNDED
+  AUTRE
+}
+
+// Bibliotheque de modeles de projet (cahier des charges Project Studio §60)
+// — a la creation d'un projet, un modele optionnel genere ses phases WBS
+// (ProjectSection) de depart. Volontairement limite aux phases : le reste
+// (jalons/livrables/budget...) reste a construire au cas par cas, un modele
+// trop prescriptif genererait plus de nettoyage que de gain.
+model ProjectTemplate {
+  id             String                    @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization?     @relation("PlatformOrganizationProjectTemplates", fields: [organizationId], references: [id])
+  nom            String
+  categorie      ProjectTemplateCategorie
+  description    String?
+  phases         ProjectTemplatePhase[]
+  createdById    String
+  createdBy      User                      @relation("ProjectTemplateCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime                  @default(now())
+}
+
+model ProjectTemplatePhase {
+  id             String                @id @default(cuid())
+  templateId     String
+  template       ProjectTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectTemplatePhases", fields: [organizationId], references: [id])
+  nom            String
+  type           SectionType           @default(PHASE)
+  description    String?
+  ordre          Int                   @default(0)
+
+  @@index([templateId])
 }
 
 // ===================== V2.2 §22-25 — Multi-entites / Multi-pays / =====================

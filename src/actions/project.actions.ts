@@ -12,6 +12,14 @@ import {
   createSectionSchema,
   addSectionCommentSchema,
   updateProjectCoutReelSchema,
+  updateProjectDateFinReelleSchema,
+  updateProjectClosureChecklistSchema,
+  createProjectLessonLearnedSchema,
+  deleteProjectLessonLearnedSchema,
+  createProjectTemplateSchema,
+  deleteProjectTemplateSchema,
+  addProjectTemplatePhaseSchema,
+  deleteProjectTemplatePhaseSchema,
   updateProjectStatusSchema,
   updateProjectSponsorSchema,
   updateProjectLocationSchema,
@@ -43,6 +51,14 @@ import {
   type CreateSectionInput,
   type AddSectionCommentInput,
   type UpdateProjectCoutReelInput,
+  type UpdateProjectDateFinReelleInput,
+  type UpdateProjectClosureChecklistInput,
+  type CreateProjectLessonLearnedInput,
+  type DeleteProjectLessonLearnedInput,
+  type CreateProjectTemplateInput,
+  type DeleteProjectTemplateInput,
+  type AddProjectTemplatePhaseInput,
+  type DeleteProjectTemplatePhaseInput,
   type UpdateProjectSponsorInput,
   type UpdateProjectLocationInput,
   type CreateProjectRiskInput,
@@ -79,8 +95,8 @@ export async function createProject(input: CreateProjectInput) {
 
   const data = createProjectSchema.parse(input);
 
-  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.project.create({
+  const project = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const created = await tx.project.create({
       data: {
         nom: data.nom,
         description: data.description,
@@ -100,8 +116,30 @@ export async function createProject(input: CreateProjectInput) {
           create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET", organizationId: session.user.organizationId }],
         },
       },
-    })
-  );
+    });
+
+    // Project Studio §60 — genere les phases WBS de depart depuis le modele choisi.
+    if (data.templateId) {
+      const phases = await tx.projectTemplatePhase.findMany({
+        where: { templateId: data.templateId },
+        orderBy: { ordre: "asc" },
+      });
+      if (phases.length > 0) {
+        await tx.projectSection.createMany({
+          data: phases.map((p) => ({
+            projectId: created.id,
+            nom: p.nom,
+            type: p.type,
+            description: p.description,
+            ordre: p.ordre,
+            organizationId: session.user.organizationId,
+          })),
+        });
+      }
+    }
+
+    return created;
+  });
 
   await logAudit({
     userId: session.user.id,
@@ -211,6 +249,133 @@ export async function updateProjectCoutReel(input: UpdateProjectCoutReelInput) {
 
   revalidatePath(`/projets/${data.projectId}`);
   return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
+}
+
+export async function updateProjectDateFinReelle(input: UpdateProjectDateFinReelleInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectDateFinReelleSchema.parse(input);
+
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: { dateFinReelle: new Date(data.dateFinReelle) },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.date_fin_reelle_updated",
+    entityType: "Project",
+    entityId: project.id,
+    changes: { dateFinReelle: data.dateFinReelle },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return project;
+}
+
+/** Project Studio §52 (Project Closure) — upsert, un seul enregistrement par projet. */
+export async function updateProjectClosureChecklist(input: UpdateProjectClosureChecklistInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectClosureChecklistSchema.parse(input);
+
+  const checklist = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectClosureChecklist.upsert({
+      where: { projectId: data.projectId },
+      create: {
+        projectId: data.projectId,
+        organizationId: session.user.organizationId,
+        documentsArchives: data.documentsArchives ?? false,
+        actifsTransferes: data.actifsTransferes ?? false,
+        rapportsRemis: data.rapportsRemis ?? false,
+        beneficiairesInformes: data.beneficiairesInformes ?? false,
+        partenairesInformes: data.partenairesInformes ?? false,
+      },
+      update: {
+        documentsArchives: data.documentsArchives,
+        actifsTransferes: data.actifsTransferes,
+        rapportsRemis: data.rapportsRemis,
+        beneficiairesInformes: data.beneficiairesInformes,
+        partenairesInformes: data.partenairesInformes,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.closure_checklist_updated",
+    entityType: "ProjectClosureChecklist",
+    entityId: checklist.id,
+    changes: data,
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return checklist;
+}
+
+// ---- Lessons Learned (Project Studio §53) ----
+
+export async function createProjectLessonLearned(input: CreateProjectLessonLearnedInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = createProjectLessonLearnedSchema.parse(input);
+
+  const lesson = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectLessonLearned.create({
+      data: {
+        projectId: data.projectId,
+        type: data.type,
+        titre: data.titre,
+        pourquoi: data.pourquoi || undefined,
+        actionRetenue: data.actionRetenue || undefined,
+        recommandations: data.recommandations || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.lesson_learned_created",
+    entityType: "ProjectLessonLearned",
+    entityId: lesson.id,
+    changes: { type: lesson.type, titre: lesson.titre },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return lesson;
+}
+
+export async function deleteProjectLessonLearned(input: DeleteProjectLessonLearnedInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = deleteProjectLessonLearnedSchema.parse(input);
+
+  const lesson = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectLessonLearned.delete({ where: { id: data.lessonId } })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.lesson_learned_deleted",
+    entityType: "ProjectLessonLearned",
+    entityId: lesson.id,
+    changes: { titre: lesson.titre },
+  });
+
+  revalidatePath(`/projets/${lesson.projectId}`);
+  return lesson;
 }
 
 /** Changement de statut depuis la vue Kanban (cahier des charges §VI) — meme principe que updateTaskStatus. */
@@ -1143,4 +1308,116 @@ export async function updateProjectScope(input: UpdateProjectScopeInput) {
 
   revalidatePath(`/projets/${project.id}`);
   return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
+}
+
+// ---- Bibliothèque de modèles (Project Studio §60) ----
+
+export async function createProjectTemplate(input: CreateProjectTemplateInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_CREATE);
+
+  const data = createProjectTemplateSchema.parse(input);
+
+  const template = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectTemplate.create({
+      data: {
+        nom: data.nom,
+        categorie: data.categorie,
+        description: data.description,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project_template.created",
+    entityType: "ProjectTemplate",
+    entityId: template.id,
+    changes: { nom: template.nom },
+  });
+
+  revalidatePath("/projets/modeles");
+  return template;
+}
+
+export async function deleteProjectTemplate(input: DeleteProjectTemplateInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_CREATE);
+
+  const data = deleteProjectTemplateSchema.parse(input);
+
+  const template = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectTemplate.delete({ where: { id: data.templateId } })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project_template.deleted",
+    entityType: "ProjectTemplate",
+    entityId: template.id,
+    changes: { nom: template.nom },
+  });
+
+  revalidatePath("/projets/modeles");
+  return template;
+}
+
+export async function addProjectTemplatePhase(input: AddProjectTemplatePhaseInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_CREATE);
+
+  const data = addProjectTemplatePhaseSchema.parse(input);
+
+  const phase = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const count = await tx.projectTemplatePhase.count({ where: { templateId: data.templateId } });
+    return tx.projectTemplatePhase.create({
+      data: {
+        templateId: data.templateId,
+        nom: data.nom,
+        type: data.type,
+        description: data.description,
+        ordre: count,
+        organizationId: session.user.organizationId,
+      },
+    });
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project_template.phase_added",
+    entityType: "ProjectTemplatePhase",
+    entityId: phase.id,
+    changes: { nom: phase.nom },
+  });
+
+  revalidatePath("/projets/modeles");
+  return phase;
+}
+
+export async function deleteProjectTemplatePhase(input: DeleteProjectTemplatePhaseInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_CREATE);
+
+  const data = deleteProjectTemplatePhaseSchema.parse(input);
+
+  const phase = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectTemplatePhase.delete({ where: { id: data.phaseId } })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project_template.phase_deleted",
+    entityType: "ProjectTemplatePhase",
+    entityId: phase.id,
+    changes: { nom: phase.nom },
+  });
+
+  revalidatePath("/projets/modeles");
+  return phase;
 }

@@ -44,8 +44,14 @@ import { ProjectResourcesSection, type ProjectResourceData } from "@/components/
 import { ProjectFinancementsSection, type FinancementRow } from "@/components/projects/project-financements-section";
 import { BeneficiairesSection, type BeneficiaireRow } from "@/components/programmes/beneficiaires-section";
 import { ProjectFeedbackSection, type FeedbackRow } from "@/components/projects/project-feedback-section";
+import { computeFeedbackSummary } from "@/lib/beneficiary-feedback";
 import { ProjectMESection, type MEEvaluationRow } from "@/components/projects/project-me-section";
 import { ProjectDataFormsSection, type DataFormRow } from "@/components/projects/project-data-forms-section";
+import { computeHealthScore, computeAchievementSummary, computePostMortem } from "@/lib/project-bilan";
+import { ProjectBilanView } from "@/components/projects/project-bilan-view";
+import { computeClosureChecklist } from "@/lib/project-closure";
+import { ProjectClosureSection } from "@/components/projects/project-closure-section";
+import { ProjectLessonsLearnedSection, type LessonLearnedRow } from "@/components/projects/project-lessons-learned-section";
 import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
 import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
 import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
@@ -144,6 +150,8 @@ export default async function ProjectDetailPage({
     feedbacks,
     meEvaluations,
     dataForms,
+    closureChecklist,
+    lessonsLearned,
     diagnostic,
     problemTree,
     solutionTree,
@@ -268,6 +276,8 @@ export default async function ProjectDetailPage({
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.projectClosureChecklist.findUnique({ where: { projectId } }),
+    prisma.projectLessonLearned.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
     prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
     prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
@@ -866,6 +876,56 @@ export default async function ProjectDetailPage({
     tasks: tasks.map((t) => ({ statut: t.statut, sectionId: t.sectionId })),
   });
 
+  const feedbackSummary = computeFeedbackSummary(feedbackRows);
+
+  const healthScore = computeHealthScore({
+    pilotage,
+    resultFrameworkTiers,
+    satisfactionMoyenne: feedbackSummary.satisfactionMoyenne,
+  });
+
+  const achievementSummary = computeAchievementSummary({
+    objectives: objectives.map((o) => ({ statut: o.statut })),
+    pilotage,
+    resultFrameworkTiers,
+    satisfactionMoyenne: feedbackSummary.satisfactionMoyenne,
+  });
+
+  const postMortem = computePostMortem({
+    budget: project.budget ? Number(project.budget) : null,
+    coutReel: project.coutReel ? Number(project.coutReel) : null,
+    devise,
+    dateFin: project.dateFin,
+    dateFinReelle: project.dateFinReelle,
+    sections: sections.map((s) => ({ statut: s.statut })),
+    pilotage,
+    resultFrameworkTiers,
+  });
+
+  const closureItems = computeClosureChecklist({
+    deliverables: deliverables.map((d) => ({ statut: d.statut })),
+    contracts: projectContracts.map((c) => ({ statut: c.statut })),
+    payments: projectContracts.flatMap((c) => c.payments.map((p) => ({ statut: p.statut }))),
+    risks: risks.map((r) => ({ statut: r.statut })),
+    manual: {
+      documentsArchives: closureChecklist?.documentsArchives ?? false,
+      actifsTransferes: closureChecklist?.actifsTransferes ?? false,
+      rapportsRemis: closureChecklist?.rapportsRemis ?? false,
+      beneficiairesInformes: closureChecklist?.beneficiairesInformes ?? false,
+      partenairesInformes: closureChecklist?.partenairesInformes ?? false,
+    },
+  });
+
+  const lessonRows: LessonLearnedRow[] = lessonsLearned.map((l) => ({
+    id: l.id,
+    type: l.type,
+    titre: l.titre,
+    pourquoi: l.pourquoi,
+    actionRetenue: l.actionRetenue,
+    recommandations: l.recommandations,
+    createdAt: l.createdAt.toISOString(),
+  }));
+
   const logframeData: LogframeRowData[] = logframeRows.map((r) => ({
     id: r.id,
     niveau: r.niveau,
@@ -1036,6 +1096,9 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="retours">Retours</TabsTrigger>
           <TabsTrigger value="suivi-evaluation">Suivi-évaluation</TabsTrigger>
           <TabsTrigger value="collecte">Collecte</TabsTrigger>
+          <TabsTrigger value="bilan">Bilan</TabsTrigger>
+          <TabsTrigger value="cloture">Clôture</TabsTrigger>
+          <TabsTrigger value="capitalisation">Capitalisation</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
           <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
           <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
@@ -1409,6 +1472,23 @@ export default async function ProjectDetailPage({
             indicators={indicatorRows.map((i) => ({ id: i.id, label: i.nom }))}
             canManage={canUpdateProject}
           />
+        </TabsContent>
+
+        <TabsContent value="bilan" className="mt-4">
+          <ProjectBilanView healthScore={healthScore} achievements={achievementSummary} postMortem={postMortem} />
+        </TabsContent>
+
+        <TabsContent value="cloture" className="mt-4">
+          <ProjectClosureSection
+            projectId={project.id}
+            items={closureItems}
+            dateFinReelle={project.dateFinReelle ? project.dateFinReelle.toISOString().slice(0, 10) : null}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="capitalisation" className="mt-4">
+          <ProjectLessonsLearnedSection projectId={project.id} lessons={lessonRows} canManage={canUpdateProject} />
         </TabsContent>
 
         <TabsContent value="diagnostic" className="mt-4">
