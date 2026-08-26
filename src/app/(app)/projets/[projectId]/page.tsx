@@ -28,6 +28,8 @@ import { ProjectMilestonesSection, type MilestoneRow } from "@/components/projec
 import { ProjectDeliverablesSection, type DeliverableRow } from "@/components/projects/project-deliverables-section";
 import { ProjectPilotagePanel } from "@/components/projects/project-pilotage-panel";
 import { computeProjectPilotage } from "@/lib/project-pilotage";
+import { ProjectEvmPanel } from "@/components/projects/project-evm-panel";
+import { computeEvm } from "@/lib/evm";
 import { computeProjectPrediction } from "@/lib/predictive-scoring";
 import { getDependenciesFor, checkDependencyRisk, resolveDependencyLabels } from "@/lib/dependencies";
 import { DependencyFormDialog } from "@/components/dependencies/dependency-form-dialog";
@@ -350,6 +352,14 @@ export default async function ProjectDetailPage({
     risks: risks.map((r) => ({ statut: r.statut, probabilite: r.probabilite, impact: r.impact })),
     deliverables: deliverables.map((d) => ({ statut: d.statut })),
     validationRuns,
+  });
+
+  const evm = computeEvm({
+    budget: project.budget ? Number(project.budget) : null,
+    coutReel: project.coutReel ? Number(project.coutReel) : null,
+    avancement: project.avancement,
+    dateDebut: project.dateDebut,
+    dateFin: project.dateFin,
   });
 
   const prediction = project.statut === "EN_COURS" ? await computeProjectPrediction(project.id) : null;
@@ -922,6 +932,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="ressources">Ressources</TabsTrigger>
           <TabsTrigger value="raci">RACI</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
+          <TabsTrigger value="evm">EVM</TabsTrigger>
           <TabsTrigger value="achats">Achats</TabsTrigger>
           <TabsTrigger value="contrats">Contrats</TabsTrigger>
           <TabsTrigger value="financement">Financement</TabsTrigger>
@@ -1224,6 +1235,10 @@ export default async function ProjectDetailPage({
             devise={devise}
             canManage={canUpdateProject}
           />
+        </TabsContent>
+
+        <TabsContent value="evm" className="mt-4">
+          <ProjectEvmPanel evm={evm} devise={devise} />
         </TabsContent>
 
         <TabsContent value="achats" className="mt-4">
