@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority } from "@/lib/status-tone";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
+import { TaskStatusSelect } from "@/components/tasks/task-status-select";
 import {
   Table,
   TableBody,
@@ -78,9 +79,12 @@ function buildColumns(options: {
     {
       accessorKey: "statut",
       header: "Statut",
-      cell: ({ row }) => (
-        <Badge variant={toneForStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
-      ),
+      cell: ({ row }) =>
+        options.canManage ? (
+          <TaskStatusSelect taskId={row.original.id} statut={row.original.statut} />
+        ) : (
+          <Badge variant={toneForStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
+        ),
     },
     {
       accessorKey: "priorite",

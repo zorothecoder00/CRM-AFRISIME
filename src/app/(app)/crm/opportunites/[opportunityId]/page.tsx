@@ -11,6 +11,7 @@ import { ContractFormDialog } from "@/components/crm/contract-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { getUserEntityScope } from "@/lib/entity-scope";
 import { getOrganizationDevise } from "@/lib/currency";
+import { BackLink } from "@/components/ui/back-link";
 
 export default async function CrmOpportunityDetailPage({
   params,
@@ -57,6 +58,7 @@ export default async function CrmOpportunityDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/crm/pipeline" label="Retour au pipeline" />
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold">{opportunity.nom}</h1>

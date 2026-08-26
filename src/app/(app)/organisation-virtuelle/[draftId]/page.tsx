@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import type { OrgDesignNode, OrgDesignSimulation } from "@/lib/org-designer";
 import { OrgDesignTreeView } from "@/components/org-designer/org-design-tree-view";
 import { OrgDesignActions } from "@/components/org-designer/org-design-actions";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUT_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -32,6 +33,7 @@ export default async function OrgDesignDraftPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
+      <BackLink href="/organisation-virtuelle" label="Retour à l'organisation virtuelle" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{draft.nom}</h1>

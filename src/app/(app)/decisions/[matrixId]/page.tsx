@@ -12,6 +12,7 @@ import { DecisionOptionFormDialog } from "@/components/decisions/decision-option
 import { DecisionWeightsForm } from "@/components/decisions/decision-weights-form";
 import { DeleteOptionButton } from "@/components/decisions/delete-option-button";
 import { Trophy } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 
 const NIVEAU_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
 
@@ -70,6 +71,7 @@ export default async function DecisionMatrixDetailPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/decisions" label="Retour aux décisions" />
       <div>
         <h1 className="text-2xl font-semibold">{matrix.titre}</h1>
         {matrix.contexte && <p className="mt-1 text-sm text-muted-foreground">{matrix.contexte}</p>}

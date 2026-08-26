@@ -11,6 +11,7 @@ import { RiskFormDialog } from "@/components/risques/risk-form-dialog";
 import { TriggerAlertButton } from "@/components/risques/trigger-alert-button";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUT_LABELS: Record<string, string> = {
   IDENTIFIE: "Identifié",
@@ -58,6 +59,7 @@ export default async function RiskDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <BackLink href="/risques" label="Retour aux risques" />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">{risk.code}</p>

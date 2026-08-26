@@ -11,6 +11,7 @@ import { AddIndicatorDialog } from "@/components/objectives/add-indicator-dialog
 import { ObjectiveStatusSelect } from "@/components/objectives/objective-status-select";
 import { LinkParentObjectiveForm } from "@/components/objectives/link-parent-objective-form";
 import { accentForStatus, toneForStatus } from "@/lib/status-tone";
+import { BackLink } from "@/components/ui/back-link";
 
 const PERIOD_LABELS: Record<string, string> = {
   ANNUEL: "Annuel",
@@ -88,6 +89,7 @@ export default async function ObjectiveDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/objectifs" label="Retour aux objectifs" />
         <div>
           <h1 className="text-2xl font-semibold">{objective.titre}</h1>
           {objective.description && (

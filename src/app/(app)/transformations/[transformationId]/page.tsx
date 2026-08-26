@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PhaseTracker } from "@/components/transformations/phase-tracker";
 import { CancelTransformationButton } from "@/components/transformations/cancel-transformation-button";
 import { DependencyFormDialog } from "@/components/dependencies/dependency-form-dialog";
+import { BackLink } from "@/components/ui/back-link";
 
 const TYPE_LABELS: Record<string, string> = {
   DIGITALE: "Transformation digitale",
@@ -61,6 +62,7 @@ export default async function TransformationDetailPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/transformations" label="Retour aux transformations" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

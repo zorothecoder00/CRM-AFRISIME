@@ -24,6 +24,8 @@ import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
+import { TaskStatusSelect } from "@/components/tasks/task-status-select";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -94,6 +96,8 @@ export default async function TaskDetailPage({
 
   const canTag = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);
   const canDeleteTask = session!.user.permissions.includes(PERMISSIONS.TASK_DELETE);
+  const isResponsable = task.responsablePrincipalId === session!.user.id;
+  const canChangeStatus = canTag || isResponsable;
   const tags = await getTagsFor("Task", task.id);
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
@@ -171,6 +175,7 @@ export default async function TaskDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/taches" label="Retour aux tâches" />
         {task.deletedAt && (
           <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
             <p className="text-sm text-destructive">Cette tâche a été supprimée et se trouve dans la corbeille.</p>
@@ -180,7 +185,11 @@ export default async function TaskDetailPage({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{task.titre}</h1>
-            <Badge variant={toneForStatus(task.statut)}>{STATUS_LABELS[task.statut]}</Badge>
+            {canChangeStatus ? (
+              <TaskStatusSelect taskId={task.id} statut={task.statut} />
+            ) : (
+              <Badge variant={toneForStatus(task.statut)}>{STATUS_LABELS[task.statut]}</Badge>
+            )}
             <Badge variant={toneForPriority(task.priorite)}>{PRIORITY_LABELS[task.priorite]}</Badge>
             {task.creeParWorkflow && <Badge variant="outline">Créée par workflow</Badge>}
             {canDeleteTask && !task.deletedAt && <DeleteToTrashButton entityType="Task" id={task.id} />}
@@ -361,7 +370,7 @@ export default async function TaskDetailPage({
             <ValidationActions
               taskId={task.id}
               statut={task.statut}
-              isResponsable={task.responsablePrincipalId === session!.user.id}
+              isResponsable={isResponsable}
               hasValidatePermission={session!.user.permissions.includes(PERMISSIONS.TASK_VALIDATE)}
               isCurrentApprover={
                 task.validationRun?.statut === "EN_COURS" &&

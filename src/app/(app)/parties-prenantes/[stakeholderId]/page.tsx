@@ -10,6 +10,7 @@ import { StakeholderFormDialog } from "@/components/stakeholders/stakeholder-for
 import { StakeholderProjectsSection } from "@/components/stakeholders/stakeholder-projects-section";
 import { StakeholderCommunications } from "@/components/stakeholders/stakeholder-communications";
 import { Users as UsersIcon, AlertTriangle } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 
 const NIVEAU_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
 const POSITION_LABELS: Record<string, string> = { FAVORABLE: "Favorable", NEUTRE: "Neutre", OPPOSANT: "Opposant" };
@@ -51,6 +52,7 @@ export default async function StakeholderDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/parties-prenantes" label="Retour aux parties prenantes" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-semibold">

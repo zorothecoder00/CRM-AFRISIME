@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toneForArticleStatus, accentForArticleStatus } from "@/lib/status-tone";
 import { ArticleFormDialog } from "@/components/knowledge/article-form-dialog";
 import { PublishToggleButton } from "@/components/knowledge/publish-toggle-button";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -55,6 +56,7 @@ export default async function ArticleDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/base-de-connaissances" label="Retour à la base de connaissances" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{article.titre}</h1>

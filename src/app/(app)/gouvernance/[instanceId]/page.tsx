@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { INSTANCE_TYPE_LABELS } from "@/components/gouvernance/instance-form-dialog";
 import { InstanceMemberForm } from "@/components/gouvernance/instance-member-form";
 import { GovernanceMeetingFormDialog } from "@/components/gouvernance/governance-meeting-form-dialog";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -46,6 +47,7 @@ export default async function GovernanceInstanceDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/gouvernance" label="Retour à la gouvernance" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{instance.nom}</h1>

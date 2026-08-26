@@ -11,6 +11,7 @@ import { GovernanceCompteRenduForm } from "@/components/gouvernance/governance-c
 import { GovernanceDecisionsSection } from "@/components/gouvernance/governance-decisions-section";
 import { GovernanceDocumentFormDialog } from "@/components/gouvernance/governance-document-form-dialog";
 import { GovernanceDocumentsSection } from "@/components/gouvernance/governance-documents-section";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -49,6 +50,7 @@ export default async function GovernanceMeetingDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href={`/gouvernance/${meeting.instanceId}`} label="Retour à l'instance" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{meeting.titre}</h1>

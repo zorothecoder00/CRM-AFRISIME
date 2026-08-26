@@ -7,6 +7,7 @@ import { computeBaseline, computeScenarioImpact } from "@/lib/scenario-simulatio
 import { ScenarioComparisonTable } from "@/components/scenarios/scenario-comparison-table";
 import { ScenarioDeleteButton } from "@/components/scenarios/scenario-delete-button";
 import { Badge } from "@/components/ui/badge";
+import { BackLink } from "@/components/ui/back-link";
 
 const TYPE_LABELS: Record<string, string> = {
   EFFECTIF: "Variation d'effectifs",
@@ -33,6 +34,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
+      <BackLink href="/scenarios" label="Retour aux scénarios" />
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

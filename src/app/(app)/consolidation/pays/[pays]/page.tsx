@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BackLink } from "@/components/ui/back-link";
 
 export default async function ConsolidationPaysPage({
   params,
@@ -27,6 +28,7 @@ export default async function ConsolidationPaysPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/consolidation" label="Retour à la consolidation" />
       <div>
         <h1 className="text-2xl font-semibold">{pays}</h1>
         <p className="text-sm text-muted-foreground">

@@ -20,6 +20,7 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import { ProjectRoadmapView, type RoadmapProjectRow } from "@/components/projects/project-roadmap-view";
 import { BeneficiairesSection } from "@/components/programmes/beneficiaires-section";
 import { getOrganizationDevise } from "@/lib/currency";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -144,6 +145,7 @@ export default async function ProgrammeDetailPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/programmes" label="Retour aux programmes" />
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{programme.nom}</h1>

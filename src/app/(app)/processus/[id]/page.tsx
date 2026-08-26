@@ -15,6 +15,7 @@ import { ProcessusDocumentFormDialog } from "@/components/processus/processus-do
 import { ProcessusDocumentsSection } from "@/components/processus/processus-documents-section";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUT_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -56,6 +57,7 @@ export default async function ProcessusDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/processus" label="Retour aux processus" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{processus.nom}</h1>

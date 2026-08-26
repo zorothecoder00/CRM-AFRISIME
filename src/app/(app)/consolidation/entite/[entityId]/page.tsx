@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { computeEntityScopePilotage, computeEntityBudgetRollup, getRootDepartmentsForEntity } from "@/lib/consolidation";
 import { entityLevelLabel, buildEntityBreadcrumb, computeEntityDepth } from "@/lib/entity-tree";
 import { Building2, TriangleAlert } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 
 /**
  * Drill-down d'une entité (cahier des charges V2.2 §24) — descend jusqu'à
@@ -46,6 +47,7 @@ export default async function ConsolidationEntitePage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/consolidation" label="Retour à la consolidation" />
       <div>
         <nav className="mb-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           {breadcrumb.map((node, i) => (

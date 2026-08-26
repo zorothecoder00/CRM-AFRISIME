@@ -12,6 +12,7 @@ import { LinkObjectiveForm } from "@/components/planning/link-objective-form";
 import { LinkProgrammeForm } from "@/components/planning/link-programme-form";
 import { UnlinkObjectiveButton, UnlinkProgrammeButton } from "@/components/planning/unlink-buttons";
 import { getOrganizationDevise } from "@/lib/currency";
+import { BackLink } from "@/components/ui/back-link";
 
 const NIVEAU_LABELS: Record<string, string> = {
   STRATEGIQUE: "Stratégique",
@@ -81,6 +82,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/planification" label="Retour à la planification" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{plan.nom}</h1>

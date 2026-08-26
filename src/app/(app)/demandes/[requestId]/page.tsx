@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toneForAdminRequestStatus, accentForAdminRequestStatus } from "@/lib/status-tone";
 import { AdminRequestDecisionActions } from "@/components/admin-requests/admin-request-decision-actions";
 import { getOrganizationDevise } from "@/lib/currency";
+import { BackLink } from "@/components/ui/back-link";
 
 const TYPE_LABELS: Record<string, string> = {
   ACHAT: "Achat",
@@ -61,6 +62,7 @@ export default async function AdminRequestDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/demandes" label="Retour aux demandes" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{request.titre}</h1>

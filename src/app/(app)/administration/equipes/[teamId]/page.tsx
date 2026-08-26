@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureTeamConversation } from "@/lib/team-conversation";
 import { MessageThread, type MessageData } from "@/components/messages/message-thread";
 import { Badge } from "@/components/ui/badge";
+import { BackLink } from "@/components/ui/back-link";
 
 /** Discussion d'équipe (cahier des charges §X, "Conversations d'équipe"). */
 export default async function TeamDiscussionPage({
@@ -46,6 +47,7 @@ export default async function TeamDiscussionPage({
 
   return (
     <div className="space-y-4">
+      <BackLink href="/administration/equipes" label="Retour aux équipes" />
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-semibold">{team.nom}</h1>
         <Badge variant="outline">{team.department.name}</Badge>

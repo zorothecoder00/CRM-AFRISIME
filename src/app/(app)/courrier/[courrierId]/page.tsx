@@ -12,6 +12,7 @@ import { CourrierFormDialog } from "@/components/courrier/courrier-form-dialog";
 import { CourrierStatusSelect } from "@/components/courrier/courrier-status-select";
 import { LinkTaskForm } from "@/components/courrier/link-task-form";
 import { UnlinkTaskButton } from "@/components/courrier/unlink-task-button";
+import { BackLink } from "@/components/ui/back-link";
 import { FileCheck2, Lock } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -69,6 +70,7 @@ export default async function CourrierDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/courrier" label="Retour au courrier" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{courrier.objet}</h1>

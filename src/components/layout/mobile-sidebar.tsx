@@ -18,12 +18,12 @@ export function MobileSidebar({ permissions, roleKey }: { permissions: string[];
         </Button>
       </SheetTrigger>
       <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
-        <SheetHeader className="flex flex-col items-center gap-1 border-b px-4 py-3">
-          {/* Meme choix que sidebar.tsx : logo et nom empiles verticalement
-              plutot que cote a cote, pour un grand logo lisible sans repasser
-              le nom sur deux lignes. */}
-          <Image src="/logo.png" alt="AfriSime Work-Space" width={240} height={160} className="h-20 w-auto" />
-          <SheetTitle className="text-sm font-semibold whitespace-nowrap">AfriSime Work-Space</SheetTitle>
+        <SheetHeader className="flex flex-col items-center border-b px-4 py-3">
+          {/* Le logo integre deja le nom "AfriSime Work Space" — le libelle
+              texte visible a ete retire (redondant), SheetTitle garde pour
+              l'accessibilite (lecteur d'ecran) mais visuellement masque. */}
+          <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
+          <SheetTitle className="sr-only">AfriSime Work Space</SheetTitle>
         </SheetHeader>
         <SidebarNav permissions={permissions} roleKey={roleKey} onNavigate={() => setOpen(false)} />
       </SheetContent>

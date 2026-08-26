@@ -16,6 +16,7 @@ import { MeetingExternalParticipantsSection } from "@/components/meetings/meetin
 import { MeetingParticipantsSection } from "@/components/meetings/meeting-participants-section";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIEE: "Planifiée",
@@ -88,6 +89,7 @@ export default async function MeetingDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/reunions" label="Retour aux réunions" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{meeting.titre}</h1>

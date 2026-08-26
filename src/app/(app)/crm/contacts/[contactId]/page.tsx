@@ -16,6 +16,7 @@ import { PortalAccessCard } from "@/components/crm/portal-access-card";
 import { ContactPortalMessagesCard } from "@/components/crm/contact-portal-messages-card";
 import { markPortalMessagesReadByInternal } from "@/actions/portal.actions";
 import { getUserEntityScope } from "@/lib/entity-scope";
+import { BackLink } from "@/components/ui/back-link";
 
 const TYPE_LABELS: Record<string, string> = {
   CLIENT: "Client",
@@ -96,6 +97,7 @@ export default async function CrmContactDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/crm/contacts" label="Retour aux contacts" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">

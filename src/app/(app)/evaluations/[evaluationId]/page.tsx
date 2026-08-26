@@ -11,6 +11,7 @@ import { AddCritereDialog } from "@/components/evaluations/add-critere-dialog";
 import { CritereList } from "@/components/evaluations/critere-list";
 import { SubmitEvaluationButton } from "@/components/evaluations/submit-evaluation-button";
 import { AcknowledgeEvaluationForm } from "@/components/evaluations/acknowledge-evaluation-form";
+import { BackLink } from "@/components/ui/back-link";
 
 const PERIODE_LABELS: Record<string, string> = {
   ANNUELLE: "Annuelle",
@@ -85,6 +86,7 @@ export default async function EvaluationDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/evaluations" label="Retour aux évaluations" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{evaluation.evalue.name}</h1>

@@ -36,6 +36,7 @@ import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
 import { GenerateStandardFoldersButton } from "@/components/documents/generate-standard-folders-button";
 import { Sparkles } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -113,6 +114,7 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/projets" label="Retour aux projets" />
       {project.deletedAt && (
         <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
           <p className="text-sm text-destructive">Ce projet a été supprimé et se trouve dans la corbeille.</p>

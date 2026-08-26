@@ -15,6 +15,7 @@ import { OpportunityFormDialog } from "@/components/crm/opportunity-form-dialog"
 import { getUserEntityScope } from "@/lib/entity-scope";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
+import { BackLink } from "@/components/ui/back-link";
 
 const TYPE_LABELS: Record<string, string> = {
   ENTREPRISE: "Entreprise",
@@ -78,6 +79,7 @@ export default async function CrmOrganizationDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
+        <BackLink href="/crm/organisations" label="Retour aux organisations" />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{organization.nom}</h1>
