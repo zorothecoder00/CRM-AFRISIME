@@ -10,13 +10,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 
-export function AddProjectIndicatorDialog({ projectId }: { projectId: string }) {
+const FREQUENCE_LABELS: Record<string, string> = {
+  PONCTUELLE: "Ponctuelle",
+  MENSUELLE: "Mensuelle",
+  TRIMESTRIELLE: "Trimestrielle",
+  SEMESTRIELLE: "Semestrielle",
+  ANNUELLE: "Annuelle",
+};
+
+type Option = { id: string; label: string };
+
+export function AddProjectIndicatorDialog({ projectId, users = [] }: { projectId: string; users?: Option[] }) {
   const [open, setOpen] = useState(false);
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<CreateProjectIndicatorInput>({
@@ -41,7 +53,7 @@ export function AddProjectIndicatorDialog({ projectId }: { projectId: string }) 
           Ajouter un KPI
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter un KPI de projet</DialogTitle>
         </DialogHeader>
@@ -50,6 +62,14 @@ export function AddProjectIndicatorDialog({ projectId }: { projectId: string }) 
             <Label htmlFor="nom">Nom</Label>
             <Input id="nom" placeholder="Ex. Taux de satisfaction" {...register("nom")} />
             {errors.nom && <p className="text-sm text-destructive">{errors.nom.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="definition">Définition</Label>
+            <Input id="definition" {...register("definition")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="formule">Formule de calcul</Label>
+            <Input id="formule" placeholder="Ex. Nb bénéficiaires satisfaits / Nb total × 100" {...register("formule")} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -61,6 +81,50 @@ export function AddProjectIndicatorDialog({ projectId }: { projectId: string }) 
               <Label htmlFor="unite">Unité</Label>
               <Input id="unite" placeholder="%, €, tâches..." {...register("unite")} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="baseline">Baseline</Label>
+            <Input id="baseline" type="number" step="0.01" {...register("baseline")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="source">Source</Label>
+            <Input id="source" placeholder="Ex. Enquête bénéficiaires, rapport terrain..." {...register("source")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Fréquence de collecte</Label>
+            <Select onValueChange={(v) => setValue("frequence", v as CreateProjectIndicatorInput["frequence"])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Non définie" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(FREQUENCE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {users.length > 0 && (
+            <div className="space-y-2">
+              <Label>Responsable</Label>
+              <Select onValueChange={(v) => setValue("responsableId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Non assigné" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="desagregation">Désagrégation éventuelle</Label>
+            <Input id="desagregation" placeholder="Ex. Homme/Femme, urbain/rural..." {...register("desagregation")} />
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ajout..." : "Ajouter"}

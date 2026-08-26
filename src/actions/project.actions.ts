@@ -789,6 +789,13 @@ export async function createProjectIndicator(input: CreateProjectIndicatorInput)
         nom: data.nom,
         unite: data.unite,
         valeurCible: Number(data.valeurCible),
+        definition: data.definition || undefined,
+        formule: data.formule || undefined,
+        baseline: data.baseline ? Number(data.baseline) : undefined,
+        source: data.source || undefined,
+        frequence: data.frequence,
+        responsableId: data.responsableId || undefined,
+        desagregation: data.desagregation || undefined,
         organizationId: session.user.organizationId,
       },
     })
@@ -803,7 +810,12 @@ export async function createProjectIndicator(input: CreateProjectIndicatorInput)
   });
 
   revalidatePath(`/projets/${data.projectId}`);
-  return { ...indicator, valeurCible: Number(indicator.valeurCible), valeurActuelle: Number(indicator.valeurActuelle) };
+  return {
+    ...indicator,
+    valeurCible: Number(indicator.valeurCible),
+    valeurActuelle: Number(indicator.valeurActuelle),
+    baseline: indicator.baseline !== null ? Number(indicator.baseline) : null,
+  };
 }
 
 export async function createTaskIndicator(input: CreateTaskIndicatorInput) {

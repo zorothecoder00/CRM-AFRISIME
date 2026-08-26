@@ -11,11 +11,13 @@ import {
   updateObjectiveStatusSchema,
   addIndicatorSchema,
   updateIndicatorValueSchema,
+  updateIndicatorDetailsSchema,
   linkObjectiveParentSchema,
   updateObjectiveSmartSchema,
   type CreateObjectiveInput,
   type AddIndicatorInput,
   type UpdateIndicatorValueInput,
+  type UpdateIndicatorDetailsInput,
   type LinkObjectiveParentInput,
   type UpdateObjectiveSmartInput,
 } from "@/lib/validations/objective.schema";
@@ -162,6 +164,48 @@ export async function updateIndicatorValue(input: UpdateIndicatorValueInput) {
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
   return { ...indicator, valeurCible: Number(indicator.valeurCible), valeurActuelle: Number(indicator.valeurActuelle) };
+}
+
+/** Project Studio §49 (Indicator Management) — edition des champs de gestion (definition/formule/baseline/source/frequence/responsable/desagregation), communs quel que soit le parent (Objectif/Projet/Tache). */
+export async function updateIndicatorDetails(input: UpdateIndicatorDetailsInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.OBJECTIVE_UPDATE);
+
+  const data = updateIndicatorDetailsSchema.parse(input);
+
+  const indicator = await prisma.indicator.update({
+    where: { id: data.indicatorId },
+    data: {
+      nom: data.nom,
+      unite: data.unite,
+      valeurCible: Number(data.valeurCible),
+      definition: data.definition,
+      formule: data.formule,
+      baseline: data.baseline ? Number(data.baseline) : null,
+      source: data.source,
+      frequence: data.frequence,
+      responsableId: data.responsableId || null,
+      desagregation: data.desagregation,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "indicator.details_updated",
+    entityType: "Indicator",
+    entityId: indicator.id,
+    changes: { nom: indicator.nom },
+  });
+
+  if (indicator.objectiveId) revalidatePath(`/objectifs/${indicator.objectiveId}`);
+  if (indicator.projectId) revalidatePath(`/projets/${indicator.projectId}`);
+  if (indicator.taskId) revalidatePath(`/taches/${indicator.taskId}`);
+  return {
+    ...indicator,
+    valeurCible: Number(indicator.valeurCible),
+    valeurActuelle: Number(indicator.valeurActuelle),
+    baseline: indicator.baseline !== null ? Number(indicator.baseline) : null,
+  };
 }
 
 /** Rattache (ou detache si parentId absent) un objectif a son objectif parent (cahier des charges §III). */

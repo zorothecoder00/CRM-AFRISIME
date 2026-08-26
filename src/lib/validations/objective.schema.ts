@@ -58,6 +58,24 @@ export const updateIndicatorValueSchema = z.object({
 
 export type UpdateIndicatorValueInput = z.infer<typeof updateIndicatorValueSchema>;
 
+// Project Studio §49 (Indicator Management) — champs de gestion, communs aux
+// indicateurs d'Objectif/Projet/Tâche (meme modele Indicator partage).
+export const updateIndicatorDetailsSchema = z.object({
+  indicatorId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  unite: z.string().optional(),
+  valeurCible: z.string().min(1, "La cible est requise."),
+  definition: z.string().optional(),
+  formule: z.string().optional(),
+  baseline: z.string().optional(),
+  source: z.string().optional(),
+  frequence: z.enum(["PONCTUELLE", "MENSUELLE", "TRIMESTRIELLE", "SEMESTRIELLE", "ANNUELLE"]).optional(),
+  responsableId: z.string().optional(),
+  desagregation: z.string().optional(),
+});
+
+export type UpdateIndicatorDetailsInput = z.infer<typeof updateIndicatorDetailsSchema>;
+
 export const linkObjectiveParentSchema = z.object({
   objectiveId: z.string().min(1),
   parentId: z.string().optional(),

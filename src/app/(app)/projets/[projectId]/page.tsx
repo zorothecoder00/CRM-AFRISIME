@@ -236,7 +236,11 @@ export default async function ProjectDetailPage({
       include: { responsable: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.indicator.findMany({ where: { projectId }, orderBy: { createdAt: "asc" } }),
+    prisma.indicator.findMany({
+      where: { projectId },
+      include: { responsable: true },
+      orderBy: { createdAt: "asc" },
+    }),
     prisma.projectResource.findMany({ where: { projectId }, orderBy: { createdAt: "asc" } }),
     prisma.stakeholder.findMany({
       where: { projects: { none: { projectId } } },
@@ -508,6 +512,13 @@ export default async function ProjectDetailPage({
     unite: i.unite,
     valeurCible: Number(i.valeurCible),
     valeurActuelle: Number(i.valeurActuelle),
+    definition: i.definition,
+    formule: i.formule,
+    baseline: i.baseline !== null ? Number(i.baseline) : null,
+    source: i.source,
+    frequence: i.frequence,
+    responsableName: i.responsable?.name ?? null,
+    desagregation: i.desagregation,
   }));
 
   const ganttRows: GanttTaskRow[] = tasks.map((t) => ({
@@ -1244,9 +1255,9 @@ export default async function ProjectDetailPage({
         <TabsContent value="kpi" className="mt-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Indicateurs clés de performance du projet.</p>
-            <AddProjectIndicatorDialog projectId={project.id} />
+            <AddProjectIndicatorDialog projectId={project.id} users={userOptions} />
           </div>
-          <IndicatorList indicators={indicatorRows} />
+          <IndicatorList indicators={indicatorRows} users={userOptions} />
         </TabsContent>
 
         <TabsContent value="ressources" className="mt-4">

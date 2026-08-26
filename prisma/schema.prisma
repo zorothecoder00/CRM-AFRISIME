@@ -605,6 +605,8 @@ model User {
   beneficiairesCreated                Beneficiaire[]                 @relation("BeneficiaireCreatedBy")
   // Project Studio §46 (Beneficiary/User Feedback).
   projectFeedbacksCreated             ProjectFeedback[]              @relation("ProjectFeedbackCreatedBy")
+  // Project Studio §49 (Indicator Management).
+  indicatorsResponsable                Indicator[]                    @relation("IndicatorResponsable")
   dashboardPreference                 DashboardWidgetPreference?
   integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
@@ -3318,6 +3320,17 @@ model Indicator {
   organizationId String?
   organization   PlatformOrganization? @relation("PlatformOrganizationIndicators", fields: [organizationId], references: [id])
   nom            String
+  // Project Studio §49 (Indicator Management) — champs additionnels, tous
+  // optionnels pour rester compatibles avec les indicateurs deja crees
+  // (Objectifs/Taches) qui n'en ont pas besoin.
+  definition     String?
+  formule        String?
+  baseline       Decimal?              @db.Decimal(12, 2)
+  source         String?
+  frequence      IndicatorFrequence?
+  responsableId  String?
+  responsable    User?                 @relation("IndicatorResponsable", fields: [responsableId], references: [id])
+  desagregation  String?
   unite          String?
   valeurCible    Decimal               @db.Decimal(12, 2)
   valeurActuelle Decimal               @default(0) @db.Decimal(12, 2)
@@ -3327,6 +3340,14 @@ model Indicator {
   @@index([objectiveId])
   @@index([projectId])
   @@index([taskId])
+}
+
+enum IndicatorFrequence {
+  PONCTUELLE
+  MENSUELLE
+  TRIMESTRIELLE
+  SEMESTRIELLE
+  ANNUELLE
 }
 
 // Cahier des charges §14 — évaluation de performance périodique. Flux à
