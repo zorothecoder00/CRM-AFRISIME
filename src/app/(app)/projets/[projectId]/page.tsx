@@ -933,6 +933,7 @@ export default async function ProjectDetailPage({
     indicateurs: r.indicateurs,
     sources: r.sources,
     hypotheses: r.hypotheses,
+    theoryOfChangeNodeId: r.theoryOfChangeNodeId,
   }));
 
   const objectiveNodes: ObjectiveNodeData[] = objectives.map((o) => ({

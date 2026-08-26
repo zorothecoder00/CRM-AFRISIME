@@ -8,12 +8,13 @@ import {
   updateLogframeRow,
   deleteLogframeRow,
 } from "@/actions/logframe.actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Pencil, Wand2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Wand2, Link2 } from "lucide-react";
 
 export type LogframeRowData = {
   id: string;
@@ -22,6 +23,9 @@ export type LogframeRowData = {
   indicateurs: string | null;
   sources: string | null;
   hypotheses: string | null;
+  // Project Studio §65 (Single Source of Truth) — non null : ligne synchronisée en direct
+  // avec le noeud ToC correspondant, non éditable ici (voir theoryOfChangeNodeId sur LogframeRow).
+  theoryOfChangeNodeId: string | null;
 };
 
 const LEVEL_LABELS: Record<LogframeRowData["niveau"], string> = {
@@ -45,19 +49,21 @@ export function LogframeView({
   canManage: boolean;
 }) {
   const { run: generate, isPending: isGenerating } = useAction(generateLogframeFromTheoryOfChange, {
-    successMessage: "Cadre logique généré.",
+    successMessage: "Lignes synchronisées.",
   });
   const { run: remove } = useAction(deleteLogframeRow, { successMessage: "Ligne supprimée." });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">Généré depuis la théorie du changement, puis modifiable.</p>
+        <p className="text-sm text-muted-foreground">
+          Synchronisé en direct avec la théorie du changement — modifiez un noeud ToC pour mettre à jour sa ligne ici.
+        </p>
         <div className="flex gap-2">
-          {rows.length === 0 && hasTheoryOfChange && (
-            <Button size="sm" onClick={() => generate({ projectId })} disabled={isGenerating}>
+          {hasTheoryOfChange && canManage && (
+            <Button size="sm" variant="outline" onClick={() => generate({ projectId })} disabled={isGenerating}>
               <Wand2 className="mr-1 h-4 w-4" />
-              {isGenerating ? "Génération..." : "Générer depuis la ToC"}
+              {isGenerating ? "Synchronisation..." : "Rattraper les noeuds manquants"}
             </Button>
           )}
           {canManage && <RowFormDialog projectId={projectId} />}
@@ -68,7 +74,7 @@ export function LogframeView({
         <p className="text-sm text-muted-foreground">
           {hasTheoryOfChange
             ? "Aucune ligne de cadre logique."
-            : "Définissez d'abord une théorie du changement pour générer le cadre logique, ou ajoutez des lignes manuellement."}
+            : "Définissez d'abord une théorie du changement — chaque noeud génère automatiquement sa ligne ici — ou ajoutez des lignes manuellement."}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -88,19 +94,30 @@ export function LogframeView({
                 .sort((a, b) => LEVEL_ORDER.indexOf(a.niveau) - LEVEL_ORDER.indexOf(b.niveau))
                 .map((row) => (
                   <tr key={row.id} className="border-b align-top">
-                    <td className="p-2 font-medium">{LEVEL_LABELS[row.niveau]}</td>
+                    <td className="p-2 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        {LEVEL_LABELS[row.niveau]}
+                        {row.theoryOfChangeNodeId && (
+                          <Badge variant="outline" title="Synchronisé avec la théorie du changement">
+                            <Link2 className="h-3 w-3" />
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-2">{row.resultats || "—"}</td>
                     <td className="p-2">{row.indicateurs || "—"}</td>
                     <td className="p-2">{row.sources || "—"}</td>
                     <td className="p-2">{row.hypotheses || "—"}</td>
                     {canManage && (
                       <td className="p-2">
-                        <div className="flex items-center gap-1">
-                          <EditRowDialog row={row} />
-                          <Button variant="ghost" size="icon-sm" onClick={() => remove({ rowId: row.id })} aria-label="Supprimer">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        {!row.theoryOfChangeNodeId && (
+                          <div className="flex items-center gap-1">
+                            <EditRowDialog row={row} />
+                            <Button variant="ghost" size="icon-sm" onClick={() => remove({ rowId: row.id })} aria-label="Supprimer">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     )}
                   </tr>

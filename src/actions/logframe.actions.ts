@@ -24,7 +24,15 @@ const TOC_TO_LOGFRAME_LEVEL = {
   ACTIVITE: "ACTIVITES",
 } as const;
 
-/** Génère depuis la Theory of Change (Project Studio §12) — une ligne par noeud ToC hors niveau INPUT. */
+/**
+ * Project Studio §65 (Single Source of Truth) — depuis la bascule en
+ * synchronisation directe, chaque noeud ToC (hors INPUT) génère/entretient
+ * automatiquement sa ligne de Cadre logique dès sa création (voir
+ * createTheoryOfChangeNode/updateTheoryOfChangeNode dans
+ * theory-of-change.actions.ts). Cette action ne sert donc plus qu'à
+ * rattraper les noeuds créés avant l'activation de la synchronisation —
+ * idempotente, elle ne crée que les lignes manquantes.
+ */
 export async function generateLogframeFromTheoryOfChange(input: GenerateLogframeInput) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
@@ -33,29 +41,29 @@ export async function generateLogframeFromTheoryOfChange(input: GenerateLogframe
   const data = generateLogframeSchema.parse(input);
 
   const created = await withTenantScopedSession(session.user.organizationId, async (tx) => {
-    const existingCount = await tx.logframeRow.count({ where: { projectId: data.projectId } });
-    if (existingCount > 0) {
-      throw new Error("Un cadre logique existe déjà pour ce projet.");
-    }
-
     const tocNodes = await tx.theoryOfChangeNode.findMany({
       where: { projectId: data.projectId, niveau: { not: "INPUT" } },
+      include: { logframeRow: true },
       orderBy: { ordre: "asc" },
     });
-    if (tocNodes.length === 0) {
-      throw new Error("Aucune théorie du changement à convertir.");
+    const missing = tocNodes.filter((n) => !n.logframeRow);
+    if (missing.length === 0) {
+      throw new Error("Toutes les lignes sont déjà synchronisées avec la théorie du changement.");
     }
 
+    const startingOrdre = await tx.logframeRow.count({ where: { projectId: data.projectId } });
     const rows = [];
-    for (const node of tocNodes) {
+    for (const [i, node] of missing.entries()) {
       const row = await tx.logframeRow.create({
         data: {
           projectId: data.projectId,
+          theoryOfChangeNodeId: node.id,
           niveau: TOC_TO_LOGFRAME_LEVEL[node.niveau as keyof typeof TOC_TO_LOGFRAME_LEVEL],
           resultats: node.titre,
           indicateurs: node.indicateurs,
           sources: node.sourcesVerification,
           hypotheses: node.hypotheses,
+          ordre: startingOrdre + i,
           createdById: session.user.id,
           organizationId: session.user.organizationId,
         },
@@ -110,8 +118,12 @@ export async function updateLogframeRow(input: UpdateLogframeRowInput) {
 
   const data = updateLogframeRowSchema.parse(input);
 
-  const row = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.logframeRow.update({
+  const row = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const existing = await tx.logframeRow.findUniqueOrThrow({ where: { id: data.rowId } });
+    if (existing.theoryOfChangeNodeId) {
+      throw new Error("Cette ligne est synchronisée avec la théorie du changement — modifiez le noeud ToC correspondant.");
+    }
+    return tx.logframeRow.update({
       where: { id: data.rowId },
       data: {
         resultats: data.resultats || null,
@@ -119,8 +131,8 @@ export async function updateLogframeRow(input: UpdateLogframeRowInput) {
         sources: data.sources || null,
         hypotheses: data.hypotheses || null,
       },
-    })
-  );
+    });
+  });
 
   revalidatePath(`/projets/${row.projectId}`);
   return row;
@@ -133,9 +145,13 @@ export async function deleteLogframeRow(input: DeleteLogframeRowInput) {
 
   const data = deleteLogframeRowSchema.parse(input);
 
-  const row = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.logframeRow.delete({ where: { id: data.rowId } })
-  );
+  const row = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const existing = await tx.logframeRow.findUniqueOrThrow({ where: { id: data.rowId } });
+    if (existing.theoryOfChangeNodeId) {
+      throw new Error("Cette ligne est synchronisée avec la théorie du changement — supprimez le noeud ToC correspondant.");
+    }
+    return tx.logframeRow.delete({ where: { id: data.rowId } });
+  });
 
   revalidatePath(`/projets/${row.projectId}`);
   return row;

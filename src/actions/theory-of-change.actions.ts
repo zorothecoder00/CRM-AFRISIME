@@ -15,6 +15,14 @@ import {
   type DeleteTheoryOfChangeNodeInput,
 } from "@/lib/validations/theory-of-change.schema";
 
+/** Project Studio §65 (Single Source of Truth) — chaine ToC -> Cadre logique, voir LogframeRow.theoryOfChangeNodeId. */
+const TOC_TO_LOGFRAME_LEVEL: Record<string, "IMPACT" | "OUTCOME" | "OUTPUT" | "ACTIVITES"> = {
+  IMPACT: "IMPACT",
+  OUTCOME: "OUTCOME",
+  OUTPUT: "OUTPUT",
+  ACTIVITE: "ACTIVITES",
+};
+
 export async function createTheoryOfChangeNode(input: CreateTheoryOfChangeNodeInput) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
@@ -22,8 +30,8 @@ export async function createTheoryOfChangeNode(input: CreateTheoryOfChangeNodeIn
 
   const data = createTheoryOfChangeNodeSchema.parse(input);
 
-  const node = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.theoryOfChangeNode.create({
+  const node = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const created = await tx.theoryOfChangeNode.create({
       data: {
         projectId: data.projectId,
         niveau: data.niveau,
@@ -37,8 +45,29 @@ export async function createTheoryOfChangeNode(input: CreateTheoryOfChangeNodeIn
         createdById: session.user.id,
         organizationId: session.user.organizationId,
       },
-    })
-  );
+    });
+
+    // §65 — un noeud INPUT n'a pas de ligne de Cadre logique (exclu par convention, §12).
+    if (data.niveau !== "INPUT") {
+      const count = await tx.logframeRow.count({ where: { projectId: data.projectId } });
+      await tx.logframeRow.create({
+        data: {
+          projectId: data.projectId,
+          theoryOfChangeNodeId: created.id,
+          niveau: TOC_TO_LOGFRAME_LEVEL[data.niveau],
+          resultats: created.titre,
+          indicateurs: created.indicateurs,
+          sources: created.sourcesVerification,
+          hypotheses: created.hypotheses,
+          ordre: count,
+          createdById: session.user.id,
+          organizationId: session.user.organizationId,
+        },
+      });
+    }
+
+    return created;
+  });
 
   await logAudit({
     userId: session.user.id,
@@ -59,8 +88,8 @@ export async function updateTheoryOfChangeNode(input: UpdateTheoryOfChangeNodeIn
 
   const data = updateTheoryOfChangeNodeSchema.parse(input);
 
-  const node = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.theoryOfChangeNode.update({
+  const node = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const updated = await tx.theoryOfChangeNode.update({
       where: { id: data.nodeId },
       data: {
         titre: data.titre,
@@ -71,8 +100,21 @@ export async function updateTheoryOfChangeNode(input: UpdateTheoryOfChangeNodeIn
         indicateurs: data.indicateurs || null,
         sourcesVerification: data.sourcesVerification || null,
       },
-    })
-  );
+    });
+
+    // §65 — repercute sur la ligne de Cadre logique miroir, si elle existe.
+    await tx.logframeRow.updateMany({
+      where: { theoryOfChangeNodeId: updated.id },
+      data: {
+        resultats: updated.titre,
+        indicateurs: updated.indicateurs,
+        sources: updated.sourcesVerification,
+        hypotheses: updated.hypotheses,
+      },
+    });
+
+    return updated;
+  });
 
   await logAudit({
     userId: session.user.id,

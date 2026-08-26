@@ -5979,6 +5979,8 @@ model TheoryOfChangeNode {
   parent              TheoryOfChangeNode?   @relation("TheoryOfChangeNodeParent", fields: [parentId], references: [id])
   children            TheoryOfChangeNode[]  @relation("TheoryOfChangeNodeParent")
   sections            ProjectSection[]
+  // Project Studio §65 — ligne de Cadre logique miroir, voir LogframeRow.theoryOfChangeNodeId.
+  logframeRow         LogframeRow?
   createdById         String
   createdBy           User                  @relation("TheoryOfChangeNodeCreatedBy", fields: [createdById], references: [id])
   createdAt           DateTime              @default(now())
@@ -6012,6 +6014,14 @@ model LogframeRow {
   sources        String?
   hypotheses     String?
   ordre          Int                   @default(0)
+  // Project Studio §65 (Single Source of Truth) — quand renseigne, cette
+  // ligne est le miroir en direct du noeud ToC : titre/indicateurs/sources/
+  // hypotheses sont synchronises automatiquement par
+  // createTheoryOfChangeNode/updateTheoryOfChangeNode/deleteTheoryOfChangeNode
+  // (voir src/actions/theory-of-change.actions.ts), non editables ici. Null
+  // = ligne ajoutee manuellement, hors ToC, reste librement editable.
+  theoryOfChangeNodeId String?         @unique
+  theoryOfChangeNode   TheoryOfChangeNode? @relation(fields: [theoryOfChangeNodeId], references: [id], onDelete: Cascade)
   createdById    String
   createdBy      User                  @relation("LogframeRowCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime              @default(now())
