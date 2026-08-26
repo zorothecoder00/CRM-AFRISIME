@@ -153,8 +153,13 @@ export default async function ProjetsPage({
               </Button>
             </Link>
             <Link href="/projets/carte">
-              <Button variant="ghost" size="sm" className="rounded-l-none">
+              <Button variant="ghost" size="sm" className="rounded-none">
                 Carte
+              </Button>
+            </Link>
+            <Link href="/projets/control-tower">
+              <Button variant="ghost" size="sm" className="rounded-l-none">
+                Control Tower
               </Button>
             </Link>
           </div>
