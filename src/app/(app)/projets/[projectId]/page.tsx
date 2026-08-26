@@ -45,6 +45,7 @@ import { ProjectFinancementsSection, type FinancementRow } from "@/components/pr
 import { BeneficiairesSection, type BeneficiaireRow } from "@/components/programmes/beneficiaires-section";
 import { ProjectFeedbackSection, type FeedbackRow } from "@/components/projects/project-feedback-section";
 import { ProjectMESection, type MEEvaluationRow } from "@/components/projects/project-me-section";
+import { ProjectDataFormsSection, type DataFormRow } from "@/components/projects/project-data-forms-section";
 import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
 import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
 import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
@@ -142,6 +143,7 @@ export default async function ProjectDetailPage({
     beneficiaires,
     feedbacks,
     meEvaluations,
+    dataForms,
     diagnostic,
     problemTree,
     solutionTree,
@@ -257,6 +259,14 @@ export default async function ProjectDetailPage({
       where: { projectId },
       include: { criteres: true },
       orderBy: { dateEvaluation: "desc" },
+    }),
+    prisma.projectDataForm.findMany({
+      where: { projectId },
+      include: {
+        fields: { include: { indicator: { select: { nom: true } } }, orderBy: { ordre: "asc" } },
+        submissions: { include: { submittedBy: true }, orderBy: { submittedAt: "desc" } },
+      },
+      orderBy: { createdAt: "desc" },
     }),
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
     prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
@@ -760,6 +770,27 @@ export default async function ProjectDetailPage({
     })),
   }));
 
+  const dataFormRows: DataFormRow[] = dataForms.map((f) => ({
+    id: f.id,
+    nom: f.nom,
+    description: f.description,
+    actif: f.actif,
+    fields: f.fields.map((fl) => ({
+      id: fl.id,
+      label: fl.label,
+      type: fl.type,
+      options: fl.options,
+      requis: fl.requis,
+      indicatorNom: fl.indicator?.nom ?? null,
+    })),
+    submissions: f.submissions.map((s) => ({
+      id: s.id,
+      data: s.data as Record<string, string>,
+      submittedByName: s.submittedBy?.name ?? null,
+      submittedAt: s.submittedAt.toISOString(),
+    })),
+  }));
+
   const diagnosticData: ProjectDiagnosticData | null = diagnostic
     ? {
         id: diagnostic.id,
@@ -1004,6 +1035,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="beneficiaires">Bénéficiaires</TabsTrigger>
           <TabsTrigger value="retours">Retours</TabsTrigger>
           <TabsTrigger value="suivi-evaluation">Suivi-évaluation</TabsTrigger>
+          <TabsTrigger value="collecte">Collecte</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
           <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
           <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
@@ -1366,6 +1398,15 @@ export default async function ProjectDetailPage({
             projectId={project.id}
             evaluations={meEvaluationRows}
             indicators={indicatorRows}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="collecte" className="mt-4">
+          <ProjectDataFormsSection
+            projectId={project.id}
+            forms={dataFormRows}
+            indicators={indicatorRows.map((i) => ({ id: i.id, label: i.nom }))}
             canManage={canUpdateProject}
           />
         </TabsContent>
