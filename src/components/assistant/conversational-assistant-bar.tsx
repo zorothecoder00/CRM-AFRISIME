@@ -100,6 +100,7 @@ export function ConversationalAssistantBar({ projects }: { projects: { id: strin
       responsablePrincipalId: result.responsableId,
       assigneeIds: [],
       competenceIds: [],
+      subtasks: [],
     });
     if (res.ok) {
       setResult(null);

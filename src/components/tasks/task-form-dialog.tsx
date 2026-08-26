@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { createTask, suggestTaskAssignees } from "@/actions/task.actions";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 type Option = { id: string; label: string };
 type ProjectWithSections = { id: string; nom: string; sections: Option[] };
@@ -58,10 +59,15 @@ export function TaskFormDialog({
     setValue,
     getValues,
     reset,
+    control,
     formState: { errors },
   } = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
-    defaultValues: { priorite: "MOYENNE" },
+    defaultValues: { priorite: "MOYENNE", subtasks: [] },
+  });
+  const { fields: subtaskFields, append: appendSubtask, remove: removeSubtask } = useFieldArray({
+    control,
+    name: "subtasks",
   });
   const { run: submit, isPending } = useAction(createTask, { successMessage: "Tâche créée." });
   const { run: suggest, isPending: isSuggesting } = useAction(suggestTaskAssignees);
@@ -292,6 +298,84 @@ export function TaskFormDialog({
               <Label htmlFor="tempsEstimeHeures">Temps estimé (h)</Label>
               <Input id="tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Sous-tâches (optionnel)</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendSubtask({ titre: "", responsablePrincipalId: "", priorite: "MOYENNE", echeance: "" })}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Ajouter une sous-tâche
+              </Button>
+            </div>
+            {subtaskFields.length > 0 && (
+              <div className="space-y-2">
+                {subtaskFields.map((field, index) => (
+                  <Card key={field.id} size="sm">
+                    <CardContent className="space-y-2 px-(--card-spacing)">
+                      <div className="flex items-start gap-2">
+                        <Input
+                          placeholder="Titre de la sous-tâche"
+                          className="flex-1"
+                          {...register(`subtasks.${index}.titre` as const)}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeSubtask(index)}
+                          aria-label="Supprimer la sous-tâche"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      {errors.subtasks?.[index]?.titre && (
+                        <p className="text-xs text-destructive">{errors.subtasks[index]?.titre?.message}</p>
+                      )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <Select onValueChange={(v) => setValue(`subtasks.${index}.responsablePrincipalId`, v)}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Responsable" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          defaultValue="MOYENNE"
+                          onValueChange={(v) => setValue(`subtasks.${index}.priorite`, v as CreateTaskInput["priorite"])}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="TRES_HAUTE">Très haute</SelectItem>
+                            <SelectItem value="HAUTE">Haute</SelectItem>
+                            <SelectItem value="MOYENNE">Moyenne</SelectItem>
+                            <SelectItem value="BASSE">Basse</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input type="date" className="h-8 text-xs" {...register(`subtasks.${index}.echeance` as const)} />
+                      </div>
+                      {errors.subtasks?.[index]?.responsablePrincipalId && (
+                        <p className="text-xs text-destructive">
+                          {errors.subtasks[index]?.responsablePrincipalId?.message}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
           {(objectives && objectives.length > 0) || (plans && plans.length > 0) ? (

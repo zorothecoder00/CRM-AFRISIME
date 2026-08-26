@@ -11,6 +11,8 @@ import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
 import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
 import { ProjectListCard } from "@/components/projects/project-list-card";
+import { PeriodFilter } from "@/components/ui/period-filter";
+import { buildDateRangeFilter } from "@/lib/date-filter";
 import type { Prisma } from "@/generated/prisma/client";
 import { User } from "lucide-react";
 
@@ -34,9 +36,9 @@ const VIEWS = [
 export default async function ProjetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string; mine?: string }>;
+  searchParams: Promise<{ vue?: string; mine?: string; annee?: string; mois?: string }>;
 }) {
-  const { vue = "liste", mine } = await searchParams;
+  const { vue = "liste", mine, annee, mois } = await searchParams;
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
@@ -63,6 +65,9 @@ export default async function ProjetsPage({
   // Corbeille (V2.2 §37) : un projet supprime n'apparait plus dans la liste
   // (reste consultable via /corbeille et sa page de detail directe).
   andClauses.push({ deletedAt: null });
+  // Filtre annuel/mensuel — sur l'échéance (dateFin), déjà affichée en colonne.
+  const dateRange = buildDateRangeFilter(annee, mois);
+  if (dateRange) andClauses.push({ dateFin: dateRange });
   const where: Prisma.ProjectWhereInput = { AND: andClauses };
 
   const [projects, departments, users, templates] = await Promise.all([
@@ -104,11 +109,13 @@ export default async function ProjetsPage({
   const departmentOptions = departments.map((d) => ({ id: d.id, label: d.name }));
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
+  const periodQuery = `${annee ? `&annee=${annee}` : ""}${annee && mois ? `&mois=${mois}` : ""}`;
+
   function withVue(key: string) {
-    return `?vue=${key}${onlyMine ? "&mine=1" : ""}`;
+    return `?vue=${key}${onlyMine ? "&mine=1" : ""}${periodQuery}`;
   }
 
-  const mineHref = `?vue=${vue}${onlyMine ? "" : "&mine=1"}`;
+  const mineHref = `?vue=${vue}${onlyMine ? "" : "&mine=1"}${periodQuery}`;
 
   return (
     <div className="space-y-6">
@@ -120,6 +127,7 @@ export default async function ProjetsPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <PeriodFilter dateLabel="Échéance" />
           <Link href={mineHref}>
             <Button variant={onlyMine ? "default" : "outline"} size="sm">
               <User className="mr-1 h-4 w-4" />

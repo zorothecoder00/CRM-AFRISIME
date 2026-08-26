@@ -15,6 +15,8 @@ import { TaskMindMapView, type MindMapTaskRow } from "@/components/tasks/task-mi
 import { TaskPortfolioView } from "@/components/tasks/task-portfolio-view";
 import { TaskWhiteboardView } from "@/components/tasks/task-whiteboard-view";
 import { TaskViewSwitcher } from "@/components/tasks/task-view-switcher";
+import { PeriodFilter } from "@/components/ui/period-filter";
+import { buildDateRangeFilter } from "@/lib/date-filter";
 import type { WhiteboardNote } from "@/actions/whiteboard.actions";
 import type { Prisma } from "@/generated/prisma/client";
 import { User } from "lucide-react";
@@ -22,9 +24,9 @@ import { User } from "lucide-react";
 export default async function TachesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string; projetId?: string; mine?: string }>;
+  searchParams: Promise<{ vue?: string; projetId?: string; mine?: string; annee?: string; mois?: string }>;
 }) {
-  const { vue: vueParam, projetId, mine } = await searchParams;
+  const { vue: vueParam, projetId, mine, annee, mois } = await searchParams;
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
@@ -56,6 +58,9 @@ export default async function TachesPage({
   if (allowedDepartmentIds) {
     andClauses.push({ project: { departmentId: { in: allowedDepartmentIds } } });
   }
+  // Filtre annuel/mensuel — sur l'échéance, déjà affichée en colonne.
+  const dateRange = buildDateRangeFilter(annee, mois);
+  if (dateRange) andClauses.push({ echeance: dateRange });
 
   const [tasks, projects, users, objectives, plans, competences, whiteboard] = await Promise.all([
     prisma.task.findMany({
@@ -122,7 +127,8 @@ export default async function TachesPage({
 
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
-  const mineHref = `?vue=${vue}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "" : "&mine=1"}`;
+  const periodQuery = `${annee ? `&annee=${annee}` : ""}${annee && mois ? `&mois=${mois}` : ""}`;
+  const mineHref = `?vue=${vue}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "" : "&mine=1"}${periodQuery}`;
 
   return (
     <div className="space-y-6">
@@ -134,13 +140,14 @@ export default async function TachesPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <PeriodFilter dateLabel="Échéance" />
           <Link href={mineHref}>
             <Button variant={onlyMine ? "default" : "outline"} size="sm">
               <User className="mr-1 h-4 w-4" />
               Mes tâches
             </Button>
           </Link>
-          <TaskViewSwitcher activeVue={vue} projetId={projetId} onlyMine={onlyMine} />
+          <TaskViewSwitcher activeVue={vue} projetId={projetId} onlyMine={onlyMine} annee={annee} mois={mois} />
           <div className="flex rounded-md border">
             <Link href="/calendrier">
               <Button variant="ghost" size="sm" className="rounded-r-none">

@@ -27,13 +27,19 @@ export function TaskViewSwitcher({
   activeVue,
   projetId,
   onlyMine,
+  annee,
+  mois,
 }: {
   activeVue: string;
   projetId?: string;
   onlyMine: boolean;
+  annee?: string;
+  mois?: string;
 }) {
   function hrefFor(key: string) {
-    return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "&mine=1" : ""}`;
+    return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "&mine=1" : ""}${
+      annee ? `&annee=${annee}` : ""
+    }${annee && mois ? `&mois=${mois}` : ""}`;
   }
 
   return (

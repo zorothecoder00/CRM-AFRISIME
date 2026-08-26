@@ -57,8 +57,8 @@ export async function createTask(input: CreateTaskInput) {
     new Set(data.assigneeIds.filter((id) => id !== data.responsablePrincipalId))
   );
 
-  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.task.create({
+  const { task, subtasks } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const created = await tx.task.create({
       data: {
         projectId: data.projectId,
         sectionId: data.sectionId || undefined,
@@ -77,15 +77,39 @@ export async function createTask(input: CreateTaskInput) {
         },
         competencesRequises: data.competenceIds.length > 0 ? { connect: data.competenceIds.map((id) => ({ id })) } : undefined,
       },
-    })
-  );
+    });
+
+    // Sous-tâches créées en même temps que la tâche parente, sans passer par
+    // le détail — voir createTaskSchema. Un createMany + parentTaskId
+    // n'aurait pas retourné les lignes créées (notification/automatisation
+    // en ont besoin), d'où la boucle de create() individuels.
+    const createdSubtasks = [];
+    for (const sub of data.subtasks) {
+      const subtask = await tx.task.create({
+        data: {
+          projectId: data.projectId,
+          sectionId: data.sectionId || undefined,
+          parentTaskId: created.id,
+          titre: sub.titre,
+          priorite: sub.priorite,
+          responsablePrincipalId: sub.responsablePrincipalId,
+          echeance: sub.echeance ? new Date(sub.echeance) : undefined,
+          createdById: session.user.id,
+          organizationId: session.user.organizationId,
+        },
+      });
+      createdSubtasks.push(subtask);
+    }
+
+    return { task: created, subtasks: createdSubtasks };
+  });
 
   await logAudit({
     userId: session.user.id,
     action: "task.created",
     entityType: "Task",
     entityId: task.id,
-    changes: { titre: task.titre },
+    changes: { titre: task.titre, subtasksCount: subtasks.length },
   });
 
   const notifyIds = Array.from(new Set([task.responsablePrincipalId, ...assigneeIds]));
@@ -96,6 +120,23 @@ export async function createTask(input: CreateTaskInput) {
     entityType: "Task",
     entityId: task.id,
   });
+
+  for (const subtask of subtasks) {
+    await notifyMany([subtask.responsablePrincipalId], session.user.id, {
+      type: "NOUVELLE_TACHE",
+      titre: `Nouvelle sous-tâche assignée : ${subtask.titre}`,
+      lien: `/taches/${subtask.id}`,
+      entityType: "Task",
+      entityId: subtask.id,
+    });
+    await runTaskCreatedRules({
+      id: subtask.id,
+      titre: subtask.titre,
+      projectId: subtask.projectId,
+      responsablePrincipalId: subtask.responsablePrincipalId,
+      priorite: subtask.priorite,
+    });
+  }
 
   await runTaskCreatedRules({
     id: task.id,

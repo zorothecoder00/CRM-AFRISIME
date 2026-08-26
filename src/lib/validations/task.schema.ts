@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+const createSubtaskSchema = z.object({
+  titre: z.string().min(2, "Le titre est requis."),
+  responsablePrincipalId: z.string().min(1, "Un responsable est requis."),
+  priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]).optional().default("MOYENNE"),
+  echeance: z.string().optional(),
+});
+
 export const createTaskSchema = z.object({
   projectId: z.string().min(1, "Un projet est requis."),
   sectionId: z.string().optional(),
@@ -17,6 +24,10 @@ export const createTaskSchema = z.object({
   // nulle part, donc le critère "compétence" de suggestAssignees restait
   // toujours neutre en pratique.
   competenceIds: z.array(z.string()).optional().default([]),
+  // Sous-tâches créées en même temps que la tâche parente (autant que
+  // voulu), chacune avec son propre responsable — évite l'aller-retour
+  // "créer la tâche puis ouvrir son détail pour ajouter des sous-tâches".
+  subtasks: z.array(createSubtaskSchema).optional().default([]),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
