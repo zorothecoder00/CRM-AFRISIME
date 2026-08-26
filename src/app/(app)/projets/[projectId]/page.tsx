@@ -50,6 +50,8 @@ import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projec
 import { buildTree } from "@/lib/tree";
 import { TheoryOfChangeView, type TheoryOfChangeNodeData } from "@/components/projects/theory-of-change-view";
 import { LogframeView, type LogframeRowData } from "@/components/projects/logframe-view";
+import { computeResultFramework } from "@/lib/result-framework";
+import { ResultFrameworkView } from "@/components/projects/result-framework-view";
 import { ProjectObjectivesBuilder, type ObjectiveNodeData } from "@/components/projects/project-objectives-builder";
 import { checkObjectivesConsistency } from "@/lib/objectives-consistency";
 import { ProjectScopeForm } from "@/components/projects/project-scope-form";
@@ -248,7 +250,11 @@ export default async function ProjectDetailPage({
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
     prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
     prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
-    prisma.theoryOfChangeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
+    prisma.theoryOfChangeNode.findMany({
+      where: { projectId },
+      include: { sections: { select: { id: true } } },
+      orderBy: { ordre: "asc" },
+    }),
     prisma.logframeRow.findMany({ where: { projectId } }),
     prisma.objective.findMany({
       where: { projectId, niveau: { not: null } },
@@ -786,6 +792,16 @@ export default async function ProjectDetailPage({
     sourcesVerification: n.sourcesVerification,
   }));
 
+  const resultFrameworkTiers = computeResultFramework({
+    nodes: theoryOfChangeNodes.map((n) => ({
+      id: n.id,
+      niveau: n.niveau,
+      parentId: n.parentId,
+      sectionIds: n.sections.map((s) => s.id),
+    })),
+    tasks: tasks.map((t) => ({ statut: t.statut, sectionId: t.sectionId })),
+  });
+
   const logframeData: LogframeRowData[] = logframeRows.map((r) => ({
     id: r.id,
     niveau: r.niveau,
@@ -959,6 +975,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
           <TabsTrigger value="theorie-changement">Théorie du changement</TabsTrigger>
           <TabsTrigger value="cadre-logique">Cadre logique</TabsTrigger>
+          <TabsTrigger value="cadre-resultats">Cadre de résultats</TabsTrigger>
           <TabsTrigger value="objectifs-builder">Objectifs</TabsTrigger>
           <TabsTrigger value="scope">Périmètre</TabsTrigger>
           <TabsTrigger value="charte">Charte</TabsTrigger>
@@ -1338,6 +1355,10 @@ export default async function ProjectDetailPage({
             hasTheoryOfChange={theoryOfChangeData.length > 0}
             canManage={canUpdateProject}
           />
+        </TabsContent>
+
+        <TabsContent value="cadre-resultats" className="mt-4">
+          <ResultFrameworkView tiers={resultFrameworkTiers} />
         </TabsContent>
 
         <TabsContent value="objectifs-builder" className="mt-4">
