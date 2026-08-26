@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, MinusCircle } from "lucide-react";
 import type { ClosureCheckItem } from "@/lib/project-closure";
 
 export function ProjectClosureSection({
@@ -28,13 +28,15 @@ export function ProjectClosureSection({
     successMessage: "Date de fin réelle enregistrée.",
   });
 
-  const doneCount = items.filter((i) => i.done).length;
+  const doneCount = items.filter((i) => i.applicable && i.done).length;
+  const naCount = items.filter((i) => !i.applicable).length;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {doneCount}/{items.length} éléments validés.
+          {doneCount}/{items.length} éléments validés
+          {naCount > 0 && ` (${naCount} sans objet — rien à vérifier)`}.
         </p>
         {canManage && (
           <div className="flex items-center gap-2">
@@ -57,7 +59,9 @@ export function ProjectClosureSection({
             <CardContent className="flex items-center justify-between px-(--card-spacing)">
               <div className="flex items-center gap-2">
                 {item.auto ? (
-                  item.done ? (
+                  !item.applicable ? (
+                    <MinusCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  ) : item.done ? (
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
                   ) : (
                     <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -72,7 +76,7 @@ export function ProjectClosureSection({
                 <span className="text-sm">{item.label}</span>
               </div>
               {item.detail && (
-                <Badge variant={item.done ? "success" : "outline"} className="text-xs">
+                <Badge variant={item.applicable && item.done ? "success" : "outline"} className="text-xs">
                   {item.detail}
                 </Badge>
               )}

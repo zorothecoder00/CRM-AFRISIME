@@ -30,3 +30,23 @@ export const createQualityControlSchema = z.object({
 });
 
 export type CreateQualityControlInput = z.infer<typeof createQualityControlSchema>;
+
+// ---- Critères d'acceptation (QualityChecklistItem, §33 — jusqu'ici jamais câblés) ----
+
+export const addQualityChecklistItemSchema = z.object({
+  controlId: z.string().min(1),
+  label: z.string().min(2, "Le critère est requis."),
+});
+
+export type AddQualityChecklistItemInput = z.infer<typeof addQualityChecklistItemSchema>;
+
+export const toggleQualityChecklistItemSchema = z.object({
+  itemId: z.string().min(1),
+  isDone: z.boolean(),
+});
+
+export type ToggleQualityChecklistItemInput = z.infer<typeof toggleQualityChecklistItemSchema>;
+
+export const deleteQualityChecklistItemSchema = z.object({ itemId: z.string().min(1) });
+
+export type DeleteQualityChecklistItemInput = z.infer<typeof deleteQualityChecklistItemSchema>;

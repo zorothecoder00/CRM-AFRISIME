@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
-import { upsertQualityPlan, publishQualityPlan, createQualityControl } from "@/actions/quality.actions";
+import {
+  upsertQualityPlan,
+  publishQualityPlan,
+  createQualityControl,
+  addQualityChecklistItem,
+  toggleQualityChecklistItem,
+  deleteQualityChecklistItem,
+} from "@/actions/quality.actions";
 import {
   upsertQualityPlanSchema,
   createQualityControlSchema,
@@ -17,11 +24,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 export type QualityPlanData = { id: string; titre: string; contenu: string | null; statut: "BROUILLON" | "PUBLIE" | "ARCHIVE" };
+
+export type QualityChecklistItemRow = { id: string; label: string; isDone: boolean };
 
 export type QualityControlRow = {
   id: string;
@@ -34,6 +44,7 @@ export type QualityControlRow = {
   deliverableNom: string | null;
   responsableName: string | null;
   controleParName: string;
+  checklistItems: QualityChecklistItemRow[];
 };
 
 const STATUT_LABELS: Record<string, string> = { BROUILLON: "Brouillon", PUBLIE: "Publié", ARCHIVE: "Archivé" };
@@ -87,12 +98,89 @@ export function ProjectQualitySection({
                     <p className="text-xs text-muted-foreground">Action corrective : {c.actionCorrective}</p>
                   )}
                   {c.responsableName && <p className="text-xs text-muted-foreground">Responsable : {c.responsableName}</p>}
+                  <QualityChecklist controlId={c.id} items={c.checklistItems} canManage={canManage} />
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function QualityChecklist({
+  controlId,
+  items,
+  canManage,
+}: {
+  controlId: string;
+  items: QualityChecklistItemRow[];
+  canManage: boolean;
+}) {
+  const [label, setLabel] = useState("");
+  const { run: add, isPending: adding } = useAction(addQualityChecklistItem);
+  const { run: toggle } = useAction(toggleQualityChecklistItem);
+  const { run: remove } = useAction(deleteQualityChecklistItem);
+
+  async function onAdd() {
+    if (!label.trim()) return;
+    const result = await add({ controlId, label: label.trim() });
+    if (result.ok) setLabel("");
+  }
+
+  const doneCount = items.filter((i) => i.isDone).length;
+
+  return (
+    <div className="mt-2 space-y-1.5 border-t pt-2">
+      <p className="text-xs font-medium text-muted-foreground">
+        Critères d&apos;acceptation {items.length > 0 && `(${doneCount}/${items.length})`}
+      </p>
+      {items.length > 0 && (
+        <ul className="space-y-1">
+          {items.map((item) => (
+            <li key={item.id} className="flex items-center gap-2">
+              <Checkbox
+                checked={item.isDone}
+                disabled={!canManage}
+                onCheckedChange={(v) => toggle({ itemId: item.id, isDone: v === true })}
+              />
+              <span className={`flex-1 text-xs ${item.isDone ? "text-muted-foreground line-through" : ""}`}>
+                {item.label}
+              </span>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => remove({ itemId: item.id })}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="Supprimer le critère"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canManage && (
+        <div className="flex gap-1.5">
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Ajouter un critère d'acceptation"
+            className="h-7 text-xs"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onAdd();
+              }
+            }}
+          />
+          <Button type="button" size="sm" variant="outline" className="h-7 px-2" disabled={adding || !label.trim()} onClick={onAdd}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

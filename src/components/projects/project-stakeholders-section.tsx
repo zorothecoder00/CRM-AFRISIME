@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toneForNiveau } from "@/lib/status-tone";
+import { StakeholderMatrix } from "@/components/stakeholders/stakeholder-matrix";
 import { Plus, Trash2, Users as UsersIcon, Link2 } from "lucide-react";
 
 type Option = { id: string; label: string };
@@ -79,7 +80,10 @@ export function ProjectStakeholdersSection({
       {stakeholders.length === 0 ? (
         <p className="text-sm text-muted-foreground">Aucune partie prenante renseignée.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <StakeholderMatrix
+            stakeholders={stakeholders.map((s) => ({ id: s.stakeholderId, nom: s.nom, influence: s.influence, interet: s.interet }))}
+          />
           {stakeholders.map((s) => (
             <Card key={s.linkId} size="sm">
               <CardContent className="flex flex-wrap items-start justify-between gap-2 px-(--card-spacing)">

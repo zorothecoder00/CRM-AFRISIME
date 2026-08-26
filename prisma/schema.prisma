@@ -509,7 +509,7 @@ model User {
   // Project Studio §45 (Deliverable Management) — validation formelle, distincte du createdBy.
   deliverablesValidated               ProjectDeliverable[]           @relation("DeliverableValidatedBy")
   // Project Studio §44 (Milestone Management) — validation formelle du jalon.
-  milestonesValidated                 ProjectMilestone[]              @relation("MilestoneValidatedBy")
+  milestonesValidated                 ProjectMilestone[]             @relation("MilestoneValidatedBy")
   programmeRisksResponsable           ProgrammeRisk[]                @relation("ProgrammeRiskResponsable")
   programmeRisksCreated               ProgrammeRisk[]                @relation("ProgrammeRiskCreatedBy")
   delegationsGiven                    Delegation[]                   @relation("DelegationDelegant")
@@ -612,19 +612,19 @@ model User {
   // Project Studio §46 (Beneficiary/User Feedback).
   projectFeedbacksCreated             ProjectFeedback[]              @relation("ProjectFeedbackCreatedBy")
   // Project Studio §49 (Indicator Management).
-  indicatorsResponsable                Indicator[]                    @relation("IndicatorResponsable")
+  indicatorsResponsable               Indicator[]                    @relation("IndicatorResponsable")
   // Project Studio §47 (Monitoring & Evaluation).
-  projectMEEvaluationsCreated          ProjectMEEvaluation[]          @relation("ProjectMEEvaluationCreatedBy")
+  projectMEEvaluationsCreated         ProjectMEEvaluation[]          @relation("ProjectMEEvaluationCreatedBy")
   // Project Studio §48 (Data Collection).
-  projectDataFormsCreated              ProjectDataForm[]              @relation("ProjectDataFormCreatedBy")
-  projectDataFormSubmissions           ProjectDataFormSubmission[]    @relation("ProjectDataFormSubmissionBy")
+  projectDataFormsCreated             ProjectDataForm[]              @relation("ProjectDataFormCreatedBy")
+  projectDataFormSubmissions          ProjectDataFormSubmission[]    @relation("ProjectDataFormSubmissionBy")
   // Project Studio §53 (Lessons Learned).
-  projectLessonsLearnedCreated          ProjectLessonLearned[]         @relation("ProjectLessonLearnedCreatedBy")
+  projectLessonsLearnedCreated        ProjectLessonLearned[]         @relation("ProjectLessonLearnedCreatedBy")
   // Project Studio §60 (Project Templates).
-  projectTemplatesCreated               ProjectTemplate[]              @relation("ProjectTemplateCreatedBy")
+  projectTemplatesCreated             ProjectTemplate[]              @relation("ProjectTemplateCreatedBy")
   // Project Studio §7 (Problem Tree links) / §39 (Version Control) audit fixes.
-  problemTreeNodeCommentsAuthored       ProblemTreeNodeComment[]       @relation("ProblemTreeNodeCommentAuthor")
-  documentVersionsValidated             DocumentVersion[]              @relation("DocumentVersionValidatedBy")
+  problemTreeNodeCommentsAuthored     ProblemTreeNodeComment[]       @relation("ProblemTreeNodeCommentAuthor")
+  documentVersionsValidated           DocumentVersion[]              @relation("DocumentVersionValidatedBy")
   dashboardPreference                 DashboardWidgetPreference?
   integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
@@ -998,6 +998,7 @@ model PlatformOrganization {
   documentFolders               DocumentFolder[]               @relation("PlatformOrganizationDocumentFolders")
   whiteboards                   Whiteboard[]                   @relation("PlatformOrganizationWhiteboards")
   projectMembers                ProjectMember[]                @relation("PlatformOrganizationProjectMembers")
+  projectPartners               ProjectPartner[]               @relation("PlatformOrganizationProjectPartners")
   projectRisks                  ProjectRisk[]                  @relation("PlatformOrganizationProjectRisks")
   projectMilestones             ProjectMilestone[]             @relation("PlatformOrganizationProjectMilestones")
   projectDeliverables           ProjectDeliverable[]           @relation("PlatformOrganizationProjectDeliverables")
@@ -1122,24 +1123,24 @@ model PlatformOrganization {
   scenarios                     Scenario[]                     @relation("PlatformOrganizationScenarios")
   beneficiaires                 Beneficiaire[]                 @relation("PlatformOrganizationBeneficiaires")
   // Project Studio §46 (Beneficiary/User Feedback).
-  projectFeedbacks               ProjectFeedback[]              @relation("PlatformOrganizationProjectFeedbacks")
+  projectFeedbacks              ProjectFeedback[]              @relation("PlatformOrganizationProjectFeedbacks")
   // Project Studio §47 (Monitoring & Evaluation).
-  projectMEEvaluations           ProjectMEEvaluation[]          @relation("PlatformOrganizationProjectMEEvaluations")
-  projectMEEvaluationCriteres    ProjectMEEvaluationCritere[]   @relation("PlatformOrganizationProjectMEEvaluationCriteres")
+  projectMEEvaluations          ProjectMEEvaluation[]          @relation("PlatformOrganizationProjectMEEvaluations")
+  projectMEEvaluationCriteres   ProjectMEEvaluationCritere[]   @relation("PlatformOrganizationProjectMEEvaluationCriteres")
   // Project Studio §48 (Data Collection).
-  projectDataForms                ProjectDataForm[]              @relation("PlatformOrganizationProjectDataForms")
-  projectDataFormFields           ProjectDataFormField[]         @relation("PlatformOrganizationProjectDataFormFields")
-  projectDataFormSubmissions      ProjectDataFormSubmission[]    @relation("PlatformOrganizationProjectDataFormSubmissions")
+  projectDataForms              ProjectDataForm[]              @relation("PlatformOrganizationProjectDataForms")
+  projectDataFormFields         ProjectDataFormField[]         @relation("PlatformOrganizationProjectDataFormFields")
+  projectDataFormSubmissions    ProjectDataFormSubmission[]    @relation("PlatformOrganizationProjectDataFormSubmissions")
   // Project Studio §52 (Project Closure) / §53 (Lessons Learned).
-  projectClosureChecklists        ProjectClosureChecklist[]      @relation("PlatformOrganizationProjectClosureChecklists")
-  projectLessonsLearned           ProjectLessonLearned[]         @relation("PlatformOrganizationProjectLessonsLearned")
+  projectClosureChecklists      ProjectClosureChecklist[]      @relation("PlatformOrganizationProjectClosureChecklists")
+  projectLessonsLearned         ProjectLessonLearned[]         @relation("PlatformOrganizationProjectLessonsLearned")
   // Project Studio §60 (Project Templates).
-  projectTemplates                ProjectTemplate[]              @relation("PlatformOrganizationProjectTemplates")
-  projectTemplatePhases           ProjectTemplatePhase[]         @relation("PlatformOrganizationProjectTemplatePhases")
+  projectTemplates              ProjectTemplate[]              @relation("PlatformOrganizationProjectTemplates")
+  projectTemplatePhases         ProjectTemplatePhase[]         @relation("PlatformOrganizationProjectTemplatePhases")
   // Project Studio §7 (Problem Tree links).
-  problemTreeNodeDocuments         ProblemTreeNodeDocument[]      @relation("PlatformOrganizationProblemTreeNodeDocuments")
-  problemTreeNodeIndicators        ProblemTreeNodeIndicator[]     @relation("PlatformOrganizationProblemTreeNodeIndicators")
-  problemTreeNodeComments          ProblemTreeNodeComment[]       @relation("PlatformOrganizationProblemTreeNodeComments")
+  problemTreeNodeDocuments      ProblemTreeNodeDocument[]      @relation("PlatformOrganizationProblemTreeNodeDocuments")
+  problemTreeNodeIndicators     ProblemTreeNodeIndicator[]     @relation("PlatformOrganizationProblemTreeNodeIndicators")
+  problemTreeNodeComments       ProblemTreeNodeComment[]       @relation("PlatformOrganizationProblemTreeNodeComments")
   entities                      Entity[]                       @relation("PlatformOrganizationEntities")
   holidays                      Holiday[]                      @relation("PlatformOrganizationHolidays")
   tags                          Tag[]                          @relation("PlatformOrganizationTags")
@@ -1665,6 +1666,10 @@ model Project {
   procurementItems         ProcurementItem[]
   contracts                ProjectContract[]
   communicationPlanEntries CommunicationPlanEntry[]
+  // Project Studio §62 (Project Governance) — partenaires structures,
+  // distincts du roster ProjectMember (equipe/gouvernance interne) et du
+  // champ libre `organisation` ci-dessus.
+  partners                 ProjectPartner[]
 
   @@index([departmentId])
   @@index([responsableId])
@@ -1704,6 +1709,28 @@ model ProjectMember {
   organization   PlatformOrganization? @relation("PlatformOrganizationProjectMembers", fields: [organizationId], references: [id])
 
   @@unique([projectId, userId])
+}
+
+// Partenaires structures d'un projet (Project Studio §62, Project
+// Governance — "definir : ... partenaires"). Reutilise CrmOrganization
+// (referentiel deja existant, type PARTENAIRE en pratique mais non
+// contraint en base, meme logique que ProcurementItem/ProjectContract cote
+// FOURNISSEUR) plutot qu'un nouveau referentiel dedie.
+model ProjectPartner {
+  id                String                @id @default(cuid())
+  projectId         String
+  project           Project               @relation(fields: [projectId], references: [id])
+  crmOrganizationId String
+  crmOrganization   CrmOrganization       @relation(fields: [crmOrganizationId], references: [id])
+  role              String?
+  notes             String?
+  addedAt           DateTime              @default(now())
+  // Multi-tenant Phase 1 — meme statut que ProjectMember.
+  organizationId    String?
+  organization      PlatformOrganization? @relation("PlatformOrganizationProjectPartners", fields: [organizationId], references: [id])
+
+  @@unique([projectId, crmOrganizationId])
+  @@index([crmOrganizationId])
 }
 
 enum RiskProbability {
@@ -1926,48 +1953,48 @@ enum DeliverableStatus {
 // ceci donne un cycle de vie propre au niveau du projet, independant du
 // module documentaire.
 model ProjectDeliverable {
-  id              String                @id @default(cuid())
-  projectId       String
-  project         Project               @relation(fields: [projectId], references: [id])
+  id                  String                @id @default(cuid())
+  projectId           String
+  project             Project               @relation(fields: [projectId], references: [id])
   // Multi-tenant Phase 1 lot 6 (2026-08-20) — meme statut que Whiteboard.
-  organizationId  String?
-  organization    PlatformOrganization? @relation("PlatformOrganizationProjectDeliverables", fields: [organizationId], references: [id])
-  nom             String
-  description     String?
+  organizationId      String?
+  organization        PlatformOrganization? @relation("PlatformOrganizationProjectDeliverables", fields: [organizationId], references: [id])
+  nom                 String
+  description         String?
   // Project Studio §45 (Deliverable Management) — criteres d'acceptation
   // (texte libre : conditions a remplir pour que le livrable soit accepte)
   // et version courante (texte libre, ex. "v1.0" — le livrable peut evoluer
   // au fil des iterations sans changer d'identite).
   criteresAcceptation String?
-  version         String?
-  statut          DeliverableStatus     @default(A_FAIRE)
-  echeance        DateTime?
-  responsableId   String?
-  responsable     User?                 @relation("DeliverableResponsable", fields: [responsableId], references: [id])
+  version             String?
+  statut              DeliverableStatus     @default(A_FAIRE)
+  echeance            DateTime?
+  responsableId       String?
+  responsable         User?                 @relation("DeliverableResponsable", fields: [responsableId], references: [id])
   // Project Studio §45 — validation formelle (qui/quand), horodatee
   // automatiquement au passage du statut a VALIDE, cf. updateProjectDeliverableStatus.
-  valideParId     String?
-  valideur        User?                 @relation("DeliverableValidatedBy", fields: [valideParId], references: [id])
-  valideLe        DateTime?
+  valideParId         String?
+  valideur            User?                 @relation("DeliverableValidatedBy", fields: [valideParId], references: [id])
+  valideLe            DateTime?
   // Project Studio §13 (Objectives Builder) — relie le livrable au Resultat
   // (Objective.niveau = RESULTAT) dont il decoule ; sert au controle de
   // coherence entre niveaux (voir checkObjectivesConsistency).
-  objectiveId     String?
-  objective       Objective?            @relation(fields: [objectiveId], references: [id])
+  objectiveId         String?
+  objective           Objective?            @relation(fields: [objectiveId], references: [id])
   // Project Studio §15 (WBS) — trace qu'un livrable a ete genere depuis un
   // noeud du WBS (ProjectSection), voir convertSectionToDeliverable.
-  sectionId       String?
-  section         ProjectSection?       @relation(fields: [sectionId], references: [id])
+  sectionId           String?
+  section             ProjectSection?       @relation(fields: [sectionId], references: [id])
   // Project Studio §35 (Contract Management) — quel contrat fournisseur ce
   // livrable est du au titre de.
-  contractId      String?
-  contract        ProjectContract?      @relation(fields: [contractId], references: [id])
+  contractId          String?
+  contract            ProjectContract?      @relation(fields: [contractId], references: [id])
   // Project Studio §33 — controles qualite passes contre ce livrable.
-  qualityControls QualityControl[]
-  createdById     String
-  createdBy       User                  @relation("DeliverableCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  qualityControls     QualityControl[]
+  createdById         String
+  createdBy           User                  @relation("DeliverableCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
   @@index([projectId])
   @@index([objectiveId])
@@ -2014,6 +2041,9 @@ model ProjectResource {
 // libre Project.organisation n'est pas transforme en relation ici) — prevu
 // comme lot separe une fois ce referentiel en place. Pas de suppression
 // (hard delete) : comme Project/Task, seuls des changements de statut.
+// Exception ciblee : ProjectPartner (Project Studio §62, Project Governance
+// — role "partenaires") relie explicitement un Project a des
+// CrmOrganization de type PARTENAIRE, sans generaliser le lien pour autant.
 
 enum CrmOrganizationType {
   ENTREPRISE
@@ -2100,6 +2130,9 @@ model CrmOrganization {
   // (Contract = contrat commercial CRM cote client/opportunite).
   procurementItems ProcurementItem[]
   projectContracts ProjectContract[] @relation("ProjectContractFournisseur")
+  // Project Studio §62 (Project Governance) — cette organisation en tant que
+  // partenaire structure d'un projet (voir ProjectPartner).
+  projectPartners  ProjectPartner[]
 
   @@index([ownerId])
   @@index([nom])
@@ -3021,8 +3054,8 @@ model Document {
   deletedById                  String?
   deletedBy                    User?                    @relation("DocumentDeletedBy", fields: [deletedById], references: [id])
 
-  versions     DocumentVersion[]
-  accessGrants DocumentAccess[]
+  versions         DocumentVersion[]
+  accessGrants     DocumentAccess[]
   // Project Studio §7 — liens depuis l'arbre a problemes.
   problemTreeLinks ProblemTreeNodeDocument[]
 
@@ -3369,45 +3402,45 @@ model Objective {
 // historique (Resultats cles/OKR) ; Project/Task etendent le meme modele
 // plutot que d'en dupliquer un.
 model Indicator {
-  id             String                @id @default(cuid())
-  objectiveId    String?
-  objective      Objective?            @relation(fields: [objectiveId], references: [id])
-  projectId      String?
-  project        Project?              @relation(fields: [projectId], references: [id])
-  taskId         String?
-  task           Task?                 @relation(fields: [taskId], references: [id])
+  id                   String                     @id @default(cuid())
+  objectiveId          String?
+  objective            Objective?                 @relation(fields: [objectiveId], references: [id])
+  projectId            String?
+  project              Project?                   @relation(fields: [projectId], references: [id])
+  taskId               String?
+  task                 Task?                      @relation(fields: [taskId], references: [id])
   // Project Studio §65 (Single Source of Truth) — un indicateur genere
   // depuis un noeud ToC (bouton "Creer un indicateur" sur la Theorie du
   // changement) reste trace ici ; plusieurs indicateurs peuvent partager le
   // meme noeud (contrairement a LogframeRow qui est 1:1), pas de contrainte
   // unique.
   theoryOfChangeNodeId String?
-  theoryOfChangeNode   TheoryOfChangeNode? @relation(fields: [theoryOfChangeNodeId], references: [id])
+  theoryOfChangeNode   TheoryOfChangeNode?        @relation(fields: [theoryOfChangeNodeId], references: [id])
   // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
   // denormalise depuis l'un des trois parents (Objective/Project/Task).
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationIndicators", fields: [organizationId], references: [id])
-  nom            String
+  organizationId       String?
+  organization         PlatformOrganization?      @relation("PlatformOrganizationIndicators", fields: [organizationId], references: [id])
+  nom                  String
   // Project Studio §49 (Indicator Management) — champs additionnels, tous
   // optionnels pour rester compatibles avec les indicateurs deja crees
   // (Objectifs/Taches) qui n'en ont pas besoin.
-  definition     String?
-  formule        String?
-  baseline       Decimal?              @db.Decimal(12, 2)
-  source         String?
-  frequence      IndicatorFrequence?
-  responsableId  String?
-  responsable    User?                 @relation("IndicatorResponsable", fields: [responsableId], references: [id])
-  desagregation  String?
-  unite          String?
-  valeurCible    Decimal               @db.Decimal(12, 2)
-  valeurActuelle Decimal               @default(0) @db.Decimal(12, 2)
+  definition           String?
+  formule              String?
+  baseline             Decimal?                   @db.Decimal(12, 2)
+  source               String?
+  frequence            IndicatorFrequence?
+  responsableId        String?
+  responsable          User?                      @relation("IndicatorResponsable", fields: [responsableId], references: [id])
+  desagregation        String?
+  unite                String?
+  valeurCible          Decimal                    @db.Decimal(12, 2)
+  valeurActuelle       Decimal                    @default(0) @db.Decimal(12, 2)
   // Project Studio §48 (Data Collection) — champs de formulaire qui alimentent cet indicateur.
-  dataFormFields ProjectDataFormField[]
+  dataFormFields       ProjectDataFormField[]
   // Project Studio §7 — liens depuis l'arbre a problemes.
-  problemTreeLinks ProblemTreeNodeIndicator[]
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  problemTreeLinks     ProblemTreeNodeIndicator[]
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
 
   @@index([objectiveId])
   @@index([projectId])
@@ -5320,20 +5353,20 @@ enum DataFormFieldType {
 // recomputeIndicatorFromSubmissions dans data-form.actions.ts : la valeur
 // actuelle de l'indicateur devient la somme des soumissions de ce champ.
 model ProjectDataForm {
-  id             String                @id @default(cuid())
+  id             String                      @id @default(cuid())
   projectId      String
-  project        Project               @relation(fields: [projectId], references: [id])
+  project        Project                     @relation(fields: [projectId], references: [id])
   organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationProjectDataForms", fields: [organizationId], references: [id])
+  organization   PlatformOrganization?       @relation("PlatformOrganizationProjectDataForms", fields: [organizationId], references: [id])
   nom            String
   description    String?
-  actif          Boolean               @default(true)
+  actif          Boolean                     @default(true)
   fields         ProjectDataFormField[]
   submissions    ProjectDataFormSubmission[]
   createdById    String
-  createdBy      User                  @relation("ProjectDataFormCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  createdBy      User                        @relation("ProjectDataFormCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
 
   @@index([projectId])
 }
@@ -5450,16 +5483,16 @@ enum ProjectTemplateCategorie {
 // (jalons/livrables/budget...) reste a construire au cas par cas, un modele
 // trop prescriptif genererait plus de nettoyage que de gain.
 model ProjectTemplate {
-  id             String                    @id @default(cuid())
+  id             String                   @id @default(cuid())
   organizationId String?
-  organization   PlatformOrganization?     @relation("PlatformOrganizationProjectTemplates", fields: [organizationId], references: [id])
+  organization   PlatformOrganization?    @relation("PlatformOrganizationProjectTemplates", fields: [organizationId], references: [id])
   nom            String
   categorie      ProjectTemplateCategorie
   description    String?
   phases         ProjectTemplatePhase[]
   createdById    String
-  createdBy      User                      @relation("ProjectTemplateCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime                  @default(now())
+  createdBy      User                     @relation("ProjectTemplateCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime                 @default(now())
 }
 
 model ProjectTemplatePhase {
@@ -5943,7 +5976,7 @@ model ProblemTreeNode {
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
-  solutionNodes SolutionTreeNode[]
+  solutionNodes    SolutionTreeNode[]
   // Project Studio §7 (Problem Tree) — "chaque element peut etre relie a
   // donnees/documents/indicateurs/sources/commentaires". `sources` (texte
   // libre) couvrait deja donnees/sources ; ces 3 relations couvrent le
@@ -6102,29 +6135,29 @@ enum LogframeLevel {
 // editable (meme principe que ProjectConceptNote genere depuis ProjectIdea :
 // pas de synchronisation live avec la ToC apres generation).
 model LogframeRow {
-  id             String                @id @default(cuid())
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationLogframeRows", fields: [organizationId], references: [id])
-  projectId      String
-  project        Project               @relation(fields: [projectId], references: [id])
-  niveau         LogframeLevel
-  resultats      String?
-  indicateurs    String?
-  sources        String?
-  hypotheses     String?
-  ordre          Int                   @default(0)
+  id                   String                @id @default(cuid())
+  organizationId       String?
+  organization         PlatformOrganization? @relation("PlatformOrganizationLogframeRows", fields: [organizationId], references: [id])
+  projectId            String
+  project              Project               @relation(fields: [projectId], references: [id])
+  niveau               LogframeLevel
+  resultats            String?
+  indicateurs          String?
+  sources              String?
+  hypotheses           String?
+  ordre                Int                   @default(0)
   // Project Studio §65 (Single Source of Truth) — quand renseigne, cette
   // ligne est le miroir en direct du noeud ToC : titre/indicateurs/sources/
   // hypotheses sont synchronises automatiquement par
   // createTheoryOfChangeNode/updateTheoryOfChangeNode/deleteTheoryOfChangeNode
   // (voir src/actions/theory-of-change.actions.ts), non editables ici. Null
   // = ligne ajoutee manuellement, hors ToC, reste librement editable.
-  theoryOfChangeNodeId String?         @unique
-  theoryOfChangeNode   TheoryOfChangeNode? @relation(fields: [theoryOfChangeNodeId], references: [id], onDelete: Cascade)
-  createdById    String
-  createdBy      User                  @relation("LogframeRowCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  theoryOfChangeNodeId String?               @unique
+  theoryOfChangeNode   TheoryOfChangeNode?   @relation(fields: [theoryOfChangeNodeId], references: [id], onDelete: Cascade)
+  createdById          String
+  createdBy            User                  @relation("LogframeRowCreatedBy", fields: [createdById], references: [id])
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@index([projectId])
 }

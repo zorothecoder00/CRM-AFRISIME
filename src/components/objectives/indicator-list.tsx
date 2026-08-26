@@ -30,6 +30,7 @@ export type IndicatorData = {
   baseline?: number | null;
   source?: string | null;
   frequence?: string | null;
+  responsableId?: string | null;
   responsableName?: string | null;
   desagregation?: string | null;
 };
@@ -109,6 +110,7 @@ function IndicatorEditDialog({ indicator, users }: { indicator: IndicatorData; u
       baseline: indicator.baseline !== null && indicator.baseline !== undefined ? String(indicator.baseline) : "",
       source: indicator.source ?? "",
       frequence: (indicator.frequence as UpdateIndicatorDetailsInput["frequence"]) ?? undefined,
+      responsableId: indicator.responsableId ?? undefined,
       desagregation: indicator.desagregation ?? "",
     },
   });
@@ -184,7 +186,7 @@ function IndicatorEditDialog({ indicator, users }: { indicator: IndicatorData; u
           {users.length > 0 && (
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <Select onValueChange={(v) => setValue("responsableId", v)}>
+              <Select defaultValue={indicator.responsableId ?? undefined} onValueChange={(v) => setValue("responsableId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Non assigné" />
                 </SelectTrigger>

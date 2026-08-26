@@ -10,9 +10,15 @@ import {
   upsertQualityPlanSchema,
   publishQualityPlanSchema,
   createQualityControlSchema,
+  addQualityChecklistItemSchema,
+  toggleQualityChecklistItemSchema,
+  deleteQualityChecklistItemSchema,
   type UpsertQualityPlanInput,
   type PublishQualityPlanInput,
   type CreateQualityControlInput,
+  type AddQualityChecklistItemInput,
+  type ToggleQualityChecklistItemInput,
+  type DeleteQualityChecklistItemInput,
 } from "@/lib/validations/quality.schema";
 
 /**
@@ -111,4 +117,71 @@ export async function createQualityControl(input: CreateQualityControlInput) {
 
   revalidatePath(`/projets/${data.projectId}`);
   return control;
+}
+
+// ---- Critères d'acceptation (QualityChecklistItem, §33 — jusqu'ici jamais câblés) ----
+
+export async function addQualityChecklistItem(input: AddQualityChecklistItemInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = addQualityChecklistItemSchema.parse(input);
+
+  const { item, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const control = await tx.qualityControl.findUniqueOrThrow({ where: { id: data.controlId }, select: { projectId: true } });
+    const count = await tx.qualityChecklistItem.count({ where: { controlId: data.controlId } });
+    const created = await tx.qualityChecklistItem.create({
+      data: {
+        controlId: data.controlId,
+        label: data.label,
+        ordre: count,
+        organizationId: session.user.organizationId,
+      },
+    });
+    return { item: created, projectId: control.projectId };
+  });
+
+  revalidatePath(projectId ? `/projets/${projectId}` : "/");
+  return item;
+}
+
+export async function toggleQualityChecklistItem(input: ToggleQualityChecklistItemInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = toggleQualityChecklistItemSchema.parse(input);
+
+  const { item, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const updated = await tx.qualityChecklistItem.update({
+      where: { id: data.itemId },
+      data: { isDone: data.isDone },
+      include: { control: { select: { projectId: true } } },
+    });
+    return { item: updated, projectId: updated.control.projectId };
+  });
+
+  revalidatePath(projectId ? `/projets/${projectId}` : "/");
+  return item;
+}
+
+export async function deleteQualityChecklistItem(input: DeleteQualityChecklistItemInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = deleteQualityChecklistItemSchema.parse(input);
+
+  const { item, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const existing = await tx.qualityChecklistItem.findUniqueOrThrow({
+      where: { id: data.itemId },
+      include: { control: { select: { projectId: true } } },
+    });
+    await tx.qualityChecklistItem.delete({ where: { id: data.itemId } });
+    return { item: existing, projectId: existing.control.projectId };
+  });
+
+  revalidatePath(projectId ? `/projets/${projectId}` : "/");
+  return item;
 }

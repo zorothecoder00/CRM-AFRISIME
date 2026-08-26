@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { addProjectMember, updateProjectMemberRole, removeProjectMember } from "@/actions/project.actions";
+import { linkProjectPartner, unlinkProjectPartner } from "@/actions/project-partner.actions";
 import {
   addProjectMemberSchema,
   PROJECT_MEMBER_ROLES,
@@ -12,10 +13,11 @@ import {
 } from "@/lib/validations/project.schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Trash2, Users, Handshake } from "lucide-react";
 
 type Option = { id: string; label: string };
 
@@ -29,6 +31,8 @@ const ROLE_LABELS: Record<string, string> = {
 
 export type ProjectMemberRow = { id: string; userId: string; userName: string; roleOnProject: string };
 
+export type ProjectPartnerRow = { id: string; crmOrganizationId: string; nom: string; role: string | null };
+
 /** Équipe & Gouvernance (cahier des charges Project Studio §62/§63) — sponsor/PM déjà affichés dans l'Aperçu ; ici, le reste du roster de gouvernance. */
 export function ProjectTeamSection({
   projectId,
@@ -36,6 +40,8 @@ export function ProjectTeamSection({
   responsableName,
   members,
   users,
+  partners,
+  availablePartnerOrganizations,
   canManage,
 }: {
   projectId: string;
@@ -43,13 +49,18 @@ export function ProjectTeamSection({
   responsableName: string;
   members: ProjectMemberRow[];
   users: Option[];
+  partners: ProjectPartnerRow[];
+  availablePartnerOrganizations: Option[];
   canManage: boolean;
 }) {
   const { run: setRole } = useAction(updateProjectMemberRole, { successMessage: "Rôle mis à jour." });
   const { run: remove } = useAction(removeProjectMember, { successMessage: "Membre retiré." });
+  const { run: unlinkPartner } = useAction(unlinkProjectPartner, { successMessage: "Partenaire retiré." });
 
   const memberUserIds = new Set(members.map((m) => m.userId));
   const availableUsers = users.filter((u) => !memberUserIds.has(u.id));
+  const partnerOrgIds = new Set(partners.map((p) => p.crmOrganizationId));
+  const availablePartners = availablePartnerOrganizations.filter((o) => !partnerOrgIds.has(o.id));
 
   const byRole = (role: string) => members.filter((m) => m.roleOnProject === role);
 
@@ -119,7 +130,97 @@ export function ProjectTeamSection({
           ))}
         </div>
       )}
+
+      <div className="space-y-1.5 border-t pt-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-medium text-muted-foreground">Partenaires</h4>
+          {canManage && <AddPartnerDialog projectId={projectId} organizations={availablePartners} />}
+        </div>
+        {partners.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun partenaire renseigné.</p>
+        ) : (
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {partners.map((p) => (
+              <Card key={p.id} size="sm">
+                <CardContent className="flex items-center justify-between px-(--card-spacing)">
+                  <div className="flex items-center gap-2">
+                    <Handshake className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm">{p.nom}</div>
+                      {p.role && <div className="text-xs text-muted-foreground">{p.role}</div>}
+                    </div>
+                  </div>
+                  {canManage && (
+                    <Button variant="ghost" size="icon-sm" onClick={() => unlinkPartner({ partnerId: p.id })} aria-label="Retirer">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function AddPartnerDialog({ projectId, organizations }: { projectId: string; organizations: Option[] }) {
+  const [open, setOpen] = useState(false);
+  const [crmOrganizationId, setCrmOrganizationId] = useState("");
+  const [role, setRole] = useState("");
+  const { run, isPending } = useAction(linkProjectPartner, { successMessage: "Partenaire ajouté." });
+
+  async function handleAdd() {
+    if (!crmOrganizationId) return;
+    const result = await run({ projectId, crmOrganizationId, role: role.trim() || undefined });
+    if (result.ok) {
+      setCrmOrganizationId("");
+      setRole("");
+      setOpen(false);
+    }
+  }
+
+  if (organizations.length === 0) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Plus className="mr-1 h-4 w-4" />
+          Ajouter un partenaire
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Ajouter un partenaire</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Organisation</Label>
+            <Select value={crmOrganizationId} onValueChange={setCrmOrganizationId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                {organizations.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="partner-role">Rôle sur ce projet</Label>
+            <Input id="partner-role" value={role} onChange={(e) => setRole(e.target.value)} placeholder="Ex. Co-financeur" />
+          </div>
+          <Button className="w-full" disabled={isPending || !crmOrganizationId} onClick={handleAdd}>
+            Ajouter
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

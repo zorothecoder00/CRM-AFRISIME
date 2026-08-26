@@ -53,7 +53,7 @@ import { ProjectBilanView } from "@/components/projects/project-bilan-view";
 import { computeClosureChecklist } from "@/lib/project-closure";
 import { ProjectClosureSection } from "@/components/projects/project-closure-section";
 import { ProjectLessonsLearnedSection, type LessonLearnedRow } from "@/components/projects/project-lessons-learned-section";
-import { ProjectTeamSection, type ProjectMemberRow } from "@/components/projects/project-team-section";
+import { ProjectTeamSection, type ProjectMemberRow, type ProjectPartnerRow } from "@/components/projects/project-team-section";
 import { ProjectMeetingsSection, type ProjectMeetingRow } from "@/components/projects/project-meetings-section";
 import { ProjectReportsSection } from "@/components/projects/project-reports-section";
 import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
@@ -187,6 +187,8 @@ export default async function ProjectDetailPage({
     projectContracts,
     fournisseurs,
     communicationPlanEntries,
+    projectPartners,
+    partnerOrganizations,
   ] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
@@ -332,7 +334,12 @@ export default async function ProjectDetailPage({
     prisma.qualityDocument.findFirst({ where: { projectId, type: "PLAN_QUALITE" } }),
     prisma.qualityControl.findMany({
       where: { projectId },
-      include: { deliverable: true, responsable: true, controlePar: true },
+      include: {
+        deliverable: true,
+        responsable: true,
+        controlePar: true,
+        checklist: { orderBy: { ordre: "asc" } },
+      },
       orderBy: { dateControle: "desc" },
     }),
     prisma.procurementItem.findMany({ where: { projectId }, include: { fournisseur: true }, orderBy: { createdAt: "desc" } }),
@@ -343,6 +350,12 @@ export default async function ProjectDetailPage({
     }),
     prisma.crmOrganization.findMany({ where: { type: "FOURNISSEUR" }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
     prisma.communicationPlanEntry.findMany({ where: { projectId }, include: { responsable: true }, orderBy: { createdAt: "asc" } }),
+    prisma.projectPartner.findMany({
+      where: { projectId },
+      include: { crmOrganization: { select: { id: true, nom: true } } },
+      orderBy: { addedAt: "asc" },
+    }),
+    prisma.crmOrganization.findMany({ where: { type: "PARTENAIRE" }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
   ]);
 
   if (!project) {
@@ -574,6 +587,7 @@ export default async function ProjectDetailPage({
     baseline: i.baseline !== null ? Number(i.baseline) : null,
     source: i.source,
     frequence: i.frequence,
+    responsableId: i.responsableId,
     responsableName: i.responsable?.name ?? null,
     desagregation: i.desagregation,
   }));
@@ -728,6 +742,7 @@ export default async function ProjectDetailPage({
     deliverableNom: c.deliverable?.nom ?? null,
     responsableName: c.responsable?.name ?? null,
     controleParName: c.controlePar.name,
+    checklistItems: c.checklist.map((it) => ({ id: it.id, label: it.label, isDone: it.isDone })),
   }));
 
   const procurementItemRows: ProcurementItemRow[] = procurementItems.map((p) => ({
@@ -980,6 +995,14 @@ export default async function ProjectDetailPage({
     userName: m.user.name,
     roleOnProject: m.roleOnProject,
   }));
+
+  const partnerRows: ProjectPartnerRow[] = projectPartners.map((p) => ({
+    id: p.id,
+    crmOrganizationId: p.crmOrganizationId,
+    nom: p.crmOrganization.nom,
+    role: p.role,
+  }));
+  const partnerOrganizationOptions = partnerOrganizations.map((o) => ({ id: o.id, label: o.nom }));
 
   const meetingRows: ProjectMeetingRow[] = projectMeetings.map((m) => ({
     id: m.id,
@@ -1466,6 +1489,8 @@ export default async function ProjectDetailPage({
             responsableName={project.responsable.name}
             members={memberRows}
             users={userOptions}
+            partners={partnerRows}
+            availablePartnerOrganizations={partnerOrganizationOptions}
             canManage={canUpdateProject}
           />
         </TabsContent>

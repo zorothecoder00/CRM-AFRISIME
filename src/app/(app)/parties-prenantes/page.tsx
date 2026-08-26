@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForNiveau, stakeholderQuadrant } from "@/lib/status-tone";
 import { StakeholderFormDialog } from "@/components/stakeholders/stakeholder-form-dialog";
+import { StakeholderMatrix } from "@/components/stakeholders/stakeholder-matrix";
 import { Users as UsersIcon } from "lucide-react";
 
 const NIVEAU_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
@@ -42,6 +43,10 @@ export default async function PartiesPrenantesPage() {
           />
         )}
       </div>
+
+      {stakeholders.length > 0 && (
+        <StakeholderMatrix stakeholders={stakeholders.map((s) => ({ id: s.id, nom: s.nom, influence: s.influence, interet: s.interet }))} />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stakeholders.map((s) => (

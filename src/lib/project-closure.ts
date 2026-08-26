@@ -2,6 +2,10 @@ export type ClosureCheckItem = {
   key: string;
   label: string;
   done: boolean;
+  // false pour un item auto dont la collection sous-jacente est vide (ex.
+  // "Aucun contrat") — distingue "rien à vérifier" de "vérifié complet",
+  // deux états que `done: true` seul confondait auparavant (§52 audit).
+  applicable: boolean;
   auto: boolean;
   detail: string | null;
 };
@@ -37,35 +41,39 @@ export function computeClosureChecklist(input: {
     {
       key: "livrables",
       label: "Livrables terminés",
-      done: deliverables.length === 0 || livrablesValides === deliverables.length,
+      done: deliverables.length > 0 && livrablesValides === deliverables.length,
+      applicable: deliverables.length > 0,
       auto: true,
       detail: deliverables.length > 0 ? `${livrablesValides}/${deliverables.length} validés` : "Aucun livrable",
     },
     {
       key: "contrats",
       label: "Contrats clôturés",
-      done: contracts.length === 0 || contratsClotures === contracts.length,
+      done: contracts.length > 0 && contratsClotures === contracts.length,
+      applicable: contracts.length > 0,
       auto: true,
       detail: contracts.length > 0 ? `${contratsClotures}/${contracts.length} clôturés` : "Aucun contrat",
     },
     {
       key: "paiements",
       label: "Paiements effectués",
-      done: payments.length === 0 || paiementsEffectues === payments.length,
+      done: payments.length > 0 && paiementsEffectues === payments.length,
+      applicable: payments.length > 0,
       auto: true,
       detail: payments.length > 0 ? `${paiementsEffectues}/${payments.length} payés` : "Aucun paiement",
     },
     {
       key: "risques",
       label: "Risques clôturés",
-      done: risks.length === 0 || risquesClotures === risks.length,
+      done: risks.length > 0 && risquesClotures === risks.length,
+      applicable: risks.length > 0,
       auto: true,
       detail: risks.length > 0 ? `${risquesClotures}/${risks.length} clôturés` : "Aucun risque",
     },
-    { key: "documentsArchives", label: "Documents archivés", done: manual.documentsArchives, auto: false, detail: null },
-    { key: "actifsTransferes", label: "Actifs transférés", done: manual.actifsTransferes, auto: false, detail: null },
-    { key: "rapportsRemis", label: "Rapports remis", done: manual.rapportsRemis, auto: false, detail: null },
-    { key: "beneficiairesInformes", label: "Bénéficiaires informés", done: manual.beneficiairesInformes, auto: false, detail: null },
-    { key: "partenairesInformes", label: "Partenaires informés", done: manual.partenairesInformes, auto: false, detail: null },
+    { key: "documentsArchives", label: "Documents archivés", done: manual.documentsArchives, applicable: true, auto: false, detail: null },
+    { key: "actifsTransferes", label: "Actifs transférés", done: manual.actifsTransferes, applicable: true, auto: false, detail: null },
+    { key: "rapportsRemis", label: "Rapports remis", done: manual.rapportsRemis, applicable: true, auto: false, detail: null },
+    { key: "beneficiairesInformes", label: "Bénéficiaires informés", done: manual.beneficiairesInformes, applicable: true, auto: false, detail: null },
+    { key: "partenairesInformes", label: "Partenaires informés", done: manual.partenairesInformes, applicable: true, auto: false, detail: null },
   ];
 }
