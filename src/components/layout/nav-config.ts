@@ -119,6 +119,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "planification", href: "/planification", icon: Milestone, permission: PERMISSIONS.PLAN_READ },
       { titleKey: "programmes", href: "/programmes", icon: Layers, permission: PERMISSIONS.PROGRAM_READ },
       { titleKey: "projets", href: "/projets", icon: FolderKanban, permission: PERMISSIONS.PROJECT_READ },
+      { titleKey: "projectStudio", href: "/projets/studio", icon: Sparkles, permission: PERMISSIONS.PROJECT_READ },
       { titleKey: "portefeuilleProjets", href: "/projets/portefeuille", icon: Briefcase, permission: PERMISSIONS.PROJECT_READ },
       { titleKey: "ideesProjets", href: "/projets/idees", icon: Lightbulb, permission: PERMISSIONS.PROJECT_READ },
       { titleKey: "appelsAProjets", href: "/projets/appels-a-projets", icon: HandCoins, permission: PERMISSIONS.PROJECT_READ },
