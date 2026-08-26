@@ -105,6 +105,12 @@ enum ProjectMemberRole {
   CHEF_PROJET
   MEMBRE
   OBSERVATEUR
+  // Project Studio §62 (Project Governance) — instances de gouvernance,
+  // portees par le meme roster ProjectMember que l'equipe operationnelle
+  // plutot qu'un modele separe : un membre du comite de pilotage ou un
+  // validateur est d'abord un membre du projet.
+  COMITE_PILOTAGE
+  VALIDATEUR
 }
 
 enum MeetingStatus {
@@ -1547,6 +1553,11 @@ model Project {
   // manuellement (meme principe que coutReel) : aucun evenement systeme ne
   // marque fiablement "le projet est vraiment termine ce jour-la".
   dateFinReelle  DateTime?
+  // Project Studio §61 (Project Methodology) — "le systeme ne doit pas
+  // imposer une seule methodologie" : champ informatif choisi a la creation,
+  // n'active/desactive aucune vue (Kanban/Gantt/WBS/ToC coexistent deja
+  // toujours, voir §41 Multiples vues).
+  methodologie   ProjectMethodologie?
   // Localisation (cahier des charges §VI, vue "Carte") — libelle libre
   // (ville/pays) affiche dans les popups, latitude/longitude pour le
   // placement du pin. Les trois sont optionnels : un projet sans
@@ -5384,6 +5395,16 @@ model ProjectLessonLearned {
   createdAt       DateTime              @default(now())
 
   @@index([projectId])
+}
+
+enum ProjectMethodologie {
+  AGILE_SCRUM
+  KANBAN
+  WATERFALL
+  HYBRIDE
+  RBM
+  LOGICAL_FRAMEWORK
+  THEORY_OF_CHANGE
 }
 
 enum ProjectTemplateCategorie {

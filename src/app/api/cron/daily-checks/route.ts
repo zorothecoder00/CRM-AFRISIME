@@ -12,6 +12,7 @@ import {
 import { runDailyAiAgents } from "@/lib/ai-agents";
 import { captureDailySnapshots } from "@/lib/metric-snapshots";
 import { runDependencyRiskChecks } from "@/lib/dependencies";
+import { runTaskDelayImpactChecks } from "@/lib/task-delay-impact";
 import { enforceRetentionPolicies, notifyTrashOverdue } from "@/lib/retention";
 import { runEarlyWarningCheck } from "@/lib/early-warning";
 import { expireOutdatedContracts } from "@/lib/contract-lifecycle";
@@ -317,6 +318,9 @@ export async function GET(request: NextRequest) {
   // Dépendances à risque (V2.2 §13) — après les agents IA, réutilise
   // l'agent PROJECT_MANAGER pour la remontée d'alerte.
   await runDependencyRiskChecks();
+
+  // Retard de tâche à impact (Project Studio §66) — même agent, même principe.
+  await runTaskDelayImpactChecks();
 
   // Early Warning System (V3.0 §14) — signaux faibles combinés (retards,
   // incidents, surcharge, KPI en baisse, retards fournisseurs) : après les

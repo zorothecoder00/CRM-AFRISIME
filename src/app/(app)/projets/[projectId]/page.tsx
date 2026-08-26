@@ -21,6 +21,7 @@ import { getOrganizationDevise } from "@/lib/currency";
 import { WorkloadTable } from "@/components/workload/workload-table";
 import { ProjectCoutReelForm } from "@/components/projects/project-cout-reel-form";
 import { ProjectSponsorForm } from "@/components/projects/project-sponsor-form";
+import { ProjectMethodologieForm } from "@/components/projects/project-methodologie-form";
 import { ProjectLocationForm } from "@/components/projects/project-location-form";
 import { ProjectRisksSection, type RiskRow } from "@/components/projects/project-risks-section";
 import { ProjectStakeholdersSection, type StakeholderRow } from "@/components/projects/project-stakeholders-section";
@@ -52,6 +53,9 @@ import { ProjectBilanView } from "@/components/projects/project-bilan-view";
 import { computeClosureChecklist } from "@/lib/project-closure";
 import { ProjectClosureSection } from "@/components/projects/project-closure-section";
 import { ProjectLessonsLearnedSection, type LessonLearnedRow } from "@/components/projects/project-lessons-learned-section";
+import { ProjectTeamSection, type ProjectMemberRow } from "@/components/projects/project-team-section";
+import { ProjectMeetingsSection, type ProjectMeetingRow } from "@/components/projects/project-meetings-section";
+import { ProjectReportsSection } from "@/components/projects/project-reports-section";
 import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
 import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
 import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
@@ -99,6 +103,16 @@ const STATUS_LABELS: Record<string, string> = {
   EN_PAUSE: "En pause",
   TERMINE: "Terminé",
   ANNULE: "Annulé",
+};
+
+const METHODOLOGIE_LABELS: Record<string, string> = {
+  AGILE_SCRUM: "Agile Scrum",
+  KANBAN: "Kanban",
+  WATERFALL: "Prédictif (Waterfall)",
+  HYBRIDE: "Hybride (Agile + Waterfall)",
+  RBM: "Results-Based Management",
+  LOGICAL_FRAMEWORK: "Cadre logique (Logical Framework)",
+  THEORY_OF_CHANGE: "Théorie du changement",
 };
 
 const TASK_STATUS_LABELS: Record<string, string> = {
@@ -150,6 +164,7 @@ export default async function ProjectDetailPage({
     feedbacks,
     meEvaluations,
     dataForms,
+    projectMeetings,
     closureChecklist,
     lessonsLearned,
     diagnostic,
@@ -276,6 +291,7 @@ export default async function ProjectDetailPage({
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.meeting.findMany({ where: { projectId }, orderBy: { dateHeure: "desc" } }),
     prisma.projectClosureChecklist.findUnique({ where: { projectId } }),
     prisma.projectLessonLearned.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
@@ -926,6 +942,20 @@ export default async function ProjectDetailPage({
     createdAt: l.createdAt.toISOString(),
   }));
 
+  const memberRows: ProjectMemberRow[] = members.map((m) => ({
+    id: m.id,
+    userId: m.userId,
+    userName: m.user.name,
+    roleOnProject: m.roleOnProject,
+  }));
+
+  const meetingRows: ProjectMeetingRow[] = projectMeetings.map((m) => ({
+    id: m.id,
+    titre: m.titre,
+    dateHeure: m.dateHeure.toISOString(),
+    statut: m.statut,
+  }));
+
   const logframeData: LogframeRowData[] = logframeRows.map((r) => ({
     id: r.id,
     niveau: r.niveau,
@@ -1085,6 +1115,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="qualite">Qualité</TabsTrigger>
           <TabsTrigger value="kpi">KPI</TabsTrigger>
           <TabsTrigger value="ressources">Ressources</TabsTrigger>
+          <TabsTrigger value="equipe">Équipe</TabsTrigger>
           <TabsTrigger value="raci">RACI</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
           <TabsTrigger value="evm">EVM</TabsTrigger>
@@ -1111,6 +1142,8 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="charte">Charte</TabsTrigger>
           <TabsTrigger value="chemin-critique">Chemin critique</TabsTrigger>
           {canReadWorkload && <TabsTrigger value="charge">Charge de travail</TabsTrigger>}
+          <TabsTrigger value="reunions">Réunions</TabsTrigger>
+          <TabsTrigger value="rapports">Rapports</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="discussion">Discussion</TabsTrigger>
           <TabsTrigger value="automatisations">Automatisations</TabsTrigger>
@@ -1144,6 +1177,16 @@ export default async function ProjectDetailPage({
                 <ProjectSponsorForm projectId={project.id} users={userOptions} initialSponsorId={project.sponsorId} />
               ) : (
                 <p className="text-sm font-medium">{project.sponsor?.name || "—"}</p>
+              )}
+            </CardContent>
+            <CardContent className="pt-0">
+              <div className="mb-1 text-xs text-muted-foreground">Méthodologie</div>
+              {canUpdateProject ? (
+                <ProjectMethodologieForm projectId={project.id} initialMethodologie={project.methodologie} />
+              ) : (
+                <p className="text-sm font-medium">
+                  {project.methodologie ? METHODOLOGIE_LABELS[project.methodologie] : "—"}
+                </p>
               )}
             </CardContent>
             <CardContent className="pt-0">
@@ -1381,6 +1424,17 @@ export default async function ProjectDetailPage({
 
         <TabsContent value="ressources" className="mt-4">
           <ProjectResourcesSection projectId={project.id} resources={resourceRows} tasks={taskOptions} devise={devise} />
+        </TabsContent>
+
+        <TabsContent value="equipe" className="mt-4">
+          <ProjectTeamSection
+            projectId={project.id}
+            sponsorName={project.sponsor?.name ?? null}
+            responsableName={project.responsable.name}
+            members={memberRows}
+            users={userOptions}
+            canManage={canUpdateProject}
+          />
         </TabsContent>
 
         <TabsContent value="raci" className="mt-4">
@@ -1623,6 +1677,19 @@ export default async function ProjectDetailPage({
             )}
           </TabsContent>
         )}
+
+        <TabsContent value="reunions" className="mt-4">
+          <ProjectMeetingsSection
+            project={{ id: project.id, label: project.nom }}
+            users={userOptions}
+            meetings={meetingRows}
+            canManage={canUpdateProject}
+          />
+        </TabsContent>
+
+        <TabsContent value="rapports" className="mt-4">
+          <ProjectReportsSection projectId={project.id} />
+        </TabsContent>
 
         <TabsContent value="documents" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">

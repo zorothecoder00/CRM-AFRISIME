@@ -15,9 +15,20 @@ export const createProjectSchema = z.object({
   longitude: z.string().optional(),
   // Project Studio §60 (Project Templates) — genere les phases WBS de depart si fourni.
   templateId: z.string().optional(),
+  // Project Studio §61 (Project Methodology).
+  methodologie: z
+    .enum(["AGILE_SCRUM", "KANBAN", "WATERFALL", "HYBRIDE", "RBM", "LOGICAL_FRAMEWORK", "THEORY_OF_CHANGE"])
+    .optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const updateProjectMethodologieSchema = z.object({
+  projectId: z.string().min(1),
+  methodologie: z.enum(["AGILE_SCRUM", "KANBAN", "WATERFALL", "HYBRIDE", "RBM", "LOGICAL_FRAMEWORK", "THEORY_OF_CHANGE"]),
+});
+
+export type UpdateProjectMethodologieInput = z.infer<typeof updateProjectMethodologieSchema>;
 
 export const updateProjectLocationSchema = z.object({
   projectId: z.string().min(1),
@@ -378,3 +389,26 @@ export type AddProjectTemplatePhaseInput = z.infer<typeof addProjectTemplatePhas
 export const deleteProjectTemplatePhaseSchema = z.object({ phaseId: z.string().min(1) });
 
 export type DeleteProjectTemplatePhaseInput = z.infer<typeof deleteProjectTemplatePhaseSchema>;
+
+// ---- Équipe & Gouvernance (Project Studio §62/§63) ----
+
+export const PROJECT_MEMBER_ROLES = ["CHEF_PROJET", "MEMBRE", "OBSERVATEUR", "COMITE_PILOTAGE", "VALIDATEUR"] as const;
+
+export const addProjectMemberSchema = z.object({
+  projectId: z.string().min(1),
+  userId: z.string().min(1),
+  roleOnProject: z.enum(PROJECT_MEMBER_ROLES),
+});
+
+export type AddProjectMemberInput = z.infer<typeof addProjectMemberSchema>;
+
+export const updateProjectMemberRoleSchema = z.object({
+  memberId: z.string().min(1),
+  roleOnProject: z.enum(PROJECT_MEMBER_ROLES),
+});
+
+export type UpdateProjectMemberRoleInput = z.infer<typeof updateProjectMemberRoleSchema>;
+
+export const removeProjectMemberSchema = z.object({ memberId: z.string().min(1) });
+
+export type RemoveProjectMemberInput = z.infer<typeof removeProjectMemberSchema>;

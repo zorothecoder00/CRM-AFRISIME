@@ -32,6 +32,16 @@ import { Plus } from "lucide-react";
 
 type Option = { id: string; label: string };
 
+const METHODOLOGIE_LABELS: Record<string, string> = {
+  AGILE_SCRUM: "Agile Scrum",
+  KANBAN: "Kanban",
+  WATERFALL: "Prédictif (Waterfall)",
+  HYBRIDE: "Hybride (Agile + Waterfall)",
+  RBM: "Results-Based Management",
+  LOGICAL_FRAMEWORK: "Cadre logique (Logical Framework)",
+  THEORY_OF_CHANGE: "Théorie du changement",
+};
+
 export function ProjectFormDialog({
   departments,
   users,
@@ -189,6 +199,25 @@ export function ProjectFormDialog({
               <Label htmlFor="dateFin">Date de fin</Label>
               <Input id="dateFin" type="date" {...register("dateFin")} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Méthodologie (facultatif)</Label>
+            <Select onValueChange={(v) => setValue("methodologie", v as CreateProjectInput["methodologie"])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Non définie" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(METHODOLOGIE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Informatif — toutes les vues (Kanban, Gantt, WBS, ToC...) restent disponibles quel que soit le choix.
+            </p>
           </div>
 
           <div className="space-y-2">

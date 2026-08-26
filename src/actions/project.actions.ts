@@ -20,6 +20,10 @@ import {
   deleteProjectTemplateSchema,
   addProjectTemplatePhaseSchema,
   deleteProjectTemplatePhaseSchema,
+  updateProjectMethodologieSchema,
+  addProjectMemberSchema,
+  updateProjectMemberRoleSchema,
+  removeProjectMemberSchema,
   updateProjectStatusSchema,
   updateProjectSponsorSchema,
   updateProjectLocationSchema,
@@ -59,6 +63,10 @@ import {
   type DeleteProjectTemplateInput,
   type AddProjectTemplatePhaseInput,
   type DeleteProjectTemplatePhaseInput,
+  type UpdateProjectMethodologieInput,
+  type AddProjectMemberInput,
+  type UpdateProjectMemberRoleInput,
+  type RemoveProjectMemberInput,
   type UpdateProjectSponsorInput,
   type UpdateProjectLocationInput,
   type CreateProjectRiskInput,
@@ -110,6 +118,7 @@ export async function createProject(input: CreateProjectInput) {
         localisation: data.localisation,
         latitude: data.latitude ? Number(data.latitude) : undefined,
         longitude: data.longitude ? Number(data.longitude) : undefined,
+        methodologie: data.methodologie,
         createdById: session.user.id,
         organizationId: session.user.organizationId,
         members: {
@@ -275,6 +284,114 @@ export async function updateProjectDateFinReelle(input: UpdateProjectDateFinReel
 
   revalidatePath(`/projets/${data.projectId}`);
   return project;
+}
+
+/** Project Studio §61 (Project Methodology). */
+export async function updateProjectMethodologie(input: UpdateProjectMethodologieInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectMethodologieSchema.parse(input);
+
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.projectId },
+      data: { methodologie: data.methodologie },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.methodologie_updated",
+    entityType: "Project",
+    entityId: project.id,
+    changes: { methodologie: data.methodologie },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return project;
+}
+
+// ---- Équipe & Gouvernance (Project Studio §62/§63) ----
+
+export async function addProjectMember(input: AddProjectMemberInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = addProjectMemberSchema.parse(input);
+
+  const member = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMember.create({
+      data: {
+        projectId: data.projectId,
+        userId: data.userId,
+        roleOnProject: data.roleOnProject,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.member_added",
+    entityType: "ProjectMember",
+    entityId: member.id,
+    changes: { userId: data.userId, roleOnProject: data.roleOnProject },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return member;
+}
+
+export async function updateProjectMemberRole(input: UpdateProjectMemberRoleInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectMemberRoleSchema.parse(input);
+
+  const member = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMember.update({
+      where: { id: data.memberId },
+      data: { roleOnProject: data.roleOnProject },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.member_role_updated",
+    entityType: "ProjectMember",
+    entityId: member.id,
+    changes: { roleOnProject: data.roleOnProject },
+  });
+
+  revalidatePath(`/projets/${member.projectId}`);
+  return member;
+}
+
+export async function removeProjectMember(input: RemoveProjectMemberInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = removeProjectMemberSchema.parse(input);
+
+  const member = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMember.delete({ where: { id: data.memberId } })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.member_removed",
+    entityType: "ProjectMember",
+    entityId: member.id,
+    changes: { userId: member.userId },
+  });
+
+  revalidatePath(`/projets/${member.projectId}`);
+  return member;
 }
 
 /** Project Studio §52 (Project Closure) — upsert, un seul enregistrement par projet. */
@@ -1273,6 +1390,40 @@ export async function convertSectionToMilestone(input: ConvertSectionInput) {
 
   revalidatePath(`/projets/${milestone.projectId}`);
   return milestone;
+}
+
+/** Project Studio §66 (Automatisations entre modules) — création rapide d'un risque associé à une activité WBS. */
+export async function convertSectionToRisk(input: ConvertSectionInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = convertSectionSchema.parse(input);
+
+  const risk = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const section = await tx.projectSection.findUniqueOrThrow({ where: { id: data.sectionId } });
+    return tx.projectRisk.create({
+      data: {
+        projectId: section.projectId,
+        titre: section.nom,
+        description: section.description,
+        responsableId: section.responsableId,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    });
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "section.converted_to_risk",
+    entityType: "ProjectRisk",
+    entityId: risk.id,
+    changes: { sectionId: data.sectionId },
+  });
+
+  revalidatePath(`/projets/${risk.projectId}`);
+  return risk;
 }
 
 // ---- Scope Management (Project Studio §17) / Project Charter (§16) ----
