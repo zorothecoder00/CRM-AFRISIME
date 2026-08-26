@@ -164,6 +164,30 @@ export const deleteProjectDeliverableSchema = z.object({ deliverableId: z.string
 
 export type DeleteProjectDeliverableInput = z.infer<typeof deleteProjectDeliverableSchema>;
 
+// ---- Retours bénéficiaires/utilisateurs (Project Studio §46) ----
+
+export const createProjectFeedbackSchema = z.object({
+  projectId: z.string().min(1),
+  type: z.enum(["ENQUETE", "SATISFACTION", "FEEDBACK", "PLAINTE", "SUGGESTION", "TEMOIGNAGE"]),
+  contenu: z.string().min(2, "Le contenu est requis."),
+  note: z.coerce.number().int().min(1).max(5).optional(),
+  auteurNom: z.string().optional(),
+});
+
+export type CreateProjectFeedbackInput = z.infer<typeof createProjectFeedbackSchema>;
+
+export const updateProjectFeedbackStatusSchema = z.object({
+  feedbackId: z.string().min(1),
+  statut: z.enum(["NOUVEAU", "EN_TRAITEMENT", "TRAITE"]),
+  reponse: z.string().optional(),
+});
+
+export type UpdateProjectFeedbackStatusInput = z.infer<typeof updateProjectFeedbackStatusSchema>;
+
+export const deleteProjectFeedbackSchema = z.object({ feedbackId: z.string().min(1) });
+
+export type DeleteProjectFeedbackInput = z.infer<typeof deleteProjectFeedbackSchema>;
+
 // ---- Décisions (cahier des charges §VI/§X) ----
 
 export const createProjectDecisionSchema = z.object({

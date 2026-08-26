@@ -25,6 +25,9 @@ import {
   updateProjectDeliverableSchema,
   updateProjectDeliverableStatusSchema,
   deleteProjectDeliverableSchema,
+  createProjectFeedbackSchema,
+  updateProjectFeedbackStatusSchema,
+  deleteProjectFeedbackSchema,
   createProjectDecisionSchema,
   createProjectIndicatorSchema,
   createTaskIndicatorSchema,
@@ -48,6 +51,9 @@ import {
   type UpdateProjectDeliverableInput,
   type UpdateProjectDeliverableStatusInput,
   type DeleteProjectDeliverableInput,
+  type CreateProjectFeedbackInput,
+  type UpdateProjectFeedbackStatusInput,
+  type DeleteProjectFeedbackInput,
   type CreateProjectDecisionInput,
   type CreateProjectIndicatorInput,
   type CreateTaskIndicatorInput,
@@ -610,6 +616,90 @@ export async function deleteProjectDeliverable(input: DeleteProjectDeliverableIn
 
   revalidatePath(`/projets/${deliverable.projectId}`);
   return deliverable;
+}
+
+// ---- Retours bénéficiaires/utilisateurs (Project Studio §46) ----
+
+export async function createProjectFeedback(input: CreateProjectFeedbackInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = createProjectFeedbackSchema.parse(input);
+
+  const feedback = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectFeedback.create({
+      data: {
+        projectId: data.projectId,
+        type: data.type,
+        contenu: data.contenu,
+        note: data.note,
+        auteurNom: data.auteurNom || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.feedback_created",
+    entityType: "ProjectFeedback",
+    entityId: feedback.id,
+    changes: { type: feedback.type, projectId: data.projectId },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return feedback;
+}
+
+export async function updateProjectFeedbackStatus(input: UpdateProjectFeedbackStatusInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectFeedbackStatusSchema.parse(input);
+
+  const feedback = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectFeedback.update({
+      where: { id: data.feedbackId },
+      data: { statut: data.statut, reponse: data.reponse },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.feedback_status_updated",
+    entityType: "ProjectFeedback",
+    entityId: feedback.id,
+    changes: { statut: data.statut },
+  });
+
+  revalidatePath(`/projets/${feedback.projectId}`);
+  return feedback;
+}
+
+export async function deleteProjectFeedback(input: DeleteProjectFeedbackInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = deleteProjectFeedbackSchema.parse(input);
+
+  const feedback = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectFeedback.delete({ where: { id: data.feedbackId } })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.feedback_deleted",
+    entityType: "ProjectFeedback",
+    entityId: feedback.id,
+    changes: { type: feedback.type },
+  });
+
+  revalidatePath(`/projets/${feedback.projectId}`);
+  return feedback;
 }
 
 // ---- Décisions (cahier des charges §VI/§X) ----

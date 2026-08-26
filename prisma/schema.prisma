@@ -603,6 +603,8 @@ model User {
   contractsCreated                    Contract[]                     @relation("ContractCreatedBy")
   portalMessagesAuthored              PortalMessage[]                @relation("PortalMessageAuthor")
   beneficiairesCreated                Beneficiaire[]                 @relation("BeneficiaireCreatedBy")
+  // Project Studio §46 (Beneficiary/User Feedback).
+  projectFeedbacksCreated             ProjectFeedback[]              @relation("ProjectFeedbackCreatedBy")
   dashboardPreference                 DashboardWidgetPreference?
   integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
@@ -1099,6 +1101,8 @@ model PlatformOrganization {
   dependencies                  Dependency[]                   @relation("PlatformOrganizationDependencies")
   scenarios                     Scenario[]                     @relation("PlatformOrganizationScenarios")
   beneficiaires                 Beneficiaire[]                 @relation("PlatformOrganizationBeneficiaires")
+  // Project Studio §46 (Beneficiary/User Feedback).
+  projectFeedbacks               ProjectFeedback[]              @relation("PlatformOrganizationProjectFeedbacks")
   entities                      Entity[]                       @relation("PlatformOrganizationEntities")
   holidays                      Holiday[]                      @relation("PlatformOrganizationHolidays")
   tags                          Tag[]                          @relation("PlatformOrganizationTags")
@@ -1570,6 +1574,8 @@ model Project {
   resources                ProjectResource[]
   incidents                Incident[]
   beneficiaires            Beneficiaire[]
+  // Project Studio §46 (Beneficiary/User Feedback).
+  feedbacks                ProjectFeedback[]
   decisionMatrices         DecisionMatrix[]
   // Project Studio §4/§10 — voir modeles en fin de fichier.
   financements             Financement[]
@@ -5113,6 +5119,47 @@ model Beneficiaire {
 enum BeneficiaireType {
   DIRECT
   INDIRECT
+}
+
+enum FeedbackType {
+  ENQUETE
+  SATISFACTION
+  FEEDBACK
+  PLAINTE
+  SUGGESTION
+  TEMOIGNAGE
+}
+
+enum FeedbackStatut {
+  NOUVEAU
+  EN_TRAITEMENT
+  TRAITE
+}
+
+// Retour beneficiaire/utilisateur (cahier des charges Project Studio §46) —
+// un seul modele avec `type` discriminant plutot que six modeles distincts
+// (enquete/satisfaction/feedback/plainte/suggestion/temoignage), le cycle de
+// vie (statut, reponse) n'etant vraiment utile que pour les plaintes mais ne
+// coutant rien pour les autres types. `note` (1-5) reste optionnelle : elle
+// n'a de sens que pour ENQUETE/SATISFACTION. Alimente le suivi-evaluation
+// (§47) — voir aggregation dans src/lib/beneficiary-feedback.ts.
+model ProjectFeedback {
+  id             String                @id @default(cuid())
+  projectId      String
+  project        Project               @relation(fields: [projectId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectFeedbacks", fields: [organizationId], references: [id])
+  type           FeedbackType
+  contenu        String
+  note           Int?
+  auteurNom      String?
+  statut         FeedbackStatut        @default(NOUVEAU)
+  reponse        String?
+  createdById    String
+  createdBy      User                  @relation("ProjectFeedbackCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@index([projectId])
 }
 
 // ===================== V2.2 §22-25 — Multi-entites / Multi-pays / =====================

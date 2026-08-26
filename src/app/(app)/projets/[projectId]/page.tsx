@@ -43,6 +43,7 @@ import { AddProjectIndicatorDialog } from "@/components/projects/add-project-ind
 import { ProjectResourcesSection, type ProjectResourceData } from "@/components/projects/project-resources-section";
 import { ProjectFinancementsSection, type FinancementRow } from "@/components/projects/project-financements-section";
 import { BeneficiairesSection, type BeneficiaireRow } from "@/components/programmes/beneficiaires-section";
+import { ProjectFeedbackSection, type FeedbackRow } from "@/components/projects/project-feedback-section";
 import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
 import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
 import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
@@ -136,6 +137,7 @@ export default async function ProjectDetailPage({
     tags,
     financements,
     beneficiaires,
+    feedbacks,
     diagnostic,
     problemTree,
     solutionTree,
@@ -242,6 +244,7 @@ export default async function ProjectDetailPage({
     getTagsFor("Project", projectId),
     prisma.financement.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.beneficiaire.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
+    prisma.projectFeedback.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
     prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
     prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
@@ -707,6 +710,17 @@ export default async function ProjectDetailPage({
     criteresSelection: b.criteresSelection,
   }));
 
+  const feedbackRows: FeedbackRow[] = feedbacks.map((f) => ({
+    id: f.id,
+    type: f.type,
+    contenu: f.contenu,
+    note: f.note,
+    auteurNom: f.auteurNom,
+    statut: f.statut,
+    reponse: f.reponse,
+    createdAt: f.createdAt.toISOString(),
+  }));
+
   const diagnosticData: ProjectDiagnosticData | null = diagnostic
     ? {
         id: diagnostic.id,
@@ -939,6 +953,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="appels-a-projets">Appels à projets</TabsTrigger>
           <TabsTrigger value="hypotheses">Hypothèses</TabsTrigger>
           <TabsTrigger value="beneficiaires">Bénéficiaires</TabsTrigger>
+          <TabsTrigger value="retours">Retours</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
           <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
           <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
@@ -1289,6 +1304,10 @@ export default async function ProjectDetailPage({
 
         <TabsContent value="beneficiaires" className="mt-4">
           <BeneficiairesSection projectId={project.id} beneficiaires={beneficiaireRows} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="retours" className="mt-4">
+          <ProjectFeedbackSection projectId={project.id} feedbacks={feedbackRows} canManage={canUpdateProject} />
         </TabsContent>
 
         <TabsContent value="diagnostic" className="mt-4">
