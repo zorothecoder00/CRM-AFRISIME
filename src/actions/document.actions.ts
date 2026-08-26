@@ -10,12 +10,14 @@ import {
   createFolderSchema,
   createDocumentSchema,
   addDocumentVersionSchema,
+  setDocumentVersionValidationSchema,
   updateDocumentSignatureSchema,
   depositPortalDocumentSchema,
   reviewPortalDeliverableSchema,
   type CreateFolderInput,
   type CreateDocumentInput,
   type AddDocumentVersionInput,
+  type SetDocumentVersionValidationInput,
   type UpdateDocumentSignatureInput,
   type DepositPortalDocumentInput,
   type ReviewPortalDeliverableInput,
@@ -188,6 +190,34 @@ export async function addDocumentVersion(input: AddDocumentVersionInput) {
   revalidatePath("/documents");
   if (document.taskId) revalidatePath(`/taches/${document.taskId}`);
   if (document.meetingId) revalidatePath(`/reunions/${document.meetingId}`);
+  return version;
+}
+
+/** Project Studio §39 (Version Control) — validation interne d'une version précise, distincte de la validation externe (portail) au niveau du document. */
+export async function setDocumentVersionValidation(input: SetDocumentVersionValidationInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const data = setDocumentVersionValidationSchema.parse(input);
+
+  const version = await prisma.documentVersion.update({
+    where: { id: data.versionId },
+    data: {
+      valide: data.valide,
+      valideParId: data.valide ? session.user.id : null,
+      valideLe: data.valide ? new Date() : null,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document.version_validation_updated",
+    entityType: "DocumentVersion",
+    entityId: version.id,
+    changes: { valide: data.valide },
+  });
+
+  revalidatePath(`/documents/${version.documentId}`);
   return version;
 }
 

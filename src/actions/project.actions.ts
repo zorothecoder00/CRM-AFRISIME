@@ -179,6 +179,7 @@ export async function createSection(input: CreateSectionInput) {
         responsableId: data.responsableId || undefined,
         dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
         dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
+        theoryOfChangeNodeId: data.theoryOfChangeNodeId || undefined,
         organizationId: session.user.organizationId,
       },
     })
@@ -1204,6 +1205,7 @@ export async function createProjectIndicator(input: CreateProjectIndicatorInput)
         frequence: data.frequence,
         responsableId: data.responsableId || undefined,
         desagregation: data.desagregation || undefined,
+        theoryOfChangeNodeId: data.theoryOfChangeNodeId || undefined,
         organizationId: session.user.organizationId,
       },
     })

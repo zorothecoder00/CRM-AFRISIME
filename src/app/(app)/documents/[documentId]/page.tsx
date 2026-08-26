@@ -12,6 +12,7 @@ import { DocumentSignatureForm } from "@/components/documents/document-signature
 import { DocumentArchiveButton } from "@/components/documents/document-archive-button";
 import { DocumentPartageExterneToggle } from "@/components/documents/document-partage-externe-toggle";
 import { RequestExternalValidationButton } from "@/components/documents/request-external-validation-button";
+import { DocumentVersionValidationToggle } from "@/components/documents/document-version-validation-toggle";
 import { documentUploaderName } from "@/lib/document-uploader";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
@@ -69,7 +70,7 @@ export default async function DocumentDetailPage({
       uploadedBy: true,
       uploadedByContact: true,
       archivedBy: true,
-      versions: { include: { createdBy: true }, orderBy: { createdAt: "desc" } },
+      versions: { include: { createdBy: true, valideur: true }, orderBy: { createdAt: "desc" } },
       accessGrants: { include: { user: true } },
     },
   });
@@ -183,6 +184,17 @@ export default async function DocumentDetailPage({
                     {v.url}
                   </a>
                   {v.note && <p className="mt-1 text-muted-foreground">{v.note}</p>}
+                  <div className="mt-1.5">
+                    <DocumentVersionValidationToggle
+                      versionId={v.id}
+                      validation={{
+                        valide: v.valide,
+                        valideurName: v.valideur?.name ?? null,
+                        valideLe: v.valideLe ? v.valideLe.toISOString() : null,
+                      }}
+                      canManage={canManageAccess}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

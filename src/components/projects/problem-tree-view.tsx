@@ -17,15 +17,28 @@ import {
   updateProblemTreeNode,
   deleteProblemTreeNode,
   reorderProblemTreeNodes,
+  linkProblemTreeNodeDocument,
+  unlinkProblemTreeNodeDocument,
+  linkProblemTreeNodeIndicator,
+  unlinkProblemTreeNodeIndicator,
+  addProblemTreeNodeComment,
+  deleteProblemTreeNodeComment,
 } from "@/actions/problem-tree.actions";
 import type { TreeNode } from "@/lib/tree";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { GripVertical, Plus, Trash2, Pencil } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GripVertical, Plus, Trash2, Pencil, Link2 } from "lucide-react";
+
+type Option = { id: string; label: string };
+export type LinkedDocument = { linkId: string; documentId: string; nom: string };
+export type LinkedIndicator = { linkId: string; indicatorId: string; nom: string };
+export type NodeComment = { id: string; authorName: string; content: string; createdAt: string };
 
 export type ProblemTreeNodeData = {
   id: string;
@@ -34,6 +47,9 @@ export type ProblemTreeNodeData = {
   titre: string;
   description: string | null;
   sources: string | null;
+  documents?: LinkedDocument[];
+  indicators?: LinkedIndicator[];
+  comments?: NodeComment[];
 };
 
 type Node = TreeNode<ProblemTreeNodeData>;
@@ -50,10 +66,14 @@ export function ProblemTreeView({
   projectId,
   nodes,
   canManage,
+  projectDocuments = [],
+  projectIndicators = [],
 }: {
   projectId: string;
   nodes: Node[];
   canManage: boolean;
+  projectDocuments?: Option[];
+  projectIndicators?: Option[];
 }) {
   const root = nodes.find((n) => n.type === "PROBLEME_CENTRAL");
 
@@ -84,7 +104,10 @@ export function ProblemTreeView({
               {root.description && <p className="text-sm text-muted-foreground">{root.description}</p>}
               {root.sources && <p className="text-xs text-muted-foreground">Sources : {root.sources}</p>}
             </div>
-            {canManage && <EditNodeDialog node={root} />}
+            <div className="flex items-center gap-1">
+              <NodeLinksDialog node={root} projectDocuments={projectDocuments} projectIndicators={projectIndicators} canManage={canManage} />
+              {canManage && <EditNodeDialog node={root} />}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -96,6 +119,8 @@ export function ProblemTreeView({
         label="Conséquences"
         initialNodes={consequences}
         canManage={canManage}
+        projectDocuments={projectDocuments}
+        projectIndicators={projectIndicators}
       />
 
       <div className="space-y-3">
@@ -115,12 +140,15 @@ export function ProblemTreeView({
                   {cause.description && <p className="text-sm text-muted-foreground">{cause.description}</p>}
                   {cause.sources && <p className="text-xs text-muted-foreground">Sources : {cause.sources}</p>}
                 </div>
-                {canManage && (
-                  <div className="flex items-center gap-1">
-                    <EditNodeDialog node={cause} />
-                    <DeleteButton nodeId={cause.id} />
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <NodeLinksDialog node={cause} projectDocuments={projectDocuments} projectIndicators={projectIndicators} canManage={canManage} />
+                  {canManage && (
+                    <>
+                      <EditNodeDialog node={cause} />
+                      <DeleteButton nodeId={cause.id} />
+                    </>
+                  )}
+                </div>
               </div>
               <div className="ml-4 border-l pl-4">
                 <NodeGroup
@@ -131,6 +159,8 @@ export function ProblemTreeView({
                   initialNodes={cause.children}
                   canManage={canManage}
                   compact
+                  projectDocuments={projectDocuments}
+                  projectIndicators={projectIndicators}
                 />
               </div>
             </div>
@@ -138,6 +168,159 @@ export function ProblemTreeView({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Liens du noeud (Project Studio §7) — documents/indicateurs déjà enregistrés dans le projet, plus un fil de commentaires. */
+function NodeLinksDialog({
+  node,
+  projectDocuments,
+  projectIndicators,
+  canManage,
+}: {
+  node: ProblemTreeNodeData;
+  projectDocuments: Option[];
+  projectIndicators: Option[];
+  canManage: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const documents = node.documents ?? [];
+  const indicators = node.indicators ?? [];
+  const comments = node.comments ?? [];
+  const totalLinks = documents.length + indicators.length + comments.length;
+
+  const { run: linkDoc, isPending: linkingDoc } = useAction(linkProblemTreeNodeDocument, { successMessage: "Document lié." });
+  const { run: unlinkDoc } = useAction(unlinkProblemTreeNodeDocument, { successMessage: "Document délié." });
+  const { run: linkInd, isPending: linkingInd } = useAction(linkProblemTreeNodeIndicator, { successMessage: "Indicateur lié." });
+  const { run: unlinkInd } = useAction(unlinkProblemTreeNodeIndicator, { successMessage: "Indicateur délié." });
+  const { run: addComment, isPending: addingComment } = useAction(addProblemTreeNodeComment, { successMessage: "Commentaire ajouté." });
+  const { run: removeComment } = useAction(deleteProblemTreeNodeComment, { successMessage: "Commentaire supprimé." });
+
+  const linkedDocIds = new Set(documents.map((d) => d.documentId));
+  const linkedIndIds = new Set(indicators.map((i) => i.indicatorId));
+  const availableDocs = projectDocuments.filter((d) => !linkedDocIds.has(d.id));
+  const availableInds = projectIndicators.filter((i) => !linkedIndIds.has(i.id));
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon-sm" title="Liens (documents, indicateurs, commentaires)" aria-label="Liens">
+          <Link2 className="h-3.5 w-3.5" />
+          {totalLinks > 0 && <span className="ml-0.5 text-[10px]">{totalLinks}</span>}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Liens — {node.titre}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-xs">Documents</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {documents.length === 0 && <p className="text-xs text-muted-foreground">Aucun document lié.</p>}
+              {documents.map((d) => (
+                <Badge key={d.linkId} variant="outline" className="gap-1">
+                  {d.nom}
+                  {canManage && (
+                    <button type="button" onClick={() => unlinkDoc({ linkId: d.linkId })} aria-label="Délier" className="text-muted-foreground hover:text-destructive">
+                      ×
+                    </button>
+                  )}
+                </Badge>
+              ))}
+            </div>
+            {canManage && availableDocs.length > 0 && (
+              <Select onValueChange={(v) => linkDoc({ nodeId: node.id, documentId: v })} disabled={linkingDoc}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Lier un document..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDocs.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Indicateurs</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {indicators.length === 0 && <p className="text-xs text-muted-foreground">Aucun indicateur lié.</p>}
+              {indicators.map((i) => (
+                <Badge key={i.linkId} variant="outline" className="gap-1">
+                  {i.nom}
+                  {canManage && (
+                    <button type="button" onClick={() => unlinkInd({ linkId: i.linkId })} aria-label="Délier" className="text-muted-foreground hover:text-destructive">
+                      ×
+                    </button>
+                  )}
+                </Badge>
+              ))}
+            </div>
+            {canManage && availableInds.length > 0 && (
+              <Select onValueChange={(v) => linkInd({ nodeId: node.id, indicatorId: v })} disabled={linkingInd}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Lier un indicateur..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableInds.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Commentaires</Label>
+            <div className="space-y-1.5">
+              {comments.length === 0 && <p className="text-xs text-muted-foreground">Aucun commentaire.</p>}
+              {comments.map((c) => (
+                <div key={c.id} className="flex items-start justify-between gap-2 rounded border p-1.5 text-xs">
+                  <div>
+                    <span className="font-medium">{c.authorName}</span>{" "}
+                    <span className="text-muted-foreground">{new Date(c.createdAt).toLocaleDateString("fr-FR")}</span>
+                    <p>{c.content}</p>
+                  </div>
+                  {canManage && (
+                    <Button variant="ghost" size="icon-sm" onClick={() => removeComment({ commentId: c.id })} aria-label="Supprimer">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {canManage && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ajouter un commentaire..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={addingComment || !commentText.trim()}
+                  onClick={async () => {
+                    const result = await addComment({ nodeId: node.id, content: commentText });
+                    if (result.ok) setCommentText("");
+                  }}
+                >
+                  Ajouter
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -259,7 +442,17 @@ function NodeFormDialog({
   );
 }
 
-function SortableNode({ node, canManage }: { node: ProblemTreeNodeData; canManage: boolean }) {
+function SortableNode({
+  node,
+  canManage,
+  projectDocuments,
+  projectIndicators,
+}: {
+  node: ProblemTreeNodeData;
+  canManage: boolean;
+  projectDocuments: Option[];
+  projectIndicators: Option[];
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.id });
 
   return (
@@ -278,12 +471,15 @@ function SortableNode({ node, canManage }: { node: ProblemTreeNodeData; canManag
         {node.description && <p className="text-xs text-muted-foreground">{node.description}</p>}
         {node.sources && <p className="text-xs text-muted-foreground">Sources : {node.sources}</p>}
       </div>
-      {canManage && (
-        <div className="flex items-center gap-1">
-          <EditNodeDialog node={node} />
-          <DeleteButton nodeId={node.id} />
-        </div>
-      )}
+      <div className="flex items-center gap-1">
+        <NodeLinksDialog node={node} projectDocuments={projectDocuments} projectIndicators={projectIndicators} canManage={canManage} />
+        {canManage && (
+          <>
+            <EditNodeDialog node={node} />
+            <DeleteButton nodeId={node.id} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -296,6 +492,8 @@ function NodeGroup({
   initialNodes,
   canManage,
   compact,
+  projectDocuments,
+  projectIndicators,
 }: {
   projectId: string;
   parentId: string;
@@ -304,6 +502,8 @@ function NodeGroup({
   initialNodes: ProblemTreeNodeData[];
   canManage: boolean;
   compact?: boolean;
+  projectDocuments: Option[];
+  projectIndicators: Option[];
 }) {
   const [items, setItems] = useState(initialNodes);
   const { run: reorder } = useAction(reorderProblemTreeNodes);
@@ -355,7 +555,7 @@ function NodeGroup({
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {items.map((node) => (
-              <SortableNode key={node.id} node={node} canManage={canManage} />
+              <SortableNode key={node.id} node={node} canManage={canManage} projectDocuments={projectDocuments} projectIndicators={projectIndicators} />
             ))}
           </div>
         </SortableContext>

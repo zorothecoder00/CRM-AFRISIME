@@ -70,6 +70,7 @@ export function ProjectViewsSwitcher({
   mindMapTasks,
   roots,
   userOptions,
+  tocNodeOptions = [],
   pilotage,
   devise,
   workload,
@@ -82,6 +83,7 @@ export function ProjectViewsSwitcher({
   mindMapTasks: MindMapTaskRow[];
   roots: SectionNode[];
   userOptions: Option[];
+  tocNodeOptions?: Option[];
   pilotage: ProjectPilotage;
   devise: string;
   workload: UserWorkload[] | null;
@@ -142,7 +144,7 @@ export function ProjectViewsSwitcher({
           <WorkloadTable rows={workload} canManage={canManageWorkload} />
         ))}
       {view === "mindmap" && <TaskMindMapView tasks={mindMapTasks} />}
-      {view === "wbs" && <HierarchyTree nodes={roots} projectId={projectId} users={userOptions} />}
+      {view === "wbs" && <HierarchyTree nodes={roots} projectId={projectId} users={userOptions} tocNodes={tocNodeOptions} />}
       {view === "dashboard" && <ProjectPilotagePanel pilotage={pilotage} devise={devise} />}
       {view === "carte" &&
         (mapProject ? (

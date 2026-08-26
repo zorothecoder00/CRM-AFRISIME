@@ -11,10 +11,22 @@ import {
   updateProblemTreeNodeSchema,
   deleteProblemTreeNodeSchema,
   reorderProblemTreeNodesSchema,
+  linkProblemTreeNodeDocumentSchema,
+  unlinkProblemTreeNodeDocumentSchema,
+  linkProblemTreeNodeIndicatorSchema,
+  unlinkProblemTreeNodeIndicatorSchema,
+  addProblemTreeNodeCommentSchema,
+  deleteProblemTreeNodeCommentSchema,
   type CreateProblemTreeNodeInput,
   type UpdateProblemTreeNodeInput,
   type DeleteProblemTreeNodeInput,
   type ReorderProblemTreeNodesInput,
+  type LinkProblemTreeNodeDocumentInput,
+  type UnlinkProblemTreeNodeDocumentInput,
+  type LinkProblemTreeNodeIndicatorInput,
+  type UnlinkProblemTreeNodeIndicatorInput,
+  type AddProblemTreeNodeCommentInput,
+  type DeleteProblemTreeNodeCommentInput,
 } from "@/lib/validations/problem-tree.schema";
 
 export async function createProblemTreeNode(input: CreateProblemTreeNodeInput) {
@@ -113,4 +125,128 @@ export async function reorderProblemTreeNodes(input: ReorderProblemTreeNodesInpu
   );
 
   revalidatePath(`/projets/${data.projectId}`);
+}
+
+// ---- Liens (Project Studio §7 — données/documents/indicateurs/commentaires) ----
+
+export async function linkProblemTreeNodeDocument(input: LinkProblemTreeNodeDocumentInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = linkProblemTreeNodeDocumentSchema.parse(input);
+
+  const link = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const node = await tx.problemTreeNode.findUniqueOrThrow({ where: { id: data.nodeId }, select: { projectId: true } });
+    return tx.problemTreeNodeDocument.create({
+      data: { nodeId: data.nodeId, documentId: data.documentId, organizationId: session.user.organizationId },
+      include: { document: { select: { nom: true } } },
+    }).then((created) => ({ ...created, projectId: node.projectId }));
+  });
+
+  revalidatePath(`/projets/${link.projectId}`);
+  return link;
+}
+
+export async function unlinkProblemTreeNodeDocument(input: UnlinkProblemTreeNodeDocumentInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = unlinkProblemTreeNodeDocumentSchema.parse(input);
+
+  const link = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const existing = await tx.problemTreeNodeDocument.findUniqueOrThrow({
+      where: { id: data.linkId },
+      include: { node: { select: { projectId: true } } },
+    });
+    await tx.problemTreeNodeDocument.delete({ where: { id: data.linkId } });
+    return existing;
+  });
+
+  revalidatePath(`/projets/${link.node.projectId}`);
+  return link;
+}
+
+export async function linkProblemTreeNodeIndicator(input: LinkProblemTreeNodeIndicatorInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = linkProblemTreeNodeIndicatorSchema.parse(input);
+
+  const link = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const node = await tx.problemTreeNode.findUniqueOrThrow({ where: { id: data.nodeId }, select: { projectId: true } });
+    const created = await tx.problemTreeNodeIndicator.create({
+      data: { nodeId: data.nodeId, indicatorId: data.indicatorId, organizationId: session.user.organizationId },
+    });
+    return { ...created, projectId: node.projectId };
+  });
+
+  revalidatePath(`/projets/${link.projectId}`);
+  return link;
+}
+
+export async function unlinkProblemTreeNodeIndicator(input: UnlinkProblemTreeNodeIndicatorInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = unlinkProblemTreeNodeIndicatorSchema.parse(input);
+
+  const link = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const existing = await tx.problemTreeNodeIndicator.findUniqueOrThrow({
+      where: { id: data.linkId },
+      include: { node: { select: { projectId: true } } },
+    });
+    await tx.problemTreeNodeIndicator.delete({ where: { id: data.linkId } });
+    return existing;
+  });
+
+  revalidatePath(`/projets/${link.node.projectId}`);
+  return link;
+}
+
+export async function addProblemTreeNodeComment(input: AddProblemTreeNodeCommentInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = addProblemTreeNodeCommentSchema.parse(input);
+
+  const comment = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const node = await tx.problemTreeNode.findUniqueOrThrow({ where: { id: data.nodeId }, select: { projectId: true } });
+    const created = await tx.problemTreeNodeComment.create({
+      data: {
+        nodeId: data.nodeId,
+        authorId: session.user.id,
+        content: data.content,
+        organizationId: session.user.organizationId,
+      },
+    });
+    return { ...created, projectId: node.projectId };
+  });
+
+  revalidatePath(`/projets/${comment.projectId}`);
+  return comment;
+}
+
+export async function deleteProblemTreeNodeComment(input: DeleteProblemTreeNodeCommentInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = deleteProblemTreeNodeCommentSchema.parse(input);
+
+  const comment = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const existing = await tx.problemTreeNodeComment.findUniqueOrThrow({
+      where: { id: data.commentId },
+      include: { node: { select: { projectId: true } } },
+    });
+    await tx.problemTreeNodeComment.delete({ where: { id: data.commentId } });
+    return existing;
+  });
+
+  revalidatePath(`/projets/${comment.node.projectId}`);
+  return comment;
 }

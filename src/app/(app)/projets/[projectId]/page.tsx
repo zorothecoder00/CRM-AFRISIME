@@ -169,6 +169,7 @@ export default async function ProjectDetailPage({
     lessonsLearned,
     diagnostic,
     problemTree,
+    allProjectDocuments,
     solutionTree,
     theoryOfChangeNodes,
     logframeRows,
@@ -295,11 +296,24 @@ export default async function ProjectDetailPage({
     prisma.projectClosureChecklist.findUnique({ where: { projectId } }),
     prisma.projectLessonLearned.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
-    prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
+    prisma.problemTreeNode.findMany({
+      where: { projectId },
+      include: {
+        linkedDocuments: { include: { document: { select: { nom: true } } } },
+        linkedIndicators: { include: { indicator: { select: { nom: true } } } },
+        comments: { include: { author: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
+      },
+      orderBy: { ordre: "asc" },
+    }),
+    prisma.document.findMany({
+      where: { projectId, deletedAt: null },
+      select: { id: true, nom: true },
+      orderBy: { nom: "asc" },
+    }),
     prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
     prisma.theoryOfChangeNode.findMany({
       where: { projectId },
-      include: { sections: { select: { id: true } } },
+      include: { sections: { select: { id: true } }, _count: { select: { indicators: true } } },
       orderBy: { ordre: "asc" },
     }),
     prisma.logframeRow.findMany({ where: { projectId } }),
@@ -839,6 +853,14 @@ export default async function ProjectDetailPage({
     titre: n.titre,
     description: n.description,
     sources: n.sources,
+    documents: n.linkedDocuments.map((l) => ({ linkId: l.id, documentId: l.documentId, nom: l.document.nom })),
+    indicators: n.linkedIndicators.map((l) => ({ linkId: l.id, indicatorId: l.indicatorId, nom: l.indicator.nom })),
+    comments: n.comments.map((c) => ({
+      id: c.id,
+      authorName: c.author.name,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+    })),
   }));
   const problemTreeRoots = buildTree(problemTreeFlat);
 
@@ -870,6 +892,15 @@ export default async function ProjectDetailPage({
     type: d.type,
   }));
 
+  const TOC_LEVEL_LABELS: Record<string, string> = {
+    INPUT: "Input",
+    ACTIVITE: "Activité",
+    OUTPUT: "Output",
+    OUTCOME: "Outcome",
+    IMPACT: "Impact",
+  };
+  const tocNodeOptions = theoryOfChangeNodes.map((n) => ({ id: n.id, label: `[${TOC_LEVEL_LABELS[n.niveau]}] ${n.titre}` }));
+
   const theoryOfChangeData: TheoryOfChangeNodeData[] = theoryOfChangeNodes.map((n) => ({
     id: n.id,
     niveau: n.niveau,
@@ -880,6 +911,7 @@ export default async function ProjectDetailPage({
     conditions: n.conditions,
     indicateurs: n.indicateurs,
     sourcesVerification: n.sourcesVerification,
+    indicatorCount: n._count.indicators,
   }));
 
   const resultFrameworkTiers = computeResultFramework({
@@ -1236,6 +1268,7 @@ export default async function ProjectDetailPage({
             mindMapTasks={mindMapRows}
             roots={roots}
             userOptions={userOptions}
+            tocNodeOptions={tocNodeOptions}
             pilotage={pilotage}
             devise={devise}
             workload={canReadWorkload ? projectWorkload : null}
@@ -1308,7 +1341,7 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="hierarchie" className="mt-4">
-          <HierarchyTree nodes={roots} projectId={project.id} users={userOptions} />
+          <HierarchyTree nodes={roots} projectId={project.id} users={userOptions} tocNodes={tocNodeOptions} />
         </TabsContent>
 
         <TabsContent value="taches" className="mt-4">
@@ -1551,7 +1584,13 @@ export default async function ProjectDetailPage({
         </TabsContent>
 
         <TabsContent value="arbre-problemes" className="mt-4">
-          <ProblemTreeView projectId={project.id} nodes={problemTreeRoots} canManage={canUpdateProject} />
+          <ProblemTreeView
+            projectId={project.id}
+            nodes={problemTreeRoots}
+            canManage={canUpdateProject}
+            projectDocuments={allProjectDocuments.map((d) => ({ id: d.id, label: d.nom }))}
+            projectIndicators={indicatorRows.map((i) => ({ id: i.id, label: i.nom }))}
+          />
         </TabsContent>
 
         <TabsContent value="arbre-solutions" className="mt-4">

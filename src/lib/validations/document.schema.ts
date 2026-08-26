@@ -72,3 +72,11 @@ export const addDocumentVersionSchema = z.object({
 });
 
 export type AddDocumentVersionInput = z.infer<typeof addDocumentVersionSchema>;
+
+// Project Studio §39 (Version Control) — validation interne par version.
+export const setDocumentVersionValidationSchema = z.object({
+  versionId: z.string().min(1),
+  valide: z.boolean(),
+});
+
+export type SetDocumentVersionValidationInput = z.infer<typeof setDocumentVersionValidationSchema>;

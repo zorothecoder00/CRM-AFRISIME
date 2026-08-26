@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { QuickIndicatorDialog } from "@/components/projects/quick-indicator-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil } from "lucide-react";
 
 export type TheoryOfChangeNodeData = {
@@ -25,6 +27,7 @@ export type TheoryOfChangeNodeData = {
   conditions: string | null;
   indicateurs: string | null;
   sourcesVerification: string | null;
+  indicatorCount: number;
 };
 
 const LEVELS: { key: TheoryOfChangeNodeData["niveau"]; label: string }[] = [
@@ -68,11 +71,24 @@ export function TheoryOfChangeView({
                     <CardContent className="space-y-1 px-(--card-spacing)">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="font-medium">{node.titre}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium">{node.titre}</span>
+                            {node.indicatorCount > 0 && (
+                              <Badge variant="info">
+                                {node.indicatorCount} indicateur{node.indicatorCount > 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                          </div>
                           {node.description && <p className="text-sm text-muted-foreground">{node.description}</p>}
                         </div>
                         {canManage && (
                           <div className="flex items-center gap-1">
+                            <QuickIndicatorDialog
+                              projectId={projectId}
+                              nom={node.titre}
+                              definition={node.indicateurs}
+                              theoryOfChangeNodeId={node.id}
+                            />
                             <EditNodeDialog node={node} />
                             <DeleteButton nodeId={node.id} />
                           </div>

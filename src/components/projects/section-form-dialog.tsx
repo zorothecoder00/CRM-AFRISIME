@@ -34,11 +34,13 @@ export function SectionFormDialog({
   projectId,
   parentId,
   users,
+  tocNodes = [],
   triggerLabel = "Ajouter",
 }: {
   projectId: string;
   parentId?: string;
   users: Option[];
+  tocNodes?: Option[];
   triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -124,6 +126,28 @@ export function SectionFormDialog({
               <Input id="dateFin" type="date" {...register("dateFin")} />
             </div>
           </div>
+
+          {tocNodes.length > 0 && (
+            <div className="space-y-2">
+              <Label>Élément de la Théorie du changement réalisé (facultatif)</Label>
+              <Select onValueChange={(v) => setValue("theoryOfChangeNodeId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tocNodes.map((n) => (
+                    <SelectItem key={n.id} value={n.id}>
+                      {n.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Relie cette activité à la Théorie du changement (§65) — visible depuis l&apos;onglet Théorie du
+                changement.
+              </p>
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Création..." : "Créer"}

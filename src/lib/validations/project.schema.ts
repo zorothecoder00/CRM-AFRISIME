@@ -48,6 +48,9 @@ export const createSectionSchema = z.object({
   responsableId: z.string().optional(),
   dateDebut: z.string().optional(),
   dateFin: z.string().optional(),
+  // Project Studio §65 (Single Source of Truth) — lien optionnel vers un
+  // noeud de la Theorie du changement que cette activite WBS realise.
+  theoryOfChangeNodeId: z.string().optional(),
 });
 
 export type CreateSectionInput = z.infer<typeof createSectionSchema>;
@@ -269,6 +272,8 @@ export const createProjectIndicatorSchema = z.object({
   frequence: z.enum(["PONCTUELLE", "MENSUELLE", "TRIMESTRIELLE", "SEMESTRIELLE", "ANNUELLE"]).optional(),
   responsableId: z.string().optional(),
   desagregation: z.string().optional(),
+  // Project Studio §65 (Single Source of Truth) — indicateur genere depuis un noeud ToC.
+  theoryOfChangeNodeId: z.string().optional(),
 });
 
 export type CreateProjectIndicatorInput = z.infer<typeof createProjectIndicatorSchema>;

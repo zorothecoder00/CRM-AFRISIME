@@ -33,11 +33,13 @@ export function HierarchyTree({
   nodes,
   projectId,
   users,
+  tocNodes = [],
   depth = 0,
 }: {
   nodes: SectionNode[];
   projectId: string;
   users: Option[];
+  tocNodes?: Option[];
   depth?: number;
 }) {
   if (nodes.length === 0 && depth === 0) {
@@ -46,7 +48,7 @@ export function HierarchyTree({
         <p className="text-sm text-muted-foreground">
           Aucune phase définie pour ce projet.
         </p>
-        <SectionFormDialog projectId={projectId} users={users} triggerLabel="Ajouter une phase" />
+        <SectionFormDialog projectId={projectId} users={users} tocNodes={tocNodes} triggerLabel="Ajouter une phase" />
       </div>
     );
   }
@@ -75,18 +77,19 @@ export function HierarchyTree({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <SectionConversionButtons sectionId={node.id} />
+              <SectionConversionButtons sectionId={node.id} sectionNom={node.nom} projectId={projectId} />
               <SectionFormDialog
                 projectId={projectId}
                 parentId={node.id}
                 users={users}
+                tocNodes={tocNodes}
                 triggerLabel="Ajouter un enfant"
               />
             </div>
           </div>
           {node.children.length > 0 && (
             <div className="mt-2">
-              <HierarchyTree nodes={node.children} projectId={projectId} users={users} depth={depth + 1} />
+              <HierarchyTree nodes={node.children} projectId={projectId} users={users} tocNodes={tocNodes} depth={depth + 1} />
             </div>
           )}
         </li>

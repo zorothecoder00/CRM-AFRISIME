@@ -4,15 +4,18 @@ import { useAction } from "@/hooks/use-action";
 import { convertSectionToDeliverable, convertSectionToMilestone, convertSectionToRisk } from "@/actions/project.actions";
 import { convertSectionToTask } from "@/actions/task.actions";
 import { Button } from "@/components/ui/button";
+import { QuickIndicatorDialog } from "@/components/projects/quick-indicator-dialog";
 import { ListChecks, Package, Milestone, AlertTriangle } from "lucide-react";
 
 /**
  * Conversion WBS (Project Studio §15) — un noeud de la hiérarchie devient
- * tâche/livrable/jalon/risque. Le risque complète les 3 autres (Project
- * Studio §66 — "création d'une activité" peut faire naître un risque
- * associé), même principe de création en un clic, éditable ensuite.
+ * tâche/livrable/jalon/risque/indicateur. Risque et indicateur complètent
+ * les 2 premiers (Project Studio §66 — "création d'une activité" peut faire
+ * naître ces éléments), même principe de création en un clic (l'indicateur
+ * ouvre une mini-boîte pour la valeur cible, seule donnée sans défaut
+ * raisonnable), éditable ensuite.
  */
-export function SectionConversionButtons({ sectionId }: { sectionId: string }) {
+export function SectionConversionButtons({ sectionId, sectionNom, projectId }: { sectionId: string; sectionNom: string; projectId: string }) {
   const { run: toTask, isPending: p1 } = useAction(convertSectionToTask, { successMessage: "Tâche créée." });
   const { run: toDeliverable, isPending: p2 } = useAction(convertSectionToDeliverable, { successMessage: "Livrable créé." });
   const { run: toMilestone, isPending: p3 } = useAction(convertSectionToMilestone, { successMessage: "Jalon créé." });
@@ -56,6 +59,7 @@ export function SectionConversionButtons({ sectionId }: { sectionId: string }) {
       >
         <AlertTriangle className="h-3.5 w-3.5" />
       </Button>
+      <QuickIndicatorDialog projectId={projectId} nom={sectionNom} triggerLabel="Créer un indicateur associé" />
     </div>
   );
 }

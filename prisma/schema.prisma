@@ -622,6 +622,9 @@ model User {
   projectLessonsLearnedCreated          ProjectLessonLearned[]         @relation("ProjectLessonLearnedCreatedBy")
   // Project Studio §60 (Project Templates).
   projectTemplatesCreated               ProjectTemplate[]              @relation("ProjectTemplateCreatedBy")
+  // Project Studio §7 (Problem Tree links) / §39 (Version Control) audit fixes.
+  problemTreeNodeCommentsAuthored       ProblemTreeNodeComment[]       @relation("ProblemTreeNodeCommentAuthor")
+  documentVersionsValidated             DocumentVersion[]              @relation("DocumentVersionValidatedBy")
   dashboardPreference                 DashboardWidgetPreference?
   integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
@@ -1133,6 +1136,10 @@ model PlatformOrganization {
   // Project Studio §60 (Project Templates).
   projectTemplates                ProjectTemplate[]              @relation("PlatformOrganizationProjectTemplates")
   projectTemplatePhases           ProjectTemplatePhase[]         @relation("PlatformOrganizationProjectTemplatePhases")
+  // Project Studio §7 (Problem Tree links).
+  problemTreeNodeDocuments         ProblemTreeNodeDocument[]      @relation("PlatformOrganizationProblemTreeNodeDocuments")
+  problemTreeNodeIndicators        ProblemTreeNodeIndicator[]     @relation("PlatformOrganizationProblemTreeNodeIndicators")
+  problemTreeNodeComments          ProblemTreeNodeComment[]       @relation("PlatformOrganizationProblemTreeNodeComments")
   entities                      Entity[]                       @relation("PlatformOrganizationEntities")
   holidays                      Holiday[]                      @relation("PlatformOrganizationHolidays")
   tags                          Tag[]                          @relation("PlatformOrganizationTags")
@@ -3016,6 +3023,8 @@ model Document {
 
   versions     DocumentVersion[]
   accessGrants DocumentAccess[]
+  // Project Studio §7 — liens depuis l'arbre a problemes.
+  problemTreeLinks ProblemTreeNodeDocument[]
 
   @@index([projectId])
   @@index([folderId])
@@ -3121,6 +3130,14 @@ model DocumentVersion {
   mimeType       String?
   sizeBytes      Int?
   note           String?
+  // Project Studio §39 (Version Control) — validation interne PAR VERSION,
+  // distincte de Document.validationExterne (workflow partenaire/portail,
+  // §21, au niveau du document parent) : ici, un membre interne marque
+  // qu'il a relu/approuve cette version precise.
+  valide         Boolean               @default(false)
+  valideParId    String?
+  valideur       User?                 @relation("DocumentVersionValidatedBy", fields: [valideParId], references: [id])
+  valideLe       DateTime?
   createdById    String
   createdBy      User                  @relation("DocumentVersionCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime              @default(now())
@@ -3359,6 +3376,13 @@ model Indicator {
   project        Project?              @relation(fields: [projectId], references: [id])
   taskId         String?
   task           Task?                 @relation(fields: [taskId], references: [id])
+  // Project Studio §65 (Single Source of Truth) — un indicateur genere
+  // depuis un noeud ToC (bouton "Creer un indicateur" sur la Theorie du
+  // changement) reste trace ici ; plusieurs indicateurs peuvent partager le
+  // meme noeud (contrairement a LogframeRow qui est 1:1), pas de contrainte
+  // unique.
+  theoryOfChangeNodeId String?
+  theoryOfChangeNode   TheoryOfChangeNode? @relation(fields: [theoryOfChangeNodeId], references: [id])
   // Multi-tenant Phase 1 lot 8 (2026-08-20) — meme statut que Competence,
   // denormalise depuis l'un des trois parents (Objective/Project/Task).
   organizationId String?
@@ -3380,6 +3404,8 @@ model Indicator {
   valeurActuelle Decimal               @default(0) @db.Decimal(12, 2)
   // Project Studio §48 (Data Collection) — champs de formulaire qui alimentent cet indicateur.
   dataFormFields ProjectDataFormField[]
+  // Project Studio §7 — liens depuis l'arbre a problemes.
+  problemTreeLinks ProblemTreeNodeIndicator[]
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -5918,9 +5944,59 @@ model ProblemTreeNode {
   updatedAt      DateTime              @updatedAt
 
   solutionNodes SolutionTreeNode[]
+  // Project Studio §7 (Problem Tree) — "chaque element peut etre relie a
+  // donnees/documents/indicateurs/sources/commentaires". `sources` (texte
+  // libre) couvrait deja donnees/sources ; ces 3 relations couvrent le
+  // reste : documents et indicateurs deja enregistres dans le projet, plus
+  // un fil de discussion.
+  linkedDocuments  ProblemTreeNodeDocument[]
+  linkedIndicators ProblemTreeNodeIndicator[]
+  comments         ProblemTreeNodeComment[]
 
   @@index([projectId])
   @@index([parentId])
+}
+
+model ProblemTreeNodeDocument {
+  id             String                @id @default(cuid())
+  nodeId         String
+  node           ProblemTreeNode       @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  documentId     String
+  document       Document              @relation(fields: [documentId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProblemTreeNodeDocuments", fields: [organizationId], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@unique([nodeId, documentId])
+  @@index([nodeId])
+}
+
+model ProblemTreeNodeIndicator {
+  id             String                @id @default(cuid())
+  nodeId         String
+  node           ProblemTreeNode       @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  indicatorId    String
+  indicator      Indicator             @relation(fields: [indicatorId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProblemTreeNodeIndicators", fields: [organizationId], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@unique([nodeId, indicatorId])
+  @@index([nodeId])
+}
+
+model ProblemTreeNodeComment {
+  id             String                @id @default(cuid())
+  nodeId         String
+  node           ProblemTreeNode       @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProblemTreeNodeComments", fields: [organizationId], references: [id])
+  authorId       String
+  author         User                  @relation("ProblemTreeNodeCommentAuthor", fields: [authorId], references: [id])
+  content        String
+  createdAt      DateTime              @default(now())
+
+  @@index([nodeId])
 }
 
 enum SolutionTreeNodeType {
@@ -6002,6 +6078,8 @@ model TheoryOfChangeNode {
   sections            ProjectSection[]
   // Project Studio §65 — ligne de Cadre logique miroir, voir LogframeRow.theoryOfChangeNodeId.
   logframeRow         LogframeRow?
+  // Project Studio §65 — indicateurs generes depuis ce noeud, voir Indicator.theoryOfChangeNodeId.
+  indicators          Indicator[]
   createdById         String
   createdBy           User                  @relation("TheoryOfChangeNodeCreatedBy", fields: [createdById], references: [id])
   createdAt           DateTime              @default(now())
