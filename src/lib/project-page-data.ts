@@ -480,12 +480,15 @@ export async function loadProjectPageData(projectId: string) {
   const ganttRows: GanttTaskRow[] = tasks.map((t) => ({
     id: t.id,
     titre: t.titre,
+    description: t.description,
     projectNom: project.nom,
     statut: t.statut,
     priorite: t.priorite,
+    responsablePrincipalId: t.responsablePrincipalId,
+    responsableNom: t.responsablePrincipal.name,
     echeance: t.echeance ? t.echeance.toISOString() : null,
     dateDebut: t.dateDebut ? t.dateDebut.toISOString() : null,
-    responsableNom: t.responsablePrincipal.name,
+    tempsEstimeHeures: t.tempsEstimeHeures ? Number(t.tempsEstimeHeures) : null,
     avancement: t.avancement }));
 
   const mindMapRows: MindMapTaskRow[] = tasks.map((t, i) => ({

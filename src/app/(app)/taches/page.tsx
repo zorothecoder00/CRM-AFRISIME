@@ -28,6 +28,8 @@ export default async function TachesPage({
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
+  const canManage = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);
+  const canDelete = session!.user.permissions.includes(PERMISSIONS.TASK_DELETE);
 
   // Vue par defaut (cahier des charges §7 : "chaque utilisateur choisit sa
   // vue") : sans ?vue= explicite dans l'URL, on retombe sur la preference
@@ -71,7 +73,7 @@ export default async function TachesPage({
       include: { sections: { select: { id: true, nom: true } } },
       orderBy: { nom: "asc" },
     }),
-    canCreate
+    canCreate || canManage
       ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     canCreate
@@ -91,11 +93,14 @@ export default async function TachesPage({
   const taskRows: TaskRow[] = tasks.map((t) => ({
     id: t.id,
     titre: t.titre,
+    description: t.description,
     projectNom: t.project.nom,
     statut: t.statut,
     priorite: t.priorite,
-    echeance: t.echeance ? t.echeance.toISOString() : null,
+    responsablePrincipalId: t.responsablePrincipalId,
     responsableNom: t.responsablePrincipal.name,
+    echeance: t.echeance ? t.echeance.toISOString() : null,
+    tempsEstimeHeures: t.tempsEstimeHeures ? Number(t.tempsEstimeHeures) : null,
     avancement: t.avancement,
   }));
 
@@ -160,7 +165,9 @@ export default async function TachesPage({
         </div>
       </div>
 
-      {vue === "kanban" && <TaskKanbanView tasks={taskRows} />}
+      {vue === "kanban" && (
+        <TaskKanbanView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} />
+      )}
       {vue === "chronologie" && <TaskTimelineView tasks={taskRows} />}
       {vue === "gantt" && <TaskGanttView tasks={ganttRows} />}
       {vue === "mindmap" && <TaskMindMapView tasks={mindMapRows} />}
@@ -177,7 +184,9 @@ export default async function TachesPage({
             projet).
           </p>
         ))}
-      {vue === "liste" && <TaskListView tasks={taskRows} />}
+      {vue === "liste" && (
+        <TaskListView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} />
+      )}
     </div>
   );
 }

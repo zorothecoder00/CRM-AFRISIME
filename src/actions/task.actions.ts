@@ -21,6 +21,7 @@ import { startValidationRun, decideCurrentStep } from "@/lib/validation-workflow
 import { suggestAssignees, type CandidateScore } from "@/lib/resource-allocation";
 import {
   createTaskSchema,
+  updateTaskSchema,
   updateTaskStatusSchema,
   addCommentSchema,
   addChecklistItemSchema,
@@ -29,6 +30,7 @@ import {
   linkTaskExternalContactSchema,
   convertSectionToTaskSchema,
   type CreateTaskInput,
+  type UpdateTaskInput,
   type LinkTaskExternalContactInput,
   type ConvertSectionToTaskInput,
 } from "@/lib/validations/task.schema";
@@ -122,6 +124,40 @@ export async function suggestTaskAssignees(
     competenceIds,
     priorite,
   });
+}
+
+export async function updateTask(input: UpdateTaskInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+
+  const data = updateTaskSchema.parse(input);
+
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: data.id },
+      data: {
+        titre: data.titre,
+        description: data.description || null,
+        priorite: data.priorite,
+        responsablePrincipalId: data.responsablePrincipalId,
+        echeance: data.echeance ? new Date(data.echeance) : null,
+        tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : null,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.updated",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { titre: task.titre },
+  });
+
+  revalidatePath("/taches");
+  revalidatePath(`/taches/${task.id}`);
+  revalidatePath(`/projets/${task.projectId}`);
+  return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
 export async function updateTaskStatus(taskId: string, statut: string) {

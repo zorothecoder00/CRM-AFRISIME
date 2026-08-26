@@ -23,6 +23,27 @@ export const createProjectSchema = z.object({
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 
+export const updateProjectSchema = z.object({
+  id: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+  description: z.string().optional(),
+  objectif: z.string().optional(),
+  responsableId: z.string().min(1, "Un responsable est requis."),
+  departmentId: z.string().min(1, "Un département est requis."),
+  priorite: z.enum(["BASSE", "MOYENNE", "HAUTE", "CRITIQUE"]),
+  dateDebut: z.string().optional(),
+  dateFin: z.string().optional(),
+  budget: z.string().optional(),
+  localisation: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  methodologie: z
+    .enum(["AGILE_SCRUM", "KANBAN", "WATERFALL", "HYBRIDE", "RBM", "LOGICAL_FRAMEWORK", "THEORY_OF_CHANGE"])
+    .optional(),
+});
+
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
 export const updateProjectMethodologieSchema = z.object({
   projectId: z.string().min(1),
   methodologie: z.enum(["AGILE_SCRUM", "KANBAN", "WATERFALL", "HYBRIDE", "RBM", "LOGICAL_FRAMEWORK", "THEORY_OF_CHANGE"]),

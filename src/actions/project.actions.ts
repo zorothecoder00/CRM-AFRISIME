@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { runProjectStatusChangedRules, runProjectRiskCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
 import {
   createProjectSchema,
+  updateProjectSchema,
   createSectionSchema,
   addSectionCommentSchema,
   updateProjectCoutReelSchema,
@@ -52,6 +53,7 @@ import {
   convertSectionSchema,
   updateProjectScopeSchema,
   type CreateProjectInput,
+  type UpdateProjectInput,
   type CreateSectionInput,
   type AddSectionCommentInput,
   type UpdateProjectCoutReelInput,
@@ -159,6 +161,47 @@ export async function createProject(input: CreateProjectInput) {
   });
 
   revalidatePath("/projets");
+  return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
+}
+
+export async function updateProject(input: UpdateProjectInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectSchema.parse(input);
+
+  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.project.update({
+      where: { id: data.id },
+      data: {
+        nom: data.nom,
+        description: data.description || null,
+        objectif: data.objectif || null,
+        responsableId: data.responsableId,
+        departmentId: data.departmentId,
+        priorite: data.priorite,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : null,
+        dateFin: data.dateFin ? new Date(data.dateFin) : null,
+        budget: data.budget ? Number(data.budget) : null,
+        localisation: data.localisation || null,
+        latitude: data.latitude ? Number(data.latitude) : null,
+        longitude: data.longitude ? Number(data.longitude) : null,
+        methodologie: data.methodologie || null,
+      },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.updated",
+    entityType: "Project",
+    entityId: project.id,
+    changes: { nom: project.nom },
+  });
+
+  revalidatePath("/projets");
+  revalidatePath(`/projets/${project.id}`);
   return { ...project, budget: project.budget ? Number(project.budget) : null, coutReel: project.coutReel ? Number(project.coutReel) : null };
 }
 

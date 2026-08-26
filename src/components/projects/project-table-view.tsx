@@ -1,23 +1,37 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toneForStatus, toneForPriority } from "@/lib/status-tone";
 import { ExportXlsxButton } from "@/components/ui/export-xlsx-button";
+import { RowActionsMenu } from "@/components/ui/row-actions-menu";
+import { ProjectEditDialog } from "@/components/projects/project-edit-dialog";
+import { useAction } from "@/hooks/use-action";
+import { deleteProject } from "@/actions/trash.actions";
 import type { XlsxColumn } from "@/lib/xlsx-export";
+
+type Option = { id: string; label: string };
 
 export type ProjectRow = {
   id: string;
   nom: string;
+  description: string | null;
+  objectif: string | null;
   statut: string;
   priorite: string;
+  departmentId: string;
   departmentNom: string;
+  responsableId: string;
   responsableNom: string;
   avancement: number;
   budget: number | null;
   coutReel: number | null;
+  dateDebut: string | null;
   dateFin: string | null;
+  localisation: string | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -53,10 +67,30 @@ const EXPORT_COLUMNS: XlsxColumn<ProjectRow>[] = [
 ];
 
 /** Vue Table (cahier des charges §VI) — tri lisible en un coup d'oeil, complementaire a la vue Liste en cartes. */
-export function ProjectTableView({ projects, devise }: { projects: ProjectRow[]; devise: string }) {
+export function ProjectTableView({
+  projects,
+  devise,
+  departments = [],
+  users = [],
+  canManage = false,
+  canDelete = false,
+}: {
+  projects: ProjectRow[];
+  devise: string;
+  departments?: Option[];
+  users?: Option[];
+  canManage?: boolean;
+  canDelete?: boolean;
+}) {
+  const router = useRouter();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { run: remove } = useAction(deleteProject, { successMessage: "Projet supprimé." });
+
   if (projects.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>;
   }
+
+  const editingProject = projects.find((p) => p.id === editingId) ?? null;
 
   return (
     <div className="space-y-2">
@@ -82,6 +116,7 @@ export function ProjectTableView({ projects, devise }: { projects: ProjectRow[];
             <TableHead>Avancement</TableHead>
             <TableHead>Budget</TableHead>
             <TableHead>Échéance</TableHead>
+            {(canManage || canDelete) && <TableHead className="w-10" />}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -114,12 +149,33 @@ export function ProjectTableView({ projects, devise }: { projects: ProjectRow[];
                 <TableCell className="text-muted-foreground">
                   {p.dateFin ? new Date(p.dateFin).toLocaleDateString("fr-FR") : "—"}
                 </TableCell>
+                {(canManage || canDelete) && (
+                  <TableCell>
+                    <RowActionsMenu
+                      onEdit={canManage ? () => setEditingId(p.id) : undefined}
+                      onDelete={canDelete ? () => remove(p.id) : undefined}
+                      deleteConfirmLabel={`Supprimer « ${p.nom} » ? Le projet sera déplacé dans la corbeille.`}
+                    />
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
       </div>
+      {editingProject && (
+        <ProjectEditDialog
+          project={editingProject}
+          departments={departments}
+          users={users}
+          open={!!editingId}
+          onOpenChange={(o) => {
+            setEditingId(o ? editingId : null);
+            if (!o) router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

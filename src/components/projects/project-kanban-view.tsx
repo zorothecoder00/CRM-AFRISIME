@@ -5,10 +5,15 @@ import Link from "next/link";
 import { DndContext, useDraggable, useDroppable, type DragEndEvent } from "@dnd-kit/core";
 import { useAction } from "@/hooks/use-action";
 import { updateProjectStatus } from "@/actions/project.actions";
+import { deleteProject } from "@/actions/trash.actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { RowActionsMenu } from "@/components/ui/row-actions-menu";
+import { ProjectEditDialog } from "@/components/projects/project-edit-dialog";
 import { toneForPriority, toneForStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
 import type { ProjectRow } from "@/components/projects/project-table-view";
+
+type Option = { id: string; label: string };
 
 const COLUMNS: { key: string; label: string }[] = [
   { key: "PLANIFIE", label: "Planifié" },
@@ -37,17 +42,49 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITIQUE: "Critique",
 };
 
-function ProjectCard({ project }: { project: ProjectRow }) {
+function ProjectCard({
+  project,
+  departments,
+  users,
+  canManage,
+  canDelete,
+  onDeleted,
+  onUpdated,
+}: {
+  project: ProjectRow;
+  departments: Option[];
+  users: Option[];
+  canManage: boolean;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
+  onUpdated: (id: string, patch: { nom: string; priorite: string }) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: project.id });
+  const [editing, setEditing] = useState(false);
+  const { run: remove } = useAction(deleteProject, { successMessage: "Projet supprimé." });
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 }
     : undefined;
 
+  async function handleDelete() {
+    const result = await remove(project.id);
+    if (result.ok) onDeleted(project.id);
+  }
+
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <Card accent={accentForPriority(project.priorite)} className={`mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}>
-        <Link href={`/projets/${project.id}`} className="text-sm font-medium hover:underline">
+      <Card accent={accentForPriority(project.priorite)} className={`relative mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}>
+        {(canManage || canDelete) && (
+          <div className="absolute top-1 right-1">
+            <RowActionsMenu
+              onEdit={canManage ? () => setEditing(true) : undefined}
+              onDelete={canDelete ? handleDelete : undefined}
+              deleteConfirmLabel={`Supprimer « ${project.nom} » ? Le projet sera déplacé dans la corbeille.`}
+            />
+          </div>
+        )}
+        <Link href={`/projets/${project.id}`} className="pr-6 text-sm font-medium hover:underline">
           {project.nom}
         </Link>
         <div className="mt-1 text-xs text-muted-foreground">{project.departmentNom}</div>
@@ -58,11 +95,41 @@ function ProjectCard({ project }: { project: ProjectRow }) {
           <span className="text-xs text-muted-foreground">{project.avancement}%</span>
         </div>
       </Card>
+      {editing && (
+        <ProjectEditDialog
+          project={project}
+          departments={departments}
+          users={users}
+          open={editing}
+          onOpenChange={setEditing}
+          onSuccess={(updated) => onUpdated(project.id, { nom: updated.nom, priorite: updated.priorite })}
+        />
+      )}
     </div>
   );
 }
 
-function KanbanColumn({ columnKey, label, projects }: { columnKey: string; label: string; projects: ProjectRow[] }) {
+function KanbanColumn({
+  columnKey,
+  label,
+  projects,
+  departments,
+  users,
+  canManage,
+  canDelete,
+  onDeleted,
+  onUpdated,
+}: {
+  columnKey: string;
+  label: string;
+  projects: ProjectRow[];
+  departments: Option[];
+  users: Option[];
+  canManage: boolean;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
+  onUpdated: (id: string, patch: { nom: string; priorite: string }) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
   const accent = COLUMN_ACCENT[toneForStatus(columnKey)];
 
@@ -78,16 +145,45 @@ function KanbanColumn({ columnKey, label, projects }: { columnKey: string; label
         <Badge variant="secondary">{projects.length}</Badge>
       </div>
       {projects.map((p) => (
-        <ProjectCard key={p.id} project={p} />
+        <ProjectCard
+          key={p.id}
+          project={p}
+          departments={departments}
+          users={users}
+          canManage={canManage}
+          canDelete={canDelete}
+          onDeleted={onDeleted}
+          onUpdated={onUpdated}
+        />
       ))}
     </div>
   );
 }
 
 /** Vue Kanban (cahier des charges §VI) — projets groupes par statut, glisser-deposer pour changer de colonne. */
-export function ProjectKanbanView({ projects: initialProjects }: { projects: ProjectRow[] }) {
+export function ProjectKanbanView({
+  projects: initialProjects,
+  departments = [],
+  users = [],
+  canManage = false,
+  canDelete = false,
+}: {
+  projects: ProjectRow[];
+  departments?: Option[];
+  users?: Option[];
+  canManage?: boolean;
+  canDelete?: boolean;
+}) {
   const [projects, setProjects] = useState(initialProjects);
   const { run } = useAction(updateProjectStatus);
+
+  function handleDeleted(id: string) {
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function handleUpdated(id: string, patch: { nom: string; priorite: string }) {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -110,7 +206,18 @@ export function ProjectKanbanView({ projects: initialProjects }: { projects: Pro
     <DndContext onDragEnd={handleDragEnd}>
       <div className="flex gap-3 overflow-x-auto pb-4">
         {COLUMNS.map((col) => (
-          <KanbanColumn key={col.key} columnKey={col.key} label={col.label} projects={projects.filter((p) => p.statut === col.key)} />
+          <KanbanColumn
+            key={col.key}
+            columnKey={col.key}
+            label={col.label}
+            projects={projects.filter((p) => p.statut === col.key)}
+            departments={departments}
+            users={users}
+            canManage={canManage}
+            canDelete={canDelete}
+            onDeleted={handleDeleted}
+            onUpdated={handleUpdated}
+          />
         ))}
       </div>
     </DndContext>

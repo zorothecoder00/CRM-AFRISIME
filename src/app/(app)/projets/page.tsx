@@ -6,30 +6,13 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { getOrganizationDevise } from "@/lib/currency";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { Button } from "@/components/ui/button";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
 import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
+import { ProjectListCard } from "@/components/projects/project-list-card";
 import type { Prisma } from "@/generated/prisma/client";
 import { User } from "lucide-react";
-
-const STATUS_LABELS: Record<string, string> = {
-  PLANIFIE: "Planifié",
-  EN_COURS: "En cours",
-  EN_PAUSE: "En pause",
-  TERMINE: "Terminé",
-  ANNULE: "Annulé",
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  BASSE: "Basse",
-  MOYENNE: "Moyenne",
-  HAUTE: "Haute",
-  CRITIQUE: "Critique",
-};
 
 const TEMPLATE_CATEGORY_LABELS: Record<string, string> = {
   ONG: "ONG",
@@ -57,6 +40,8 @@ export default async function ProjetsPage({
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
+  const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
+  const canDelete = session!.user.permissions.includes(PERMISSIONS.PROJECT_DELETE);
   const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
   const onlyMine = mine === "1";
   const devise = await getOrganizationDevise();
@@ -86,10 +71,10 @@ export default async function ProjetsPage({
       include: { department: true, responsable: true },
       orderBy: { updatedAt: "desc" },
     }),
-    canCreate
+    canCreate || canManage
       ? prisma.department.findMany({ orderBy: { name: "asc" } })
       : Promise.resolve([]),
-    canCreate
+    canCreate || canManage
       ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
     canCreate
@@ -100,15 +85,24 @@ export default async function ProjetsPage({
   const projectRows: ProjectRow[] = projects.map((p) => ({
     id: p.id,
     nom: p.nom,
+    description: p.description,
+    objectif: p.objectif,
     statut: p.statut,
     priorite: p.priorite,
+    departmentId: p.departmentId,
     departmentNom: p.department.name,
+    responsableId: p.responsableId,
     responsableNom: p.responsable.name,
     avancement: p.avancement,
     budget: p.budget ? Number(p.budget) : null,
     coutReel: p.coutReel ? Number(p.coutReel) : null,
+    dateDebut: p.dateDebut ? p.dateDebut.toISOString() : null,
     dateFin: p.dateFin ? p.dateFin.toISOString() : null,
+    localisation: p.localisation,
   }));
+
+  const departmentOptions = departments.map((d) => ({ id: d.id, label: d.name }));
+  const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
   function withVue(key: string) {
     return `?vue=${key}${onlyMine ? "&mine=1" : ""}`;
@@ -192,40 +186,38 @@ export default async function ProjetsPage({
         </div>
       </div>
 
-      {vue === "table" && <ProjectTableView projects={projectRows} devise={devise} />}
-      {vue === "kanban" && <ProjectKanbanView projects={projectRows} />}
+      {vue === "table" && (
+        <ProjectTableView
+          projects={projectRows}
+          devise={devise}
+          departments={departmentOptions}
+          users={userOptions}
+          canManage={canManage}
+          canDelete={canDelete}
+        />
+      )}
+      {vue === "kanban" && (
+        <ProjectKanbanView
+          projects={projectRows}
+          departments={departmentOptions}
+          users={userOptions}
+          canManage={canManage}
+          canDelete={canDelete}
+        />
+      )}
       {vue === "liste" && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <Link key={project.id} href={`/projets/${project.id}`}>
-              <Card
-                accent={accentForStatus(project.statut)}
-                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
-              >
-                <CardHeader>
-                  <CardTitle className="text-base">{project.nom}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {project.description || "Pas de description."}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
-                    <Badge variant={toneForPriority(project.priorite)}>{PRIORITY_LABELS[project.priorite]}</Badge>
-                    <Badge variant="outline">{project.department.name}</Badge>
-                    {project.budget && project.coutReel && Number(project.coutReel) > Number(project.budget) && (
-                      <Badge variant="destructive">Budget dépassé</Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Responsable : {project.responsable.name}
-                  </div>
-                  <div className="text-xs font-medium">Avancement : {project.avancement}%</div>
-                </CardContent>
-              </Card>
-            </Link>
+          {projectRows.map((project) => (
+            <ProjectListCard
+              key={project.id}
+              project={project}
+              departments={departmentOptions}
+              users={userOptions}
+              canManage={canManage}
+              canDelete={canDelete}
+            />
           ))}
-          {projects.length === 0 && (
+          {projectRows.length === 0 && (
             <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
           )}
         </div>

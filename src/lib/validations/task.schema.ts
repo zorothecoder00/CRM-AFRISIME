@@ -21,6 +21,18 @@ export const createTaskSchema = z.object({
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 
+export const updateTaskSchema = z.object({
+  id: z.string().min(1),
+  titre: z.string().min(2, "Le titre est requis."),
+  description: z.string().optional(),
+  priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]),
+  responsablePrincipalId: z.string().min(1, "Un responsable est requis."),
+  echeance: z.string().optional(),
+  tempsEstimeHeures: z.string().optional(),
+});
+
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
   statut: z.enum(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE", "TERMINEE", "ANNULEE"]),

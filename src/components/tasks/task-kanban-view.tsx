@@ -10,10 +10,15 @@ import {
 } from "@dnd-kit/core";
 import { useAction } from "@/hooks/use-action";
 import { updateTaskStatus } from "@/actions/task.actions";
+import { deleteTask } from "@/actions/trash.actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { RowActionsMenu } from "@/components/ui/row-actions-menu";
+import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
 import { toneForPriority, toneForStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
 import type { TaskRow } from "@/components/tasks/task-list-view";
+
+type Option = { id: string; label: string };
 
 const COLUMNS: { key: string; label: string }[] = [
   { key: "A_FAIRE", label: "À faire" },
@@ -45,22 +50,52 @@ const PRIORITY_LABELS: Record<string, string> = {
   BASSE: "Basse",
 };
 
-function TaskCard({ task }: { task: TaskRow }) {
+function TaskCard({
+  task,
+  users,
+  canManage,
+  canDelete,
+  onDeleted,
+  onUpdated,
+}: {
+  task: TaskRow;
+  users: Option[];
+  canManage: boolean;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
+  onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
+  const [editing, setEditing] = useState(false);
+  const { run: remove } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 }
     : undefined;
 
+  async function handleDelete() {
+    const result = await remove(task.id);
+    if (result.ok) onDeleted(task.id);
+  }
+
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       <Card
         accent={accentForPriority(task.priorite)}
-        className={`mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}
+        className={`relative mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}
       >
-        <Link href={`/taches/${task.id}`} className="text-sm font-medium hover:underline">
+        {(canManage || canDelete) && (
+          <div className="absolute top-1 right-1">
+            <RowActionsMenu
+              onEdit={canManage ? () => setEditing(true) : undefined}
+              onDelete={canDelete ? handleDelete : undefined}
+              deleteConfirmLabel={`Supprimer « ${task.titre} » ? La tâche sera déplacée dans la corbeille.`}
+            />
+          </div>
+        )}
+        <Link href={`/taches/${task.id}`} className="pr-6 text-sm font-medium hover:underline">
           {task.titre}
         </Link>
         <div className="mt-1 text-xs text-muted-foreground">{task.projectNom}</div>
@@ -71,11 +106,38 @@ function TaskCard({ task }: { task: TaskRow }) {
           <span className="text-xs text-muted-foreground">{task.responsableNom}</span>
         </div>
       </Card>
+      {editing && (
+        <TaskEditDialog
+          task={task}
+          users={users}
+          open={editing}
+          onOpenChange={setEditing}
+          onSuccess={(updated) => onUpdated(task.id, { titre: updated.titre, priorite: updated.priorite })}
+        />
+      )}
     </div>
   );
 }
 
-function KanbanColumn({ columnKey, label, tasks }: { columnKey: string; label: string; tasks: TaskRow[] }) {
+function KanbanColumn({
+  columnKey,
+  label,
+  tasks,
+  users,
+  canManage,
+  canDelete,
+  onDeleted,
+  onUpdated,
+}: {
+  columnKey: string;
+  label: string;
+  tasks: TaskRow[];
+  users: Option[];
+  canManage: boolean;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
+  onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
   const accent = COLUMN_ACCENT[toneForStatus(columnKey)];
 
@@ -91,15 +153,41 @@ function KanbanColumn({ columnKey, label, tasks }: { columnKey: string; label: s
         <Badge variant="secondary">{tasks.length}</Badge>
       </div>
       {tasks.map((task) => (
-        <TaskCard key={task.id} task={task} />
+        <TaskCard
+          key={task.id}
+          task={task}
+          users={users}
+          canManage={canManage}
+          canDelete={canDelete}
+          onDeleted={onDeleted}
+          onUpdated={onUpdated}
+        />
       ))}
     </div>
   );
 }
 
-export function TaskKanbanView({ tasks: initialTasks }: { tasks: TaskRow[] }) {
+export function TaskKanbanView({
+  tasks: initialTasks,
+  users = [],
+  canManage = false,
+  canDelete = false,
+}: {
+  tasks: TaskRow[];
+  users?: Option[];
+  canManage?: boolean;
+  canDelete?: boolean;
+}) {
   const [tasks, setTasks] = useState(initialTasks);
   const { run } = useAction(updateTaskStatus);
+
+  function handleDeleted(id: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function handleUpdated(id: string, patch: { titre: string; priorite: string }) {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -127,6 +215,11 @@ export function TaskKanbanView({ tasks: initialTasks }: { tasks: TaskRow[] }) {
             columnKey={col.key}
             label={col.label}
             tasks={tasks.filter((t) => t.statut === col.key)}
+            users={users}
+            canManage={canManage}
+            canDelete={canDelete}
+            onDeleted={handleDeleted}
+            onUpdated={handleUpdated}
           />
         ))}
       </div>
