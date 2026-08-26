@@ -607,6 +607,8 @@ model User {
   projectFeedbacksCreated             ProjectFeedback[]              @relation("ProjectFeedbackCreatedBy")
   // Project Studio §49 (Indicator Management).
   indicatorsResponsable                Indicator[]                    @relation("IndicatorResponsable")
+  // Project Studio §47 (Monitoring & Evaluation).
+  projectMEEvaluationsCreated          ProjectMEEvaluation[]          @relation("ProjectMEEvaluationCreatedBy")
   dashboardPreference                 DashboardWidgetPreference?
   integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
@@ -1105,6 +1107,9 @@ model PlatformOrganization {
   beneficiaires                 Beneficiaire[]                 @relation("PlatformOrganizationBeneficiaires")
   // Project Studio §46 (Beneficiary/User Feedback).
   projectFeedbacks               ProjectFeedback[]              @relation("PlatformOrganizationProjectFeedbacks")
+  // Project Studio §47 (Monitoring & Evaluation).
+  projectMEEvaluations           ProjectMEEvaluation[]          @relation("PlatformOrganizationProjectMEEvaluations")
+  projectMEEvaluationCriteres    ProjectMEEvaluationCritere[]   @relation("PlatformOrganizationProjectMEEvaluationCriteres")
   entities                      Entity[]                       @relation("PlatformOrganizationEntities")
   holidays                      Holiday[]                      @relation("PlatformOrganizationHolidays")
   tags                          Tag[]                          @relation("PlatformOrganizationTags")
@@ -1578,6 +1583,8 @@ model Project {
   beneficiaires            Beneficiaire[]
   // Project Studio §46 (Beneficiary/User Feedback).
   feedbacks                ProjectFeedback[]
+  // Project Studio §47 (Monitoring & Evaluation).
+  meEvaluations            ProjectMEEvaluation[]
   decisionMatrices         DecisionMatrix[]
   // Project Studio §4/§10 — voir modeles en fin de fichier.
   financements             Financement[]
@@ -5181,6 +5188,54 @@ model ProjectFeedback {
   createdAt      DateTime              @default(now())
 
   @@index([projectId])
+}
+
+enum MECritere {
+  PERTINENCE
+  EFFICACITE
+  EFFICIENCE
+  IMPACT
+  DURABILITE
+}
+
+// Systeme de Suivi & Evaluation (cahier des charges Project Studio §47) —
+// le volet "Suivi" (indicateurs/collecte/frequence/progression/cible/
+// baseline) est deja couvert par Indicator (§49) et ProjectFeedback (§46) ;
+// ce modele couvre le volet "Evaluation" manquant, structure selon les 5
+// criteres CAD/OCDE standard plutot que du texte libre — meme principe
+// header+criteres que Evaluation/EvaluationCritere (§14, evaluation RH),
+// mais critere ferme (enum) puisque les 5 sont fixes par le cahier.
+model ProjectMEEvaluation {
+  id              String                       @id @default(cuid())
+  projectId       String
+  project         Project                      @relation(fields: [projectId], references: [id])
+  organizationId  String?
+  organization    PlatformOrganization?        @relation("PlatformOrganizationProjectMEEvaluations", fields: [organizationId], references: [id])
+  titre           String
+  dateEvaluation  DateTime
+  evaluateurNom   String?
+  conclusions     String?
+  recommandations String?
+  criteres        ProjectMEEvaluationCritere[]
+  createdById     String
+  createdBy       User                         @relation("ProjectMEEvaluationCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime                     @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectMEEvaluationCritere {
+  id             String                @id @default(cuid())
+  evaluationId   String
+  evaluation     ProjectMEEvaluation   @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationProjectMEEvaluationCriteres", fields: [organizationId], references: [id])
+  critere        MECritere
+  note           Int?
+  commentaire    String?
+
+  @@unique([evaluationId, critere])
+  @@index([evaluationId])
 }
 
 // ===================== V2.2 §22-25 — Multi-entites / Multi-pays / =====================

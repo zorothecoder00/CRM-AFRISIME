@@ -188,6 +188,37 @@ export const deleteProjectFeedbackSchema = z.object({ feedbackId: z.string().min
 
 export type DeleteProjectFeedbackInput = z.infer<typeof deleteProjectFeedbackSchema>;
 
+// ---- Suivi-évaluation — volet Évaluation (Project Studio §47) ----
+
+export const createProjectMEEvaluationSchema = z.object({
+  projectId: z.string().min(1),
+  titre: z.string().min(2, "Le titre est requis."),
+  dateEvaluation: z.string().min(1, "La date est requise."),
+  evaluateurNom: z.string().optional(),
+});
+
+export type CreateProjectMEEvaluationInput = z.infer<typeof createProjectMEEvaluationSchema>;
+
+export const updateProjectMEEvaluationCritereSchema = z.object({
+  critereId: z.string().min(1),
+  note: z.coerce.number().int().min(1).max(5).optional(),
+  commentaire: z.string().optional(),
+});
+
+export type UpdateProjectMEEvaluationCritereInput = z.infer<typeof updateProjectMEEvaluationCritereSchema>;
+
+export const updateProjectMEEvaluationConclusionsSchema = z.object({
+  evaluationId: z.string().min(1),
+  conclusions: z.string().optional(),
+  recommandations: z.string().optional(),
+});
+
+export type UpdateProjectMEEvaluationConclusionsInput = z.infer<typeof updateProjectMEEvaluationConclusionsSchema>;
+
+export const deleteProjectMEEvaluationSchema = z.object({ evaluationId: z.string().min(1) });
+
+export type DeleteProjectMEEvaluationInput = z.infer<typeof deleteProjectMEEvaluationSchema>;
+
 // ---- Décisions (cahier des charges §VI/§X) ----
 
 export const createProjectDecisionSchema = z.object({

@@ -28,6 +28,10 @@ import {
   createProjectFeedbackSchema,
   updateProjectFeedbackStatusSchema,
   deleteProjectFeedbackSchema,
+  createProjectMEEvaluationSchema,
+  updateProjectMEEvaluationCritereSchema,
+  updateProjectMEEvaluationConclusionsSchema,
+  deleteProjectMEEvaluationSchema,
   createProjectDecisionSchema,
   createProjectIndicatorSchema,
   createTaskIndicatorSchema,
@@ -54,6 +58,10 @@ import {
   type CreateProjectFeedbackInput,
   type UpdateProjectFeedbackStatusInput,
   type DeleteProjectFeedbackInput,
+  type CreateProjectMEEvaluationInput,
+  type UpdateProjectMEEvaluationCritereInput,
+  type UpdateProjectMEEvaluationConclusionsInput,
+  type DeleteProjectMEEvaluationInput,
   type CreateProjectDecisionInput,
   type CreateProjectIndicatorInput,
   type CreateTaskIndicatorInput,
@@ -700,6 +708,124 @@ export async function deleteProjectFeedback(input: DeleteProjectFeedbackInput) {
 
   revalidatePath(`/projets/${feedback.projectId}`);
   return feedback;
+}
+
+// ---- Suivi-évaluation — volet Évaluation (Project Studio §47) ----
+
+const ME_CRITERES = ["PERTINENCE", "EFFICACITE", "EFFICIENCE", "IMPACT", "DURABILITE"] as const;
+
+export async function createProjectMEEvaluation(input: CreateProjectMEEvaluationInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = createProjectMEEvaluationSchema.parse(input);
+
+  // Les 5 criteres CAD/OCDE sont crees d'emblee (vides) : l'utilisateur les
+  // note ensuite un par un plutot que de devoir les ajouter manuellement.
+  const evaluation = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMEEvaluation.create({
+      data: {
+        projectId: data.projectId,
+        titre: data.titre,
+        dateEvaluation: new Date(data.dateEvaluation),
+        evaluateurNom: data.evaluateurNom || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+        criteres: {
+          create: ME_CRITERES.map((critere) => ({ critere, organizationId: session.user.organizationId })),
+        },
+      },
+      include: { criteres: true },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.me_evaluation_created",
+    entityType: "ProjectMEEvaluation",
+    entityId: evaluation.id,
+    changes: { titre: evaluation.titre, projectId: data.projectId },
+  });
+
+  revalidatePath(`/projets/${data.projectId}`);
+  return evaluation;
+}
+
+export async function updateProjectMEEvaluationCritere(input: UpdateProjectMEEvaluationCritereInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectMEEvaluationCritereSchema.parse(input);
+
+  const critere = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMEEvaluationCritere.update({
+      where: { id: data.critereId },
+      data: { note: data.note, commentaire: data.commentaire },
+      include: { evaluation: { select: { projectId: true } } },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.me_evaluation_critere_updated",
+    entityType: "ProjectMEEvaluationCritere",
+    entityId: critere.id,
+    changes: { critere: critere.critere, note: data.note },
+  });
+
+  revalidatePath(`/projets/${critere.evaluation.projectId}`);
+  return critere;
+}
+
+export async function updateProjectMEEvaluationConclusions(input: UpdateProjectMEEvaluationConclusionsInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = updateProjectMEEvaluationConclusionsSchema.parse(input);
+
+  const evaluation = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMEEvaluation.update({
+      where: { id: data.evaluationId },
+      data: { conclusions: data.conclusions, recommandations: data.recommandations },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.me_evaluation_conclusions_updated",
+    entityType: "ProjectMEEvaluation",
+    entityId: evaluation.id,
+    changes: {},
+  });
+
+  revalidatePath(`/projets/${evaluation.projectId}`);
+  return evaluation;
+}
+
+export async function deleteProjectMEEvaluation(input: DeleteProjectMEEvaluationInput) {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error("Non authentifié");
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
+
+  const data = deleteProjectMEEvaluationSchema.parse(input);
+
+  const evaluation = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.projectMEEvaluation.delete({ where: { id: data.evaluationId } })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "project.me_evaluation_deleted",
+    entityType: "ProjectMEEvaluation",
+    entityId: evaluation.id,
+    changes: { titre: evaluation.titre },
+  });
+
+  revalidatePath(`/projets/${evaluation.projectId}`);
+  return evaluation;
 }
 
 // ---- Décisions (cahier des charges §VI/§X) ----

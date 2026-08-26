@@ -44,6 +44,7 @@ import { ProjectResourcesSection, type ProjectResourceData } from "@/components/
 import { ProjectFinancementsSection, type FinancementRow } from "@/components/projects/project-financements-section";
 import { BeneficiairesSection, type BeneficiaireRow } from "@/components/programmes/beneficiaires-section";
 import { ProjectFeedbackSection, type FeedbackRow } from "@/components/projects/project-feedback-section";
+import { ProjectMESection, type MEEvaluationRow } from "@/components/projects/project-me-section";
 import { ProjectDiagnosticForm, type ProjectDiagnosticData } from "@/components/projects/project-diagnostic-form";
 import { ProblemTreeView, type ProblemTreeNodeData } from "@/components/projects/problem-tree-view";
 import { SolutionTreeView, type SolutionTreeNodeData } from "@/components/projects/solution-tree-view";
@@ -140,6 +141,7 @@ export default async function ProjectDetailPage({
     financements,
     beneficiaires,
     feedbacks,
+    meEvaluations,
     diagnostic,
     problemTree,
     solutionTree,
@@ -251,6 +253,11 @@ export default async function ProjectDetailPage({
     prisma.financement.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.beneficiaire.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
     prisma.projectFeedback.findMany({ where: { projectId }, orderBy: { createdAt: "desc" } }),
+    prisma.projectMEEvaluation.findMany({
+      where: { projectId },
+      include: { criteres: true },
+      orderBy: { dateEvaluation: "desc" },
+    }),
     prisma.projectDiagnostic.findUnique({ where: { projectId } }),
     prisma.problemTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
     prisma.solutionTreeNode.findMany({ where: { projectId }, orderBy: { ordre: "asc" } }),
@@ -738,6 +745,21 @@ export default async function ProjectDetailPage({
     createdAt: f.createdAt.toISOString(),
   }));
 
+  const meEvaluationRows: MEEvaluationRow[] = meEvaluations.map((e) => ({
+    id: e.id,
+    titre: e.titre,
+    dateEvaluation: e.dateEvaluation.toISOString(),
+    evaluateurNom: e.evaluateurNom,
+    conclusions: e.conclusions,
+    recommandations: e.recommandations,
+    criteres: e.criteres.map((c) => ({
+      id: c.id,
+      critere: c.critere,
+      note: c.note,
+      commentaire: c.commentaire,
+    })),
+  }));
+
   const diagnosticData: ProjectDiagnosticData | null = diagnostic
     ? {
         id: diagnostic.id,
@@ -981,6 +1003,7 @@ export default async function ProjectDetailPage({
           <TabsTrigger value="hypotheses">Hypothèses</TabsTrigger>
           <TabsTrigger value="beneficiaires">Bénéficiaires</TabsTrigger>
           <TabsTrigger value="retours">Retours</TabsTrigger>
+          <TabsTrigger value="suivi-evaluation">Suivi-évaluation</TabsTrigger>
           <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
           <TabsTrigger value="arbre-problemes">Arbre des problèmes</TabsTrigger>
           <TabsTrigger value="arbre-solutions">Arbre des solutions</TabsTrigger>
@@ -1336,6 +1359,15 @@ export default async function ProjectDetailPage({
 
         <TabsContent value="retours" className="mt-4">
           <ProjectFeedbackSection projectId={project.id} feedbacks={feedbackRows} canManage={canUpdateProject} />
+        </TabsContent>
+
+        <TabsContent value="suivi-evaluation" className="mt-4">
+          <ProjectMESection
+            projectId={project.id}
+            evaluations={meEvaluationRows}
+            indicators={indicatorRows}
+            canManage={canUpdateProject}
+          />
         </TabsContent>
 
         <TabsContent value="diagnostic" className="mt-4">
