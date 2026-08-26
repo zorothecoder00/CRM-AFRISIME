@@ -54,6 +54,8 @@ import { CriticalPathView } from "@/components/projects/critical-path-view";
 import { computeCriticalPath } from "@/lib/critical-path";
 import { TaskTimelineView } from "@/components/tasks/task-timeline-view";
 import { TaskGanttView, type GanttTaskRow, type GanttDependency } from "@/components/tasks/task-gantt-view";
+import type { MindMapTaskRow } from "@/components/tasks/task-mindmap-view";
+import { ProjectViewsSwitcher } from "@/components/projects/project-views-switcher";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
@@ -470,6 +472,24 @@ export default async function ProjectDetailPage({
     avancement: t.avancement,
   }));
 
+  const mindMapRows: MindMapTaskRow[] = tasks.map((t, i) => ({
+    ...ganttRows[i],
+    parentTaskId: t.parentTaskId,
+  }));
+
+  const mapProject =
+    project.latitude !== null && project.longitude !== null
+      ? {
+          id: project.id,
+          nom: project.nom,
+          statut: project.statut,
+          avancement: project.avancement,
+          localisation: project.localisation,
+          latitude: project.latitude,
+          longitude: project.longitude,
+        }
+      : null;
+
   const financementRows: FinancementRow[] = financements.map((f) => ({
     id: f.id,
     bailleur: f.bailleur,
@@ -842,6 +862,7 @@ export default async function ProjectDetailPage({
       <Tabs defaultValue="apercu">
         <TabsList>
           <TabsTrigger value="apercu">Aperçu</TabsTrigger>
+          <TabsTrigger value="vues">Vues</TabsTrigger>
           <TabsTrigger value="execution">Exécution</TabsTrigger>
           <TabsTrigger value="pilotage">Pilotage</TabsTrigger>
           <TabsTrigger value="hierarchie">Hiérarchie</TabsTrigger>
@@ -949,6 +970,22 @@ export default async function ProjectDetailPage({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="vues" className="mt-4">
+          <ProjectViewsSwitcher
+            projectId={project.id}
+            tasks={ganttRows}
+            dependencies={ganttDependencies}
+            mindMapTasks={mindMapRows}
+            roots={roots}
+            userOptions={userOptions}
+            pilotage={pilotage}
+            devise={devise}
+            workload={canReadWorkload ? projectWorkload : null}
+            canManageWorkload={canManageWorkload}
+            mapProject={mapProject}
+          />
         </TabsContent>
 
         <TabsContent value="execution" className="mt-4">
