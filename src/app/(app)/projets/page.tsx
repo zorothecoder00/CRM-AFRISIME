@@ -14,7 +14,7 @@ import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
 import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
 import type { Prisma } from "@/generated/prisma/client";
-import { User, Sparkles } from "lucide-react";
+import { User } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -126,12 +126,6 @@ export default async function ProjetsPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/projets/studio">
-            <Button variant="outline" size="sm">
-              <Sparkles className="mr-1 h-4 w-4" />
-              Project Studio
-            </Button>
-          </Link>
           <Link href={mineHref}>
             <Button variant={onlyMine ? "default" : "outline"} size="sm">
               <User className="mr-1 h-4 w-4" />
