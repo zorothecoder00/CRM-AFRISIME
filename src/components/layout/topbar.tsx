@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { LogOut, ShieldCheck, UserRound, Search, Mic } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
@@ -76,6 +76,19 @@ export function Topbar({
               <Link href="/parametres/securite">
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 Sécurité du compte
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/recherche">
+                <Search className="mr-2 h-4 w-4" />
+                Recherche
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/assistant">
+                <Mic className="mr-2 h-4 w-4" />
+                Assistant
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
