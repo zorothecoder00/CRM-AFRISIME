@@ -112,6 +112,11 @@ export default async function ProjectDetailPage({
     documentRows,
     ruleData } = await loadProjectPageData(projectId);
 
+  // Une sous-tache (parentTaskId non nul) a deja sa place dans "Sous-taches"
+  // sur la fiche de sa tache mere : l'onglet "Taches" (liste plate) n'affiche
+  // que les taches racines pour eviter le doublon visuel.
+  const topLevelTasks = tasks.filter((t) => !t.parentTaskId);
+
   return (
     <div className="space-y-6">
       <BackLink href="/projets" label="Retour aux projets" />
@@ -296,10 +301,14 @@ export default async function ProjectDetailPage({
 
         <TabsContent value="taches" className="mt-4">
           <div className="space-y-2">
-            {tasks.length === 0 && (
+            {/* Une sous-tache a deja sa place dans "Sous-taches" sur la fiche
+                de sa tache mere — cette liste plate n'affiche que les taches
+                racines pour eviter le doublon visuel (meme logique que
+                /taches, voir src/app/(app)/taches/page.tsx). */}
+            {topLevelTasks.length === 0 && (
               <p className="text-sm text-muted-foreground">Aucune tâche pour ce projet.</p>
             )}
-            {tasks.map((task) => (
+            {topLevelTasks.map((task) => (
               <Link
                 key={task.id}
                 href={`/taches/${task.id}`}

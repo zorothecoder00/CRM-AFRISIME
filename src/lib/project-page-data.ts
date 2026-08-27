@@ -477,7 +477,13 @@ export async function loadProjectPageData(projectId: string) {
     responsableName: i.responsable?.name ?? null,
     desagregation: i.desagregation }));
 
-  const ganttRows: GanttTaskRow[] = tasks.map((t) => ({
+  // Une sous-tâche est un Task comme un autre (parentTaskId non nul) : elle a
+  // deja sa place dans "Sous-taches" sur la fiche de sa tache mere. Seule
+  // Mind Map reconstruit une vraie hierarchie a partir de parentTaskId ;
+  // toutes les vues de ProjectViewsSwitcher/ProjectExecutionView qui
+  // consomment ganttRows sont plates, donc limitees aux taches racines pour
+  // eviter le doublon visuel (meme logique que /taches, voir ce fichier).
+  const toGanttRow = (t: (typeof tasks)[number]): GanttTaskRow => ({
     id: t.id,
     titre: t.titre,
     description: t.description,
@@ -489,10 +495,13 @@ export async function loadProjectPageData(projectId: string) {
     echeance: t.echeance ? t.echeance.toISOString() : null,
     dateDebut: t.dateDebut ? t.dateDebut.toISOString() : null,
     tempsEstimeHeures: t.tempsEstimeHeures ? Number(t.tempsEstimeHeures) : null,
-    avancement: t.avancement }));
+    avancement: t.avancement });
 
-  const mindMapRows: MindMapTaskRow[] = tasks.map((t, i) => ({
-    ...ganttRows[i],
+  const topLevelTasks = tasks.filter((t) => !t.parentTaskId);
+  const ganttRows: GanttTaskRow[] = topLevelTasks.map(toGanttRow);
+
+  const mindMapRows: MindMapTaskRow[] = tasks.map((t) => ({
+    ...toGanttRow(t),
     parentTaskId: t.parentTaskId }));
 
   const mapProject =

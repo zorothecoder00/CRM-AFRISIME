@@ -96,7 +96,13 @@ export default async function TachesPage({
       : Promise.resolve(null),
   ]);
 
-  const taskRows: TaskRow[] = tasks.map((t) => ({
+  // Une sous-tâche est un Task comme un autre (parentTaskId non nul, voir
+  // schema.prisma) : elle a déjà sa place dans "Sous-tâches" sur la fiche de
+  // sa tâche mère (/taches/[taskId]). Seule Mind Map reconstruit une vraie
+  // hiérarchie à partir de parentTaskId (voir task-mindmap-view.tsx) ; toutes
+  // les autres vues (Liste/Kanban/Chronologie/Gantt/Portefeuille) sont plates
+  // et n'affichent donc que les tâches racines pour éviter le doublon visuel.
+  const toTaskRow = (t: (typeof tasks)[number]): TaskRow => ({
     id: t.id,
     titre: t.titre,
     description: t.description,
@@ -109,15 +115,19 @@ export default async function TachesPage({
     echeance: t.echeance ? t.echeance.toISOString() : null,
     tempsEstimeHeures: t.tempsEstimeHeures ? Number(t.tempsEstimeHeures) : null,
     avancement: t.avancement,
-  }));
+  });
 
-  const ganttRows: GanttTaskRow[] = tasks.map((t, i) => ({
-    ...taskRows[i],
+  const topLevelTasks = tasks.filter((t) => !t.parentTaskId);
+  const taskRows: TaskRow[] = topLevelTasks.map(toTaskRow);
+
+  const ganttRows: GanttTaskRow[] = topLevelTasks.map((t) => ({
+    ...toTaskRow(t),
     dateDebut: t.dateDebut ? t.dateDebut.toISOString() : null,
   }));
 
-  const mindMapRows: MindMapTaskRow[] = tasks.map((t, i) => ({
-    ...taskRows[i],
+  const mindMapRows: MindMapTaskRow[] = tasks.map((t) => ({
+    ...toTaskRow(t),
+    dateDebut: t.dateDebut ? t.dateDebut.toISOString() : null,
     parentTaskId: t.parentTaskId,
   }));
 
@@ -138,7 +148,7 @@ export default async function TachesPage({
         <div>
           <h1 className="text-2xl font-semibold">Tâches</h1>
           <p className="text-sm text-muted-foreground">
-            {tasks.length} tâche(s){onlyMine ? " — assignées à moi" : ""}
+            {taskRows.length} tâche(s){onlyMine ? " — assignées à moi" : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
