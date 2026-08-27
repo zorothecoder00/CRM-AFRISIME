@@ -62,6 +62,7 @@ import {
   TriangleAlert,
   Briefcase,
   HandCoins,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -91,6 +92,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "centreDeCommande", href: "/centre-de-commande", icon: Radar, permission: PERMISSIONS.EXECUTIVE_VIEW },
       { titleKey: "salleDeSimulation", href: "/salle-de-simulation", icon: FlaskConical, permission: PERMISSIONS.EXECUTIVE_VIEW },
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
+      { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
       { titleKey: "tableauxDeBord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { titleKey: "pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
     ],

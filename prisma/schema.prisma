@@ -183,6 +183,10 @@ enum NotificationType {
   // Comble — un participant ajoute a une reunion (a la creation ou apres
   // coup) n'etait jamais informe (voir src/actions/meeting.actions.ts).
   REUNION_INVITATION
+  // Planning personnel — demande de creneau (voir AvailabilityRequest) et
+  // decision prise sur cette demande.
+  DEMANDE_DISPONIBILITE
+  DEMANDE_DISPONIBILITE_DECISION
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -579,6 +583,9 @@ model User {
   leaveRequests                       Leave[]                        @relation("LeaveRequestedBy")
   leaveDecisions                      Leave[]                        @relation("LeaveDecidedBy")
   eventsCreated                       Event[]                        @relation("EventCreatedBy")
+  personalPlanningEntries             PersonalPlanningEntry[]        @relation("PersonalPlanningEntryOwner")
+  availabilityRequestsReceived        AvailabilityRequest[]          @relation("AvailabilityRequestTarget")
+  availabilityRequestsSent            AvailabilityRequest[]          @relation("AvailabilityRequestRequestedBy")
   objectivesOwned                     Objective[]                    @relation("ObjectiveUser")
   objectivesCreated                   Objective[]                    @relation("ObjectiveCreatedBy")
   conversationsCreated                Conversation[]                 @relation("ConversationCreatedBy")
@@ -1036,6 +1043,8 @@ model PlatformOrganization {
   knowledgeArticles             KnowledgeArticle[]             @relation("PlatformOrganizationKnowledgeArticles")
   leaves                        Leave[]                        @relation("PlatformOrganizationLeaves")
   events                        Event[]                        @relation("PlatformOrganizationEvents")
+  personalPlanningEntries       PersonalPlanningEntry[]        @relation("PlatformOrganizationPersonalPlanningEntries")
+  availabilityRequests          AvailabilityRequest[]          @relation("PlatformOrganizationAvailabilityRequests")
   objectives                    Objective[]                    @relation("PlatformOrganizationObjectives")
   indicators                    Indicator[]                    @relation("PlatformOrganizationIndicators")
   evaluations                   Evaluation[]                   @relation("PlatformOrganizationEvaluations")
@@ -6464,4 +6473,78 @@ model CommunicationPlanEntry {
 
   @@index([projectId])
   @@index([stakeholderId])
+}
+
+// ===================== PLANNING PERSONNEL =====================
+// Second planning, distinct du planning d'activites (/planning) et du
+// calendrier consolide (/calendrier), tous deux alimentes par
+// Task/Meeting/Leave/Event et donc partages avec l'equipe. Celui-ci est
+// prive : notes et creneaux visibles uniquement par leur proprietaire.
+// Il sert aussi de base au calcul de "temps libre disponible" expose aux
+// collegues via AvailabilityRequest, sans jamais divulguer le contenu prive
+// (titre/notes) de l'entree — seule sa plage horaire est utilisee.
+enum PersonalPlanningEntryType {
+  NOTE
+  INDISPONIBLE
+  // Cree automatiquement quand une AvailabilityRequest est acceptee (voir
+  // decideAvailabilityRequest) — distingue un blocage manuel d'un blocage
+  // issu d'une demande de collegue.
+  RESERVE
+}
+
+model PersonalPlanningEntry {
+  id              String                    @id @default(cuid())
+  organizationId  String?
+  organization    PlatformOrganization?     @relation("PlatformOrganizationPersonalPlanningEntries", fields: [organizationId], references: [id])
+  userId          String
+  user            User                      @relation("PersonalPlanningEntryOwner", fields: [userId], references: [id])
+  titre           String
+  notes           String?
+  dateDebut       DateTime
+  dateFin         DateTime
+  type            PersonalPlanningEntryType @default(NOTE)
+  originRequestId String?                   @unique
+  originRequest   AvailabilityRequest?      @relation("AvailabilityRequestBlock", fields: [originRequestId], references: [id])
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([userId])
+  @@index([dateDebut])
+}
+
+// Demande de creneau sur le planning personnel d'un collegue — pattern a
+// approbateur unique (comme Leave) plutot que le circuit ValidationWorkflow :
+// c'est une interaction directe entre pairs (collegue <-> collegue ou
+// superieur <-> collaborateur), pas une approbation hierarchique
+// departementale.
+enum AvailabilityRequestStatus {
+  EN_ATTENTE
+  ACCEPTEE
+  REFUSEE
+  ANNULEE
+}
+
+model AvailabilityRequest {
+  id             String                    @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization?     @relation("PlatformOrganizationAvailabilityRequests", fields: [organizationId], references: [id])
+  targetUserId   String
+  targetUser     User                      @relation("AvailabilityRequestTarget", fields: [targetUserId], references: [id])
+  requestedById  String
+  requestedBy    User                      @relation("AvailabilityRequestRequestedBy", fields: [requestedById], references: [id])
+  titre          String
+  message        String?
+  dateDebut      DateTime
+  dateFin        DateTime
+  statut         AvailabilityRequestStatus @default(EN_ATTENTE)
+  motifRefus     String?
+  decidedAt      DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  createdBlock PersonalPlanningEntry? @relation("AvailabilityRequestBlock")
+
+  @@index([targetUserId])
+  @@index([requestedById])
+  @@index([statut])
 }
