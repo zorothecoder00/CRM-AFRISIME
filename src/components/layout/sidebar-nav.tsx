@@ -34,7 +34,9 @@ export function SidebarNav({
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/30"
           title={t("moduleAVenir")}
         >
-          <Icon className="h-4 w-4" />
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
+            <Icon className="h-4 w-4" />
+          </span>
           {title}
         </div>
       );
@@ -46,13 +48,22 @@ export function SidebarNav({
         href={item.href}
         onClick={onNavigate}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+          "group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
           isActive
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
+            : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
         )}
       >
-        <Icon className="h-4 w-4" />
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+            isActive
+              ? "bg-black/20 text-sidebar-primary shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]"
+              : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
         {title}
       </Link>
     );

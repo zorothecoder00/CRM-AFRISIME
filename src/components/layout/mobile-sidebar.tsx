@@ -24,7 +24,7 @@ export function MobileSidebar({ permissions, roleKey }: { permissions: string[];
               l'accessibilite (lecteur d'ecran) mais visuellement masque. Fond
               clair dedie : le texte du logo est en bleu, illisible sur le
               fond bleu nuit de la sidebar. */}
-          <div className="rounded-md bg-white p-2">
+          <div className="rounded-md bg-white p-2 shadow-md shadow-black/30">
             <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
           </div>
           <SheetTitle className="sr-only">AfriSime Work Space</SheetTitle>
