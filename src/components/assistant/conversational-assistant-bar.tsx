@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
 import { askAssistant, type AskAssistantResult } from "@/actions/assistant.actions";
@@ -37,6 +37,19 @@ function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
   return (w.SpeechRecognition as new () => SpeechRecognitionLike) ?? (w.webkitSpeechRecognition as new () => SpeechRecognitionLike) ?? null;
 }
 
+function subscribeToSpeechRecognitionSupport() {
+  return () => {};
+}
+
+function getSpeechRecognitionSupport() {
+  return getSpeechRecognition() !== null;
+}
+
+function getServerSpeechRecognitionSupport() {
+  return false;
+}
+
+
 export function ConversationalAssistantBar({ projects }: { projects: { id: string; label: string }[] }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -48,17 +61,15 @@ export function ConversationalAssistantBar({ projects }: { projects: { id: strin
   const askAction = useAction(askAssistant);
   const createTaskAction = useAction(createTask, { successMessage: "Tâche créée." });
 
-  // `getSpeechRecognition()` depend de `window` : evalue directement dans le
-  // corps du composant, il renvoie false au rendu serveur puis true des le
-  // premier rendu client (le navigateur a bien `window`), ce qui desaccorde
-  // le HTML hydrate de celui rendu par le serveur (erreur d'hydratation).
-  // useState+useEffect force le premier rendu client a rester identique au
-  // rendu serveur (false), le bouton micro n'apparaissant qu'apres coup.
-  const [speechSupported, setSpeechSupported] = useState(false);
-  useEffect(() => {
-    setSpeechSupported(getSpeechRecognition() !== null);
-  }, []);
-
+   // Le snapshot serveur maintient le premier rendu hydrate sans micro, puis
+  // le snapshot client expose la prise en charge reelle sans setState dans un
+  // effet (ce qui evite un rendu en cascade).
+  const speechSupported = useSyncExternalStore(
+    subscribeToSpeechRecognitionSupport,
+    getSpeechRecognitionSupport,
+    getServerSpeechRecognitionSupport,
+  );
+ 
   function toggleListening() {
     const SpeechRecognitionCtor = getSpeechRecognition();
     if (!SpeechRecognitionCtor) return;

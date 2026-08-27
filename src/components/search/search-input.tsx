@@ -18,12 +18,16 @@ export function SearchInput({
   const searchParams = useSearchParams();
   const [value, setValue] = useState(defaultValue);
 
-  // Toujours a jour a chaque rendu (contrairement a une dependance d'effet,
-  // qui redeclencherait le debounce ci-dessous a chaque changement de filtre) —
-  // lu seulement au moment ou le debounce se declenche, jamais perime.
+  // Maintenu apres le rendu pour ne pas muter une ref pendant le rendu. Le
+  // debounce lit ainsi toujours les filtres les plus recents sans etre
+  // redemarre a chaque changement de filtre.
   const searchParamsRef = useRef(searchParams);
-  searchParamsRef.current = searchParams;
+
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
 
   // Recherche en direct pendant la frappe (mode page /recherche uniquement —
   // le mode compact, ex. barre de topbar, garde "valider pour chercher" pour
