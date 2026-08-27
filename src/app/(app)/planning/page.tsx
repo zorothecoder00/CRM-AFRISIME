@@ -41,14 +41,25 @@ const PRIORITY_LABELS: Record<string, string> = {
 type DayItem =
   | { kind: "meeting"; id: string; time: Date; title: string; href: string }
   | { kind: "event"; id: string; time: Date; title: string }
-  | { kind: "task"; id: string; time: Date; title: string; statut: string; priorite: string; href: string };
+  | {
+      kind: "task";
+      id: string;
+      time: Date;
+      title: string;
+      statut: string;
+      priorite: string;
+      href: string;
+      /** Un planning sert à voir ce qu'on doit COMMENCER cette semaine, pas
+       * seulement ce qui arrive à échéance — voir la requête plus bas. */
+      marker: "debut" | "echeance";
+    };
 
 /**
  * Planning hebdomadaire/quotidien (cahier des charges §IV, "Niveau 3 —
  * Opérationnel" et "Niveau individuel"). Vue agenda personnelle, distincte
  * du calendrier mensuel (/calendrier) : une semaine à la fois, groupée par
- * jour, avec les tâches (échéance du jour), réunions et événements du
- * collaborateur connecté.
+ * jour, avec les tâches (date de début OU échéance du jour), réunions et
+ * événements du collaborateur connecté.
  */
 export default async function PlanningPage({
   searchParams,
@@ -67,8 +78,13 @@ export default async function PlanningPage({
   const [tasks, meetings, events] = await Promise.all([
     prisma.task.findMany({
       where: {
-        OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
-        echeance: { gte: weekStart, lte: weekEnd },
+        AND: [
+          { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },
+          // Un planning sert à voir ce qu'on doit commencer cette semaine,
+          // pas seulement ce qui arrive à échéance — la date de début compte
+          // autant que l'échéance pour apparaître sur cette semaine-là.
+          { OR: [{ echeance: { gte: weekStart, lte: weekEnd } }, { dateDebut: { gte: weekStart, lte: weekEnd } }] },
+        ],
       },
       include: { project: true },
       orderBy: { echeance: "asc" },
@@ -134,20 +150,44 @@ export default async function PlanningPage({
         {days.map((day) => {
           const dayMeetings = meetings.filter((m) => isSameDay(m.dateHeure, day));
           const dayEvents = events.filter((e) => isSameDay(e.dateDebut, day));
-          const dayTasks = tasks.filter((t) => t.echeance && isSameDay(t.echeance, day));
+
+          // Une tâche peut apparaître deux fois dans la semaine (un jour pour
+          // son début, un autre pour son échéance) — mais une seule fois si
+          // les deux tombent le même jour.
+          const dayTasks: DayItem[] = [];
+          for (const t of tasks) {
+            const startsToday = t.dateDebut && isSameDay(t.dateDebut, day);
+            const dueToday = t.echeance && isSameDay(t.echeance, day);
+            if (startsToday) {
+              dayTasks.push({
+                kind: "task",
+                id: `${t.id}-debut`,
+                time: t.dateDebut!,
+                title: t.titre,
+                statut: t.statut,
+                priorite: t.priorite,
+                href: `/taches/${t.id}`,
+                marker: "debut",
+              });
+            }
+            if (dueToday && !(startsToday && t.dateDebut && t.echeance && isSameDay(t.dateDebut, t.echeance))) {
+              dayTasks.push({
+                kind: "task",
+                id: `${t.id}-echeance`,
+                time: t.echeance!,
+                title: t.titre,
+                statut: t.statut,
+                priorite: t.priorite,
+                href: `/taches/${t.id}`,
+                marker: "echeance",
+              });
+            }
+          }
 
           const dayItems: DayItem[] = [
             ...dayMeetings.map((m): DayItem => ({ kind: "meeting", id: m.id, time: m.dateHeure, title: m.titre, href: `/reunions/${m.id}` })),
             ...dayEvents.map((e): DayItem => ({ kind: "event", id: e.id, time: e.dateDebut, title: e.titre })),
-            ...dayTasks.map((t): DayItem => ({
-              kind: "task",
-              id: t.id,
-              time: t.echeance!,
-              title: t.titre,
-              statut: t.statut,
-              priorite: t.priorite,
-              href: `/taches/${t.id}`,
-            })),
+            ...dayTasks,
           ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
           const today = isToday(day);
@@ -217,7 +257,12 @@ export default async function PlanningPage({
                     >
                       <ListChecks className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
                       <span className="min-w-0">
-                        <span className="block truncate font-medium">{item.title}</span>
+                        <span className="block truncate font-medium">
+                          <span className="font-normal text-muted-foreground">
+                            {item.marker === "debut" ? "Début · " : "Échéance · "}
+                          </span>
+                          {item.title}
+                        </span>
                         <span className="flex flex-wrap gap-1">
                           <Badge variant={toneForStatus(item.statut)} className="text-[10px]">
                             {TASK_STATUS_LABELS[item.statut]}
