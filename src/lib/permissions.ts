@@ -85,6 +85,10 @@ export const PERMISSIONS = {
   INTEGRATION_MANAGE: "integration.manage",
 
   DEPARTMENT_MANAGE: "department.manage",
+  // Distinct de DEPARTMENT_MANAGE (qui reste requis pour renommer/supprimer
+  // une equipe) : permet a un chef de projet de creer une equipe et d'en
+  // gerer les membres sans lui donner acces a la console d'administration.
+  TEAM_CREATE: "team.create",
 
   ADMINISTRATION_ACCESS: "administration.access",
   ADMINISTRATION_USERS_MANAGE: "administration.users.manage",
@@ -226,6 +230,7 @@ export const PERMISSION_CATALOG: {
   { key: PERMISSIONS.INTEGRATION_MANAGE, label: "Gérer les intégrations externes", category: "Intégrations" },
 
   { key: PERMISSIONS.DEPARTMENT_MANAGE, label: "Gérer un département", category: "Administration" },
+  { key: PERMISSIONS.TEAM_CREATE, label: "Créer une équipe et en gérer les membres", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ACCESS, label: "Accéder à l'administration", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE, label: "Gérer les utilisateurs", category: "Administration" },
   { key: PERMISSIONS.ADMINISTRATION_ROLES_MANAGE, label: "Gérer les rôles et permissions", category: "Administration" },
@@ -330,6 +335,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
+    PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
     PERMISSIONS.SECURITY_AUDIT_READ,
     PERMISSIONS.INTEGRATION_MANAGE,
@@ -415,6 +421,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
+    PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.GOVERNANCE_MANAGE,
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
@@ -488,6 +495,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
     PERMISSIONS.DEPARTMENT_MANAGE,
+    PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
     PERMISSIONS.PROCESS_READ,
@@ -508,6 +516,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   CHEF_PROJET: [
+    PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.CRM_READ,
     PERMISSIONS.CRM_MANAGE,
     PERMISSIONS.PROGRAM_MANAGE,
@@ -787,6 +796,16 @@ export function requirePermission(
 ): void {
   if (!hasPermission(permissions, key)) {
     throw new Error(`Permission refusée: ${key}`);
+  }
+}
+
+/** Autorise l'action des lors qu'au moins une des permissions listees est presente (ex. DEPARTMENT_MANAGE ou TEAM_CREATE pour les equipes). */
+export function requireAnyPermission(
+  permissions: string[] | undefined,
+  keys: PermissionKey[]
+): void {
+  if (!keys.some((key) => hasPermission(permissions, key))) {
+    throw new Error(`Permission refusée: ${keys.join(" ou ")}`);
   }
 }
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PERMISSIONS, requirePermission } from "@/lib/permissions";
+import { PERMISSIONS, requirePermission, requireAnyPermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { analyzeTeamDeletionImpact } from "@/lib/impact-analysis";
 import {
@@ -24,7 +24,7 @@ async function requireSession() {
 
 export async function createTeam(input: CreateTeamInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+  requireAnyPermission(session.user.permissions, [PERMISSIONS.DEPARTMENT_MANAGE, PERMISSIONS.TEAM_CREATE]);
   const data = createTeamSchema.parse(input);
 
   const team = await prisma.team.create({
@@ -97,7 +97,7 @@ export async function deleteTeam(id: string) {
 
 export async function addTeamMember(input: TeamMemberInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+  requireAnyPermission(session.user.permissions, [PERMISSIONS.DEPARTMENT_MANAGE, PERMISSIONS.TEAM_CREATE]);
   const data = teamMemberSchema.parse(input);
 
   await prisma.teamMember.upsert({
@@ -119,7 +119,7 @@ export async function addTeamMember(input: TeamMemberInput) {
 
 export async function removeTeamMember(input: TeamMemberInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
+  requireAnyPermission(session.user.permissions, [PERMISSIONS.DEPARTMENT_MANAGE, PERMISSIONS.TEAM_CREATE]);
   const data = teamMemberSchema.parse(input);
 
   await prisma.teamMember.deleteMany({ where: { teamId: data.teamId, userId: data.userId } });

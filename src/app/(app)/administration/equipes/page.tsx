@@ -15,7 +15,9 @@ import { MessageSquare } from "lucide-react";
 
 export default async function EquipesPage() {
   const session = await getServerSession(authOptions);
-  if (!session!.user.permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE)) {
+  const canManageDepartment = session!.user.permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE);
+  const canCreateTeam = session!.user.permissions.includes(PERMISSIONS.TEAM_CREATE);
+  if (!canManageDepartment && !canCreateTeam) {
     redirect("/dashboard");
   }
 
@@ -30,7 +32,7 @@ export default async function EquipesPage() {
 
   return (
     <div className="space-y-6">
-      <AdminTabs />
+      {canManageDepartment && <AdminTabs />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Équipes</h1>
@@ -53,7 +55,7 @@ export default async function EquipesPage() {
             <Card key={t.id} size="sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">{t.nom}</CardTitle>
-                <DeleteTeamButton id={t.id} />
+                {canManageDepartment && <DeleteTeamButton id={t.id} />}
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex flex-wrap gap-2">
