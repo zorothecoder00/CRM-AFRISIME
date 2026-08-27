@@ -46,6 +46,14 @@ export async function withTenantScope<T>(
  * non-proprietaire, voir scripts/setup-production-tenant-role.ts et
  * scripts/setup-local-rls-test-role.ts en local).
  *
+ * Client mis en cache sur `globalThis` (meme pattern que `prisma` dans
+ * src/lib/prisma.ts) plutot que `new PrismaClient()` a chaque appel : ce
+ * dernier cree un nouveau `pg.Pool` (voir @prisma/adapter-pg) a chaque
+ * invocation puis le detruit juste apres — tolerable pour une action
+ * occasionnelle, mais un risque reel de rafale de connexions vers Neon une
+ * fois ce mecanisme utilise a la frequence d'un chargement de page (lectures,
+ * Phase 2 lot pages) plutot qu'une simple mutation ponctuelle.
+ *
  * Repli explicite si organizationId est absent (compte cree avant le
  * rattachement ecrit par les actions, ou avant le backfill initial) :
  * utilise le client Prisma non scope habituel plutot que d'echouer — aucune
@@ -53,6 +61,32 @@ export async function withTenantScope<T>(
  * precis. `prisma` (PrismaClient) est structurellement compatible avec
  * Prisma.TransactionClient (memes delegates de modele) ; le cast est sur.
  */
+const globalForTenantScopedPrisma = globalThis as unknown as {
+  tenantScopedPrisma?: PrismaClient;
+};
+
+/**
+ * Meme convention que src/lib/prisma.ts, en version paresseuse (la variable
+ * DATABASE_URL_TENANT_SCOPED peut legitimement etre absente dans un
+ * environnement qui n'appelle jamais withTenantScopedSession avec un
+ * organizationId — construire le client au chargement du module planterait
+ * tout le process pour rien). Le module ES est deja un singleton par
+ * processus : la reassignation sur `globalThis` ne sert qu'a survivre au
+ * hot-reload de `next dev`, qui re-evalue ce module sans redemarrer le
+ * processus Node — inutile, donc evitee, en production.
+ */
+let tenantScopedClient: PrismaClient | undefined = globalForTenantScopedPrisma.tenantScopedPrisma;
+
+function getTenantScopedClient(connectionString: string): PrismaClient {
+  if (!tenantScopedClient) {
+    tenantScopedClient = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+    if (process.env.NODE_ENV !== "production") {
+      globalForTenantScopedPrisma.tenantScopedPrisma = tenantScopedClient;
+    }
+  }
+  return tenantScopedClient;
+}
+
 export async function withTenantScopedSession<T>(
   organizationId: string | null | undefined,
   fn: (tx: Prisma.TransactionClient) => Promise<T>
@@ -66,5 +100,9 @@ export async function withTenantScopedSession<T>(
       "DATABASE_URL_TENANT_SCOPED non configuré — isolation multi-tenant indisponible pour cette action."
     );
   }
-  return withTenantScope(connectionString, organizationId, fn);
+  const client = getTenantScopedClient(connectionString);
+  return client.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.current_org_id', ${organizationId}, true)`;
+    return fn(tx);
+  });
 }

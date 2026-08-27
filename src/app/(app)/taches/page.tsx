@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere, taskVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
@@ -37,64 +37,79 @@ export default async function TachesPage({
   // Vue par defaut (cahier des charges §7 : "chaque utilisateur choisit sa
   // vue") : sans ?vue= explicite dans l'URL, on retombe sur la preference
   // memorisee de l'utilisateur plutot que sur "liste" en dur.
-  let vue = vueParam;
-  if (!vue) {
-    const me = await prisma.user.findUnique({ where: { id: userId }, select: { defaultTaskView: true } });
-    vue = me?.defaultTaskView ?? "liste";
-  }
   const taskScope = taskVisibilityWhere(session!.user.roleKey, session!.user.id);
   const projectScope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
   const onlyMine = mine === "1";
-
-  // Filtre "Mes tâches" : responsable principal OU assigné, combiné (pas
-  // fusionné) avec le taskScope des rôles externes qui a déjà son propre OR.
-  const andClauses: Prisma.TaskWhereInput[] = [];
-  if (taskScope) andClauses.push(taskScope);
-  if (onlyMine) {
-    andClauses.push({ OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] });
-  }
-  // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
-  const entityScope = await getUserEntityScope(userId, session!.user.permissions);
-  const allowedDepartmentIds = await getAllowedDepartmentIds(entityScope);
-  if (allowedDepartmentIds) {
-    andClauses.push({ project: { departmentId: { in: allowedDepartmentIds } } });
-  }
   // Filtre annuel/mensuel — sur l'échéance, déjà affichée en colonne.
   const dateRange = buildDateRangeFilter(annee, mois);
-  if (dateRange) andClauses.push({ echeance: dateRange });
 
-  const [tasks, projects, users, objectives, plans, competences, whiteboard] = await Promise.all([
-    prisma.task.findMany({
-      where: {
-        projectId: projetId || undefined,
-        // Corbeille (V2.2 §37) : une tache supprimee n'apparait plus ici.
-        deletedAt: null,
-        ...(andClauses.length > 0 ? { AND: andClauses } : {}),
-      },
-      include: { project: true, responsablePrincipal: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.project.findMany({
-      where: projectScope,
-      include: { sections: { select: { id: true, nom: true } } },
-      orderBy: { nom: "asc" },
-    }),
-    canCreate || canManage
-      ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
-      : Promise.resolve([]),
-    canCreate
-      ? prisma.objective.findMany({ orderBy: { titre: "asc" }, select: { id: true, titre: true } })
-      : Promise.resolve([]),
-    canCreate
-      ? prisma.plan.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
-      : Promise.resolve([]),
-    canCreate
-      ? prisma.competence.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
-      : Promise.resolve([]),
-    vue === "blanc" && projetId
-      ? prisma.whiteboard.findUnique({ where: { projectId: projetId } })
-      : Promise.resolve(null),
-  ]);
+  // Multi-tenant Phase 2 (lecture) — toutes les requêtes de cette page,
+  // y compris celles des helpers partagés (entity-scope), passent par le
+  // client scopé à l'organisation de la session plutôt que le client global.
+  // `vue` est résolu à l'intérieur puis renvoyé (pas de réassignation d'une
+  // variable capturée depuis la closure imbriquée — interdit par la règle
+  // d'immutabilité du React Compiler) et réaffecté juste après, comme avant.
+  const { tasks, projects, users, objectives, plans, competences, whiteboard, resolvedVue } = await withTenantScopedSession(
+    session!.user.organizationId,
+    async (tx) => {
+      let resolvedVue = vueParam;
+      if (!resolvedVue) {
+        const me = await tx.user.findUnique({ where: { id: userId }, select: { defaultTaskView: true } });
+        resolvedVue = me?.defaultTaskView ?? "liste";
+      }
+
+      // Filtre "Mes tâches" : responsable principal OU assigné, combiné (pas
+      // fusionné) avec le taskScope des rôles externes qui a déjà son propre OR.
+      const andClauses: Prisma.TaskWhereInput[] = [];
+      if (taskScope) andClauses.push(taskScope);
+      if (onlyMine) {
+        andClauses.push({ OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] });
+      }
+      // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
+      const entityScope = await getUserEntityScope(userId, session!.user.permissions, tx);
+      const allowedDepartmentIds = await getAllowedDepartmentIds(entityScope, tx);
+      if (allowedDepartmentIds) {
+        andClauses.push({ project: { departmentId: { in: allowedDepartmentIds } } });
+      }
+      if (dateRange) andClauses.push({ echeance: dateRange });
+
+      const [tasks, projects, users, objectives, plans, competences, whiteboard] = await Promise.all([
+        tx.task.findMany({
+          where: {
+            projectId: projetId || undefined,
+            // Corbeille (V2.2 §37) : une tache supprimee n'apparait plus ici.
+            deletedAt: null,
+            ...(andClauses.length > 0 ? { AND: andClauses } : {}),
+          },
+          include: { project: true, responsablePrincipal: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        tx.project.findMany({
+          where: projectScope,
+          include: { sections: { select: { id: true, nom: true } } },
+          orderBy: { nom: "asc" },
+        }),
+        canCreate || canManage
+          ? tx.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
+          : Promise.resolve([]),
+        canCreate
+          ? tx.objective.findMany({ orderBy: { titre: "asc" }, select: { id: true, titre: true } })
+          : Promise.resolve([]),
+        canCreate
+          ? tx.plan.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
+          : Promise.resolve([]),
+        canCreate
+          ? tx.competence.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } })
+          : Promise.resolve([]),
+        resolvedVue === "blanc" && projetId
+          ? tx.whiteboard.findUnique({ where: { projectId: projetId } })
+          : Promise.resolve(null),
+      ]);
+
+      return { tasks, projects, users, objectives, plans, competences, whiteboard, resolvedVue };
+    }
+  );
+  const vue = resolvedVue;
 
   // Une sous-tâche est un Task comme un autre (parentTaskId non nul, voir
   // schema.prisma) : elle a déjà sa place dans "Sous-tâches" sur la fiche de

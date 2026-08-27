@@ -3,6 +3,13 @@ import type { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
 import { collectDescendantEntityIds } from "@/lib/entity-tree";
 
+/** Sous-ensemble de PrismaClient utilisé ici — accepte aussi bien `prisma`
+ * qu'un `Prisma.TransactionClient` scopé (voir withTenantScopedSession),
+ * pour que les pages migrées vers la Phase 2 (lectures) propagent leur
+ * client scopé plutôt que de retomber silencieusement sur le client global
+ * non scopé à l'intérieur de ce helper partagé. */
+type ScopedClient = Pick<typeof prisma, "user" | "department" | "entity">;
+
 export type EntityScope = {
   /** true = aucune restriction (ENTITY_VIEW_ALL, ou utilisateur/département pas encore rattaché à une entité). */
   canViewAll: boolean;
@@ -35,23 +42,27 @@ function getDepartmentEntityId(departmentId: string, all: DeptLite[]): string | 
  * verrouiller un compte par une donnée manquante plutôt qu'une décision
  * explicite de subdivision de l'organisation.
  */
-export async function getUserEntityScope(userId: string, permissions: string[]): Promise<EntityScope> {
+export async function getUserEntityScope(
+  userId: string,
+  permissions: string[],
+  client: ScopedClient = prisma
+): Promise<EntityScope> {
   if (permissions.includes(PERMISSIONS.ENTITY_VIEW_ALL)) {
     return { canViewAll: true, scopeEntityIds: [] };
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { departmentId: true } });
+  const user = await client.user.findUnique({ where: { id: userId }, select: { departmentId: true } });
   if (!user?.departmentId) {
     return { canViewAll: true, scopeEntityIds: [] };
   }
 
-  const allDepartments = await prisma.department.findMany({ select: { id: true, parentId: true, entityId: true } });
+  const allDepartments = await client.department.findMany({ select: { id: true, parentId: true, entityId: true } });
   const rootEntityId = getDepartmentEntityId(user.departmentId, allDepartments);
   if (!rootEntityId) {
     return { canViewAll: true, scopeEntityIds: [] };
   }
 
-  const allEntities = await prisma.entity.findMany({ select: { id: true, nom: true, parentId: true } });
+  const allEntities = await client.entity.findMany({ select: { id: true, nom: true, parentId: true } });
   return { canViewAll: false, scopeEntityIds: collectDescendantEntityIds(rootEntityId, allEntities) };
 }
 
@@ -60,9 +71,9 @@ export async function getUserEntityScope(userId: string, permissions: string[]):
  * Projets/Tâches via `departmentId: { in: ... }`). Retourne `null` si
  * canViewAll (aucun filtre à appliquer).
  */
-export async function getAllowedDepartmentIds(scope: EntityScope): Promise<string[] | null> {
+export async function getAllowedDepartmentIds(scope: EntityScope, client: ScopedClient = prisma): Promise<string[] | null> {
   if (scope.canViewAll) return null;
-  const allDepartments = await prisma.department.findMany({ select: { id: true, parentId: true, entityId: true } });
+  const allDepartments = await client.department.findMany({ select: { id: true, parentId: true, entityId: true } });
   const scopeSet = new Set(scope.scopeEntityIds);
   return allDepartments
     .filter((d) => {
