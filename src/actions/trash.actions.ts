@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { recomputeParentTaskFromSubtasks } from "@/lib/project-progress";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
@@ -63,12 +64,15 @@ export async function deleteTask(taskId: string) {
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { deletedAt: new Date(), deletedById: session.user.id },
-    select: { projectId: true },
+    select: { projectId: true, parentTaskId: true },
   });
   await logAudit({ userId: session.user.id, action: "task.deleted", entityType: "Task", entityId: taskId });
 
+  if (task.parentTaskId) await recomputeParentTaskFromSubtasks(task.parentTaskId);
+
   revalidatePath(`/projets/${task.projectId}`);
   revalidatePath("/taches");
+  if (task.parentTaskId) revalidatePath(`/taches/${task.parentTaskId}`);
   revalidatePath("/corbeille");
   return { redirectTo: `/projets/${task.projectId}` };
 }
@@ -80,12 +84,15 @@ export async function restoreTask(taskId: string) {
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { deletedAt: null, deletedById: null },
-    select: { projectId: true },
+    select: { projectId: true, parentTaskId: true },
   });
   await logAudit({ userId: session.user.id, action: "task.restored", entityType: "Task", entityId: taskId });
 
+  if (task.parentTaskId) await recomputeParentTaskFromSubtasks(task.parentTaskId);
+
   revalidatePath(`/projets/${task.projectId}`);
   revalidatePath("/taches");
+  if (task.parentTaskId) revalidatePath(`/taches/${task.parentTaskId}`);
   revalidatePath("/corbeille");
 }
 

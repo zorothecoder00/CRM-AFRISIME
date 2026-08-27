@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
+import { TaskStatusSelect } from "@/components/tasks/task-status-select";
 import { toneForStatus, toneForPriority } from "@/lib/status-tone";
 import { Plus } from "lucide-react";
 
@@ -113,9 +114,13 @@ export function SubtasksSection({
               {s.titre}
             </Link>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant={toneForStatus(s.statut)} className="text-[10px]">
-                {STATUS_LABELS[s.statut]}
-              </Badge>
+              {canManage ? (
+                <TaskStatusSelect taskId={s.id} statut={s.statut} />
+              ) : (
+                <Badge variant={toneForStatus(s.statut)} className="text-[10px]">
+                  {STATUS_LABELS[s.statut]}
+                </Badge>
+              )}
               <Badge variant={toneForPriority(s.priorite)} className="text-[10px]">
                 {PRIORITY_LABELS[s.priorite]}
               </Badge>

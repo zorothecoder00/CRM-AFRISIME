@@ -10,7 +10,7 @@ import { requireScopedPermission } from "@/lib/permissions-scoped";
 import { createNotification, notifyMany } from "@/lib/notify";
 import { parseMentions } from "@/lib/mentions";
 import { logAudit } from "@/lib/audit";
-import { recomputeProjectProgress } from "@/lib/project-progress";
+import { recomputeProjectProgress, recomputeParentTaskFromSubtasks } from "@/lib/project-progress";
 import {
   runTaskCompletedRules,
   runValidationRejectedRules,
@@ -282,6 +282,8 @@ export async function addSubtask(input: AddSubtaskInput) {
     priorite: subtask.priorite,
   });
 
+  await recomputeParentTaskFromSubtasks(data.parentTaskId);
+
   revalidatePath(`/taches/${data.parentTaskId}`);
   revalidatePath("/taches");
   revalidatePath(`/projets/${parent.projectId}`);
@@ -324,6 +326,12 @@ export async function updateTaskStatus(taskId: string, statut: string) {
   });
 
   await recomputeProjectProgress(task.projectId);
+  // Statut/avancement d'une tache mere derives de ses sous-taches (voir
+  // recomputeParentTaskFromSubtasks) — no-op si `task` n'est pas une
+  // sous-tache (parentTaskId null).
+  if (task.parentTaskId) {
+    await recomputeParentTaskFromSubtasks(task.parentTaskId);
+  }
 
   if (data.statut === "TERMINEE") {
     await runTaskCompletedRules({
@@ -343,6 +351,7 @@ export async function updateTaskStatus(taskId: string, statut: string) {
 
   revalidatePath("/taches");
   revalidatePath(`/taches/${taskId}`);
+  if (task.parentTaskId) revalidatePath(`/taches/${task.parentTaskId}`);
   revalidatePath(`/projets/${task.projectId}`);
   return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
@@ -647,6 +656,8 @@ export async function convertChecklistItemToSubtask(input: ConvertChecklistItemT
     responsablePrincipalId: subtask.responsablePrincipalId,
     priorite: subtask.priorite,
   });
+
+  await recomputeParentTaskFromSubtasks(item.task.id);
 
   revalidatePath(`/taches/${item.task.id}`);
   revalidatePath("/taches");
