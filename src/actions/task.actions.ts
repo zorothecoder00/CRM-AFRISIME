@@ -302,9 +302,24 @@ export async function addSubtask(input: AddSubtaskInput) {
 
 export async function updateTaskStatus(taskId: string, statut: string) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
-
   const data = updateTaskStatusSchema.parse({ taskId, statut });
+
+  // Le responsable principal et les co-responsables d'une tache peuvent
+  // toujours changer SON statut, meme sans TASK_UPDATE au niveau du role —
+  // c'est leur travail assigne. Tout le monde d'autre reste soumis a
+  // TASK_UPDATE. Verifie sur la tache elle-meme, pas sur la permission
+  // globale, donc s'applique pareil qu'il s'agisse d'une tache ou d'une
+  // sous-tache.
+  const existing = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    select: { responsablePrincipalId: true, assignees: { select: { userId: true } } },
+  });
+  const isOwner =
+    existing.responsablePrincipalId === session.user.id ||
+    existing.assignees.some((a) => a.userId === session.user.id);
+  if (!isOwner) {
+    requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+  }
 
   const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.task.update({

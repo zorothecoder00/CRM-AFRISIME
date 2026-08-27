@@ -24,6 +24,7 @@ export type SubtaskRow = {
   priorite: string;
   responsablePrincipalId: string;
   responsableNom: string;
+  assigneeIds: string[];
   dateDebut: string | null;
   echeance: string | null;
   tempsEstimeHeures: number | null;
@@ -62,12 +63,17 @@ export function SubtasksSection({
   members,
   canManage,
   canDelete,
+  currentUserId,
 }: {
   parentTaskId: string;
   subtasks: SubtaskRow[];
   members: Option[];
   canManage: boolean;
   canDelete: boolean;
+  /** Responsable principal ou co-responsable d'une sous-tâche : peut changer
+   * SON statut même sans TASK_UPDATE (voir updateTaskStatus), comme sur la
+   * fiche de la sous-tâche elle-même. */
+  currentUserId: string;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -107,14 +113,17 @@ export function SubtasksSection({
       {subtasks.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground">Aucune sous-tâche.</p>
       )}
-      {subtasks.map((s) => (
+      {subtasks.map((s) => {
+        const isOwnSubtask = s.responsablePrincipalId === currentUserId || s.assigneeIds.includes(currentUserId);
+        const canChangeThisStatus = canManage || isOwnSubtask;
+        return (
         <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
           <div className="min-w-0 flex-1">
             <Link href={`/taches/${s.id}`} className="text-sm font-medium hover:underline">
               {s.titre}
             </Link>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              {canManage ? (
+              {canChangeThisStatus ? (
                 <TaskStatusSelect taskId={s.id} statut={s.statut} />
               ) : (
                 <Badge variant={toneForStatus(s.statut)} className="text-[10px]">
@@ -137,7 +146,8 @@ export function SubtasksSection({
             />
           )}
         </div>
-      ))}
+        );
+      })}
 
       {canManage && (
         <>

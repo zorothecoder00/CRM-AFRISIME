@@ -63,7 +63,10 @@ export default async function TaskDetailPage({
       checklistItems: { include: { responsable: true }, orderBy: { ordre: "asc" } },
       subTasks: {
         where: { deletedAt: null },
-        include: { responsablePrincipal: { select: { name: true } } },
+        include: {
+          responsablePrincipal: { select: { name: true } },
+          assignees: { select: { userId: true } },
+        },
         orderBy: { createdAt: "asc" },
       },
       comments: {
@@ -104,7 +107,12 @@ export default async function TaskDetailPage({
   const canTag = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);
   const canDeleteTask = session!.user.permissions.includes(PERMISSIONS.TASK_DELETE);
   const isResponsable = task.responsablePrincipalId === session!.user.id;
-  const canChangeStatus = canTag || isResponsable;
+  // Co-responsable (assignee) : meme droit que le responsable principal de
+  // changer le statut de la tache qui lui est confiee, sans TASK_UPDATE au
+  // niveau du role (voir updateTaskStatus, qui applique la meme regle
+  // cote serveur).
+  const isAssignee = task.assignees.some((a) => a.userId === session!.user.id);
+  const canChangeStatus = canTag || isResponsable || isAssignee;
   const tags = await getTagsFor("Task", task.id);
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
@@ -165,6 +173,7 @@ export default async function TaskDetailPage({
     priorite: s.priorite,
     responsablePrincipalId: s.responsablePrincipalId,
     responsableNom: s.responsablePrincipal.name,
+    assigneeIds: s.assignees.map((a) => a.userId),
     dateDebut: s.dateDebut ? s.dateDebut.toISOString() : null,
     echeance: s.echeance ? s.echeance.toISOString() : null,
     tempsEstimeHeures: s.tempsEstimeHeures ? Number(s.tempsEstimeHeures) : null,
@@ -284,6 +293,7 @@ export default async function TaskDetailPage({
               members={memberOptions}
               canManage={canTag}
               canDelete={canDeleteTask}
+              currentUserId={session!.user.id}
             />
           </CardContent>
         </Card>
