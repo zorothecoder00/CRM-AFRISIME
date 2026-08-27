@@ -2,438 +2,195 @@
   Password123! 
 
 -@xyflow/react librairie de graphe relationnel
+-bibliothèque i18n (next-intl, i18next...)
+-extension PostgreSQL pg_trgm (similarite trigramme) pour tolerer fautes de frappe/variantes
+- Serwist pour le mode hors ligne
+-La dictée vocale (ConversationalAssistantBar, client) — utilise directement l'API navigateur SpeechRecognition (Web Speech API, native Chrome/Edge,aucune clé requise). Pas supportée partout (Firefox notamment)
 
-https://claude.ai/code/artifact/b8dd2dff-bd0d-4ab1-bd6e-c33caa9b7fc0?via=auto_preview 
-https://claude.ai/code/artifact/20ca1b19-67a0-4258-b1fe-3d30a605ad99?via=auto_preview
-https://claude.ai/code/artifact/fb152ab8-b293-466f-9963-08d0e795cf1d?via=auto_preview
+https://claude.ai/code/artifact/b2308872-5d7c-44f0-a522-6d8de22ee2f1?via=auto_preview  lien pour montrer un peu comment l'app fonctionnel
+
+https://claude.ai/code/artifact/002d1820-1cc4-4783-a926-9a481d3e4f5c?via=auto_preview
+https://claude.ai/code/artifact/9161e82c-4210-444d-8ef8-3b1e70bd2dfd?via=auto_preview : plan détaillé pour l'Isolation multi-tenant réelle pour AfriFlow 
+
+https://claude.ai/code/artifact/0e7a997c-cbd3-4f78-90e7-36080d26a3e2?via=auto_preview( travail réalisé sur afriflow aujourd'hui le 25 Aout 2026)
+
+Tip: Run /ultrareview for a cloud-based multi-agent review that finds and
+     verifies bugs in your branch — 3 free reviews left
+
+Tip: Share Claude Code and earn $10 in usage credits · /passes
 
 
 
-Donner de la couleur bleue au menu de gauche et au clic ou survol donner une sorte d'effet 3D pour rendre la navigation un peu designé 
+ Voici la revue complète. Méthode : sweep live de 100+ pages (build prod +
+  serveur réel + sessions authentifiées, 2 rôles différents) pour détecter les
+  crashes, plus relecture ciblée du code pour les flux qui ne se testent pas par
+  simple chargement de page (récupération de mot de passe, notifications,
+  export). Je n'ai pas pu tester les interactions purement client
+  (drag-and-drop, QR MFA) faute d'outil de navigateur dans cet environnement —
+  je le signale plutôt que de prétendre l'avoir fait.
+ 
+  1. Ce qui ne fonctionne pas
+
+  Un vrai bug, sévère :
+  - "Mot de passe oublié" est totalement inopérant. forgot-password/route.ts
+  génère un token puis se contente d'un console.log côté serveur (// TODO:
+  envoyer rawToken par email...) — aucun email n'est envoyé, et il n'existe
+  aucune alternative admin pour régénérer/consulter le lien depuis l'UI
+  (contrairement à l'invitation portail, qui elle affiche bien le lien à
+  copier-coller). Un utilisateur qui oublie son mot de passe n'a strictement
+  aucun moyen de le récupérer.
+
+  Fonctionnalités présentes mais désactivées faute d'identifiants externes
+  (documenté dans le code, pas des bugs de logique — mais le résultat pour
+  l'utilisateur est le même : ça ne marche pas) :
+  - Notifications externes (email/SMS/push) : l'intention est journalisée, rien
+  n'est réellement envoyé — seul l'onglet notifications in-app fonctionne.
+  - Toute l'"IA" (conseiller stratégique, orchestrateur d'agents, assistant
+  vocal, recherche "sémantique") est en réalité des heuristiques déterministes
+  sur des données réelles — pas de vrai raisonnement/LLM, faute de clé API dans
+  cette instance.
+
+  Ce que je n'ai pas trouvé cassé (et qui mérite d'être dit, ça compte) : sweep
+  de 100+ pages sur 2 rôles différents (super admin, chef de projet), zéro crash
+  serveur, zéro page blanche, les redirections de permission se comportent
+  comme attendu. Structurellement, l'app est saine.
+
+  2. Points forts (vraie plus-value)
+
+  - La cascade OKR (Vision→Mission→Axes→Objectifs→OKR→KPI→Projets→Tâches) et la
+  consolidation multi-niveaux
+  (Groupe→Pays→Société→Direction→Département→Équipe→Individu) sont réellement
+  câblées bout en bout sur des données relationnelles réelles, pas des rollups
+  approximatifs.
+  - Health Score, Maturity Assessment, Early Warning : chaque score est calculé
+  à la volée sur des données opérationnelles réelles (charge, risques,
+  décisions, évaluations) et explicable — chaque dimension porte une explication
+  textuelle, pas juste un chiffre.
+  - Decision Intelligence : les décisions sont réévaluées 6 mois après (coût
+  réel, ROI, enseignements) — une vraie boucle d'apprentissage organisationnel,
+  rare dans ce type d'outil.
+  - Gouvernance IA + Zero-Trust documenté + Security Trust Center : traçabilité
+  complète des actions IA, validation humaine obligatoire sur les actions
+  sensibles (contrats, orchestration) — une réflexion sécurité sérieuse, pas
+  cosmétique.
+  - Écosystème portail externe (client/partenaire/investisseur/institution) avec
+  droits granulaires, entièrement réutilisé sur le même socle de données — pas
+  de système parallèle dupliqué.
+  - Discipline d'architecture : chaque domaine métier vit dans son propre
+  fichier lib/*.ts, jamais de logique métier dans un composant, toute mutation
+  passe par une server action typée — ça explique directement le très faible
+  taux de bug constaté en live.
+
+  3. Points faibles (à améliorer)
+   
+  - Aucun canal de livraison externe (email/SMS/push) — au-delà du mot de passe
+  oublié, ça limite l'usabilité réelle à grande échelle (rappels, alertes,
+  invitations).
+  - Pas de vraie IA/LLM — écart entre l'ambition affichée par le cahier
+  (§9/§16/§37-38/§41) et la réalité (heuristiques). Gros potentiel si une clé
+  est un jour fournie.
+  - Pas de temps réel — messagerie et notifications reposent sur du polling, pas
+  de WebSocket/SSE.
+  - Recherche non sémantique — correspondance texte (contains), pas de recherche
+  floue/intelligente malgré ce que suggère le cahier.
+  - Multi-tenant = registre seulement — PlatformOrganization existe mais n'isole
+  pas réellement les données ; pas prêt à héberger plusieurs organisations
+  indépendantes en production.
+  - Pas de moteur de conversion de change — la devise est maintenant
+  configurable par organisation/entité, mais rien ne convertit les montants ;
+  agréger des entités en devises différentes juxtapose des nombres bruts sous
+  des étiquettes différentes plutôt que de vrais totaux convertis.
+  - Pas de mode hors-ligne complet — le retry-on-reconnect existe, mais pas de
+  lecture hors-ligne réelle (pas de service worker), alors que le cahier insiste
+  explicitement là-dessus pour l'Afrique.
+  - Aucune observabilité infra (APM, latence, disponibilité) — seul l'AuditLog
+  applicatif existe ; un incident de prod pourrait passer inaperçu.
+  - Zéro test automatisé — Vitest est configuré (npm test fonctionne) mais aucun
+  fichier de test n'existe dans tout le code. Toute la charge de vérification
+  repose sur des vérifications manuelles comme celles de cette session.
+  - Calculs lourds recalculés à chaque affichage (health-score,
+  maturity-assessment, benchmarking) — pas de mise en cache/pré-agrégation, ça
+  tiendra tant que le volume de données reste modéré mais deviendra un vrai
+  sujet de performance en grandissant.
 
 
-26. MODULE — DIGITAL TWIN ORGANISATIONNEL
-Fonctionnalité stratégique à préparer.
-Le système doit pouvoir représenter numériquement :
- personnes ;
- équipes ;
- structures ;
- projets ;
- processus ;
- ressources ;
- objectifs ;
- risques ;
- relations ;
- décisions.
-Objectif
-Permettre de comprendre :
 
-Comment les différentes composantes de l'organisation s'influencent
-mutuellement.
-27. MODULE — KNOWLEDGE GRAPH
-Construire progressivement un graphe de connaissances.
-Exemple :
-Personne
-→ travaille sur
-Projet
-→ dépend de
-Processus
-→ produit
-Document
-→ résulte de
-Décision
-→ prise par
-Instance
-Cette architecture sera particulièrement utile pour l'IA.
-28. RECHERCHE UNIVERSELLE
-La recherche doit permettre de chercher dans :
- personnes ;
- projets ;
- tâches ;
- documents ;
- contrats ;
- décisions ;
- réunions ;
+● Phase 1 du retrofit multi-tenant terminée — commit 0dd9fd8 poussé.
 
- partenaires ;
- processus ;
- risques ;
- connaissances.
-Avec :
- recherche textuelle ;
- filtres ;
- tags ;
- recherche sémantique ;
- recherche IA.
-29. CENTRE DE COMMANDE — EXECUTIVE
-COMMAND CENTER
-Créer un dashboard réservé aux dirigeants.
-Vue instantanée
-Performance globale
-Objectifs
-Projets critiques
-Risques critiques
-Décisions en attente
-Charge des équipes
-Opportunités CRM
-Alertes
-Prévisions IA
+  Bilan final :
+  - 129 des 138 modèles couverts (organizationId ou platformOrganizationId
+    nullable + RLS), en 17 lots sur cette session
+  - 178 tests d'intégration réels (rôle Postgres non-propriétaire, pas de
+    mocks), tous verts
+  - Zéro régression vérifiée à chaque lot (typecheck, tests, curl live, y
+    compris connexion et mot de passe oublié pour le dernier lot)
+  - 9 modèles exclus par décision explicite (Role, Permission, RolePermission,
+    OrganizationProfile, ExchangeRate, HealthScoreWeight, AppCatalogEntry,
+    RetentionPolicy) — tous bloqués par une contrainte unique globale sur leur
+    clé catalogue, documentés dans schema.prisma et next.config.ts
 
-30. DAILY BRIEFING IA
-Chaque utilisateur peut recevoir automatiquement un résumé quotidien.
+  Ce qui reste, hors du périmètre couvert aujourd'hui : la Phase 2 — brancher
+  withTenantScope sur les call sites applicatifs réels (actuellement l'app
+  entière utilise encore le client Prisma non scopé). Le mécanisme est prouvé et
+  le schéma est prêt, mais il n'y a toujours aucune isolation multi-tenant
+  effective en production tant que cette phase n'est pas faite.
 
-Exemple
-Bonjour Nelson, voici votre briefing du 13 août (dayly) :
-5 tâches prioritaires
-2 réunions
-1 projet à risque
-3 validations en attente
-2 opportunités CRM à relancer
-1 décision à traiter
-Priorité recommandée : Projet X
-31. WEEKLY BUSINESS REVIEW IA
-Le système génère automatiquement un rapport hebdomadaire.
-Contenu
- activités ;
- résultats ;
- objectifs ;
- projets ;
- risques ;
- incidents ;
- décisions ;
- CRM ;
- performances ;
- recommandations.
-32. GÉNÉRATION AUTOMATIQUE DE RAPPORTS
-Permettre de générer :
- rapport projet ;
- rapport département ;
- rapport direction ;
- rapport mensuel ;
- rapport trimestriel ;
+  Ce qui reste, pour référence si vous reprenez ce chantier plus tard :
+  - ~129 autres pages à auditer et câbler une par une (chacune peut avoir ses
+    propres helpers partagés à vérifier, comme on l'a vu ici).
+  - 67 fichiers d'actions (écritures) encore non câblés.
+  - Le pattern est maintenant prouvé et le point de friction principal (pooling
+    de connexions) est réglé — la suite est un travail méthodique, page par
+    page, pas un obstacle technique nouveau.
 
- rapport annuel ;
- rapport de performance ;
- rapport d'audit ;
- rapport de risques ;
- rapport de gouvernance.
-Formats :
- PDF ;
- Excel ;
- Word ;
- présentation.
-33. MARKETPLACE / APP STORE
-Préparer une architecture permettant à terme d'ajouter des applications.
-Exemple
-Work-Flow Apps
- RH ;
- juridique ;
- ONG ;
- BTP ;
- cabinet conseil ;
- incubateur ;
- formation ;
- gestion associative ;
- gestion de programmes ;
- gestion de projets financés.
-34. API & INTÉGRATIONS
-La V2.2 doit renforcer l'architecture API.
-Intégrations potentielles
- AfriGes ;
- messagerie ;
- calendrier ;
- email ;
- stockage documentaire ;
- outils de visioconférence ;
 
- systèmes financiers ;
- outils marketing ;
- outils BI.
-API
-Prévoir :
- API REST ;
- Webhooks ;
- OAuth ;
- clés API ;
- gestion des permissions ;
- journalisation.
-35. AUTOMATISATION INTER-SYSTÈMES
-Exemple :
-AfriGes
-→ événement métier
-↓
-API
-↓
-Work-Flow
-→ création d'une tâche
-→ notification du responsable
-→ mise à jour KPI
-→ dashboard.
-Ainsi, les deux logiciels restent distincts mais intelligemment connectés.
-36. SÉCURITÉ
-La V2.2 devra renforcer :
 
- RBAC ;
- ABAC ;
- MFA ;
- chiffrement ;
- sessions ;
- journalisation ;
- audit trail ;
- contrôle des appareils ;
- restrictions par entité ;
- restrictions par pays ;
- restrictions par projet ;
- permissions externes.
-37. GESTION DES DONNÉES
-Prévoir :
- archivage ;
- versioning ;
- sauvegarde ;
- restauration ;
- suppression contrôlée ;
- historique ;
- export ;
- import ;
- rétention.
-38. ARCHITECTURE DES DASHBOARDS
-Chaque utilisateur doit avoir une interface adaptée à son rôle.
-Administrateur
-Vue système
-DG
-Vue stratégique
-Directeur
-Vue directionnelle
-Manager
 
-Vue équipe
-Chef de projet
-Vue projet
-Collaborateur
-Vue personnelle
-Client
-Vue client
-Partenaire
-Vue partenaire
-39. SYSTÈME DE NOTIFICATION 2.0
-Canaux :
- notification interne ;
- email ;
- SMS selon intégration ;
- push ;
- messagerie externe selon intégration.
-Types :
- information ;
- rappel ;
- validation ;
- alerte ;
- urgence ;
- escalade.
-40. MOTEUR DE PRIORISATION IA
-Le système doit pouvoir calculer une priorité en fonction de :
-Urgence + Importance + Impact + Échéance + Dépendances + Risque
-et proposer :
+Explique moi le workflow de /dependances et /orchestrations ???
 
-Top 5 des actions à réaliser aujourd'hui.
-41. MATRICE DE DÉCISION
-Permettre à un manager de comparer plusieurs options selon :
- coût ;
- délai ;
- risque ;
- impact ;
- ressources ;
- ROI ;
- faisabilité.
-Le système peut ensuite produire une recommandation.
-42. GOVERNANCE DE L'IA
-L'IA ne doit jamais disposer automatiquement d'un pouvoir illimité.
-Prévoir trois niveaux :
-Niveau 1 — Suggestion
-L'IA recommande.
-Niveau 2 — Validation humaine
-L'IA propose → utilisateur valide.
-Niveau 3 — Automatisation autorisée
-L'IA peut exécuter certaines actions préalablement autorisées.
-Chaque action IA doit être traçable.
-43. PRINCIPLE "HUMAN IN THE LOOP"
-Pour les actions sensibles :
-IA → Proposition → Validation humaine → Exécution
-Exemples :
 
- changement de statut critique ;
- suppression ;
- validation contractuelle ;
- décision stratégique ;
- modification de permissions ;
- communication externe.
-44. ROADMAP D'IMPLÉMENTATION V2.2
-Je recommande de découper cette énorme extension.
-LOT V2.1-A — Intelligence
- Assistant IA
- Analytics intelligent
- recherche sémantique
- recommandations
- Daily Briefing
- Weekly Review
-LOT V2.1-B — Automation
- Workflow Engine
- Automation Builder
- règles conditionnelles
- notifications
- orchestration
-LOT V2.1-C — Predictive
- prédiction des retards
- prédiction des risques
- workload prediction
- performance prediction
-LOT V2.2-A — Ecosystème
- portail client
- portail partenaire
- portail fournisseur
- portail investisseur
- portail institution/bailleur
+Explique moi le workflow de /marketplace
 
-LOT V2.2-B — Multi-entités
- groupe
- sociétés
- filiales
- agences
- pays
- consolidation
-LOT V2.2-C — Intelligence avancée
- Relationship Intelligence
- Knowledge Graph
- Digital Twin
- Scenario Planning
- Simulation
-LOT V2.2-D — Plateforme
- API
- Webhooks
- Marketplace
- Apps
- intégrations externes
-45. CRITÈRES D'ACCEPTATION
-La V2.2 sera considérée comme fonctionnellement réussie lorsque :
-Organisation
-L'utilisateur peut naviguer :
-Groupe → Entité → Direction → Département → Équipe → Projet → Tâche.
-Intelligence
-L'utilisateur peut poser une question en langage naturel et obtenir une réponse
-basée sur les données auxquelles il a accès.
-Automatisation
-Un processus peut être entièrement automatisé selon des règles configurables.
+Tu peux m'expliquer un peu le workflow postes-competences-sites-manager ?? Je vois ces 4 infos un peu partout au niveau d'administration mais on dirait qu'elles ne servent à pratiquement rien dans l'app . Explique moi aussi un peu les opportunités , contacts ( CRM ) , leur worklow entier , à quoi ils servent et comment ils travaillent ou prennent part aux activités de l'app .
 
-Prédiction
-Le système peut identifier automatiquement les éléments présentant un risque.
-Écosystème
-Un client ou partenaire externe peut collaborer avec l'organisation sans accéder
-aux données internes non autorisées.
-Multi-entités
-Plusieurs sociétés ou filiales peuvent fonctionner sur la même plateforme avec
-isolation et consolidation.
-IA
-Toutes les actions importantes réalisées ou proposées par l'IA sont traçables.
-46. RÈGLE DE NON-DUPLICATION AVEC AFRIGES
-Cette règle reste absolue.
-AfriGes
-ERP / gestion opérationnelle
-AfriSime Work-Flow
-CRM + Work Management + Project Management + Organisation +
-Gouvernance + Intelligence + Collaboration + Pilotage
-Exemple
-AfriGes
-Une vente est enregistrée pour 2 500 000 FCFA.
-Work-Flow
-Le KPI commercial est mis à jour.
-AfriGes
-Le stock diminue.
 
-Work-Flow
-Un indicateur de disponibilité ou de performance peut être récupéré via API.
-AfriGes
-Une facture est comptabilisée.
-Work-Flow
-Le dashboard financier peut exploiter l'information consolidée.
-Les données opérationnelles restent dans AfriGes.
-47. VISION CIBLE APRÈS V2.2
-À ce stade, AfriSime Work-Flow ne sera plus simplement :
-un CRM
-ou
-un logiciel de gestion de projets.
-Il deviendra progressivement :
-AFRISIME WORK-FLOW
-ORGANIZATIONAL OPERATING SYSTEM
-Une plateforme qui permet à une organisation de :
-PENSER
-→ stratégie
-DÉCIDER
-→ gouvernance
-PLANIFIER
-→ objectifs / programmes
-ORGANISER
+Explique moi le workflow de /crm/organisations
 
-→ structures / équipes
-RELATIONNER
-→ CRM / écosystème
-EXÉCUTER
-→ projets / tâches
-COLLABORER
-→ communication
-AUTOMATISER
-→ workflows / IA
-CONTRÔLER
-→ risques / qualité / audit
-MESURER
-→ KPI / performance
-PRÉDIRE
-→ intelligence prédictive
-APPRENDRE
-→ knowledge management
-S'ADAPTER
-→ scénarios / simulation.
 
-Architecture cible
-AFRISIME WORK-FLOW
-│
-┌───────────────────┼───────────────────┐
-│ │ │
-ORGANISATION EXÉCUTION ÉCOSYSTÈME
-│ │ │
-Gouvernance Projets Clients
-Hiérarchie Tâches Partenaires
-Processus Workflows Fournisseurs
-Compétences Planning Investisseurs
-│ │ │
-└───────────────────┼───────────────────┘
-│
-INTELLIGENCE LAYER
-│
-┌─────────────────────┼────────────────────┐
-│ │ │
-IA ANALYTICS PRÉDICTION
-│ │ │
-└─────────────────────┼────────────────────┘
-│
-DECISION ENGINE
-│
-┌─────────────┴─────────────┐
-│ │
-AUTOMATISATION SIMULATION
-│ │
-└─────────────┬─────────────┘
-│
-API / ECOSYSTEM
-│
-┌────────────┴────────────┐
-│ │
-AFRIGES SERVICES TIERS
+Je ne comprends pas aussi /succession . A quoi cette route sert réellement ?? Explique moi le workflow complet et son fonctionnement réel
 
-Point essentiel pour le développeur : cette V2.2 doit être conçue comme une
-extension architecturale, et non comme une accumulation de fonctionnalités.
 
-Les nouveaux moteurs — IA, Workflow, Automation, Prediction, API, Multi-
-entités et Knowledge Graph — doivent être conçus comme des services
+Explique moi le workflow de /evaluations ?? ça marche vraiment ?? Ou c'est juste un mécanisme futur qui ne fonctionne pas encore ??
 
-transversaux réutilisables par les modules existants et futurs. C'est ce qui
-permettra ensuite d'ajouter une V2.3 ou une V3.0 sans devoir reconstruire le
-progiciel.
+
+
+Explique moi le workflow de /base-de-connaissances
+
+
+
+
+Essayer de s'inspirer du design de jira
+
+
+
+
+
+Recevoir les notifications sur mail ( laisser les mails fictifs pour travailler avec de vrais mails et comme ça pouvoir directement recevoir des messages et notifs dans sa boite mail )
+
+
+
+Identifiants en production
+awledouamoussouguenou@gmail.com
+awledou doudou
+
+
+
+
+
+
+ 
+
+
+
+
+

@@ -1,0 +1,923 @@
+CAHIER DES CHARGES — MODULE « PROJECT STUDIO »
+Module intégré de conception, planification, financement, exécution, suivi,
+évaluation et clôture des projets
+Version proposée : Project Studio V1.0
+Positionnement
+De l'idée à l'impact : concevoir, financer, exécuter, piloter et évaluer un projet
+dans un seul environnement.
+1. VISION DU MODULE
+Le module doit couvrir l'ensemble du cycle de vie d'un projet :
+IDÉE
+↓
+DIAGNOSTIC
+↓
+CONCEPTION
+↓
+FAISABILITÉ
+↓
+PLANIFICATION
+↓
+BUDGÉTISATION
+↓
+FINANCEMENT
+↓
+VALIDATION
+↓
+EXÉCUTION
+↓
+SUIVI
+↓
+ÉVALUATION
+↓
+CLÔTURE
+↓
+CAPITALISATION
+↓
+IMPACT
+Il doit également permettre de gérer différents types de projets :
+ projets d'entreprise ;
+
+ projets d'investissement ;
+ projets informatiques ;
+ projets de développement ;
+ projets ONG ;
+ projets financés par des bailleurs ;
+ projets institutionnels ;
+ projets événementiels ;
+ projets de construction ;
+ projets agricoles ;
+ projets de transformation digitale ;
+ programmes de formation ;
+ projets sociaux ;
+ projets internationaux.
+2. ARCHITECTURE GÉNÉRALE
+Le menu PROJETS pourrait être organisé ainsi :
+PROJETS
+│
+├── 01. Portefeuille de projets
+├── 02. Idées & opportunités
+├── 03. Conception de projet
+├── 04. Diagnostic & analyse
+├── 05. Théorie du changement
+├── 06. Cadre logique
+├── 07. Parties prenantes
+├── 08. Objectifs & résultats
+├── 09. Planification
+├── 10. Budget & financement
+├── 11. Ressources
+├── 12. Achats & fournisseurs
+├── 13. Équipe projet
+├── 14. Risques
+├── 15. Qualité
+├── 16. Communication
+├── 17. Documentation
+├── 18. Exécution
+├── 19. Suivi & contrôle
+├── 20. Suivi-évaluation
+├── 21. Changements
+├── 22. Décisions
+├── 23. Rapports
+├── 24. Évaluation
+├── 25. Clôture
+├── 26. Capitalisation
+└── 27. Impact
+
+3. PORTFOLIO MANAGEMENT
+Avant même d'ouvrir un projet, la Direction doit pouvoir avoir une vision de
+l'ensemble des projets.
+Dashboard
+ projets actifs ;
+ projets en préparation ;
+ projets suspendus ;
+ projets terminés ;
+ projets en retard ;
+ projets à risque ;
+ budget total ;
+ budget consommé ;
+ financement obtenu ;
+ financement recherché ;
+ taux d'avancement ;
+ impact attendu.
+Filtres
+ département ;
+ responsable ;
+ programme ;
+ pays ;
+ bailleur ;
+ priorité ;
+ statut ;
+ budget ;
+ niveau de risque.
+4. MODULE « IDÉE DE PROJET »
+Tout projet commence par une idée.
+L'utilisateur peut créer :
+Nouvelle idée
+Informations
+ titre provisoire ;
+ origine de l'idée ;
+
+ problème identifié ;
+ opportunité ;
+ bénéficiaires ;
+ zone ;
+ porteur ;
+ estimation budgétaire ;
+ durée ;
+ priorité ;
+ source potentielle de financement.
+Statuts
+Idée
+→ À étudier
+→ Étude de faisabilité
+→ Approuvée
+→ En conception
+→ Projet créé
+→ Rejetée
+→ Archivée
+5. PROJECT CONCEPT NOTE
+Avant de créer un dossier projet complet, Work-Flow doit pouvoir générer une
+Concept Note.
+Sections
+ titre ;
+ contexte ;
+ problème ;
+ justification ;
+ objectifs ;
+ bénéficiaires ;
+ approche ;
+ résultats attendus ;
+ durée ;
+
+ budget indicatif ;
+ partenaires ;
+ financement recherché.
+Génération automatique
+La Concept Note peut être générée à partir des données déjà renseignées.
+6. DIAGNOSTIC DU PROJET
+Créer un véritable espace de diagnostic.
+Outils intégrés
+ analyse du contexte ;
+ analyse des besoins ;
+ analyse des causes ;
+ analyse des conséquences ;
+ données statistiques ;
+ enquêtes ;
+ consultations ;
+ études existantes ;
+ analyse documentaire.
+7. PROBLEM TREE
+Créer un arbre à problèmes interactif.
+CONSÉQUENCES
+↑
+PROBLÈME CENTRAL
+↑
+CAUSES DIRECTES
+↑
+CAUSES PROFONDES
+Drag & Drop.
+Chaque élément peut être relié à :
+ données ;
+ documents ;
+ indicateurs ;
+ sources ;
+
+ commentaires.
+8. SOLUTION TREE
+À partir du Problem Tree :
+Convertir automatiquement en arbre des solutions.
+Exemple :
+Problème
+↓
+Cause
+↓
+Solution
+↓
+Résultat attendu
+9. STAKEHOLDER ANALYSIS
+Créer une cartographie complète des parties prenantes.
+Informations
+ nom ;
+ organisation ;
+ catégorie ;
+ rôle ;
+ influence ;
+ intérêt ;
+ niveau d'engagement ;
+ attentes ;
+ risques ;
+ stratégie d'engagement.
+Matrice
+Influence × Intérêt
+
+INFLUENCE
+faible forte
+fort intérêt Informer Gérer de près
+faible intérêt Surveiller Satisfaire
+
+10. BENEFICIARY ANALYSIS
+Créer une fiche détaillée des bénéficiaires :
+ bénéficiaires directs ;
+ bénéficiaires indirects ;
+ nombre ;
+ caractéristiques ;
+ localisation ;
+ besoins ;
+ vulnérabilités ;
+ critères de sélection.
+11. THEORY OF CHANGE
+Le module devra reprendre le module TdC défini précédemment.
+Chaîne
+Inputs
+→ Activités
+→ Outputs
+→ Outcomes
+→ Impact
+Avec :
+ hypothèses ;
+ risques ;
+ conditions ;
+ indicateurs ;
+ sources de vérification.
+
+12. LOGFRAME BUILDER
+Créer automatiquement un cadre logique à partir de la Théorie du Changement.
+Niveau Résultats Indicateurs Sources Hypothèses
+Impact
+Outcome
+Output
+Activités
+L'utilisateur peut modifier manuellement les éléments.
+13. OBJECTIVES BUILDER
+Permettre de construire :
+Objectif général
+↓
+Objectifs spécifiques
+↓
+Résultats
+↓
+Livrables
+↓
+Activités
+↓
+Tâches
+Le système doit pouvoir vérifier la cohérence entre les niveaux.
+14. SMART OBJECTIVES
+
+Pour chaque objectif :
+ Specific ;
+ Measurable ;
+ Achievable ;
+ Relevant ;
+ Time-bound.
+Le système peut afficher :
+SMART Score : 87 %
+et expliquer les éléments manquants.
+15. WORK BREAKDOWN STRUCTURE — WBS
+Créer un outil WBS professionnel.
+PROJET
+│
+├── Phase 1
+│ ├── Activité 1
+│ ├── Activité 2
+│ └── Activité 3
+│
+├── Phase 2
+│ ├── Activité 4
+│ └── Activité 5
+│
+└── Phase 3
+Chaque élément peut devenir automatiquement :
+ activité ;
+ tâche ;
+ livrable ;
+ jalon.
+16. PROJECT CHARTER
+Créer automatiquement une Charte de projet.
+Contenu
+ titre ;
+
+ sponsor ;
+ chef de projet ;
+ objectifs ;
+ périmètre ;
+ livrables ;
+ budget ;
+ calendrier ;
+ gouvernance ;
+ risques majeurs ;
+ parties prenantes ;
+ critères de réussite.
+17. SCOPE MANAGEMENT
+Définir :
+Inclus dans le projet
+Exclu du projet
+Livrables
+Contraintes
+Limites
+Cela évite les dérives de périmètre.
+18. GANTT BUILDER
+Le Gantt doit être directement alimenté par :
+ WBS ;
+ activités ;
+ tâches ;
+ dépendances ;
+ jalons ;
+ ressources.
+Types de dépendances
+ Finish-to-Start ;
+
+ Start-to-Start ;
+ Finish-to-Finish ;
+ Start-to-Finish.
+19. CRITICAL PATH
+Le système doit calculer automatiquement :
+ chemin critique ;
+ tâches critiques ;
+ marge ;
+ retard potentiel ;
+ impact sur la date finale.
+20. RESOURCE PLANNING
+Pour chaque activité :
+ personne ;
+ équipe ;
+ matériel ;
+ logiciel ;
+ budget ;
+ prestataire.
+Le système calcule :
+Charge de travail
+vs
+Capacité disponible.
+21. RACI MATRIX
+Créer automatiquement :
+Activité R A C I
+Avec :
+ Responsible ;
+ Accountable ;
+ Consulted ;
+
+ Informed.
+Une personne ne devrait pas être accidentellement Accountable pour plusieurs
+niveaux incompatibles sans alerte configurable.
+22. BUDGET BUILDER
+Le budget doit être construit directement à partir du WBS.
+Catégories
+ personnel ;
+ équipement ;
+ transport ;
+ formation ;
+ communication ;
+ prestations ;
+ achats ;
+ logistique ;
+ fonctionnement ;
+ imprévus.
+Comparaison
+Budget prévu
+vs
+Budget engagé
+vs
+Budget payé
+vs
+Budget restant
+23. BUDGET PAR ACTIVITÉ
+Le système doit pouvoir répondre :
+Combien coûte chaque activité ?
+
+ critères d'acceptation ;
+ contrôles ;
+ validation ;
+ non-conformités ;
+ actions correctives.
+34. PROCUREMENT PLAN
+Prévoir :
+ besoin ;
+ spécifications ;
+ quantité ;
+ budget ;
+ fournisseur ;
+ méthode d'achat ;
+ échéance ;
+ statut.
+35. CONTRACT MANAGEMENT
+Relier :
+Projet
+→ Contrat
+→ Fournisseur
+→ Livrables
+→ Paiements
+→ Évaluation
+36. COMMUNICATION PLAN
+Construire automatiquement le plan de communication.
+Public Message Canal Fréquence Responsable
+
+37. MEETING MANAGEMENT
+Chaque réunion projet doit être reliée au projet.
+Fonctionnalités
+ ordre du jour ;
+ participants ;
+ décisions ;
+ actions ;
+ responsable ;
+ deadline ;
+ compte rendu.
+Les actions issues d'une réunion peuvent devenir automatiquement des tâches.
+38. DOCUMENT MANAGEMENT
+Créer un véritable Project Data Room.
+Dossiers
+ conception ;
+ contrats ;
+ budget ;
+ financement ;
+ rapports ;
+ études ;
+ données ;
+ communication ;
+ évaluations ;
+ pièces justificatives.
+39. VERSION CONTROL
+Chaque document important doit avoir :
+ version ;
+ auteur ;
+ date ;
+ validation ;
+ historique.
+
+40. PROJECT EXECUTION
+Une fois le projet approuvé :
+Vue d'exécution
+ tâches ;
+ activités ;
+ responsables ;
+ deadlines ;
+ livrables ;
+ jalons ;
+ risques ;
+ budget ;
+ KPI.
+41. MULTIPLES VUES
+Un même projet doit pouvoir être consulté en :
+ Liste ;
+ Kanban ;
+ Gantt ;
+ Timeline ;
+ Calendrier ;
+ Table ;
+ Workload ;
+ Mind Map ;
+ WBS ;
+ Dashboard ;
+ Carte géographique si pertinent.
+
+42. PROJECT CONTROL TOWER
+Créer un tableau de bord central :
+Projet
+72 %
+Planning
+
+�
+Budget
+�
+Risques
+🔴
+Qualité
+�
+Livrables
+�
+Impact
+�
+43. EARNED VALUE MANAGEMENT
+Pour les projets suffisamment structurés, intégrer :
+ PV — Planned Value ;
+ EV — Earned Value ;
+ AC — Actual Cost ;
+ CPI ;
+ SPI ;
+ EAC ;
+ ETC ;
+ VAC.
+Cela donnera à Work-Flow un niveau de gestion beaucoup plus professionnel.
+44. MILESTONE MANAGEMENT
+Chaque projet peut avoir :
+ jalons ;
+ dates prévues ;
+ dates réelles ;
+ validation ;
+ dépendances.
+
+45. DELIVERABLE MANAGEMENT
+Pour chaque livrable :
+ description ;
+ responsable ;
+ date ;
+ critères d'acceptation ;
+ statut ;
+ version ;
+ validation.
+46. BENEFICIARY / USER FEEDBACK
+Pour les projets concernés :
+ enquêtes ;
+ satisfaction ;
+ feedback ;
+ plaintes ;
+ suggestions ;
+ témoignages.
+Ces données peuvent ensuite alimenter le suivi-évaluation.
+47. MONITORING & EVALUATION
+Créer un véritable système S&E.
+Suivi
+ indicateurs ;
+ collecte ;
+ fréquence ;
+ progression ;
+ cible ;
+ baseline.
+Évaluation
+ pertinence ;
+ efficacité ;
+
+ efficience ;
+ impact ;
+ durabilité.
+48. DATA COLLECTION
+Créer des formulaires de collecte directement dans Work-Flow.
+Exemple :
+Formulaire bénéficiaire
+→ collecte
+→ base de données
+→ indicateurs
+→ dashboard.
+
+49. INDICATOR MANAGEMENT
+Chaque indicateur doit posséder :
+ définition ;
+ formule ;
+ unité ;
+ baseline ;
+ cible ;
+ valeur actuelle ;
+ source ;
+ fréquence ;
+ responsable ;
+ désagrégation éventuelle.
+50. RESULT FRAMEWORK
+Dashboard :
+IMPACT
+↓
+OUTCOMES
+
+↓
+OUTPUTS
+↓
+ACTIVITÉS
+↓
+TÂCHES
+Avec le niveau de progression à chaque étage.
+51. EVALUATION DU PROJET
+À la fin :
+Évaluer
+ objectifs atteints ;
+ résultats ;
+ effets ;
+ impact ;
+ budget ;
+ délais ;
+ qualité ;
+ risques ;
+ satisfaction.
+52. PROJECT CLOSURE
+Créer une checklist de clôture.
+Vérifier
+ livrables terminés ;
+ contrats clôturés ;
+ paiements effectués ;
+ documents archivés ;
+ actifs transférés ;
+ risques clôturés ;
+ rapports remis ;
+ bénéficiaires informés ;
+ partenaires informés.
+53. LESSONS LEARNED
+Créer une base de capitalisation :
+
+Ce qui a fonctionné
+Ce qui n'a pas fonctionné
+Pourquoi ?
+Que faut-il reproduire ?
+Que faut-il éviter ?
+Recommandations
+54. PROJECT POST-MORTEM
+Après la clôture :
+Analyse complète de la performance du projet.
+Comparer :
+Prévu
+vs
+Réalisé
+sur :
+ coût ;
+ délai ;
+ portée ;
+ qualité ;
+ résultats ;
+ impact.
+55. PROJECT HEALTH SCORE
+Chaque projet reçoit un score dynamique :
+Project Health Score : 81/100
+Composé de :
+ planning ;
+
+ budget ;
+ qualité ;
+ risques ;
+ ressources ;
+ livrables ;
+ résultats ;
+ satisfaction.
+56. AI PROJECT MANAGER
+C'est une dimension que je recommande fortement.
+Créer un assistant IA spécialisé :
+Il peut répondre :
+« Quels sont les projets actuellement en retard ? »
+« Quelles tâches menacent le chemin critique ? »
+« Quels risques pourraient empêcher le projet d'atteindre son objectif ? »
+« Prépare-moi le rapport mensuel. »
+« Analyse l'écart budgétaire. »
+« Quelles actions dois-je prioriser cette semaine ? »
+57. AI PROJECT DESIGNER
+Au démarrage :
+L'utilisateur écrit simplement :
+« Je veux mettre en place un programme de formation de 500 jeunes
+entrepreneurs pendant 12 mois. »
+L'IA peut proposer une première structure :
+ contexte ;
+ problème ;
+ objectifs ;
+ bénéficiaires ;
+ résultats ;
+
+ activités ;
+ indicateurs ;
+ risques ;
+ calendrier ;
+ budget indicatif.
+L'utilisateur valide et modifie.
+L'IA ne doit jamais transformer automatiquement une proposition en
+engagement officiel sans validation humaine.
+58. AI RISK ANALYST
+L'IA analyse :
+ planning ;
+ ressources ;
+ historique ;
+ risques ;
+ budget ;
+ dépendances.
+Et peut signaler :
+⚠� Risque élevé de retard sur le livrable X en raison de trois dépendances
+critiques.
+59. AI REPORTING
+Le système peut produire :
+ rapport hebdomadaire ;
+ rapport mensuel ;
+ rapport trimestriel ;
+ rapport bailleur ;
+ rapport exécutif ;
+ rapport final.
+60. PROJECT TEMPLATES
+Créer une bibliothèque de modèles.
+
+Exemple
+Projet ONG
+→ modèle ONG.
+Projet IT
+→ modèle IT.
+Projet événementiel
+→ modèle événement.
+Projet formation
+→ modèle formation.
+Projet agricole
+→ modèle agricole.
+Projet construction
+→ modèle BTP.
+Projet financé par bailleur
+→ modèle donor-funded project.
+61. PROJECT METHODOLOGY
+Le système ne doit pas imposer une seule méthodologie.
+Prévoir :
+Agile
+ Scrum ;
+ Kanban.
+Predictive
+ Waterfall.
+
+Hybride
+ Agile + Waterfall.
+Results-Based Management
+ RBM.
+Approche projet de développement
+ Logical Framework ;
+ Theory of Change.
+L'utilisateur choisit la méthodologie lors de la création du projet.
+62. PROJECT GOVERNANCE
+Définir :
+ Sponsor ;
+ Project Manager ;
+ Project Management Team ;
+ Steering Committee ;
+ bénéficiaires ;
+ partenaires ;
+ validateurs.
+63. PROJECT WORKSPACE
+Chaque projet doit avoir son propre espace :
+PROJET X
+│
+├── Dashboard
+├── Vue d'ensemble
+├── Objectifs
+├── Théorie du changement
+├── Cadre logique
+├── WBS
+├── Tâches
+├── Planning
+├── Budget
+├── Ressources
+├── Équipe
+├── RACI
+├── Parties prenantes
+├── Risques
+├── Issues
+├── Changements
+
+├── Achats
+├── Contrats
+├── Qualité
+├── Communication
+├── Documents
+├── Réunions
+├── Indicateurs
+├── Suivi-évaluation
+├── Rapports
+├── Décisions
+├── Leçons apprises
+└── Clôture
+64. LIEN AVEC LA THÉORIE DU CHANGEMENT
+Le point très important par rapport au module précédent est que Project Studio doit intégrer
+nativement la Théorie du Changement.
+Ainsi :
+PROJET
+│
+▼
+PROBLÈME
+│
+▼
+THÉORIE DU CHANGEMENT
+│
+├── IMPACT
+├── OUTCOMES
+├── OUTPUTS
+└── ACTIVITÉS
+│
+▼
+WBS
+│
+▼
+TÂCHES
+│
+▼
+PLANIFICATION
+│
+▼
+BUDGET
+│
+▼
+EXÉCUTION
+│
+▼
+SUIVI
+│
+▼
+ÉVALUATION
+│
+▼
+IMPACT
+
+65. LE CONCEPT LE PLUS IMPORTANT
+: « SINGLE SOURCE OF TRUTH »
+Je recommande fortement cette architecture.
+Une information ne doit être saisie qu'une seule fois.
+Exemple :
+L'utilisateur crée un Output.
+Cet Output doit automatiquement être disponible dans :
+ Théorie du Changement ;
+ Cadre logique ;
+ Planification ;
+ Indicateurs ;
+ Dashboard ;
+ Reporting ;
+ Évaluation.
+Même principe pour :
+activité → tâche → budget → planning → responsable → indicateur.
+66. AUTOMATISATIONS ENTRE MODULES
+Exemple :
+Création d'une activité
+↓
+Création possible automatiquement de :
+ tâche ;
+ responsable ;
+ deadline ;
+ budget ;
+ indicateur ;
+ risque ;
+ livrable.
+
+Retard d'une tâche
+↓
+Le système vérifie :
+ activité ;
+ Output ;
+ jalon ;
+ chemin critique ;
+ budget ;
+ risque.
+Puis alerte :
+⚠� Ce retard peut affecter l'Output 3 et repousser le jalon final de 8 jours.
+Voilà le niveau de connexion que je viserais.
+67. ARCHITECTURE FINALE DU MODULE
+PROJECT STUDIO
+│
+┌───────────────┼────────────────┐
+│ │ │
+CONCEPTION PLANIFICATION FINANCEMENT
+│ │ │
+Problem Tree WBS Budget
+Solution Tree Gantt Funding
+Stakeholders RACI Donors
+Theory of Change Resources
+Logframe Milestones
+│ │
+└───────────────┼────────────────┘
+│
+EXÉCUTION
+│
+┌────────────┼────────────┐
+│ │ │
+Tasks Risks Quality
+│ │ │
+└────────────┼────────────┘
+│
+MONITORING
+│
+┌────────────┼────────────┐
+│ │ │
+KPIs Indicators Budget
+│ │ │
+└────────────┼────────────┘
+│
+EVALUATION
+│
+
+IMPACT / RESULTS
+│
+CAPITALISATION
+68. CE QUE JE RECOMMANDE POUR LA V3 DE
+WORK-FLOW
+Ce module pourrait devenir l'un des modules centraux de la V3.
+Parce qu'au lieu de concurrencer uniquement :
+ Asana ;
+ Trello ;
+ Monday ;
+ ClickUp ;
+sur la gestion des tâches, AfriSime Work-Flow pourrait proposer quelque chose
+de beaucoup plus complet :
+un environnement permettant de concevoir le projet, démontrer sa
+pertinence, construire sa logique d'intervention, rechercher son
+financement, planifier son exécution, mobiliser les équipes, contrôler ses
+coûts, suivre ses résultats, mesurer son impact et capitaliser les
+enseignements.
+Et surtout, la conception et l'exécution seraient connectées.
+
+C'est cette connexion qui serait, à mon avis, la véritable différence de Work-
+Flow :
+
+« Pourquoi faisons-nous ce projet ? »
+→ Théorie du changement
+« Qu'allons-nous produire ? »
+→ Cadre logique / résultats
+« Comment allons-nous le faire ? »
+→ WBS / activités / tâches
+« Avec quelles ressources ? »
+→ Budget / ressources / financement
+« Qui fait quoi ? »
+→ RACI / gouvernance
+
+« Quand ? »
+→ Gantt / planning
+« Quels problèmes peuvent survenir ? »
+→ Risques / hypothèses / issues
+« Est-ce que nous avançons correctement ? »
+→ KPI / dashboard / contrôle
+« Est-ce que le projet produit réellement le changement recherché ? »
+→ S&E / Outcome / Impact
+« Qu'avons-nous appris ? »
+→ Évaluation / Lessons Learned / Knowledge Management
+C'est cette chaîne complète que je transformerais en Project Studio, plutôt qu'en
+simple module de gestion de projets.
