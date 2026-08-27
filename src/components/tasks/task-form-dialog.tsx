@@ -307,7 +307,9 @@ export function TaskFormDialog({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendSubtask({ titre: "", responsablePrincipalId: "", priorite: "MOYENNE", echeance: "" })}
+                onClick={() =>
+                  appendSubtask({ titre: "", responsablePrincipalId: "", priorite: "MOYENNE", dateDebut: "", echeance: "" })
+                }
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 Ajouter une sous-tâche
@@ -337,7 +339,7 @@ export function TaskFormDialog({
                       {errors.subtasks?.[index]?.titre && (
                         <p className="text-xs text-destructive">{errors.subtasks[index]?.titre?.message}</p>
                       )}
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <Select onValueChange={(v) => setValue(`subtasks.${index}.responsablePrincipalId`, v)}>
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Responsable" />
@@ -364,7 +366,16 @@ export function TaskFormDialog({
                             <SelectItem value="BASSE">Basse</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Input type="date" className="h-8 text-xs" {...register(`subtasks.${index}.echeance` as const)} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">Date de début</Label>
+                          <Input type="date" className="h-8 text-xs" {...register(`subtasks.${index}.dateDebut` as const)} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">Échéance</Label>
+                          <Input type="date" className="h-8 text-xs" {...register(`subtasks.${index}.echeance` as const)} />
+                        </div>
                       </div>
                       {errors.subtasks?.[index]?.responsablePrincipalId && (
                         <p className="text-xs text-destructive">

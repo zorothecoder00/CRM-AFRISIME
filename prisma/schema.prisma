@@ -1634,6 +1634,7 @@ model Project {
   // Project Studio §4/§10 — voir modeles en fin de fichier.
   financements             Financement[]
   ideaOrigin               ProjectIdea?
+  opportunityOrigin        CrmOpportunity?
   // Project Studio §6-8 — idem.
   diagnostic               ProjectDiagnostic?
   problemTreeNodes         ProblemTreeNode[]
@@ -2275,6 +2276,11 @@ model CrmOpportunity {
   createdBy              User                  @relation("CrmOpportunityCreatedBy", fields: [createdById], references: [id])
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
+  // Conversion en Project une fois l'opportunite GAGNEE (meme pattern que
+  // ProjectIdea.convertedProjectId) — trace le lien, empeche une double
+  // conversion.
+  convertedProjectId     String?               @unique
+  convertedProject       Project?              @relation(fields: [convertedProjectId], references: [id])
 
   interactions CrmInteraction[]
   contracts    Contract[]

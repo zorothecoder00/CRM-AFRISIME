@@ -28,3 +28,14 @@ export type LinkFundingOpportunityToProjectInput = z.infer<typeof linkFundingOpp
 export const deleteFundingOpportunitySchema = z.object({ fundingOpportunityId: z.string().min(1) });
 
 export type DeleteFundingOpportunityInput = z.infer<typeof deleteFundingOpportunitySchema>;
+
+// Conversion en Project une fois l'appel à projets formalisé/confirmé —
+// même logique que ProjectIdea/CrmOpportunity (responsable/departement
+// obligatoires cote Project, non presents sur FundingOpportunity).
+export const convertFundingOpportunitySchema = z.object({
+  fundingOpportunityId: z.string().min(1),
+  responsableId: z.string().min(1, "Un responsable est requis."),
+  departmentId: z.string().min(1, "Un département est requis."),
+});
+
+export type ConvertFundingOpportunityInput = z.infer<typeof convertFundingOpportunitySchema>;

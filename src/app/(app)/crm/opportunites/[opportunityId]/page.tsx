@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { getUserEntityScope } from "@/lib/entity-scope";
 import { getOrganizationDevise } from "@/lib/currency";
 import { BackLink } from "@/components/ui/back-link";
+import { PERMISSIONS } from "@/lib/permissions";
+import { ConvertOpportunityDialog } from "@/components/crm/convert-opportunity-dialog";
 
 export default async function CrmOpportunityDetailPage({
   params,
@@ -55,6 +57,18 @@ export default async function CrmOpportunityDetailPage({
       : null;
   const devise = await getOrganizationDevise();
 
+  const canConvert = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
+  const [users, departments] = await Promise.all([
+    canConvert && opportunity.statut === "GAGNEE" && !opportunity.convertedProjectId
+      ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
+    canConvert && opportunity.statut === "GAGNEE" && !opportunity.convertedProjectId
+      ? prisma.department.findMany({ orderBy: { name: "asc" } })
+      : Promise.resolve([]),
+  ]);
+  const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
+  const departmentOptions = departments.map((d) => ({ id: d.id, label: d.name }));
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
@@ -78,6 +92,19 @@ export default async function CrmOpportunityDetailPage({
             )}
           </p>
         </div>
+
+        {opportunity.convertedProjectId && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+            Cette opportunité a été convertie en projet.{" "}
+            <Link href={`/projets/${opportunity.convertedProjectId}`} className="font-medium text-primary hover:underline">
+              Voir le projet →
+            </Link>
+          </div>
+        )}
+
+        {canConvert && opportunity.statut === "GAGNEE" && !opportunity.convertedProjectId && (
+          <ConvertOpportunityDialog opportunityId={opportunity.id} users={userOptions} departments={departmentOptions} />
+        )}
 
         <Card accent={accentForOpportunityStatus(opportunity.statut)}>
           <CardHeader>

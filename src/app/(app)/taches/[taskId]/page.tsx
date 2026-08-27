@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checklist } from "@/components/tasks/checklist";
+import { SubtasksSection } from "@/components/tasks/subtasks-section";
+import { TaskEditButton } from "@/components/tasks/task-edit-button";
 import { CommentSection } from "@/components/tasks/comment-section";
 import { DependencySection } from "@/components/tasks/dependency-section";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
@@ -59,6 +61,11 @@ export default async function TaskDetailPage({
       responsablePrincipal: true,
       assignees: { include: { user: true } },
       checklistItems: { include: { responsable: true }, orderBy: { ordre: "asc" } },
+      subTasks: {
+        where: { deletedAt: null },
+        include: { responsablePrincipal: { select: { name: true } } },
+        orderBy: { createdAt: "asc" },
+      },
       comments: {
         include: { author: true, reactions: { include: { user: true } } },
         orderBy: { createdAt: "asc" },
@@ -102,7 +109,7 @@ export default async function TaskDetailPage({
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
 
-  const [otherTasks, historyEntries, externalCandidates, projectMembers] = await Promise.all([
+  const [otherTasks, historyEntries, externalCandidates, projectMembers, activeUsers] = await Promise.all([
     prisma.task.findMany({
       where: { projectId: task.projectId, id: { not: task.id } },
       select: { id: true, titre: true },
@@ -124,6 +131,7 @@ export default async function TaskDetailPage({
       where: { projectId: task.projectId },
       include: { user: { select: { id: true, name: true } } },
     }),
+    canTag ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
 
   // Candidats @mention (src/lib/mentions.ts) : mêmes personnes que celles
@@ -138,6 +146,29 @@ export default async function TaskDetailPage({
       ].map((c) => [c.id, c])
     ).values()
   );
+
+  const userOptions = activeUsers.map((u) => ({ id: u.id, label: u.name }));
+  const memberOptions = Array.from(
+    new Map(
+      [
+        { id: task.responsablePrincipal.id, label: task.responsablePrincipal.name },
+        ...projectMembers.map((m) => ({ id: m.user.id, label: m.user.name })),
+      ].map((o) => [o.id, o])
+    ).values()
+  );
+
+  const subtaskRows = task.subTasks.map((s) => ({
+    id: s.id,
+    titre: s.titre,
+    description: s.description,
+    statut: s.statut,
+    priorite: s.priorite,
+    responsablePrincipalId: s.responsablePrincipalId,
+    responsableNom: s.responsablePrincipal.name,
+    dateDebut: s.dateDebut ? s.dateDebut.toISOString() : null,
+    echeance: s.echeance ? s.echeance.toISOString() : null,
+    tempsEstimeHeures: s.tempsEstimeHeures ? Number(s.tempsEstimeHeures) : null,
+  }));
 
   const checklistRows = task.checklistItems.map((item) => ({
     id: item.id,
@@ -192,6 +223,21 @@ export default async function TaskDetailPage({
             )}
             <Badge variant={toneForPriority(task.priorite)}>{PRIORITY_LABELS[task.priorite]}</Badge>
             {task.creeParWorkflow && <Badge variant="outline">Créée par workflow</Badge>}
+            {canTag && !task.deletedAt && (
+              <TaskEditButton
+                task={{
+                  id: task.id,
+                  titre: task.titre,
+                  description: task.description,
+                  priorite: task.priorite,
+                  responsablePrincipalId: task.responsablePrincipalId,
+                  dateDebut: task.dateDebut ? task.dateDebut.toISOString() : null,
+                  echeance: task.echeance ? task.echeance.toISOString() : null,
+                  tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null,
+                }}
+                users={userOptions}
+              />
+            )}
             {canDeleteTask && !task.deletedAt && <DeleteToTrashButton entityType="Task" id={task.id} />}
           </div>
           <Link href={`/projets/${task.projectId}`} className="text-sm text-muted-foreground hover:underline">
@@ -223,6 +269,21 @@ export default async function TaskDetailPage({
               taskId={task.id}
               items={checklistRows}
               members={projectMembers.map((m) => ({ id: m.user.id, name: m.user.name }))}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Sous-tâches</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SubtasksSection
+              parentTaskId={task.id}
+              subtasks={subtaskRows}
+              members={memberOptions}
+              canManage={canTag}
+              canDelete={canDeleteTask}
             />
           </CardContent>
         </Card>
@@ -299,6 +360,10 @@ export default async function TaskDetailPage({
             <Info
               label="Co-responsables"
               value={task.assignees.map((a) => a.user.name).join(", ") || "—"}
+            />
+            <Info
+              label="Date de début"
+              value={task.dateDebut ? new Date(task.dateDebut).toLocaleDateString("fr-FR") : "—"}
             />
             <Info
               label="Échéance"

@@ -15,6 +15,7 @@ import {
   createOpportunitySchema,
   updateOpportunitySchema,
   updateOpportunityStatusSchema,
+  convertOpportunitySchema,
   createInteractionSchema,
   type CreateOrganizationInput,
   type UpdateOrganizationInput,
@@ -23,6 +24,7 @@ import {
   type CreateOpportunityInput,
   type UpdateOpportunityInput,
   type UpdateOpportunityStatusInput,
+  type ConvertOpportunityInput,
   type CreateInteractionInput,
 } from "@/lib/validations/crm.schema";
 
@@ -309,6 +311,60 @@ export async function updateOpportunityStatus(input: UpdateOpportunityStatusInpu
   revalidatePath(`/crm/opportunites/${data.id}`);
   revalidatePath("/crm");
   return { ...opportunity, montantEstime: opportunity.montantEstime ? Number(opportunity.montantEstime) : null };
+}
+
+/** Conversion Opportunité → Project une fois l'opportunité GAGNEE (miroir de convertProjectIdeaToProject). */
+export async function convertOpportunityToProject(input: ConvertOpportunityInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.PROJECT_CREATE);
+  const data = convertOpportunitySchema.parse(input);
+
+  const opportunity = await prisma.crmOpportunity.findUniqueOrThrow({
+    where: { id: data.opportunityId },
+    include: { organization: true },
+  });
+
+  if (opportunity.convertedProjectId) {
+    throw new Error("Cette opportunité a déjà été convertie en projet.");
+  }
+  if (opportunity.statut !== "GAGNEE") {
+    throw new Error("L'opportunité doit être au statut « Gagnée » avant de générer le projet.");
+  }
+
+  const project = await prisma.project.create({
+    data: {
+      nom: opportunity.nom,
+      description: opportunity.organization ? `Opportunité gagnée — ${opportunity.organization.nom}` : undefined,
+      responsableId: data.responsableId,
+      departmentId: data.departmentId,
+      budget: opportunity.montantEstime ?? undefined,
+      dateFin: opportunity.dateClotureEstimee ?? undefined,
+      createdById: session.user.id,
+      organizationId: session.user.organizationId,
+      members: {
+        create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET", organizationId: session.user.organizationId }],
+      },
+    },
+  });
+
+  await prisma.crmOpportunity.update({
+    where: { id: opportunity.id },
+    data: { convertedProjectId: project.id },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "crm.opportunity.converted_to_project",
+    entityType: "CrmOpportunity",
+    entityId: opportunity.id,
+    changes: { projectId: project.id },
+  });
+
+  revalidatePath("/crm/pipeline");
+  revalidatePath(`/crm/opportunites/${opportunity.id}`);
+  revalidatePath("/projets");
+  revalidatePath("/projets/portefeuille");
+  return { id: project.id };
 }
 
 export async function addInteraction(input: CreateInteractionInput) {

@@ -38,6 +38,7 @@ export type TaskRow = {
   priorite: string;
   responsablePrincipalId: string;
   responsableNom: string;
+  dateDebut?: string | null;
   echeance: string | null;
   tempsEstimeHeures: number | null;
   avancement: number;

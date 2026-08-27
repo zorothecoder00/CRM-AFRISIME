@@ -105,6 +105,7 @@ export default async function TachesPage({
     priorite: t.priorite,
     responsablePrincipalId: t.responsablePrincipalId,
     responsableNom: t.responsablePrincipal.name,
+    dateDebut: t.dateDebut ? t.dateDebut.toISOString() : null,
     echeance: t.echeance ? t.echeance.toISOString() : null,
     tempsEstimeHeures: t.tempsEstimeHeures ? Number(t.tempsEstimeHeures) : null,
     avancement: t.avancement,

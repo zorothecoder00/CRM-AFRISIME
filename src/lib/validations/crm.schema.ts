@@ -84,6 +84,17 @@ export const updateOpportunityStatusSchema = z.object({
 
 export type UpdateOpportunityStatusInput = z.infer<typeof updateOpportunityStatusSchema>;
 
+// Conversion en Project une fois l'opportunite GAGNEE — meme logique que
+// convertProjectIdeaSchema (responsable/departement obligatoires cote
+// Project, non presents sur CrmOpportunity).
+export const convertOpportunitySchema = z.object({
+  opportunityId: z.string().min(1),
+  responsableId: z.string().min(1, "Un responsable est requis."),
+  departmentId: z.string().min(1, "Un département est requis."),
+});
+
+export type ConvertOpportunityInput = z.infer<typeof convertOpportunitySchema>;
+
 export const createInteractionSchema = z
   .object({
     type: z.enum(["EMAIL", "APPEL", "WHATSAPP", "REUNION", "VISITE", "NOTE", "MESSAGE", "EVENEMENT"]),

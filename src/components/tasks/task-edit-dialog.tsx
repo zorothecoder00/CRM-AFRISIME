@@ -20,6 +20,7 @@ export type TaskEditData = {
   description: string | null;
   priorite: string;
   responsablePrincipalId: string;
+  dateDebut?: string | null;
   echeance: string | null;
   tempsEstimeHeures: number | null;
 };
@@ -51,6 +52,7 @@ export function TaskEditDialog({
       description: task.description ?? "",
       priorite: task.priorite as UpdateTaskInput["priorite"],
       responsablePrincipalId: task.responsablePrincipalId,
+      dateDebut: task.dateDebut ? task.dateDebut.slice(0, 10) : "",
       echeance: task.echeance ? task.echeance.slice(0, 10) : "",
       tempsEstimeHeures: task.tempsEstimeHeures !== null ? String(task.tempsEstimeHeures) : "",
     },
@@ -123,13 +125,18 @@ export function TaskEditDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="edit-dateDebut">Date de début</Label>
+              <Input id="edit-dateDebut" type="date" {...register("dateDebut")} />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="edit-echeance">Échéance</Label>
               <Input id="edit-echeance" type="date" {...register("echeance")} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-tempsEstimeHeures">Temps estimé (h)</Label>
-              <Input id="edit-tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-tempsEstimeHeures">Temps estimé (h)</Label>
+            <Input id="edit-tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
           </div>
 
           <Button type="submit" className="w-full" disabled={isPending}>

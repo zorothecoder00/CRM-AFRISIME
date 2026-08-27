@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConvertFundingOpportunityDialog } from "@/components/projects/convert-funding-opportunity-dialog";
 import { Plus, Trash2 } from "lucide-react";
 
 export type FundingOpportunityPipelineRow = {
@@ -42,10 +43,14 @@ export function FundingOpportunityPipeline({
   opportunities,
   projects,
   canManage,
+  users = [],
+  departments = [],
 }: {
   opportunities: FundingOpportunityPipelineRow[];
   projects: ProjectOption[];
   canManage: boolean;
+  users?: ProjectOption[];
+  departments?: ProjectOption[];
 }) {
   const { run: remove } = useAction(deleteFundingOpportunity, { successMessage: "Opportunité supprimée." });
 
@@ -79,7 +84,10 @@ export function FundingOpportunityPipeline({
                 {o.projectNom ? (
                   <Badge variant="success">Lié à : {o.projectNom}</Badge>
                 ) : canManage ? (
-                  <LinkToProjectSelect opportunityId={o.id} projects={projects} />
+                  <div className="space-y-2">
+                    <LinkToProjectSelect opportunityId={o.id} projects={projects} />
+                    <ConvertFundingOpportunityDialog fundingOpportunityId={o.id} users={users} departments={departments} />
+                  </div>
                 ) : (
                   <Badge variant="secondary">Non lié</Badge>
                 )}

@@ -29,10 +29,12 @@ import {
   updateActualTimeSchema,
   linkTaskExternalContactSchema,
   convertSectionToTaskSchema,
+  addSubtaskSchema,
   type CreateTaskInput,
   type UpdateTaskInput,
   type LinkTaskExternalContactInput,
   type ConvertSectionToTaskInput,
+  type AddSubtaskInput,
 } from "@/lib/validations/task.schema";
 
 async function requireSession() {
@@ -93,6 +95,7 @@ export async function createTask(input: CreateTaskInput) {
           titre: sub.titre,
           priorite: sub.priorite,
           responsablePrincipalId: sub.responsablePrincipalId,
+          dateDebut: sub.dateDebut ? new Date(sub.dateDebut) : undefined,
           echeance: sub.echeance ? new Date(sub.echeance) : undefined,
           createdById: session.user.id,
           organizationId: session.user.organizationId,
@@ -181,6 +184,7 @@ export async function updateTask(input: UpdateTaskInput) {
         description: data.description || null,
         priorite: data.priorite,
         responsablePrincipalId: data.responsablePrincipalId,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : null,
         echeance: data.echeance ? new Date(data.echeance) : null,
         tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : null,
       },
@@ -199,6 +203,97 @@ export async function updateTask(input: UpdateTaskInput) {
   revalidatePath(`/taches/${task.id}`);
   revalidatePath(`/projets/${task.projectId}`);
   return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
+}
+
+/** Sous-tâches d'une tâche existante — alimente la section "Sous-tâches" de la fiche tâche. */
+export async function getSubtasksForTask(parentTaskId: string) {
+  await requireSession();
+  const subtasks = await prisma.task.findMany({
+    where: { parentTaskId, deletedAt: null },
+    include: { responsablePrincipal: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  return subtasks.map((s) => ({
+    id: s.id,
+    titre: s.titre,
+    statut: s.statut,
+    priorite: s.priorite,
+    responsablePrincipalId: s.responsablePrincipalId,
+    responsableNom: s.responsablePrincipal.name,
+    dateDebut: s.dateDebut ? s.dateDebut.toISOString() : null,
+    echeance: s.echeance ? s.echeance.toISOString() : null,
+  }));
+}
+
+/** Ajout d'une sous-tâche à une tâche déjà existante (édition, hors création groupée). */
+export async function addSubtask(input: AddSubtaskInput) {
+  const session = await requireSession();
+  const data = addSubtaskSchema.parse(input);
+
+  const parent = await prisma.task.findUniqueOrThrow({
+    where: { id: data.parentTaskId },
+    select: { projectId: true, sectionId: true },
+  });
+
+  await requireScopedPermission(session.user.permissions, PERMISSIONS.TASK_CREATE, session.user.id, {
+    projectId: parent.projectId,
+  });
+
+  const subtask = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.create({
+      data: {
+        projectId: parent.projectId,
+        sectionId: parent.sectionId || undefined,
+        parentTaskId: data.parentTaskId,
+        titre: data.titre,
+        priorite: data.priorite,
+        responsablePrincipalId: data.responsablePrincipalId,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
+        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+      include: { responsablePrincipal: { select: { name: true } } },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.subtask_added",
+    entityType: "Task",
+    entityId: subtask.id,
+    changes: { titre: subtask.titre, parentTaskId: data.parentTaskId },
+  });
+
+  await notifyMany([subtask.responsablePrincipalId], session.user.id, {
+    type: "NOUVELLE_TACHE",
+    titre: `Nouvelle sous-tâche assignée : ${subtask.titre}`,
+    lien: `/taches/${subtask.id}`,
+    entityType: "Task",
+    entityId: subtask.id,
+  });
+  await runTaskCreatedRules({
+    id: subtask.id,
+    titre: subtask.titre,
+    projectId: subtask.projectId,
+    responsablePrincipalId: subtask.responsablePrincipalId,
+    priorite: subtask.priorite,
+  });
+
+  revalidatePath(`/taches/${data.parentTaskId}`);
+  revalidatePath("/taches");
+  revalidatePath(`/projets/${parent.projectId}`);
+
+  return {
+    id: subtask.id,
+    titre: subtask.titre,
+    statut: subtask.statut,
+    priorite: subtask.priorite,
+    responsablePrincipalId: subtask.responsablePrincipalId,
+    responsableNom: subtask.responsablePrincipal.name,
+    dateDebut: subtask.dateDebut ? subtask.dateDebut.toISOString() : null,
+    echeance: subtask.echeance ? subtask.echeance.toISOString() : null,
+  };
 }
 
 export async function updateTaskStatus(taskId: string, statut: string) {

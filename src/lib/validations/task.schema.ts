@@ -4,6 +4,7 @@ const createSubtaskSchema = z.object({
   titre: z.string().min(2, "Le titre est requis."),
   responsablePrincipalId: z.string().min(1, "Un responsable est requis."),
   priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]).optional().default("MOYENNE"),
+  dateDebut: z.string().optional(),
   echeance: z.string().optional(),
 });
 
@@ -38,11 +39,26 @@ export const updateTaskSchema = z.object({
   description: z.string().optional(),
   priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]),
   responsablePrincipalId: z.string().min(1, "Un responsable est requis."),
+  dateDebut: z.string().optional(),
   echeance: z.string().optional(),
   tempsEstimeHeures: z.string().optional(),
 });
 
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+
+// Ajout d'une sous-tâche à une tâche déjà existante (contrairement à
+// CreateTaskInput.subtasks qui n'en crée qu'à la création de la tâche mère) —
+// couvre le cas "gérer les sous-tâches en éditant une tâche".
+export const addSubtaskSchema = z.object({
+  parentTaskId: z.string().min(1),
+  titre: z.string().min(2, "Le titre est requis."),
+  responsablePrincipalId: z.string().min(1, "Un responsable est requis."),
+  priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]).optional().default("MOYENNE"),
+  dateDebut: z.string().optional(),
+  echeance: z.string().optional(),
+});
+
+export type AddSubtaskInput = z.infer<typeof addSubtaskSchema>;
 
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),

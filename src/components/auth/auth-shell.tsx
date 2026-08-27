@@ -20,7 +20,11 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="pointer-events-none absolute right-0 -bottom-16 h-80 w-80 translate-x-1/4 rounded-full bg-[#fab219]/20 blur-3xl" />
 
         <div className="relative flex items-center gap-2.5 text-lg font-semibold">
-          <Image src="/logo.png" alt="AfriSime Work-Space" width={72} height={48} className="h-12 w-auto" priority />
+          {/* Fond clair dedie a l'image : le texte du logo est en bleu,
+              illisible sur le degrade bleu du panneau. */}
+          <div className="rounded-md bg-white p-1">
+            <Image src="/logo.png" alt="AfriSime Work-Space" width={72} height={48} className="h-12 w-auto" priority />
+          </div>
           AfriSime Work-Space
         </div>
 
