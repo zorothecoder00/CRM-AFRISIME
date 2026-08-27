@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAction } from "@/hooks/use-action";
-import { addChecklistItem, toggleChecklistItem } from "@/actions/task.actions";
+import { addChecklistItem, toggleChecklistItem, convertChecklistItemToSubtask } from "@/actions/task.actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, User, Calendar } from "lucide-react";
+import { Plus, User, Calendar, ListPlus } from "lucide-react";
 
 export type ChecklistItemData = {
   id: string;
@@ -40,6 +40,9 @@ export function Checklist({
   const [newEcheance, setNewEcheance] = useState("");
   const { run: add, isPending } = useAction(addChecklistItem);
   const { run: toggle } = useAction(toggleChecklistItem);
+  const { run: convert, isPending: isConverting } = useAction(convertChecklistItemToSubtask, {
+    successMessage: "Élément converti en sous-tâche.",
+  });
 
   async function handleAdd() {
     if (!newLabel.trim()) return;
@@ -55,18 +58,33 @@ export function Checklist({
     await toggle(itemId, isDone);
   }
 
+  async function handleConvert(itemId: string) {
+    await convert({ checklistItemId: itemId });
+  }
+
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <div key={item.id} className="flex flex-col gap-0.5">
+        <div key={item.id} className="group flex flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <Checkbox
               checked={item.isDone}
               onCheckedChange={(checked) => handleToggle(item.id, checked === true)}
             />
-            <span className={item.isDone ? "text-sm text-muted-foreground line-through" : "text-sm"}>
+            <span className={item.isDone ? "flex-1 text-sm text-muted-foreground line-through" : "flex-1 text-sm"}>
               {item.label}
             </span>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="opacity-0 group-hover:opacity-100"
+              disabled={isConverting}
+              onClick={() => handleConvert(item.id)}
+              aria-label="Convertir en sous-tâche pour plus de détails"
+              title="Convertir en sous-tâche pour plus de détails"
+            >
+              <ListPlus className="h-3.5 w-3.5" />
+            </Button>
           </div>
           {(item.responsableName || item.echeance) && (
             <div className="ml-6 flex items-center gap-3 text-xs text-muted-foreground">

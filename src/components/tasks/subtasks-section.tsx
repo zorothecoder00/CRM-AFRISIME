@@ -46,10 +46,18 @@ const PRIORITY_LABELS: Record<string, string> = {
   BASSE: "Basse",
 };
 
-/** Section "Sous-tâches" de la fiche tâche — ajout/édition/suppression, la tâche étant son propre modèle auto-référencé. */
+/**
+ * Section "Sous-tâches" de la fiche tâche — ajout/édition/suppression, la
+ * tâche étant son propre modèle auto-référencé. Pas de copie locale de la
+ * liste (contrairement à un tableau avec drag-and-drop) : `subtasks` est lu
+ * directement depuis les props à chaque rendu, comme Checklist, pour
+ * refléter automatiquement toute mutation qui revalide cette page — y
+ * compris une sous-tâche créée depuis un autre composant (voir
+ * convertChecklistItemToSubtask).
+ */
 export function SubtasksSection({
   parentTaskId,
-  subtasks: initial,
+  subtasks,
   members,
   canManage,
   canDelete,
@@ -60,7 +68,6 @@ export function SubtasksSection({
   canManage: boolean;
   canDelete: boolean;
 }) {
-  const [subtasks, setSubtasks] = useState(initial);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [titre, setTitre] = useState("");
@@ -83,7 +90,6 @@ export function SubtasksSection({
       echeance: echeance || undefined,
     });
     if (result.ok) {
-      setSubtasks((prev) => [...prev, { ...result.data, description: null, tempsEstimeHeures: null }]);
       setTitre("");
       setResponsablePrincipalId("");
       setPriorite("MOYENNE");
@@ -91,11 +97,6 @@ export function SubtasksSection({
       setEcheance("");
       setShowForm(false);
     }
-  }
-
-  async function handleDelete(id: string) {
-    const result = await remove(id);
-    if (result.ok) setSubtasks((prev) => prev.filter((s) => s.id !== id));
   }
 
   const editingSubtask = subtasks.find((s) => s.id === editingId) ?? null;
@@ -126,7 +127,7 @@ export function SubtasksSection({
           {(canManage || canDelete) && (
             <RowActionsMenu
               onEdit={canManage ? () => setEditingId(s.id) : undefined}
-              onDelete={canDelete ? () => handleDelete(s.id) : undefined}
+              onDelete={canDelete ? () => remove(s.id) : undefined}
               deleteConfirmLabel={`Supprimer « ${s.titre} » ? La sous-tâche sera déplacée dans la corbeille.`}
             />
           )}
@@ -204,23 +205,6 @@ export function SubtasksSection({
           users={members}
           open={!!editingId}
           onOpenChange={(o) => setEditingId(o ? editingId : null)}
-          onSuccess={(updated) =>
-            setSubtasks((prev) =>
-              prev.map((s) =>
-                s.id === editingSubtask.id
-                  ? {
-                      ...s,
-                      titre: updated.titre,
-                      priorite: updated.priorite,
-                      responsablePrincipalId: updated.responsablePrincipalId,
-                      responsableNom: members.find((m) => m.id === updated.responsablePrincipalId)?.label ?? s.responsableNom,
-                      dateDebut: updated.dateDebut || null,
-                      echeance: updated.echeance || null,
-                    }
-                  : s
-              )
-            )
-          }
         />
       )}
     </div>

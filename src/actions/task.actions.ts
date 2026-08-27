@@ -30,11 +30,13 @@ import {
   linkTaskExternalContactSchema,
   convertSectionToTaskSchema,
   addSubtaskSchema,
+  convertChecklistItemToSubtaskSchema,
   type CreateTaskInput,
   type UpdateTaskInput,
   type LinkTaskExternalContactInput,
   type ConvertSectionToTaskInput,
   type AddSubtaskInput,
+  type ConvertChecklistItemToSubtaskInput,
 } from "@/lib/validations/task.schema";
 
 async function requireSession() {
@@ -580,6 +582,86 @@ export async function toggleChecklistItem(itemId: string, isDone: boolean) {
 
   revalidatePath(`/taches/${item.taskId}`);
   return item;
+}
+
+/**
+ * Transforme un élément de checklist en sous-tâche à part entière (statut,
+ * priorité, dates propres) — l'élément de checklist disparaît, remplacé par
+ * la sous-tâche créée, plutôt que de dupliquer l'information.
+ */
+export async function convertChecklistItemToSubtask(input: ConvertChecklistItemToSubtaskInput) {
+  const session = await requireSession();
+  const data = convertChecklistItemToSubtaskSchema.parse(input);
+
+  const item = await prisma.checklistItem.findUniqueOrThrow({
+    where: { id: data.checklistItemId },
+    include: { task: { select: { id: true, projectId: true, sectionId: true, responsablePrincipalId: true } } },
+  });
+
+  await requireScopedPermission(session.user.permissions, PERMISSIONS.TASK_CREATE, session.user.id, {
+    projectId: item.task.projectId,
+  });
+
+  // A defaut de responsable propre sur l'element de checklist, reprend celui
+  // de la tache parente plutot que de bloquer la conversion sur un champ
+  // manquant — reassignable ensuite comme n'importe quelle sous-tache.
+  const responsablePrincipalId = item.responsableId ?? item.task.responsablePrincipalId;
+
+  const subtask = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const created = await tx.task.create({
+      data: {
+        projectId: item.task.projectId,
+        sectionId: item.task.sectionId || undefined,
+        parentTaskId: item.task.id,
+        titre: item.label,
+        responsablePrincipalId,
+        echeance: item.echeance || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+      include: { responsablePrincipal: { select: { name: true } } },
+    });
+    await tx.checklistItem.delete({ where: { id: item.id } });
+    return created;
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.checklist_item_converted_to_subtask",
+    entityType: "Task",
+    entityId: subtask.id,
+    changes: { fromChecklistItemId: item.id, titre: subtask.titre },
+  });
+
+  await notifyMany([subtask.responsablePrincipalId], session.user.id, {
+    type: "NOUVELLE_TACHE",
+    titre: `Nouvelle sous-tâche assignée : ${subtask.titre}`,
+    lien: `/taches/${subtask.id}`,
+    entityType: "Task",
+    entityId: subtask.id,
+  });
+  await runTaskCreatedRules({
+    id: subtask.id,
+    titre: subtask.titre,
+    projectId: subtask.projectId,
+    responsablePrincipalId: subtask.responsablePrincipalId,
+    priorite: subtask.priorite,
+  });
+
+  revalidatePath(`/taches/${item.task.id}`);
+  revalidatePath("/taches");
+  revalidatePath(`/projets/${item.task.projectId}`);
+
+  return {
+    id: subtask.id,
+    titre: subtask.titre,
+    statut: subtask.statut,
+    priorite: subtask.priorite,
+    responsablePrincipalId: subtask.responsablePrincipalId,
+    responsableNom: subtask.responsablePrincipal.name,
+    dateDebut: subtask.dateDebut ? subtask.dateDebut.toISOString() : null,
+    echeance: subtask.echeance ? subtask.echeance.toISOString() : null,
+  };
 }
 
 export async function addDependency(taskId: string, dependsOnTaskId: string, type?: string) {

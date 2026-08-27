@@ -60,6 +60,13 @@ export const addSubtaskSchema = z.object({
 
 export type AddSubtaskInput = z.infer<typeof addSubtaskSchema>;
 
+// Checklist §5 : un élément qui mérite finalement son propre suivi (statut,
+// priorité, dates) devient une sous-tâche — transforme, ne duplique pas
+// (voir convertChecklistItemToSubtask).
+export const convertChecklistItemToSubtaskSchema = z.object({ checklistItemId: z.string().min(1) });
+
+export type ConvertChecklistItemToSubtaskInput = z.infer<typeof convertChecklistItemToSubtaskSchema>;
+
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
   statut: z.enum(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE", "TERMINEE", "ANNULEE"]),
