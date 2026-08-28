@@ -78,6 +78,11 @@ export default async function MaJourneePage() {
     },
     select: { entityId: true, changes: true },
   });
+  const dailyReview = await prisma.personalPlanningDailyReview.findUnique({
+    where: { userId_date: { userId, date: dayStart } },
+    select: { notes: true },
+  });
+
   const reporteesCount = new Set(
     movedTodayLogs
       .filter((log) => {
@@ -246,7 +251,7 @@ export default async function MaJourneePage() {
 
         <PersonalPlanningDay day={now} entries={entries} refData={refData} />
 
-        <PersonalPlanningEndOfDay entries={entries} reporteesCount={reporteesCount} />
+        <PersonalPlanningEndOfDay entries={entries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
 
         <div className="flex flex-wrap items-center gap-3">
           <PlanningHealthBadge score={planningHealth} />

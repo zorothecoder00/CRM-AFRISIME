@@ -1,17 +1,28 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useAction } from "@/hooks/use-action";
+import { saveDailyReviewNotes } from "@/actions/personal-planning.actions";
 import { ENTRY_MOTIF_BLOCAGE_LABELS } from "@/lib/personal-planning-types";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 import { Moon } from "lucide-react";
 
-/** §22 — Revue de fin de journée : bilan des activités du jour par statut. */
+/** §22 — Revue de fin de journée : bilan des activités du jour par statut + notes personnelles libres. */
 export function PersonalPlanningEndOfDay({
   entries,
   reporteesCount = 0,
+  todayKey,
+  initialNotes,
 }: {
   entries: PersonalPlanningEntryRow[];
   /** §22/§47 — entrées déplacées hors d'aujourd'hui pendant la journée (voir logAudit "personal_planning_entry.moved"). */
   reporteesCount?: number;
+  todayKey: string;
+  initialNotes: string | null;
 }) {
   const real = entries.filter((e) => e.type !== "RESERVE" && !e.meetingHref);
   const terminees = real.filter((e) => e.statut === "TERMINEE");
@@ -19,9 +30,8 @@ export function PersonalPlanningEndOfDay({
   const enRetard = real.filter((e) => new Date(e.dateFin) < new Date() && !["TERMINEE", "ANNULEE"].includes(e.statut));
   const annulees = real.filter((e) => e.statut === "ANNULEE");
 
-  if (real.length === 0 && reporteesCount === 0) {
-    return null;
-  }
+  const [notes, setNotes] = useState(initialNotes ?? "");
+  const { run: save, isPending } = useAction(saveDailyReviewNotes, { successMessage: "Notes enregistrées." });
 
   return (
     <Card>
@@ -30,13 +40,15 @@ export function PersonalPlanningEndOfDay({
         <CardTitle className="text-base">Bilan de ma journée</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <Stat label="Prévues" value={real.length} />
-          <Stat label="Terminées" value={terminees.length} tone="text-success" />
-          <Stat label="Reportée(s)" value={reporteesCount} tone={reporteesCount > 0 ? "text-warning" : undefined} />
-          <Stat label="En retard" value={enRetard.length} tone="text-destructive" />
-          <Stat label="Bloquées" value={bloquees.length} tone="text-warning" />
-        </div>
+        {real.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <Stat label="Prévues" value={real.length} />
+            <Stat label="Terminées" value={terminees.length} tone="text-success" />
+            <Stat label="Reportée(s)" value={reporteesCount} tone={reporteesCount > 0 ? "text-warning" : undefined} />
+            <Stat label="En retard" value={enRetard.length} tone="text-destructive" />
+            <Stat label="Bloquées" value={bloquees.length} tone="text-warning" />
+          </div>
+        )}
 
         {bloquees.length > 0 && (
           <div>
@@ -57,6 +69,19 @@ export function PersonalPlanningEndOfDay({
         {annulees.length > 0 && (
           <p className="text-xs text-muted-foreground">{annulees.length} activité(s) annulée(s) aujourd&apos;hui.</p>
         )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="daily-review-notes">Mes notes / raisons de la journée</Label>
+          <Textarea
+            id="daily-review-notes"
+            placeholder="Ce qui a bien/mal fonctionné, pourquoi tel blocage, contexte à garder en tête demain..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => save({ date: todayKey, notes })}
+            rows={3}
+          />
+          {isPending && <p className="text-xs text-muted-foreground">Enregistrement...</p>}
+        </div>
       </CardContent>
     </Card>
   );

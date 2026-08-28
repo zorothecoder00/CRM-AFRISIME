@@ -341,6 +341,17 @@ export async function updateTaskStatus(taskId: string, statut: string) {
     changes: { statut: data.statut },
   });
 
+  // Notification directe et systematique, independante du moteur
+  // AutomationRule (optionnel/configurable) : le responsable et les
+  // assignes doivent toujours savoir qu'un collegue a change le statut.
+  await notifyMany([existing.responsablePrincipalId, ...existing.assignees.map((a) => a.userId)], session.user.id, {
+    type: "STATUT_MODIFIE",
+    titre: `${session.user.name ?? "Un collègue"} a changé le statut de « ${task.titre} » → ${data.statut}`,
+    lien: `/taches/${task.id}`,
+    entityType: "Task",
+    entityId: task.id,
+  });
+
   await recomputeProjectProgress(task.projectId);
   // Statut/avancement d'une tache mere derives de ses sous-taches (voir
   // recomputeParentTaskFromSubtasks) — no-op si `task` n'est pas une

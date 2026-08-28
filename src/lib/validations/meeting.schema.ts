@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export const createMeetingSchema = z.object({
-  projectId: z.string().min(1, "Un projet est requis."),
+  // §1/§25 — reunion "libre" : le projet est optionnel.
+  projectId: z.string().optional(),
   titre: z.string().min(2, "Le titre est requis."),
   dateHeure: z.string().min(1, "La date et l'heure sont requises."),
   lieu: z.string().min(1, "Indiquez un lieu ou un lien visio."),
@@ -23,6 +24,9 @@ export type UpdateCompteRenduInput = z.infer<typeof updateCompteRenduSchema>;
 
 // responsableId est obligatoire : chaque decision cree automatiquement une
 // tache (cahier des charges §8), qui a toujours besoin d'un responsable.
+// projectId n'est requis QUE si la reunion elle-meme n'a pas de projet
+// (reunion "libre", §1/§25) — la Task creee a toujours besoin d'un projet,
+// meme quand la reunion source n'en a pas.
 export const addDecisionSchema = z.object({
   meetingId: z.string().min(1),
   description: z.string().min(2, "La description est requise."),
@@ -31,6 +35,7 @@ export const addDecisionSchema = z.object({
   impact: z.string().optional(),
   responsableId: z.string().min(1, "Un responsable est requis."),
   echeance: z.string().optional(),
+  projectId: z.string().optional(),
 });
 
 export type AddDecisionInput = z.infer<typeof addDecisionSchema>;

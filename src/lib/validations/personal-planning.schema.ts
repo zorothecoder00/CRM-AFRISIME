@@ -185,3 +185,12 @@ export type DecideAvailabilityRequestInput = z.infer<typeof decideAvailabilityRe
 export const cancelAvailabilityRequestSchema = z.object({ requestId: z.string().min(1) });
 
 export type CancelAvailabilityRequestInput = z.infer<typeof cancelAvailabilityRequestSchema>;
+
+// ---- Bilan de fin de journée — notes personnelles (§22) ----
+
+export const saveDailyReviewNotesSchema = z.object({
+  date: z.string().min(1),
+  notes: z.string().max(4000, "4000 caractères maximum.").optional(),
+});
+
+export type SaveDailyReviewNotesInput = z.infer<typeof saveDailyReviewNotesSchema>;

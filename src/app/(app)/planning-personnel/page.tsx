@@ -36,6 +36,8 @@ import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/
 import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
 import { RequestAvailabilityDialog } from "@/components/personal-planning/request-availability-dialog";
+import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
+import { PERMISSIONS } from "@/lib/permissions";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
 import { SentRequestsList } from "@/components/personal-planning/sent-requests-list";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
@@ -330,6 +332,12 @@ export default async function PlanningPersonnelPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <RequestAvailabilityDialog colleagues={colleagueOptions} />
+            {session!.user.permissions.includes(PERMISSIONS.MEETING_CREATE) && (
+              <MeetingFormDialog
+                projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
+                users={colleagueOptions}
+              />
+            )}
             <PersonalPlanningEntryFormDialog refData={refData} />
           </div>
         </div>

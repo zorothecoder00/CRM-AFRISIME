@@ -33,6 +33,8 @@ const TYPE_LABELS: Record<string, string> = {
   DELEGATION_EN_RETARD: "Délégation en retard",
   CONGE_REORGANISATION: "Réorganisation suite à un congé",
   DEMANDE_REAFFECTATION_TACHE: "Demande de réaffectation",
+  DISPONIBILITE_MODIFIEE: "Disponibilité modifiée",
+  STATUT_MODIFIE: "Statut modifié",
 };
 
 export default async function NotificationsPage() {

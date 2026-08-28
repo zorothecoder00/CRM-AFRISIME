@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeIndividualPilotage } from "@/lib/individual-pilotage";
+import { canViewPersonalPlanningOf } from "@/lib/personal-planning-access";
 import { StatCard, type StatCardTone } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ export default async function IndividualPilotagePage({
   }
 
   const p = await computeIndividualPilotage(userId);
+  const canViewPlanning = await canViewPersonalPlanningOf(session!.user.id, userId);
 
   return (
     <div className="space-y-6">
@@ -77,6 +79,11 @@ export default async function IndividualPilotagePage({
             <p className="text-sm text-muted-foreground">{p.user.role.label}</p>
           </div>
         </div>
+        {canViewPlanning && (
+          <Link href={`/planning-personnel/equipe/${userId}`} className="mt-2 inline-block text-sm text-primary hover:underline">
+            Voir le planning personnel →
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

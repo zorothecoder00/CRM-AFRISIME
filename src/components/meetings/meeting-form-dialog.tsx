@@ -83,12 +83,13 @@ export function MeetingFormDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Projet</Label>
-            <Select onValueChange={(v) => setValue("projectId", v)}>
+            <Label>Projet (optionnel)</Label>
+            <Select defaultValue="none" onValueChange={(v) => setValue("projectId", v === "none" ? undefined : v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Aucun projet</SelectItem>
                 {projects.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.label}

@@ -7,7 +7,7 @@ import { addDays, addWeeks, addMonths } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { createNotification } from "@/lib/notify";
+import { createNotification, notifyMany } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { runTaskBlockedRules } from "@/lib/automation";
@@ -28,6 +28,7 @@ import {
   createAvailabilityRequestSchema,
   decideAvailabilityRequestSchema,
   cancelAvailabilityRequestSchema,
+  saveDailyReviewNotesSchema,
   MAX_RECURRENCE_OCCURRENCES,
   type CreatePersonalPlanningEntryInput,
   type UpdatePersonalPlanningEntryInput,
@@ -43,6 +44,7 @@ import {
   type CreateAvailabilityRequestInput,
   type DecideAvailabilityRequestInput,
   type CancelAvailabilityRequestInput,
+  type SaveDailyReviewNotesInput,
 } from "@/lib/validations/personal-planning.schema";
 
 const PLANNING_PATH = "/planning-personnel";
@@ -70,6 +72,32 @@ async function collectPlanningWarnings(userId: string, dateDebut: Date, dateFin:
   if (leave) warnings.push(`Cette période chevauche un ${leave}.`);
   if (conflict) warnings.push(`Conflit d'horaire avec : ${conflict}.`);
   return warnings;
+}
+
+/**
+ * "Toutes activités ou tâches créées doivent notifier les concernés que la
+ * plage de disponibilité de cet utilisateur a été modifiée" — notifie le
+ * responsable et les autres assignés d'une Tâche (hors l'acteur) quand un
+ * créneau vient d'être posé dessus, via `scheduleInboxTask`,
+ * `createPersonalPlanningEntry` (avec `tacheId`) ou `movePersonalPlanningEntry`.
+ */
+async function notifyTaskColleaguesOfSchedule(tacheId: string, actorId: string, actorName: string, dateDebut: Date) {
+  const task = await prisma.task.findUnique({
+    where: { id: tacheId },
+    select: { titre: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+  });
+  if (!task) return;
+
+  const targets = [task.responsablePrincipalId, ...task.assignees.map((a) => a.userId)];
+  const dateLabel = dateDebut.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
+
+  await notifyMany(targets, actorId, {
+    type: "DISPONIBILITE_MODIFIEE",
+    titre: `${actorName} a planifié un créneau (${dateLabel}) sur la tâche : ${task.titre}`,
+    lien: `/taches/${tacheId}`,
+    entityType: "Task",
+    entityId: tacheId,
+  });
 }
 
 /** Genere les couples (debut, fin) d'une serie recurrente, meme duree que l'occurrence initiale. */
@@ -205,6 +233,10 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
     )
   );
 
+  if (data.tacheId) {
+    await notifyTaskColleaguesOfSchedule(data.tacheId, session.user.id, session.user.name ?? "Un collègue", dateDebut);
+  }
+
   revalidatePath(PLANNING_PATH);
   const first = created[0];
   const warnings = await collectPlanningWarnings(session.user.id, first.dateDebut, first.dateFin, first.id);
@@ -295,6 +327,31 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
     });
     if (task.priorite === "TRES_HAUTE") {
       await runTaskBlockedRules(task);
+    }
+  }
+
+  // Notification directe et systématique au changement de statut, pour les
+  // participants de l'activité et — si elle planifie une Tâche existante —
+  // le responsable/les assignés de cette tâche.
+  if (existing.statut !== entry.statut) {
+    const [participants, linkedTask] = await Promise.all([
+      prisma.personalPlanningEntryParticipant.findMany({ where: { entryId: entry.id }, select: { userId: true } }),
+      entry.tacheId
+        ? prisma.task.findUnique({ where: { id: entry.tacheId }, select: { responsablePrincipalId: true, assignees: { select: { userId: true } } } })
+        : Promise.resolve(null),
+    ]);
+    const targets = [
+      ...participants.map((p) => p.userId),
+      ...(linkedTask ? [linkedTask.responsablePrincipalId, ...linkedTask.assignees.map((a) => a.userId)] : []),
+    ];
+    if (targets.length > 0) {
+      await notifyMany(targets, session.user.id, {
+        type: "STATUT_MODIFIE",
+        titre: `${session.user.name ?? "Un collègue"} a changé le statut de « ${entry.titre} » → ${entry.statut}`,
+        lien: PLANNING_PATH,
+        entityType: "PersonalPlanningEntry",
+        entityId: entry.id,
+      });
     }
   }
 
@@ -427,6 +484,8 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
     return created;
   });
 
+  await notifyTaskColleaguesOfSchedule(task.id, session.user.id, session.user.name ?? "Un collègue", dateDebut);
+
   revalidatePath(PLANNING_PATH);
   const warnings = await collectPlanningWarnings(session.user.id, entry.dateDebut, entry.dateFin, entry.id);
   return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString(), warnings };
@@ -541,6 +600,10 @@ export async function movePersonalPlanningEntry(input: MovePersonalPlanningEntry
     entityId: entry.id,
     changes: { dateDebut: { avant: existing.dateDebut.toISOString(), apres: entry.dateDebut.toISOString() } },
   });
+
+  if (entry.tacheId) {
+    await notifyTaskColleaguesOfSchedule(entry.tacheId, session.user.id, session.user.name ?? "Un collègue", entry.dateDebut);
+  }
 
   revalidatePath(PLANNING_PATH);
   const warnings = await collectPlanningWarnings(session.user.id, entry.dateDebut, entry.dateFin, entry.id);
@@ -870,4 +933,38 @@ export async function getPersonalPlanningEntryHistory(entryId: string) {
     createdAt: log.createdAt.toISOString(),
     changes: log.changes,
   }));
+}
+
+function truncateToDay(dateStr: string): Date {
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** §22 — sauvegarde (upsert) les notes personnelles du bilan de fin de journée pour une date donnée. */
+export async function saveDailyReviewNotes(input: SaveDailyReviewNotesInput) {
+  const session = await requireSession();
+  const data = saveDailyReviewNotesSchema.parse(input);
+  const date = truncateToDay(data.date);
+
+  const review = await prisma.personalPlanningDailyReview.upsert({
+    where: { userId_date: { userId: session.user.id, date } },
+    create: { userId: session.user.id, date, notes: data.notes || null },
+    update: { notes: data.notes || null },
+  });
+
+  revalidatePath("/ma-journee");
+  return { id: review.id, notes: review.notes };
+}
+
+/** Charge les notes personnelles déjà enregistrées pour une date (ou null si aucune). */
+export async function getDailyReviewNotes(dateStr: string): Promise<string | null> {
+  const session = await requireSession();
+  const date = truncateToDay(dateStr);
+
+  const review = await prisma.personalPlanningDailyReview.findUnique({
+    where: { userId_date: { userId: session.user.id, date } },
+    select: { notes: true },
+  });
+  return review?.notes ?? null;
 }

@@ -206,6 +206,15 @@ enum NotificationType {
   // surcharge du Planning personnel : demande, pas transfert automatique
   // (voir memoire projet, actions sensibles = validation humaine).
   DEMANDE_REAFFECTATION_TACHE
+  // Notifie les autres assignes/responsable d'une Tache quand un collegue
+  // pose un creneau dessus (scheduleInboxTask/createPersonalPlanningEntry/
+  // movePersonalPlanningEntry avec tacheId) — "toutes activites ou taches
+  // creees doivent notifier les concernes".
+  DISPONIBILITE_MODIFIEE
+  // Notifie responsable/assignes (Task) ou participants (PersonalPlanningEntry)
+  // quand le statut change, independamment du moteur AutomationRule
+  // (optionnel/configurable) — notification directe et systematique.
+  STATUT_MODIFIE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -611,6 +620,7 @@ model User {
   eventsCreated                       Event[]                            @relation("EventCreatedBy")
   personalPlanningEntries             PersonalPlanningEntry[]            @relation("PersonalPlanningEntryOwner")
   personalPlanningEntryParticipations PersonalPlanningEntryParticipant[] @relation("PersonalPlanningEntryParticipantUser")
+  personalPlanningDailyReviews        PersonalPlanningDailyReview[]
   workSchedules                       UserWorkSchedule[]
   availabilityRequestsReceived        AvailabilityRequest[]              @relation("AvailabilityRequestTarget")
   availabilityRequestsSent            AvailabilityRequest[]              @relation("AvailabilityRequestRequestedBy")
@@ -1073,6 +1083,7 @@ model PlatformOrganization {
   events                            Event[]                            @relation("PlatformOrganizationEvents")
   personalPlanningEntries           PersonalPlanningEntry[]            @relation("PlatformOrganizationPersonalPlanningEntries")
   personalPlanningEntryParticipants PersonalPlanningEntryParticipant[] @relation("PlatformOrganizationPersonalPlanningEntryParticipants")
+  personalPlanningDailyReviews      PersonalPlanningDailyReview[]      @relation("PlatformOrganizationPersonalPlanningDailyReviews")
   availabilityRequests              AvailabilityRequest[]              @relation("PlatformOrganizationAvailabilityRequests")
   objectives                        Objective[]                        @relation("PlatformOrganizationObjectives")
   indicators                        Indicator[]                        @relation("PlatformOrganizationIndicators")
@@ -2888,8 +2899,11 @@ enum MeetingRecurrence {
 
 model Meeting {
   id                    String                @id @default(cuid())
-  projectId             String
-  project               Project               @relation(fields: [projectId], references: [id])
+  // Optionnel (Module "Planning personnel" §1/§25) — une reunion peut
+  // desormais exister sans etre rattachee a un projet (reunion "libre",
+  // creee depuis /reunions ou depuis le Planning personnel).
+  projectId             String?
+  project               Project?              @relation(fields: [projectId], references: [id])
   // Multi-tenant Phase 1 lot 5 (2026-08-20) — meme statut que Task/
   // ProjectSection/Document : nullable, reversible, denormalise depuis
   // project.organizationId.
@@ -6694,6 +6708,24 @@ model PersonalPlanningEntryParticipant {
   createdAt      DateTime              @default(now())
 
   @@id([entryId, userId])
+}
+
+// §22 — bilan de fin de journee : notes personnelles libres (raisons d'un
+// blocage, contexte, etc.), distinctes des compteurs deja calcules a la
+// volee par PersonalPlanningEndOfDay. Une ligne par utilisateur et par jour.
+model PersonalPlanningDailyReview {
+  id             String                @id @default(cuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPersonalPlanningDailyReviews", fields: [organizationId], references: [id])
+  date           DateTime
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
 }
 
 // Demande de creneau sur le planning personnel d'un collegue — pattern a

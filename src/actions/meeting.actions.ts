@@ -61,7 +61,7 @@ export async function createMeeting(input: CreateMeetingInput) {
 
   const meeting = await prisma.meeting.create({
     data: {
-      projectId: data.projectId,
+      projectId: data.projectId || null,
       titre: data.titre,
       dateHeure: new Date(data.dateHeure),
       lieu: data.lieu,
@@ -85,7 +85,7 @@ export async function createMeeting(input: CreateMeetingInput) {
     for (const dateHeure of occurrenceDates) {
       await prisma.meeting.create({
         data: {
-          projectId: data.projectId,
+          projectId: data.projectId || null,
           titre: data.titre,
           dateHeure,
           lieu: data.lieu,
@@ -182,11 +182,20 @@ export async function addDecision(input: AddDecisionInput) {
     where: { id: data.meetingId },
   });
 
+  // §1/§25 — une reunion "libre" n'a pas de projet, mais la Task creee par
+  // une decision en a toujours besoin (Task.projectId reste obligatoire) :
+  // meme logique que promoteEntryToTask, le projet se choisit explicitement
+  // au moment de transformer en tache.
+  const projectId = meeting.projectId ?? data.projectId;
+  if (!projectId) {
+    throw new Error("Cette réunion n'a pas de projet : précisez un projet pour créer la tâche issue de la décision.");
+  }
+
   // Cahier des charges §8 : « les actions décidées deviennent automatiquement
   // des tâches » — sans condition, pas une option togglable côté client.
   const task = await prisma.task.create({
     data: {
-      projectId: meeting.projectId,
+      projectId,
       titre: data.description,
       statut: "A_FAIRE",
       priorite: "MOYENNE",

@@ -95,9 +95,13 @@ export default async function MeetingDetailPage({
             <h1 className="text-2xl font-semibold">{meeting.titre}</h1>
             <Badge variant={toneForStatus(meeting.statut)}>{STATUS_LABELS[meeting.statut]}</Badge>
           </div>
-          <Link href={`/projets/${meeting.projectId}`} className="text-sm text-muted-foreground hover:underline">
-            {meeting.project.nom}
-          </Link>
+          {meeting.project ? (
+            <Link href={`/projets/${meeting.projectId}`} className="text-sm text-muted-foreground hover:underline">
+              {meeting.project.nom}
+            </Link>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sans projet</p>
+          )}
           <div className="mt-2">
             <EntityTagsEditor entityType="Meeting" entityId={meeting.id} initialTags={tags} canManage={canTag} />
           </div>
@@ -159,13 +163,20 @@ export default async function MeetingDetailPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents liés</CardTitle>
-            <DocumentFormDialog
-              projectId={meeting.projectId}
-              meetingId={meeting.id}
-              triggerLabel="Lier un document"
-            />
+            {meeting.projectId && (
+              <DocumentFormDialog
+                projectId={meeting.projectId}
+                meetingId={meeting.id}
+                triggerLabel="Lier un document"
+              />
+            )}
           </CardHeader>
           <CardContent>
+            {!meeting.projectId && documentRows.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Réunion sans projet : liez-la à un projet pour pouvoir y attacher des documents.
+              </p>
+            )}
             <DocumentList documents={documentRows} />
           </CardContent>
         </Card>

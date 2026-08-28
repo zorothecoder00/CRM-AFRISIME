@@ -1158,7 +1158,7 @@ export async function runGovernanceDecisionCreatedRules(decision: {
 export async function runMeetingCreatedRules(meeting: {
   id: string;
   titre: string;
-  projectId: string;
+  projectId: string | null;
   createdById: string;
 }) {
   const rules = await findActiveRules("MEETING_CREATED", meeting.projectId);

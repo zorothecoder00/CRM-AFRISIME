@@ -78,7 +78,7 @@ export default async function ReunionsPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-sm text-muted-foreground">{meeting.project.nom}</p>
+                <p className="text-sm text-muted-foreground">{meeting.project?.nom ?? "Sans projet"}</p>
                 <p className="text-sm">
                   {new Date(meeting.dateHeure).toLocaleString("fr-FR", {
                     dateStyle: "medium",

@@ -21,6 +21,7 @@ export function EntryBlock({
   height,
   onEdit,
   tightTransition,
+  readOnly,
 }: {
   entry: PersonalPlanningEntryRow;
   top: number;
@@ -28,9 +29,11 @@ export function EntryBlock({
   onEdit: () => void;
   /** §27 — peu de temps pour se déplacer avant/après cette entrée. */
   tightTransition?: boolean;
+  /** §46 — vue manager sur le planning d'un subordonné : ni glissé, ni édition, ni navigation. */
+  readOnly?: boolean;
 }) {
   const isMeeting = !!entry.meetingHref;
-  const draggable = entry.type !== "RESERVE" && !isMeeting;
+  const draggable = !readOnly && entry.type !== "RESERVE" && !isMeeting;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `entry-${entry.id}`,
     data: { originalDateDebut: entry.dateDebut },
@@ -70,6 +73,14 @@ export function EntryBlock({
       )}
     </>
   );
+
+  if (readOnly) {
+    return (
+      <div className={className} style={style}>
+        {inner}
+      </div>
+    );
+  }
 
   if (isMeeting) {
     return (
