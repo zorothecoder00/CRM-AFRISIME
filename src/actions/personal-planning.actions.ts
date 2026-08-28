@@ -21,6 +21,7 @@ import {
   scheduleInboxTaskSchema,
   movePersonalPlanningEntrySchema,
   reorganizeOverloadedDaySchema,
+  requestTaskReassignmentSchema,
   reassignInboxTaskSchema,
   promoteEntryToTaskSchema,
   getAvailabilitySchema,
@@ -35,6 +36,7 @@ import {
   type ScheduleInboxTaskInput,
   type MovePersonalPlanningEntryInput,
   type ReorganizeOverloadedDayInput,
+  type RequestTaskReassignmentInput,
   type ReassignInboxTaskInput,
   type PromoteEntryToTaskInput,
   type GetAvailabilityInput,
@@ -547,6 +549,8 @@ export async function movePersonalPlanningEntry(input: MovePersonalPlanningEntry
 
 const NON_CRITICAL_PRIORITIES = ["FAIBLE", "NORMALE", "HAUTE"] as const;
 const REORGANIZE_MAX_SPREAD_DAYS = 7;
+const REDUIRE_FACTOR = 0.75;
+const REDUIRE_MIN_MINUTES = 15;
 
 /**
  * §16 (version légère, sans moteur IA) : quand une journée est en
@@ -589,6 +593,31 @@ export async function reorganizeOverloadedDay(input: ReorganizeOverloadedDayInpu
         moved += 1;
       }
     });
+  } else if (data.strategy === "REDUIRE") {
+    // §16 option 3 — "réduire le temps réservé" : raccourcit la durée des
+    // entrées non critiques (les moins prioritaires d'abord), -25 % arrondi
+    // au multiple de 5 min le plus proche, jamais sous REDUIRE_MIN_MINUTES.
+    // La tâche liée (si applicable) suit sur son échéance, même logique que
+    // moveEntryToDate.
+    const priorityRank: Record<string, number> = { FAIBLE: 0, NORMALE: 1, HAUTE: 2, CRITIQUE: 3 };
+    const ordered = [...dayEntries].sort((a, b) => priorityRank[a.priorite] - priorityRank[b.priorite]);
+    let remainingHeures = ordered.reduce((sum, e) => sum + (e.dateFin.getTime() - e.dateDebut.getTime()) / 3_600_000, 0);
+
+    await prisma.$transaction(async (tx) => {
+      for (const e of ordered) {
+        if (remainingHeures <= capaciteHeures) break;
+        const currentMinutes = (e.dateFin.getTime() - e.dateDebut.getTime()) / 60_000;
+        const newMinutes = Math.max(REDUIRE_MIN_MINUTES, Math.round((currentMinutes * REDUIRE_FACTOR) / 5) * 5);
+        if (newMinutes >= currentMinutes) continue;
+        const newDateFin = new Date(e.dateDebut.getTime() + newMinutes * 60_000);
+        await tx.personalPlanningEntry.update({ where: { id: e.id }, data: { dateFin: newDateFin } });
+        if (e.tacheId) {
+          await tx.task.update({ where: { id: e.tacheId }, data: { echeance: newDateFin } });
+        }
+        moved += 1;
+        remainingHeures -= (currentMinutes - newMinutes) / 60;
+      }
+    });
   } else {
     // ETALER — priorité ascendante (FAIBLE avant NORMALE avant HAUTE) : les
     // moins prioritaires bougent en premier, un jour d'écart supplémentaire
@@ -612,6 +641,41 @@ export async function reorganizeOverloadedDay(input: ReorganizeOverloadedDayInpu
 
   revalidatePath(PLANNING_PATH);
   return { moved };
+}
+
+/**
+ * §16 option 4 — "demander une réaffectation" : envoie une simple demande
+ * au collègue choisi (une notification liée à la tâche), ne réaffecte rien
+ * automatiquement — la décision reste entre les mains du destinataire (ou
+ * de son manager), même principe que partout ailleurs dans ce module où
+ * une action sensible ne doit jamais se faire sans validation humaine côté
+ * receveur.
+ */
+export async function requestTaskReassignment(input: RequestTaskReassignmentInput) {
+  const session = await requireSession();
+  const data = requestTaskReassignmentSchema.parse(input);
+
+  const entry = await prisma.personalPlanningEntry.findUniqueOrThrow({
+    where: { id: data.entryId },
+    include: { tache: { select: { id: true, titre: true } } },
+  });
+  if (entry.userId !== session.user.id) {
+    throw new Error("Vous ne pouvez demander une réaffectation que pour vos propres activités.");
+  }
+  if (!entry.tacheId || !entry.tache) {
+    throw new Error("Cette activité n'est pas liée à une tâche.");
+  }
+
+  await createNotification({
+    userId: data.targetUserId,
+    type: "DEMANDE_REAFFECTATION_TACHE",
+    titre: `${session.user.name ?? "Un collègue"} vous propose de reprendre la tâche « ${entry.tache.titre} » (surcharge de planning).`,
+    lien: `/taches/${entry.tache.id}`,
+    entityType: "Task",
+    entityId: entry.tache.id,
+  });
+
+  return { ok: true };
 }
 
 /**

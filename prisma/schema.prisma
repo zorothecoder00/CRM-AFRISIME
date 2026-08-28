@@ -202,6 +202,10 @@ enum NotificationType {
   // deplacement d'activites de Planning personnel deja programmees pendant
   // la periode.
   CONGE_REORGANISATION
+  // §16 option 4 — "demander une reaffectation" depuis l'assistant de
+  // surcharge du Planning personnel : demande, pas transfert automatique
+  // (voir memoire projet, actions sensibles = validation humaine).
+  DEMANDE_REAFFECTATION_TACHE
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine

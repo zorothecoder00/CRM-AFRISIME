@@ -16,6 +16,8 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import { resolveDailyCapacity, computeDailyCharge, computePlanningHealth } from "@/lib/personal-planning-workload";
 import { computeWorkload, ACTIVE_TASK_STATUSES } from "@/lib/workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
+import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
+import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { Sunrise } from "lucide-react";
 
@@ -62,6 +64,33 @@ export default async function MaJourneePage() {
   const todaySchedule = await prisma.userWorkSchedule.findUnique({
     where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
   });
+
+  // §22 — "reportée" du bilan de fin de journée : entrées déplacées
+  // aujourd'hui (§47 logAudit) dont l'ancienne date tombait aujourd'hui et
+  // la nouvelle non — sans l'historique de déplacement écrit au §47, ce
+  // compteur restait impossible à calculer (limite documentée jusqu'ici).
+  const movedTodayLogs = await prisma.auditLog.findMany({
+    where: {
+      userId,
+      entityType: "PersonalPlanningEntry",
+      action: "personal_planning_entry.moved",
+      createdAt: { gte: dayStart, lte: dayEnd },
+    },
+    select: { entityId: true, changes: true },
+  });
+  const reporteesCount = new Set(
+    movedTodayLogs
+      .filter((log) => {
+        const changes = log.changes as { dateDebut?: { avant?: string; apres?: string } } | null;
+        const avant = changes?.dateDebut?.avant ? new Date(changes.dateDebut.avant) : null;
+        const apres = changes?.dateDebut?.apres ? new Date(changes.dateDebut.apres) : null;
+        if (!avant || !apres) return false;
+        const avantEtaitAujourdhui = avant >= dayStart && avant <= dayEnd;
+        const apresEstAujourdhui = apres >= dayStart && apres <= dayEnd;
+        return avantEtaitAujourdhui && !apresEstAujourdhui;
+      })
+      .map((log) => log.entityId)
+  ).size;
 
   // §35/§36 — "Ma performance" : tâches actives (peu importe leur âge) +
   // terminées/annulées des 30 derniers jours, fenêtre glissante pour que les
@@ -119,6 +148,16 @@ export default async function MaJourneePage() {
   const dailyCapacity = resolveDailyCapacity(todaySchedule, Number(me.capaciteHebdomadaireHeures));
   const charge = computeDailyCharge(entries, dailyCapacity);
   const todayKey = now.toISOString().slice(0, 10);
+
+  // §42 — conflits détectés parmi les activités réelles du jour (ni
+  // réservations système, ni réunions — non éditables depuis ce dialogue).
+  const realTodayEntries = entries.filter((e) => e.type !== "RESERVE" && !e.meetingHref);
+  const conflictLabels = await Promise.all(
+    realTodayEntries.map((e) => findScheduleConflict(userId, new Date(e.dateDebut), new Date(e.dateFin), e.id))
+  );
+  const conflicts = realTodayEntries
+    .map((entry, i) => ({ entry, conflictWith: conflictLabels[i] }))
+    .filter((c): c is { entry: (typeof realTodayEntries)[number]; conflictWith: string } => c.conflictWith !== null);
 
   // §35/§36 — "Ma performance", calculée depuis myTasks (fenêtre 30 jours,
   // voir plus haut). computeWorkload réutilisé pour charge/temps (même
@@ -196,11 +235,18 @@ export default async function MaJourneePage() {
           </div>
         </div>
 
-        <PersonalPlanningToday entries={entries} charge={charge} todayKey={todayKey} />
+        <PersonalPlanningToday
+          entries={entries}
+          charge={charge}
+          todayKey={todayKey}
+          colleagues={colleagues.map((c) => ({ id: c.id, label: c.name }))}
+        />
+
+        <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
         <PersonalPlanningDay day={now} entries={entries} refData={refData} />
 
-        <PersonalPlanningEndOfDay entries={entries} />
+        <PersonalPlanningEndOfDay entries={entries} reporteesCount={reporteesCount} />
 
         <div className="flex flex-wrap items-center gap-3">
           <PlanningHealthBadge score={planningHealth} />

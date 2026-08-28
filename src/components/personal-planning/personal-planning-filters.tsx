@@ -5,8 +5,11 @@ import {
   ENTRY_PRIORITE_ORDER,
   ENTRY_PRIORITE_META,
   ENTRY_STATUT_LABELS,
+  ENTRY_TYPE_OPTIONS,
+  ENTRY_TYPE_META,
   type PersonalPlanningPriorite,
   type PersonalPlanningEntryStatut,
+  type PersonalPlanningEntryType,
 } from "@/lib/personal-planning-types";
 import { cn } from "@/lib/utils";
 
@@ -14,17 +17,21 @@ const STATUT_FILTER_OPTIONS: PersonalPlanningEntryStatut[] = ["EN_ATTENTE", "BLO
 
 /**
  * §32 : filtres du planning — priorité (§11, déjà en place), statut
- * (En attente/Bloqué), en retard, et raccourcis de période
- * (Aujourd'hui/Demain/Cette semaine/Ce mois). Un seul composant pour que
- * les liens de chaque filtre préservent toujours les autres dimensions
- * actives (au lieu de se marcher dessus si chacun construisait son propre
- * href indépendamment).
+ * (En attente/Bloqué), type d'activité, en retard, et raccourcis de
+ * période (Aujourd'hui/Demain/Cette semaine/Ce mois). "Département" et
+ * "Responsable" du document ne sont pas repris ici : cette page est scopée
+ * à l'utilisateur connecté par conception (§46), ces deux dimensions n'ont
+ * de sens que sur les dashboards manager/direction (§37/§38), pas dans un
+ * planning personnel. Un seul composant pour que les liens de chaque
+ * filtre préservent toujours les autres dimensions actives (au lieu de se
+ * marcher dessus si chacun construisait son propre href indépendamment).
  */
 export function PersonalPlanningFilters({
   vue,
   semaine,
   activePriorites,
   activeStatuts,
+  activeTypes,
   enRetard,
   projects,
   activeProjetId,
@@ -33,6 +40,7 @@ export function PersonalPlanningFilters({
   semaine?: string;
   activePriorites: PersonalPlanningPriorite[];
   activeStatuts: PersonalPlanningEntryStatut[];
+  activeTypes: PersonalPlanningEntryType[];
   enRetard: boolean;
   projects: { id: string; nom: string }[];
   activeProjetId?: string;
@@ -40,6 +48,7 @@ export function PersonalPlanningFilters({
   function buildHref(overrides: {
     priorites?: PersonalPlanningPriorite[];
     statuts?: PersonalPlanningEntryStatut[];
+    types?: PersonalPlanningEntryType[];
     enRetard?: boolean;
     projetId?: string;
     vue?: string;
@@ -47,6 +56,7 @@ export function PersonalPlanningFilters({
   }) {
     const priorites = overrides.priorites ?? activePriorites;
     const statuts = overrides.statuts ?? activeStatuts;
+    const types = overrides.types ?? activeTypes;
     const retard = overrides.enRetard ?? enRetard;
     const projetId = overrides.projetId !== undefined ? overrides.projetId : activeProjetId;
     const targetVue = overrides.vue ?? vue;
@@ -57,6 +67,7 @@ export function PersonalPlanningFilters({
     if (targetSemaine) params.set("semaine", targetSemaine);
     if (priorites.length > 0 && priorites.length < ENTRY_PRIORITE_ORDER.length) params.set("priorite", priorites.join(","));
     if (statuts.length > 0) params.set("statut", statuts.join(","));
+    if (types.length > 0 && types.length < ENTRY_TYPE_OPTIONS.length) params.set("type", types.join(","));
     if (retard) params.set("enRetard", "1");
     if (projetId) params.set("projetId", projetId);
     return `/planning-personnel?${params.toString()}`;
@@ -93,6 +104,22 @@ export function PersonalPlanningFilters({
             <Link key={p} href={buildHref({ priorites: target })}>
               <Badge variant={isActive ? "outline" : "secondary"} className={cn("cursor-pointer gap-1", !isActive && "opacity-50")}>
                 {ENTRY_PRIORITE_META[p].emoji} {ENTRY_PRIORITE_META[p].label}
+              </Badge>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">Type :</span>
+        {ENTRY_TYPE_OPTIONS.map((t) => {
+          const isActive = activeTypes.includes(t);
+          const next = isActive ? activeTypes.filter((a) => a !== t) : [...activeTypes, t];
+          const target = next.length === 0 ? ENTRY_TYPE_OPTIONS : next;
+          return (
+            <Link key={t} href={buildHref({ types: target })}>
+              <Badge variant={isActive ? "outline" : "secondary"} className={cn("cursor-pointer", !isActive && "opacity-50")}>
+                {ENTRY_TYPE_META[t].label}
               </Badge>
             </Link>
           );

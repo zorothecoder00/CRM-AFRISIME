@@ -124,10 +124,18 @@ export type MovePersonalPlanningEntryInput = z.infer<typeof movePersonalPlanning
 
 export const reorganizeOverloadedDaySchema = z.object({
   date: z.string().min(1),
-  strategy: z.enum(["REPORTER", "ETALER"]),
+  strategy: z.enum(["REPORTER", "ETALER", "REDUIRE"]),
 });
 
 export type ReorganizeOverloadedDayInput = z.infer<typeof reorganizeOverloadedDaySchema>;
+
+/** §16 option 4 — "demander une réaffectation" depuis l'assistant de surcharge. */
+export const requestTaskReassignmentSchema = z.object({
+  entryId: z.string().min(1),
+  targetUserId: z.string().min(1, "Un destinataire est requis."),
+});
+
+export type RequestTaskReassignmentInput = z.infer<typeof requestTaskReassignmentSchema>;
 
 // ---- Vue "À planifier" étendue (§29) ----
 

@@ -44,7 +44,14 @@ import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
-import { ENTRY_PRIORITE_ORDER, type PersonalPlanningPriorite, type PersonalPlanningEntryStatut } from "@/lib/personal-planning-types";
+import { PersonalPlanningDashboardHeader } from "@/components/personal-planning/personal-planning-dashboard-header";
+import {
+  ENTRY_PRIORITE_ORDER,
+  ENTRY_TYPE_OPTIONS,
+  type PersonalPlanningPriorite,
+  type PersonalPlanningEntryStatut,
+  type PersonalPlanningEntryType,
+} from "@/lib/personal-planning-types";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 
 type Vue = "semaine" | "jour" | "mois" | "agenda" | "liste" | "timeline";
@@ -63,12 +70,20 @@ export default async function PlanningPersonnelPage({
     vue?: string;
     priorite?: string;
     statut?: string;
+    type?: string;
     enRetard?: string;
     projetId?: string;
   }>;
 }) {
-  const { semaine, vue: vueParam, priorite: prioriteParam, statut: statutParam, enRetard: enRetardParam, projetId: activeProjetId } =
-    await searchParams;
+  const {
+    semaine,
+    vue: vueParam,
+    priorite: prioriteParam,
+    statut: statutParam,
+    type: typeParam,
+    enRetard: enRetardParam,
+    projetId: activeProjetId,
+  } = await searchParams;
   const activePriorities: PersonalPlanningPriorite[] = prioriteParam
     ? (prioriteParam.split(",").filter((p) => ENTRY_PRIORITE_ORDER.includes(p as PersonalPlanningPriorite)) as PersonalPlanningPriorite[])
     : ENTRY_PRIORITE_ORDER;
@@ -76,6 +91,9 @@ export default async function PlanningPersonnelPage({
   const activeStatuts: PersonalPlanningEntryStatut[] = statutParam
     ? (statutParam.split(",").filter((s) => STATUT_FILTER_VALUES.includes(s as PersonalPlanningEntryStatut)) as PersonalPlanningEntryStatut[])
     : [];
+  const activeTypes: PersonalPlanningEntryType[] = typeParam
+    ? (typeParam.split(",").filter((t) => ENTRY_TYPE_OPTIONS.includes(t as PersonalPlanningEntryType)) as PersonalPlanningEntryType[])
+    : ENTRY_TYPE_OPTIONS;
   const isEnRetard = enRetardParam === "1";
   const vue: Vue = (["semaine", "jour", "mois", "agenda", "liste", "timeline"] as const).includes(vueParam as Vue)
     ? (vueParam as Vue)
@@ -168,6 +186,18 @@ export default async function PlanningPersonnelPage({
     where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
   });
 
+  // §5 — tableau de bord "Mon Planning" : "En retard"/"À venir" portent sur
+  // l'ensemble du planning (pas seulement la période affichée par la vue
+  // active), contrairement à `entries` filtré plus bas par `vue`/`semaine`.
+  const [enRetardCount, aVenirCount] = await Promise.all([
+    prisma.personalPlanningEntry.count({
+      where: { userId, type: { not: "RESERVE" }, dateFin: { lt: now }, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+    }),
+    prisma.personalPlanningEntry.count({
+      where: { userId, type: { not: "RESERVE" }, dateDebut: { gt: now }, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+    }),
+  ]);
+
   // §25 — réunions de l'utilisateur fusionnées en lecture seule dans les vues.
   const [meetingsRaw, todayMeetingsRaw] = await Promise.all([
     prisma.meeting.findMany({
@@ -201,6 +231,7 @@ export default async function PlanningPersonnelPage({
   const entries = allEntries.filter((e) => {
     if (!activePriorities.includes(e.priorite)) return false;
     if (activeStatuts.length > 0 && !activeStatuts.includes(e.statut)) return false;
+    if (!activeTypes.includes(e.type)) return false;
     if (activeProjetId && e.projetId !== activeProjetId) return false;
     if (isEnRetard && !(new Date(e.dateFin) < now && !["TERMINEE", "ANNULEE"].includes(e.statut))) return false;
     return true;
@@ -271,6 +302,18 @@ export default async function PlanningPersonnelPage({
       <div className="space-y-4 lg:col-span-2">
         <PersonalPlanningCrosslinks current="/planning-personnel" />
 
+        <PersonalPlanningDashboardHeader
+          userName={userName}
+          today={now}
+          stats={{
+            aujourdHui: todayEntriesRaw.length,
+            enRetard: enRetardCount,
+            aVenir: aVenirCount,
+            reunions: todayMeetingsRaw.length,
+            chargePercent: charge.tauxOccupation,
+          }}
+        />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Lock className="size-6 text-muted-foreground" />
@@ -291,7 +334,7 @@ export default async function PlanningPersonnelPage({
           </div>
         </div>
 
-        <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} />
+        <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
 
         <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
 
@@ -300,6 +343,7 @@ export default async function PlanningPersonnelPage({
           semaine={semaine}
           activePriorites={activePriorities}
           activeStatuts={activeStatuts}
+          activeTypes={activeTypes}
           enRetard={isEnRetard}
           projects={projects}
           activeProjetId={activeProjetId}

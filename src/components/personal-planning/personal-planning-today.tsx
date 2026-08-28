@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { reorganizeOverloadedDay } from "@/actions/personal-planning.actions";
 import { ENTRY_TYPE_META, ENTRY_PRIORITE_META, ENTRY_PRIORITE_ORDER } from "@/lib/personal-planning-types";
 import type { DailyCharge } from "@/lib/personal-planning-workload";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
+import { RequestReassignmentDialog, type ColleagueOption } from "@/components/personal-planning/request-reassignment-dialog";
 import { CalendarCheck2, ListChecks, TriangleAlert } from "lucide-react";
 
 const GROUP_TITLE: Record<(typeof ENTRY_PRIORITE_ORDER)[number], string> = {
@@ -19,11 +21,28 @@ const GROUP_TITLE: Record<(typeof ENTRY_PRIORITE_ORDER)[number], string> = {
 };
 
 /** Bloc « Ma journée » (§6) : activités du jour groupées par priorité (§11), bandeau de surcharge (§15) avec suggestions légères (§16). */
-export function PersonalPlanningToday({ entries, charge, todayKey }: { entries: PersonalPlanningEntryRow[]; charge: DailyCharge; todayKey: string }) {
+export function PersonalPlanningToday({
+  entries,
+  charge,
+  todayKey,
+  colleagues = [],
+}: {
+  entries: PersonalPlanningEntryRow[];
+  charge: DailyCharge;
+  todayKey: string;
+  colleagues?: ColleagueOption[];
+}) {
   const sorted = [...entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
   const { run: reorganize, isPending } = useAction(reorganizeOverloadedDay, {
     successMessage: (r) => (r.moved > 0 ? `${r.moved} activité(s) réorganisée(s).` : "Rien à réorganiser."),
   });
+  const [reassignOpen, setReassignOpen] = useState(false);
+
+  // §16 options 2/4 — réunion du jour à déplacer (renvoie vers /reunions,
+  // édité là-bas) ; activités non critiques liées à une tâche, éligibles à
+  // une demande de réaffectation.
+  const todayMeeting = sorted.find((e) => e.meetingHref);
+  const reassignableEntries = sorted.filter((e) => e.priorite !== "CRITIQUE" && e.tacheId && !e.meetingHref);
 
   return (
     <Card>
@@ -39,13 +58,28 @@ export function PersonalPlanningToday({ entries, charge, todayKey }: { entries: 
               <span className="font-semibold text-destructive">🔴 Surcharge : {charge.tauxOccupation} %</span> — Votre journée contient{" "}
               {charge.heuresSupplementaires} h de travail supplémentaire.
             </span>
-            <div className="ml-auto flex gap-1.5">
+            <div className="ml-auto flex flex-wrap gap-1.5">
               <Button size="sm" variant="outline" disabled={isPending} onClick={() => reorganize({ date: todayKey, strategy: "REPORTER" })}>
                 Reporter à demain
               </Button>
               <Button size="sm" variant="outline" disabled={isPending} onClick={() => reorganize({ date: todayKey, strategy: "ETALER" })}>
                 Étaler sur les jours suivants
               </Button>
+              <Button size="sm" variant="outline" disabled={isPending} onClick={() => reorganize({ date: todayKey, strategy: "REDUIRE" })}>
+                Réduire le temps réservé
+              </Button>
+              {todayMeeting && (
+                <Link href={todayMeeting.meetingHref!}>
+                  <Button size="sm" variant="outline">
+                    Déplacer une réunion
+                  </Button>
+                </Link>
+              )}
+              {reassignableEntries.length > 0 && colleagues.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setReassignOpen(true)}>
+                  Demander une réaffectation
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -90,6 +124,12 @@ export function PersonalPlanningToday({ entries, charge, todayKey }: { entries: 
           })
         )}
       </CardContent>
+      <RequestReassignmentDialog
+        open={reassignOpen}
+        onOpenChange={setReassignOpen}
+        entries={reassignableEntries.map((e) => ({ id: e.id, titre: e.titre }))}
+        colleagues={colleagues}
+      />
     </Card>
   );
 }

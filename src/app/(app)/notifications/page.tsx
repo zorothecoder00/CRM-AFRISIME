@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
 import { NotificationRow } from "@/components/notifications/notification-row";
+import { NOTIFICATION_TONE_META, toneForNotificationType } from "@/lib/notification-tone";
 
 const TYPE_LABELS: Record<string, string> = {
   NOUVELLE_TACHE: "Nouvelle tâche",
@@ -22,6 +23,16 @@ const TYPE_LABELS: Record<string, string> = {
   BUDGET_DEPASSE: "Budget dépassé",
   RELANCE_PLANIFIEE: "Relance planifiée",
   TACHE_CRITIQUE: "Tâche critique",
+  RAPPORT_HEBDOMADAIRE: "Rapport hebdomadaire",
+  CONTRAT_EXPIRE: "Contrat expiré",
+  REUNION_INVITATION: "Invitation à une réunion",
+  DEMANDE_DISPONIBILITE: "Demande de créneau",
+  DEMANDE_DISPONIBILITE_DECISION: "Réponse à une demande de créneau",
+  RAPPEL_ACTIVITE: "Rappel d'activité",
+  ACTIVITE_INVITATION: "Invitation à une activité",
+  DELEGATION_EN_RETARD: "Délégation en retard",
+  CONGE_REORGANISATION: "Réorganisation suite à un congé",
+  DEMANDE_REAFFECTATION_TACHE: "Demande de réaffectation",
 };
 
 export default async function NotificationsPage() {
@@ -56,12 +67,17 @@ export default async function NotificationsPage() {
           {notifications.length === 0 && (
             <p className="p-4 text-sm text-muted-foreground">Aucune notification.</p>
           )}
-          {notifications.map((n) => (
+          {notifications.map((n) => {
+            const tone = NOTIFICATION_TONE_META[toneForNotificationType(n.type)];
+            return (
             <NotificationRow key={n.id} notification={n}>
               <div className="flex items-center justify-between gap-2 p-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{TYPE_LABELS[n.type]}</Badge>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${tone.className}`}>
+                      {tone.emoji} {tone.label}
+                    </span>
+                    <Badge variant="outline">{TYPE_LABELS[n.type] ?? n.type}</Badge>
                     {!n.isRead && <Badge variant="secondary">Non lu</Badge>}
                   </div>
                   {n.lien ? (
@@ -77,7 +93,8 @@ export default async function NotificationsPage() {
                 </span>
               </div>
             </NotificationRow>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>
