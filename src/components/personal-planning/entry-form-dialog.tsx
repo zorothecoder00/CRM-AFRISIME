@@ -56,7 +56,7 @@ export function PersonalPlanningEntryFormDialog({ refData }: { refData: Personal
           Nouvelle activité
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nouvelle activité de planning personnel</DialogTitle>
         </DialogHeader>

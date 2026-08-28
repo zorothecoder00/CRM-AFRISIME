@@ -166,9 +166,55 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
         <Textarea id={`${idPrefix}-notes`} {...register("notes")} />
       </div>
 
+      {/* §19/§20 — la liaison à un projet/tâche existant reste ici, dans la
+          zone toujours visible : c'est ce qui relie l'activité à l'objet
+          Tâche unique (§4) plutôt que de dupliquer un travail déjà suivi
+          ailleurs — pas quelque chose à enterrer dans "Plus d'options". */}
+      <div className="grid grid-cols-2 gap-4 rounded-md border border-dashed p-3">
+        <div className="space-y-2">
+          <Label>Projet associé</Label>
+          <Select
+            value={projetId || "none"}
+            onValueChange={(v) => {
+              setValue("projetId", v === "none" ? "" : v);
+              setValue("tacheId", "");
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Aucun</SelectItem>
+              {refData.projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nom}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Tâche associée</Label>
+          <Select value={(watch("tacheId") as string | undefined) || "none"} onValueChange={(v) => setValue("tacheId", v === "none" ? "" : v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Aucune</SelectItem>
+              {availableTasks.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.titre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {refData.tasks.length === 0 && <p className="text-xs text-muted-foreground">Aucune tâche disponible pour le moment.</p>}
+        </div>
+      </div>
+
       <Button type="button" variant="ghost" size="sm" onClick={() => setShowMore((v) => !v)} className="gap-1 px-0">
         {showMore ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        Plus d&apos;options (lieu, participants, projet, tâche, objectif, étiquettes, répétition, rappel, pièces jointes)
+        Plus d&apos;options (lieu, participants, objectif, étiquettes, répétition, rappel, pièces jointes)
       </Button>
 
       {showMore && (
@@ -191,47 +237,6 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
               </div>
             </div>
           )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Projet associé</Label>
-              <Select
-                value={projetId || "none"}
-                onValueChange={(v) => {
-                  setValue("projetId", v === "none" ? "" : v);
-                  setValue("tacheId", "");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun</SelectItem>
-                  {refData.projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Tâche associée</Label>
-              <Select value={(watch("tacheId") as string | undefined) || "none"} onValueChange={(v) => setValue("tacheId", v === "none" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucune</SelectItem>
-                  {availableTasks.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.titre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           <div className="space-y-2">
             <Label>Objectif associé</Label>

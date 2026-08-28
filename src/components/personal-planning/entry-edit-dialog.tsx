@@ -141,7 +141,7 @@ export function PersonalPlanningEntryEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>Modifier l&apos;activité</DialogTitle>
         </DialogHeader>
