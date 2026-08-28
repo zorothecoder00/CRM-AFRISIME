@@ -1,4 +1,8 @@
-const ACTIVE_TASK_STATUSES = new Set(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"]);
+export function isSameCalendarDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+export const ACTIVE_TASK_STATUSES = new Set(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"]);
 const SURCHARGE_THRESHOLD = 100;
 // V2.2 §10 — taxonomie à 4 niveaux, en plus du flag binaire enSurcharge déjà
 // utilisé ailleurs (ex. alerte hebdomadaire du cron). Pas de seuil explicite
@@ -22,6 +26,12 @@ export type WorkloadTaskInput = {
   assigneeIds: string[];
   createdAt: Date;
   updatedAt: Date;
+  // Module "Planning personnel" §37 — optionnels : seuls les appelants qui
+  // veulent les colonnes Aujourd'hui/En retard/Bloquées du dashboard équipe
+  // les fournissent (voir /pilotage/equipe/[teamId]) ; les ~20 autres
+  // appelants existants de computeWorkload n'ont rien à changer.
+  echeance?: Date | null;
+  dateDebut?: Date | null;
 };
 
 export type WorkloadLeaveInput = {
@@ -55,6 +65,10 @@ export type UserWorkload = {
   enSurcharge: boolean;
   enCongeAujourdhui: boolean;
   tempsMoyenRealisationHeures: number | null;
+  // §37 — 0 par défaut si les appelants ne fournissent pas echeance/dateDebut sur WorkloadTaskInput.
+  tachesEnRetard: number;
+  tachesAujourdhui: number;
+  tachesBloquees: number;
 };
 
 export function computeWorkload(
@@ -67,11 +81,19 @@ export function computeWorkload(
   const chargeHeuresByUser = new Map<string, number>();
   const heuresConsommeesByUser = new Map<string, number>();
   const completedDurationsByUser = new Map<string, number[]>();
+  const tachesEnRetardByUser = new Map<string, number>();
+  const tachesAujourdhuiByUser = new Map<string, number>();
+  const tachesBloqueesByUser = new Map<string, number>();
 
   for (const task of tasks) {
     const owners = new Set([task.responsablePrincipalId, ...task.assigneeIds]);
     const isActive = ACTIVE_TASK_STATUSES.has(task.statut);
     const isCompleted = task.statut === "TERMINEE";
+    const isEnRetard = isActive && !!task.echeance && task.echeance < today;
+    const isAujourdhui =
+      isActive &&
+      ((!!task.echeance && isSameCalendarDay(task.echeance, today)) || (!!task.dateDebut && isSameCalendarDay(task.dateDebut, today)));
+    const isBloquee = task.statut === "BLOQUEE";
 
     for (const ownerId of owners) {
       if (isActive) {
@@ -89,6 +111,9 @@ export function computeWorkload(
         list.push(task.tempsReelHeures);
         completedDurationsByUser.set(ownerId, list);
       }
+      if (isEnRetard) tachesEnRetardByUser.set(ownerId, (tachesEnRetardByUser.get(ownerId) ?? 0) + 1);
+      if (isAujourdhui) tachesAujourdhuiByUser.set(ownerId, (tachesAujourdhuiByUser.get(ownerId) ?? 0) + 1);
+      if (isBloquee) tachesBloqueesByUser.set(ownerId, (tachesBloqueesByUser.get(ownerId) ?? 0) + 1);
     }
   }
 
@@ -124,6 +149,9 @@ export function computeWorkload(
         enSurcharge: tauxOccupation >= SURCHARGE_THRESHOLD,
         enCongeAujourdhui: onLeaveUserIds.has(user.id),
         tempsMoyenRealisationHeures,
+        tachesEnRetard: tachesEnRetardByUser.get(user.id) ?? 0,
+        tachesAujourdhui: tachesAujourdhuiByUser.get(user.id) ?? 0,
+        tachesBloquees: tachesBloqueesByUser.get(user.id) ?? 0,
       };
     })
     .sort((a, b) => b.tauxOccupation - a.tauxOccupation);

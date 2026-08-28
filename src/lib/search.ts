@@ -22,7 +22,8 @@ export type SearchResultType =
   | "Décision"
   | "KPI"
   | "Département"
-  | "Équipe";
+  | "Équipe"
+  | "Activité";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -78,7 +79,11 @@ export type SearchFilters = {
 export async function globalSearch(
   query: string,
   permissions: string[],
-  filters: SearchFilters = {}
+  filters: SearchFilters = {},
+  // Module "Planning personnel" §31 — les activités sont privées : pas de
+  // permission dédiée, juste scopées au chercheur lui-même (jamais celles
+  // des autres, cohérent avec le reste du module).
+  userId?: string
 ): Promise<SearchResult[]> {
   const q = query.trim();
   if (q.length < 2) return [];
@@ -507,6 +512,31 @@ export async function globalSearch(
           subtitle: u.role.label,
           href: `/administration/utilisateurs`,
           _entityType: "User",
+        }));
+      })
+    );
+  }
+
+  if (userId) {
+    searches.push(
+      fuzzyMatchIds("PersonalPlanningEntry", ["titre"], q).then(async (candidateIds) => {
+        if (candidateIds.length === 0) return [];
+        const where: Prisma.PersonalPlanningEntryWhereInput = { id: { in: candidateIds }, userId };
+        if (dateFrom || dateTo) {
+          where.dateDebut = { gte: dateFrom, lte: dateTo };
+        }
+        const rows = await prisma.personalPlanningEntry.findMany({
+          where,
+          take: 8,
+          select: { id: true, titre: true, dateDebut: true },
+        });
+        return sortByRelevance(rows, candidateIds).map((e) => ({
+          type: "Activité" as const,
+          id: e.id,
+          title: e.titre,
+          subtitle: e.dateDebut.toLocaleDateString("fr-FR"),
+          href: "/planning-personnel",
+          _entityType: "PersonalPlanningEntry",
         }));
       })
     );

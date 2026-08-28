@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Sunrise,
   FolderKanban,
   ListChecks,
   CalendarClock,
@@ -93,6 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "salleDeSimulation", href: "/salle-de-simulation", icon: FlaskConical, permission: PERMISSIONS.EXECUTIVE_VIEW },
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
+      { titleKey: "maJournee", href: "/ma-journee", icon: Sunrise },
       { titleKey: "tableauxDeBord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { titleKey: "pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
     ],

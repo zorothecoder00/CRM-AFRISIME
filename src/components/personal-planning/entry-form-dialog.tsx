@@ -10,32 +10,40 @@ import {
   type CreatePersonalPlanningEntryInput,
 } from "@/lib/validations/personal-planning.schema";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PersonalPlanningEntryFields, type PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
-/** Création d'une entrée de planning personnel (note ou créneau indisponible), privée par défaut. */
-export function PersonalPlanningEntryFormDialog() {
+const DEFAULT_VALUES: Partial<CreatePersonalPlanningEntryInput> = {
+  type: "NOTE",
+  priorite: "NORMALE",
+  repetition: "AUCUNE",
+  rappels: [],
+  participantIds: [],
+  etiquettes: [],
+  piecesJointes: [],
+};
+
+/** Création d'une activité de planning personnel (§9), privée par défaut. */
+export function PersonalPlanningEntryFormDialog({ refData }: { refData: PersonalPlanningReferenceData }) {
   const [open, setOpen] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm<CreatePersonalPlanningEntryInput>({
+  const form = useForm<CreatePersonalPlanningEntryInput>({
     resolver: zodResolver(createPersonalPlanningEntrySchema),
-    defaultValues: { type: "NOTE" },
+    defaultValues: DEFAULT_VALUES,
   });
-  const { run: submit, isPending } = useAction(createPersonalPlanningEntry, { successMessage: "Entrée ajoutée." });
+  const { handleSubmit, reset } = form;
+  const { run: submit, isPending } = useAction(createPersonalPlanningEntry, {
+    successMessage: (result) =>
+      result.occurrencesCreated > 1 ? `${result.occurrencesCreated} occurrences ajoutées.` : "Entrée ajoutée.",
+  });
 
   async function onSubmit(data: CreatePersonalPlanningEntryInput) {
     const result = await submit(data);
     if (result.ok) {
-      reset({ type: "NOTE" });
+      // §39/§41/§42 — avertissements de planification, jamais bloquants.
+      result.data.warnings.forEach((w) => toast.warning(w));
+      reset(DEFAULT_VALUES);
       setOpen(false);
     }
   }
@@ -45,47 +53,15 @@ export function PersonalPlanningEntryFormDialog() {
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="mr-1 h-4 w-4" />
-          Nouvelle entrée
+          Nouvelle activité
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nouvelle entrée de planning personnel</DialogTitle>
+          <DialogTitle>Nouvelle activité de planning personnel</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="titre">Titre</Label>
-            <Input id="titre" placeholder="Ex. Rendez-vous médecin" {...register("titre")} />
-            {errors.titre && <p className="text-sm text-destructive">{errors.titre.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Type</Label>
-            <Select defaultValue="NOTE" onValueChange={(v) => setValue("type", v as CreatePersonalPlanningEntryInput["type"])}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NOTE">Note personnelle</SelectItem>
-                <SelectItem value="INDISPONIBLE">Indisponible</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dateDebut">Début</Label>
-              <Input id="dateDebut" type="datetime-local" {...register("dateDebut")} />
-              {errors.dateDebut && <p className="text-sm text-destructive">{errors.dateDebut.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dateFin">Fin</Label>
-              <Input id="dateFin" type="datetime-local" {...register("dateFin")} />
-              {errors.dateFin && <p className="text-sm text-destructive">{errors.dateFin.message}</p>}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optionnel, visibles de vous seul)</Label>
-            <Textarea id="notes" {...register("notes")} />
-          </div>
+          <PersonalPlanningEntryFields form={form} refData={refData} idPrefix="new" />
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ajout..." : "Ajouter"}
           </Button>

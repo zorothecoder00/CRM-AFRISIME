@@ -87,6 +87,35 @@ export const ourFileRouter = {
       return { url: file.ufsUrl };
     }),
 
+  // Pièces jointes d'une activité de Planning personnel (§9) — comme
+  // incidentPhotoUploader, pas d'écriture DB ici : l'URL retournée est
+  // poussée dans le tableau PersonalPlanningEntry.piecesJointes côté client.
+  personalPlanningAttachmentUploader: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 3 },
+    image: { maxFileSize: "8MB", maxFileCount: 3 },
+    text: { maxFileSize: "4MB", maxFileCount: 3 },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 3 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+      maxFileSize: "16MB",
+      maxFileCount: 3,
+    },
+    "application/vnd.ms-excel": { maxFileSize: "16MB", maxFileCount: 3 },
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+      maxFileSize: "16MB",
+      maxFileCount: 3,
+    },
+  })
+    .middleware(async () => {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        throw new UploadThingError("Non authentifié");
+      }
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ file }) => {
+      return { url: file.ufsUrl, nom: file.name };
+    }),
+
   avatarUploader: f({
     image: { maxFileSize: "2MB", maxFileCount: 1 },
   })

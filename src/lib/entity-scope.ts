@@ -23,7 +23,7 @@ type DeptLite = { id: string; parentId: string | null; entityId: string | null }
  * Résout l'entité effective d'un département en remontant jusqu'à sa racine
  * (entityId n'est stocké que sur les départements racines, voir schema.prisma).
  */
-function getDepartmentEntityId(departmentId: string, all: DeptLite[]): string | null {
+export function getDepartmentEntityId(departmentId: string, all: DeptLite[]): string | null {
   const byId = new Map(all.map((d) => [d.id, d]));
   let current = byId.get(departmentId);
   const seen = new Set<string>();

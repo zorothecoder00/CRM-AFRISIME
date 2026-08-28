@@ -11,6 +11,7 @@ import { SearchFilters } from "@/components/search/search-filters";
 const TYPE_ORDER: SearchResultType[] = [
   "Projet",
   "Tâche",
+  "Activité",
   "Commentaire",
   "Réunion",
   "Document",
@@ -62,7 +63,7 @@ export default async function RecherchePage({
           projectPriorite: params.projectPriorite,
           departmentId: params.departmentId,
           tags,
-        })
+        }, session!.user.id)
       : Promise.resolve([]),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),

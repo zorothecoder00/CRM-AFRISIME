@@ -7,7 +7,7 @@ import { buildExecutiveSnapshot } from "@/lib/executive-command-center";
 import { getOrganizationDevise } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Radar, Target, ShieldAlert, Landmark, Gauge, Handshake, Bell, TrendingUp, FolderKanban, Wallet, Link2 } from "lucide-react";
+import { Radar, Target, ShieldAlert, Landmark, Gauge, Handshake, Bell, TrendingUp, FolderKanban, Wallet, Link2, ListChecks } from "lucide-react";
 
 function StatCard({
   icon: Icon,
@@ -104,6 +104,14 @@ export default async function ExecutiveCommandCenterPage() {
           <p>{snap.chargeEquipes.sousCharge} sous-charge</p>
           <p>{snap.chargeEquipes.chargeNormale} charge normale</p>
           {snap.chargeEquipes.surcharge > 0 && <Badge variant="warning">{snap.chargeEquipes.surcharge} en surcharge</Badge>}
+        </StatCard>
+
+        <StatCard icon={ListChecks} title="Tâches" href="/taches">
+          <p>{snap.taches.aujourdhui} aujourd&apos;hui · {snap.taches.terminees} terminées</p>
+          <div className="flex gap-1.5">
+            {snap.taches.enRetard > 0 && <Badge variant="destructive">{snap.taches.enRetard} en retard</Badge>}
+            {snap.taches.bloquees > 0 && <Badge variant="warning">{snap.taches.bloquees} bloquées</Badge>}
+          </div>
         </StatCard>
 
         <StatCard icon={Handshake} title="Opportunités CRM" href="/crm/pipeline">

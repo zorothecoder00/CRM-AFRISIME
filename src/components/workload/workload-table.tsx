@@ -15,9 +15,12 @@ import { AlertTriangle } from "lucide-react";
 export function WorkloadTable({
   rows,
   canManage,
+  showTaskCounts = false,
 }: {
   rows: UserWorkload[];
   canManage: boolean;
+  /** §37 — colonnes Aujourd'hui/En retard/Bloquées : seuls les appelants qui peuplent ces champs sur WorkloadTaskInput doivent les afficher (sinon ce serait un "0" trompeur, pas une vraie mesure). */
+  showTaskCounts?: boolean;
 }) {
   const overloaded = rows.filter((r) => r.enSurcharge);
 
@@ -44,6 +47,13 @@ export function WorkloadTable({
               <TableHead>Taux d&apos;occupation</TableHead>
               <TableHead>Disponibilité</TableHead>
               <TableHead>Temps moyen de réalisation</TableHead>
+              {showTaskCounts && (
+                <>
+                  <TableHead>Aujourd&apos;hui</TableHead>
+                  <TableHead>En retard</TableHead>
+                  <TableHead>Bloquées</TableHead>
+                </>
+              )}
               <TableHead>Statut</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,6 +86,13 @@ export function WorkloadTable({
                     ? `${row.tempsMoyenRealisationHeures}h`
                     : "—"}
                 </TableCell>
+                {showTaskCounts && (
+                  <>
+                    <TableCell>{row.tachesAujourdhui}</TableCell>
+                    <TableCell>{row.tachesEnRetard > 0 ? <Badge variant="destructive">{row.tachesEnRetard}</Badge> : 0}</TableCell>
+                    <TableCell>{row.tachesBloquees > 0 ? <Badge variant="warning">{row.tachesBloquees}</Badge> : 0}</TableCell>
+                  </>
+                )}
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     {row.statut === "SURCHARGE" && <Badge variant="destructive">Surcharge</Badge>}

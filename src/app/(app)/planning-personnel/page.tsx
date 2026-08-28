@@ -5,49 +5,117 @@ import { prisma } from "@/lib/prisma";
 import {
   startOfWeek,
   endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfDay,
+  endOfDay,
   addWeeks,
   subWeeks,
+  addDays,
+  subDays,
+  addMonths,
+  subMonths,
   eachDayOfInterval,
   isSameDay,
   isWithinInterval,
-  startOfDay,
-  endOfDay,
   format,
   parseISO,
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PersonalPlanningWeek, type PersonalPlanningDay } from "@/components/personal-planning/personal-planning-week";
+import { PersonalPlanningWeek, type PersonalPlanningDay, type PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
+import { PersonalPlanningDay as PersonalPlanningDayView } from "@/components/personal-planning/personal-planning-day";
+import { PersonalPlanningMonth } from "@/components/personal-planning/personal-planning-month";
+import { PersonalPlanningAgenda } from "@/components/personal-planning/personal-planning-agenda";
+import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
+import { PersonalPlanningList, type PersonalPlanningListRow } from "@/components/personal-planning/personal-planning-list";
+import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
+import { PersonalPlanningViewSwitcher } from "@/components/personal-planning/view-switcher";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
+import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
+import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
 import { RequestAvailabilityDialog } from "@/components/personal-planning/request-availability-dialog";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
 import { SentRequestsList } from "@/components/personal-planning/sent-requests-list";
+import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
+import { resolveDailyCapacity, computeDailyCharge } from "@/lib/personal-planning-workload";
+import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
+import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
+import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
+import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
+import { ENTRY_PRIORITE_ORDER, type PersonalPlanningPriorite, type PersonalPlanningEntryStatut } from "@/lib/personal-planning-types";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 
+type Vue = "semaine" | "jour" | "mois" | "agenda" | "liste" | "timeline";
+
 /**
- * Second planning, prive celui-ci (contrairement a /planning et /calendrier,
- * partages avec l'equipe via Task/Meeting/Leave/Event) : notes et creneaux
- * personnels, plus la disponibilite qu'ils exposent aux collegues via
- * AvailabilityRequest (demander/accepter/refuser un creneau).
+ * Module "Planning personnel" (cahier des charges §1-10) : notes/créneaux
+ * privés, time blocking, et activités qui planifient des Tâches existantes
+ * (§4/§10) sans les dupliquer — distinct de /planning (vue agenda équipe en
+ * lecture seule) et /calendrier (calendrier partagé).
  */
 export default async function PlanningPersonnelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ semaine?: string }>;
+  searchParams: Promise<{
+    semaine?: string;
+    vue?: string;
+    priorite?: string;
+    statut?: string;
+    enRetard?: string;
+    projetId?: string;
+  }>;
 }) {
-  const { semaine } = await searchParams;
+  const { semaine, vue: vueParam, priorite: prioriteParam, statut: statutParam, enRetard: enRetardParam, projetId: activeProjetId } =
+    await searchParams;
+  const activePriorities: PersonalPlanningPriorite[] = prioriteParam
+    ? (prioriteParam.split(",").filter((p) => ENTRY_PRIORITE_ORDER.includes(p as PersonalPlanningPriorite)) as PersonalPlanningPriorite[])
+    : ENTRY_PRIORITE_ORDER;
+  const STATUT_FILTER_VALUES: PersonalPlanningEntryStatut[] = ["EN_ATTENTE", "BLOQUEE"];
+  const activeStatuts: PersonalPlanningEntryStatut[] = statutParam
+    ? (statutParam.split(",").filter((s) => STATUT_FILTER_VALUES.includes(s as PersonalPlanningEntryStatut)) as PersonalPlanningEntryStatut[])
+    : [];
+  const isEnRetard = enRetardParam === "1";
+  const vue: Vue = (["semaine", "jour", "mois", "agenda", "liste", "timeline"] as const).includes(vueParam as Vue)
+    ? (vueParam as Vue)
+    : "semaine";
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
+  const userName = session!.user.name ?? "Moi";
 
   const refDate = semaine ? parseISO(semaine) : new Date();
+  const now = new Date();
+
   const weekStart = startOfWeek(refDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(refDate, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const dayStart = startOfDay(refDate);
+  const dayEnd = endOfDay(refDate);
+  const monthStart = startOfMonth(refDate);
+  const monthEnd = endOfMonth(refDate);
+  const monthGridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const monthGridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
-  const [entries, receivedRequests, sentRequests, colleagues] = await Promise.all([
+  const rangeStart = vue === "jour" ? dayStart : vue === "mois" ? monthGridStart : weekStart;
+  const rangeEnd = vue === "jour" ? dayEnd : vue === "mois" ? monthGridEnd : weekEnd;
+
+  const [entriesRaw, todayEntriesRaw, receivedRequests, sentRequests, colleagues, projects, tasks, objectives, inboxTasksRaw, me] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
-      where: { userId, dateDebut: { lte: weekEnd }, dateFin: { gte: weekStart } },
+      where: { userId, dateDebut: { lte: rangeEnd }, dateFin: { gte: rangeStart } },
+      include: {
+        tache: { select: { titre: true, projectId: true, ...TACHE_DEPENDENCIES_SELECT } },
+        projet: { select: { nom: true } },
+        participants: { select: { userId: true } },
+      },
+      orderBy: { dateDebut: "asc" },
+    }),
+    prisma.personalPlanningEntry.findMany({
+      where: { userId, dateDebut: { lte: endOfDay(now) }, dateFin: { gte: startOfDay(now) } },
+      include: {
+        tache: { select: { titre: true, projectId: true, ...TACHE_DEPENDENCIES_SELECT } },
+        projet: { select: { nom: true } },
+        participants: { select: { userId: true } },
+      },
       orderBy: { dateDebut: "asc" },
     }),
     prisma.availabilityRequest.findMany({
@@ -66,32 +134,115 @@ export default async function PlanningPersonnelPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    prisma.project.findMany({
+      where: { members: { some: { userId } } },
+      orderBy: { nom: "asc" },
+      select: { id: true, nom: true },
+    }),
+    prisma.task.findMany({
+      where: { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },
+      orderBy: { titre: "asc" },
+      select: { id: true, titre: true, projectId: true },
+    }),
+    prisma.objective.findMany({
+      where: { userId },
+      orderBy: { titre: "asc" },
+      select: { id: true, titre: true },
+    }),
+    // §13 — "À planifier" : tâches de l'utilisateur sans date, pas encore
+    // planifiées via une activité (personalPlanningEntries: none).
+    prisma.task.findMany({
+      where: {
+        OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
+        dateDebut: null,
+        personalPlanningEntries: { none: {} },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, titre: true, priorite: true, project: { select: { nom: true } } },
+    }),
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { capaciteHebdomadaireHeures: true } }),
   ]);
 
-  const dayColumns: PersonalPlanningDay[] = days.map((day) => {
-    const dayEntries = entries
-      .filter((e) => isWithinInterval(day, { start: startOfDay(e.dateDebut), end: endOfDay(e.dateFin) }))
-      .sort((a, b) => a.dateDebut.getTime() - b.dateDebut.getTime())
-      .map((e) => ({
-        id: e.id,
-        titre: e.titre,
-        notes: e.notes,
-        dateDebut: e.dateDebut.toISOString(),
-        dateFin: e.dateFin.toISOString(),
-        type: e.type,
-      }));
-
-    return {
-      key: day.toISOString(),
-      label: format(day, "EEEE d", { locale: fr }),
-      isToday: isSameDay(day, new Date()),
-      entries: dayEntries,
-    };
+  // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
+  const todaySchedule = await prisma.userWorkSchedule.findUnique({
+    where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
   });
 
-  const prevHref = `/planning-personnel?semaine=${format(subWeeks(weekStart, 1), "yyyy-MM-dd")}`;
-  const nextHref = `/planning-personnel?semaine=${format(addWeeks(weekStart, 1), "yyyy-MM-dd")}`;
-  const todayHref = `/planning-personnel`;
+  // §25 — réunions de l'utilisateur fusionnées en lecture seule dans les vues.
+  const [meetingsRaw, todayMeetingsRaw] = await Promise.all([
+    prisma.meeting.findMany({
+      where: { participants: { some: { userId } }, dateHeure: { gte: rangeStart, lte: rangeEnd } },
+      select: { id: true, titre: true, dateHeure: true, lieu: true, statut: true },
+    }),
+    prisma.meeting.findMany({
+      where: { participants: { some: { userId } }, dateHeure: { gte: startOfDay(now), lte: endOfDay(now) } },
+      select: { id: true, titre: true, dateHeure: true, lieu: true, statut: true },
+    }),
+  ]);
+
+  const entryIds = entriesRaw.map((e) => e.id);
+  const entityTags =
+    entryIds.length > 0
+      ? await prisma.entityTag.findMany({
+          where: { entityType: "PersonalPlanningEntry", entityId: { in: entryIds } },
+          include: { tag: { select: { nom: true } } },
+        })
+      : [];
+  const tagsByEntry = new Map<string, string[]>();
+  for (const et of entityTags) {
+    const list = tagsByEntry.get(et.entityId) ?? [];
+    list.push(et.tag.nom);
+    tagsByEntry.set(et.entityId, list);
+  }
+
+  const toRow = (e: (typeof entriesRaw)[number]) => toPersonalPlanningEntryRow(e, tagsByEntry);
+
+  const allEntries = [...entriesRaw.map(toRow), ...meetingsRaw.map(meetingToEntryRow)];
+  const entries = allEntries.filter((e) => {
+    if (!activePriorities.includes(e.priorite)) return false;
+    if (activeStatuts.length > 0 && !activeStatuts.includes(e.statut)) return false;
+    if (activeProjetId && e.projetId !== activeProjetId) return false;
+    if (isEnRetard && !(new Date(e.dateFin) < now && !["TERMINEE", "ANNULEE"].includes(e.statut))) return false;
+    return true;
+  });
+  const todayEntries = [...todayEntriesRaw.map(toRow), ...todayMeetingsRaw.map(meetingToEntryRow)];
+
+  const dailyCapacity = resolveDailyCapacity(todaySchedule, Number(me.capaciteHebdomadaireHeures));
+  const charge = computeDailyCharge(todayEntries, dailyCapacity);
+  const todayKey = format(now, "yyyy-MM-dd");
+
+  const inboxTasks: InboxTaskRow[] = inboxTasksRaw.map((t) => ({
+    id: t.id,
+    titre: t.titre,
+    priorite: t.priorite,
+    projetNom: t.project.nom,
+  }));
+
+  const refData: PersonalPlanningReferenceData = {
+    colleagues: colleagues.map((c) => ({ id: c.id, label: c.name })),
+    projects,
+    tasks,
+    objectives,
+  };
+
+  // ---- Navigation (prev/next/aujourd'hui) — dépend de la vue active ----
+  let prevHref: string;
+  let nextHref: string;
+  let periodLabel: string;
+  if (vue === "jour") {
+    prevHref = `/planning-personnel?vue=jour&semaine=${format(subDays(refDate, 1), "yyyy-MM-dd")}`;
+    nextHref = `/planning-personnel?vue=jour&semaine=${format(addDays(refDate, 1), "yyyy-MM-dd")}`;
+    periodLabel = format(refDate, "EEEE d MMMM yyyy", { locale: fr });
+  } else if (vue === "mois") {
+    prevHref = `/planning-personnel?vue=mois&semaine=${format(subMonths(monthStart, 1), "yyyy-MM-dd")}`;
+    nextHref = `/planning-personnel?vue=mois&semaine=${format(addMonths(monthStart, 1), "yyyy-MM-dd")}`;
+    periodLabel = format(monthStart, "MMMM yyyy", { locale: fr });
+  } else {
+    prevHref = `/planning-personnel?vue=${vue}&semaine=${format(subWeeks(weekStart, 1), "yyyy-MM-dd")}`;
+    nextHref = `/planning-personnel?vue=${vue}&semaine=${format(addWeeks(weekStart, 1), "yyyy-MM-dd")}`;
+    periodLabel = `Semaine du ${format(weekStart, "d MMMM", { locale: fr })} au ${format(weekEnd, "d MMMM yyyy", { locale: fr })}`;
+  }
+  const todayHref = `/planning-personnel?vue=${vue}`;
 
   const receivedRows = receivedRequests.map((r) => ({
     id: r.id,
@@ -115,15 +266,18 @@ export default async function PlanningPersonnelPage({
   const colleagueOptions = colleagues.map((c) => ({ id: c.id, label: c.name }));
 
   return (
+    <PersonalPlanningDndProvider>
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
+        <PersonalPlanningCrosslinks current="/planning-personnel" />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Lock className="size-6 text-muted-foreground" />
             <div>
               <h1 className="text-2xl font-semibold">Planning personnel</h1>
               <p className="text-sm text-muted-foreground">
-                Vos notes et créneaux privés — distinct du{" "}
+                Vos activités privées — distinct du{" "}
                 <Link href="/planning" className="text-primary hover:underline">
                   planning d&apos;activités
                 </Link>
@@ -133,9 +287,23 @@ export default async function PlanningPersonnelPage({
           </div>
           <div className="flex flex-wrap gap-2">
             <RequestAvailabilityDialog colleagues={colleagueOptions} />
-            <PersonalPlanningEntryFormDialog />
+            <PersonalPlanningEntryFormDialog refData={refData} />
           </div>
         </div>
+
+        <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} />
+
+        <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
+
+        <PersonalPlanningFilters
+          vue={vue}
+          semaine={semaine}
+          activePriorites={activePriorities}
+          activeStatuts={activeStatuts}
+          enRetard={isEnRetard}
+          projects={projects}
+          activeProjetId={activeProjetId}
+        />
 
         <div className="flex items-center justify-between">
           <Link href={prevHref}>
@@ -144,9 +312,7 @@ export default async function PlanningPersonnelPage({
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              Semaine du {format(weekStart, "d MMMM", { locale: fr })} au {format(weekEnd, "d MMMM yyyy", { locale: fr })}
-            </span>
+            <span className="text-sm capitalize text-muted-foreground">{periodLabel}</span>
             <Link href={todayHref}>
               <Button variant="outline" size="sm">
                 Aujourd&apos;hui
@@ -160,10 +326,58 @@ export default async function PlanningPersonnelPage({
           </Link>
         </div>
 
-        <PersonalPlanningWeek days={dayColumns} />
+        {vue === "semaine" && (
+          <PersonalPlanningWeek
+            days={eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day): PersonalPlanningDay => ({
+              key: day.toISOString(),
+              dateKey: format(day, "yyyy-MM-dd"),
+              label: format(day, "EEEE d", { locale: fr }),
+              isToday: isSameDay(day, now),
+              entries: entries
+                .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
+                .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
+            }))}
+            refData={refData}
+          />
+        )}
+
+        {vue === "jour" && <PersonalPlanningDayView day={refDate} entries={entries} refData={refData} />}
+
+        {vue === "mois" && (
+          <PersonalPlanningMonth
+            days={eachDayOfInterval({ start: monthGridStart, end: monthGridEnd })}
+            currentMonth={monthStart}
+            entriesByDate={(() => {
+              const map = new Map<string, PersonalPlanningEntryRow[]>();
+              for (const e of entries) {
+                const key = e.dateDebut.slice(0, 10);
+                const list = map.get(key) ?? [];
+                list.push(e);
+                map.set(key, list);
+              }
+              return map;
+            })()}
+          />
+        )}
+
+        {vue === "agenda" && <PersonalPlanningAgenda entries={entries} />}
+
+        {vue === "timeline" && <PersonalPlanningTimeline entries={entries} />}
+
+        {vue === "liste" && (
+          <PersonalPlanningList
+            entries={entries.map((e): PersonalPlanningListRow => {
+              const raw = entriesRaw.find((r) => r.id === e.id);
+              return { ...e, responsableNom: userName, projetNom: raw ? raw.projet?.nom ?? raw.tache?.titre ?? null : "Réunion" };
+            })}
+            refData={refData}
+          />
+        )}
       </div>
 
       <div className="space-y-6">
+        <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Demandes reçues</CardTitle>
@@ -183,5 +397,6 @@ export default async function PlanningPersonnelPage({
         </Card>
       </div>
     </div>
+    </PersonalPlanningDndProvider>
   );
 }

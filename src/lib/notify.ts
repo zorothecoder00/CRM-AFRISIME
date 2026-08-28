@@ -1,3 +1,4 @@
+import { addDays, startOfDay, endOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { TaskStatus } from "@/generated/prisma/enums";
 import type { NotificationChannel, NotificationNiveau, NotificationType } from "@/generated/prisma/enums";
@@ -33,6 +34,9 @@ const NOTIFICATION_NIVEAU_BY_TYPE: Partial<Record<NotificationType, Notification
   DEMANDE_DISPONIBILITE_DECISION: "VALIDATION",
   RETARD: "URGENCE",
   TACHE_CRITIQUE: "URGENCE",
+  RAPPEL_ACTIVITE: "RAPPEL",
+  ACTIVITE_INVITATION: "INFORMATION",
+  DELEGATION_EN_RETARD: "URGENCE",
 };
 
 /**
@@ -125,13 +129,21 @@ export async function generateDeadlineNotifications(userId: string, today: Date 
       statut: { in: ACTIVE_TASK_STATUSES },
       echeance: { not: null, lte: soon },
     },
-    select: { id: true, titre: true, echeance: true },
+    select: {
+      id: true,
+      titre: true,
+      echeance: true,
+      // §26 (Module Planning personnel) — une tache issue d'une decision de
+      // reunion (delegation) notifie aussi le delegant, pas seulement le
+      // responsable, quand elle est en retard.
+      meetingDecision: { select: { meeting: { select: { createdById: true } } } },
+    },
   });
 
   await Promise.all(
-    tasks.map((task) => {
+    tasks.map(async (task) => {
       const isOverdue = task.echeance! < today;
-      return createNotification({
+      await createNotification({
         userId,
         type: isOverdue ? "RETARD" : "ECHEANCE_PROCHE",
         titre: isOverdue
@@ -141,6 +153,58 @@ export async function generateDeadlineNotifications(userId: string, today: Date 
         entityType: "Task",
         entityId: task.id,
       });
+
+      const delegantId = task.meetingDecision?.meeting?.createdById;
+      if (isOverdue && delegantId && delegantId !== userId) {
+        await createNotification({
+          userId: delegantId,
+          type: "DELEGATION_EN_RETARD",
+          titre: `Tâche déléguée en retard : ${task.titre}`,
+          lien: `/taches/${task.id}`,
+          entityType: "Task",
+          entityId: task.id,
+        });
+      }
     })
+  );
+}
+
+/**
+ * Rappels proactifs des activités du Planning personnel (cahier des charges
+ * "Module Planning personnel" §7/§9, champ `rappel`) — même granularité
+ * quotidienne que generateDeadlineNotifications (pas de cron minute par
+ * minute) : LE_JOUR_MEME couvre les activités du jour, VEILLE celles de
+ * demain. Idempotent via la contrainte unique de createNotification.
+ */
+export async function generatePlanningReminders(userId: string, today: Date = new Date()) {
+  const todayStart = startOfDay(today);
+  const todayEnd = endOfDay(today);
+  const tomorrowStart = startOfDay(addDays(today, 1));
+  const tomorrowEnd = endOfDay(addDays(today, 1));
+
+  const entries = await prisma.personalPlanningEntry.findMany({
+    where: {
+      userId,
+      statut: { notIn: ["TERMINEE", "ANNULEE"] },
+      OR: [
+        { rappels: { has: "LE_JOUR_MEME" }, dateDebut: { gte: todayStart, lte: todayEnd } },
+        { rappels: { has: "VEILLE" }, dateDebut: { gte: tomorrowStart, lte: tomorrowEnd } },
+        { rappels: { has: "PERSONNALISE" }, rappelPersonnaliseDate: { gte: todayStart, lte: todayEnd } },
+      ],
+    },
+    select: { id: true, titre: true, dateDebut: true },
+  });
+
+  await Promise.all(
+    entries.map((entry) =>
+      createNotification({
+        userId,
+        type: "RAPPEL_ACTIVITE",
+        titre: `Rappel : ${entry.titre} à ${entry.dateDebut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+        lien: "/planning-personnel",
+        entityType: "PersonalPlanningEntry",
+        entityId: entry.id,
+      })
+    )
   );
 }

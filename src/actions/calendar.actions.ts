@@ -8,6 +8,7 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { runEventCreatedRules } from "@/lib/automation";
+import { reorganizeEntriesForApprovedLeave } from "@/actions/personal-planning.actions";
 import {
   createLeaveSchema,
   decideLeaveSchema,
@@ -85,6 +86,12 @@ export async function decideLeave(input: DecideLeaveInput) {
     entityType: "Leave",
     entityId: leave.id,
   });
+
+  if (data.statut === "APPROUVE") {
+    // §41 — un congé approuvé réorganise le planning personnel déjà programmé
+    // pendant la période (jamais bloquant, alerte le manager si nécessaire).
+    await reorganizeEntriesForApprovedLeave(leave.id, leave.userId, leave.dateDebut, leave.dateFin, session.user.id);
+  }
 
   revalidatePath("/calendrier");
   return leave;

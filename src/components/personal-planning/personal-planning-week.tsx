@@ -1,102 +1,86 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "@/hooks/use-action";
-import { deletePersonalPlanningEntry } from "@/actions/personal-planning.actions";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RowActionsMenu } from "@/components/ui/row-actions-menu";
+import { useDroppable } from "@dnd-kit/core";
 import { PersonalPlanningEntryEditDialog, type PersonalPlanningEntryEditData } from "@/components/personal-planning/entry-edit-dialog";
+import { EntryBlock } from "@/components/personal-planning/entry-block";
+import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
+import { detectTightTransition } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
-import { NotebookPen, Ban, Lock, Sparkles } from "lucide-react";
+import type { PersonalPlanningEntryType } from "@/lib/personal-planning-types";
+import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx } from "@/lib/personal-planning-grid";
 
-export type PersonalPlanningEntryRow = {
-  id: string;
-  titre: string;
-  notes: string | null;
-  dateDebut: string;
-  dateFin: string;
-  type: "NOTE" | "INDISPONIBLE" | "RESERVE";
+export type PersonalPlanningEntryRow = Omit<PersonalPlanningEntryEditData, "type"> & {
+  type: PersonalPlanningEntryType;
+  /** §25 — Meeting existant fusionné en lecture seule dans les vues du planning personnel (non éditable ici, voir /reunions/[id]). */
+  meetingHref?: string;
+  /** §34 — titre de la première dépendance non résolue de la Tâche liée (TaskDependency déjà existant), null si aucune. */
+  blockedByTitre?: string | null;
 };
 
 export type PersonalPlanningDay = {
   key: string;
+  /** yyyy-MM-dd — utilisé comme cible de drop (§14), distinct de `key` (React key). */
+  dateKey: string;
   label: string;
   isToday: boolean;
   entries: PersonalPlanningEntryRow[];
 };
 
-const TYPE_STYLE: Record<PersonalPlanningEntryRow["type"], { icon: typeof NotebookPen; border: string; bg: string; text: string; label: string }> = {
-  NOTE: { icon: NotebookPen, border: "border-l-primary", bg: "bg-primary/5", text: "text-primary", label: "Note" },
-  INDISPONIBLE: { icon: Ban, border: "border-l-destructive", bg: "bg-destructive/5", text: "text-destructive", label: "Indisponible" },
-  RESERVE: { icon: Lock, border: "border-l-warning", bg: "bg-warning/5", text: "text-warning", label: "Réservé" },
-};
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+function HourSlot({ dateKey, hour, top }: { dateKey: string; hour: number; top: number }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `hour-${dateKey}-${hour}`, data: { date: dateKey, hour } });
+  return <div ref={setNodeRef} className={cn("absolute inset-x-0", isOver && "bg-primary/10")} style={{ top, height: HOUR_HEIGHT_PX }} />;
 }
 
-export function PersonalPlanningWeek({ days }: { days: PersonalPlanningDay[] }) {
-  const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
-  const { run: remove } = useAction(deletePersonalPlanningEntry, { successMessage: "Entrée supprimée." });
-
-  const editData: PersonalPlanningEntryEditData | null =
-    editing && editing.type !== "RESERVE" ? { ...editing, type: editing.type } : null;
+function DayColumn({ day, onEdit }: { day: PersonalPlanningDay; onEdit: (entry: PersonalPlanningEntryRow) => void }) {
+  const hours = gridHours();
+  const gridStart = gridStartOf(new Date(day.dateKey));
+  const sorted = [...day.entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
   return (
-    <div className="grid gap-4 lg:grid-cols-7">
-      {days.map((day) => (
-        <Card key={day.key} size="sm" accent={day.isToday ? "primary" : "none"} className={cn(day.isToday && "ring-2 ring-primary/40")}>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between gap-1 text-sm">
-              <span className="capitalize">{day.label}</span>
-              {day.entries.length > 0 && (
-                <Badge variant="outline" className="text-[10px]">
-                  {day.entries.length}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {day.entries.length === 0 && (
-              <div className="flex flex-col items-center gap-1 py-3 text-center">
-                <Sparkles className="h-3.5 w-3.5 text-muted-foreground/50" />
-                <p className="text-xs text-muted-foreground">Rien de prévu</p>
-              </div>
-            )}
-            {day.entries.map((entry) => {
-              const style = TYPE_STYLE[entry.type];
-              const Icon = style.icon;
-              return (
-                <div
-                  key={entry.id}
-                  className={cn("group flex items-start gap-1.5 rounded-md border-l-2 p-1.5 text-xs", style.border, style.bg)}
-                >
-                  <Icon className={cn("mt-0.5 h-3 w-3 shrink-0", style.text)} />
-                  <div className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">
-                      {formatTime(entry.dateDebut)} {entry.titre}
-                    </span>
-                    <Badge variant="outline" className="mt-0.5 text-[10px]">
-                      {style.label}
-                    </Badge>
-                  </div>
-                  <div className="opacity-0 group-hover:opacity-100">
-                    <RowActionsMenu
-                      onEdit={entry.type !== "RESERVE" ? () => setEditing(entry) : undefined}
-                      onDelete={() => remove({ id: entry.id })}
-                      deleteConfirmLabel={`Supprimer « ${entry.titre} » ?`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      ))}
+    <div className={cn("flex flex-col", day.isToday && "rounded-md ring-2 ring-primary/40")}>
+      <div className="mb-1 text-center text-xs font-medium capitalize">{day.label}</div>
+      <div className="relative rounded-md border" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
+        {hours.map((h, i) => (
+          <HourSlot key={h} dateKey={day.dateKey} hour={h} top={i * HOUR_HEIGHT_PX} />
+        ))}
+        {sorted.map((entry, i) => {
+          const top = Math.max(0, offsetPx(new Date(entry.dateDebut), gridStart));
+          const height = Math.max(18, offsetPx(new Date(entry.dateFin), gridStart) - top);
+          const next = sorted[i + 1];
+          const tight = next ? detectTightTransition(entry, next) : false;
+          return <EntryBlock key={entry.id} entry={entry} top={top} height={height} onEdit={() => onEdit(entry)} tightTransition={tight} />;
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Vue Semaine (§28) : grille horaire, une colonne par jour — même mécanique que la vue Jour (voir personal-planning-grid.ts). */
+export function PersonalPlanningWeek({ days, refData }: { days: PersonalPlanningDay[]; refData: PersonalPlanningReferenceData }) {
+  const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
+
+  const editData: PersonalPlanningEntryEditData | null =
+    editing && editing.type !== "RESERVE" && !editing.meetingHref ? { ...editing, type: editing.type } : null;
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-7 gap-2" style={{ minWidth: 900 }}>
+        <div className="col-span-7 flex items-center gap-2 pl-14 text-[10px] text-muted-foreground">
+          Grille {GRID_START_HOUR}h–{GRID_END_HOUR}h — glissez un bloc pour le déplacer.
+        </div>
+        {days.map((day) => (
+          <DayColumn key={day.key} day={day} onEdit={setEditing} />
+        ))}
+      </div>
 
       {editData && (
-        <PersonalPlanningEntryEditDialog entry={editData} open={!!editing} onOpenChange={(o) => setEditing(o ? editing : null)} />
+        <PersonalPlanningEntryEditDialog
+          entry={editData}
+          open={!!editing}
+          onOpenChange={(o) => setEditing(o ? editing : null)}
+          refData={refData}
+        />
       )}
     </div>
   );

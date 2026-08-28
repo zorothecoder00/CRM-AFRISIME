@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateDeadlineNotifications, createNotification } from "@/lib/notify";
+import { generateDeadlineNotifications, generatePlanningReminders, createNotification } from "@/lib/notify";
 import { computeWorkload } from "@/lib/workload";
 import {
   runTaskOverdueRules,
@@ -8,6 +8,7 @@ import {
   runBudgetExceededRules,
   runRiskCriticalRules,
   runIndicatorOffTargetRules,
+  runMeetingCompletedRules,
 } from "@/lib/automation";
 import { runDailyAiAgents } from "@/lib/ai-agents";
 import { captureDailySnapshots } from "@/lib/metric-snapshots";
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
   ]);
 
   await Promise.all(users.map((u) => generateDeadlineNotifications(u.id)));
+  await Promise.all(users.map((u) => generatePlanningReminders(u.id)));
 
   const workload = computeWorkload(
     users.map((u) => ({
@@ -303,6 +305,7 @@ export async function GET(request: NextRequest) {
     runProjectOverdueRules(),
     runBudgetExceededRules(),
     runRiskCriticalRules(),
+    runMeetingCompletedRules(),
     runIndicatorOffTargetRules(),
   ]);
 

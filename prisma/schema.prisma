@@ -187,6 +187,21 @@ enum NotificationType {
   // decision prise sur cette demande.
   DEMANDE_DISPONIBILITE
   DEMANDE_DISPONIBILITE_DECISION
+  // Planning personnel (cahier des charges "Module Planning personnel"
+  // §7/§9) — rappel proactif avant une activite (genere par le cron
+  // quotidien, meme pattern que ECHEANCE_PROCHE) et invitation d'un
+  // collegue ajoute comme participant a une activite (meme pattern que
+  // REUNION_INVITATION).
+  RAPPEL_ACTIVITE
+  ACTIVITE_INVITATION
+  // §26 — notifie le delegant (organisateur de la reunion source d'une
+  // MeetingDecision) quand la Task qui en decoule est en retard, en plus
+  // de RETARD envoye au responsable de la tache.
+  DELEGATION_EN_RETARD
+  // §41 — notifie l'approbateur d'un conge quand son approbation a force le
+  // deplacement d'activites de Planning personnel deja programmees pendant
+  // la periode.
+  CONGE_REORGANISATION
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -271,6 +286,13 @@ enum AutomationTrigger {
   // route webhook entrante (/api/webhooks/[integrationId]) des qu'un
   // IntegrationEvent est journalise, pas depuis le cron quotidien.
   INTEGRATION_EVENT_RECEIVED
+  // Ajoutes (Module "Planning personnel" §33). TASK_BLOCKED evenementiel
+  // (declenche depuis task.actions.ts quand le statut passe a BLOQUEE, a
+  // cote de l'appel existant a runTaskStatusChangedRules) ; MEETING_COMPLETED
+  // rejoint le groupe evalue par le cron quotidien (comme TASK_OVERDUE) —
+  // reunion dont la date est passee sans compte rendu rempli.
+  TASK_BLOCKED
+  MEETING_COMPLETED
 }
 
 enum AutomationActionType {
@@ -475,207 +497,209 @@ model User {
   createdAt                     DateTime              @default(now())
   updatedAt                     DateTime              @updatedAt
 
-  projectsOwned                       Project[]                      @relation("ProjectResponsable")
-  projectsCreated                     Project[]                      @relation("ProjectCreatedBy")
-  projectsSponsored                   Project[]                      @relation("ProjectSponsor")
+  projectsOwned                       Project[]                          @relation("ProjectResponsable")
+  projectsCreated                     Project[]                          @relation("ProjectCreatedBy")
+  projectsSponsored                   Project[]                          @relation("ProjectSponsor")
   projectMemberships                  ProjectMember[]
-  risksResponsable                    ProjectRisk[]                  @relation("RiskResponsable")
-  risksCreated                        ProjectRisk[]                  @relation("RiskCreatedBy")
-  projectIdeasAsPorteur               ProjectIdea[]                  @relation("ProjectIdeaPorteur")
-  projectIdeasCreated                 ProjectIdea[]                  @relation("ProjectIdeaCreatedBy")
-  projectConceptNotesCreated          ProjectConceptNote[]           @relation("ProjectConceptNoteCreatedBy")
-  financementsCreated                 Financement[]                  @relation("FinancementCreatedBy")
-  projectDiagnosticsUpdated           ProjectDiagnostic[]            @relation("ProjectDiagnosticUpdatedBy")
-  problemTreeNodesCreated             ProblemTreeNode[]              @relation("ProblemTreeNodeCreatedBy")
-  solutionTreeNodesCreated            SolutionTreeNode[]             @relation("SolutionTreeNodeCreatedBy")
-  theoryOfChangeNodesCreated          TheoryOfChangeNode[]           @relation("TheoryOfChangeNodeCreatedBy")
-  logframeRowsCreated                 LogframeRow[]                  @relation("LogframeRowCreatedBy")
-  raciAssignments                     RaciAssignment[]               @relation("RaciAssignmentUser")
-  raciAssignmentsCreated              RaciAssignment[]               @relation("RaciAssignmentCreatedBy")
-  budgetLinesCreated                  BudgetLine[]                   @relation("BudgetLineCreatedBy")
-  fundingOpportunitiesCreated         FundingOpportunity[]           @relation("FundingOpportunityCreatedBy")
-  assumptionsCreated                  ProjectAssumption[]            @relation("ProjectAssumptionCreatedBy")
-  projectChangeRequestsDemandees      ProjectChangeRequest[]         @relation("ProjectChangeRequestDemandePar")
-  projectChangeRequestsDecidees       ProjectChangeRequest[]         @relation("ProjectChangeRequestDecidedBy")
-  qualityControlsResponsable          QualityControl[]               @relation("QualityControlResponsable")
-  procurementItemsCreated             ProcurementItem[]              @relation("ProcurementItemCreatedBy")
-  projectContractsCreated             ProjectContract[]              @relation("ProjectContractCreatedBy")
-  projectContractPaymentsCreated      ProjectContractPayment[]       @relation("ProjectContractPaymentCreatedBy")
-  communicationPlanEntriesResponsable CommunicationPlanEntry[]       @relation("CommunicationPlanEntryResponsable")
-  communicationPlanEntriesCreated     CommunicationPlanEntry[]       @relation("CommunicationPlanEntryCreatedBy")
-  stakeholderLinks                    Stakeholder[]                  @relation("StakeholderUser")
-  stakeholderResponsableFor           Stakeholder[]                  @relation("StakeholderResponsable")
-  stakeholdersCreated                 Stakeholder[]                  @relation("StakeholderCreatedBy")
-  stakeholderCommunicationsLogged     StakeholderCommunication[]     @relation("StakeholderCommunicationAuthor")
-  holidaysCreated                     Holiday[]                      @relation("HolidayCreatedBy")
-  deliverablesResponsable             ProjectDeliverable[]           @relation("DeliverableResponsable")
-  deliverablesCreated                 ProjectDeliverable[]           @relation("DeliverableCreatedBy")
+  risksResponsable                    ProjectRisk[]                      @relation("RiskResponsable")
+  risksCreated                        ProjectRisk[]                      @relation("RiskCreatedBy")
+  projectIdeasAsPorteur               ProjectIdea[]                      @relation("ProjectIdeaPorteur")
+  projectIdeasCreated                 ProjectIdea[]                      @relation("ProjectIdeaCreatedBy")
+  projectConceptNotesCreated          ProjectConceptNote[]               @relation("ProjectConceptNoteCreatedBy")
+  financementsCreated                 Financement[]                      @relation("FinancementCreatedBy")
+  projectDiagnosticsUpdated           ProjectDiagnostic[]                @relation("ProjectDiagnosticUpdatedBy")
+  problemTreeNodesCreated             ProblemTreeNode[]                  @relation("ProblemTreeNodeCreatedBy")
+  solutionTreeNodesCreated            SolutionTreeNode[]                 @relation("SolutionTreeNodeCreatedBy")
+  theoryOfChangeNodesCreated          TheoryOfChangeNode[]               @relation("TheoryOfChangeNodeCreatedBy")
+  logframeRowsCreated                 LogframeRow[]                      @relation("LogframeRowCreatedBy")
+  raciAssignments                     RaciAssignment[]                   @relation("RaciAssignmentUser")
+  raciAssignmentsCreated              RaciAssignment[]                   @relation("RaciAssignmentCreatedBy")
+  budgetLinesCreated                  BudgetLine[]                       @relation("BudgetLineCreatedBy")
+  fundingOpportunitiesCreated         FundingOpportunity[]               @relation("FundingOpportunityCreatedBy")
+  assumptionsCreated                  ProjectAssumption[]                @relation("ProjectAssumptionCreatedBy")
+  projectChangeRequestsDemandees      ProjectChangeRequest[]             @relation("ProjectChangeRequestDemandePar")
+  projectChangeRequestsDecidees       ProjectChangeRequest[]             @relation("ProjectChangeRequestDecidedBy")
+  qualityControlsResponsable          QualityControl[]                   @relation("QualityControlResponsable")
+  procurementItemsCreated             ProcurementItem[]                  @relation("ProcurementItemCreatedBy")
+  projectContractsCreated             ProjectContract[]                  @relation("ProjectContractCreatedBy")
+  projectContractPaymentsCreated      ProjectContractPayment[]           @relation("ProjectContractPaymentCreatedBy")
+  communicationPlanEntriesResponsable CommunicationPlanEntry[]           @relation("CommunicationPlanEntryResponsable")
+  communicationPlanEntriesCreated     CommunicationPlanEntry[]           @relation("CommunicationPlanEntryCreatedBy")
+  stakeholderLinks                    Stakeholder[]                      @relation("StakeholderUser")
+  stakeholderResponsableFor           Stakeholder[]                      @relation("StakeholderResponsable")
+  stakeholdersCreated                 Stakeholder[]                      @relation("StakeholderCreatedBy")
+  stakeholderCommunicationsLogged     StakeholderCommunication[]         @relation("StakeholderCommunicationAuthor")
+  holidaysCreated                     Holiday[]                          @relation("HolidayCreatedBy")
+  deliverablesResponsable             ProjectDeliverable[]               @relation("DeliverableResponsable")
+  deliverablesCreated                 ProjectDeliverable[]               @relation("DeliverableCreatedBy")
   // Project Studio §45 (Deliverable Management) — validation formelle, distincte du createdBy.
-  deliverablesValidated               ProjectDeliverable[]           @relation("DeliverableValidatedBy")
+  deliverablesValidated               ProjectDeliverable[]               @relation("DeliverableValidatedBy")
   // Project Studio §44 (Milestone Management) — validation formelle du jalon.
-  milestonesValidated                 ProjectMilestone[]             @relation("MilestoneValidatedBy")
-  programmeRisksResponsable           ProgrammeRisk[]                @relation("ProgrammeRiskResponsable")
-  programmeRisksCreated               ProgrammeRisk[]                @relation("ProgrammeRiskCreatedBy")
-  delegationsGiven                    Delegation[]                   @relation("DelegationDelegant")
-  delegationsReceived                 Delegation[]                   @relation("DelegationDelegataire")
-  delegationsCreated                  Delegation[]                   @relation("DelegationCreatedBy")
+  milestonesValidated                 ProjectMilestone[]                 @relation("MilestoneValidatedBy")
+  programmeRisksResponsable           ProgrammeRisk[]                    @relation("ProgrammeRiskResponsable")
+  programmeRisksCreated               ProgrammeRisk[]                    @relation("ProgrammeRiskCreatedBy")
+  delegationsGiven                    Delegation[]                       @relation("DelegationDelegant")
+  delegationsReceived                 Delegation[]                       @relation("DelegationDelegataire")
+  delegationsCreated                  Delegation[]                       @relation("DelegationCreatedBy")
   organizationProfilesUpdated         OrganizationProfile[]
   exchangeRatesUpdated                ExchangeRate[]
   strategicAxesCreated                StrategicAxis[]
   swotItemsCreated                    SwotItem[]
-  tasksOwned                          Task[]                         @relation("TaskResponsablePrincipal")
-  tasksCreated                        Task[]                         @relation("TaskCreatedBy")
-  checklistItemsResponsable           ChecklistItem[]                @relation("ChecklistItemResponsable")
+  tasksOwned                          Task[]                             @relation("TaskResponsablePrincipal")
+  tasksCreated                        Task[]                             @relation("TaskCreatedBy")
+  checklistItemsResponsable           ChecklistItem[]                    @relation("ChecklistItemResponsable")
   taskAssignments                     TaskAssignee[]
   comments                            TaskComment[]
   auditLogs                           AuditLog[]
-  meetingsCreated                     Meeting[]                      @relation("MeetingCreatedBy")
+  meetingsCreated                     Meeting[]                          @relation("MeetingCreatedBy")
   meetingParticipations               MeetingParticipant[]
-  meetingDecisionsOwned               MeetingDecision[]              @relation("MeetingDecisionResponsable")
-  documentFoldersCreated              DocumentFolder[]               @relation("DocumentFolderCreatedBy")
-  documentsUploaded                   Document[]                     @relation("DocumentUploadedBy")
-  documentsArchived                   Document[]                     @relation("DocumentArchivedBy")
-  teamsLed                            Team[]                         @relation("TeamLeader")
-  teamsCreated                        Team[]                         @relation("TeamCreatedBy")
+  meetingDecisionsOwned               MeetingDecision[]                  @relation("MeetingDecisionResponsable")
+  documentFoldersCreated              DocumentFolder[]                   @relation("DocumentFolderCreatedBy")
+  documentsUploaded                   Document[]                         @relation("DocumentUploadedBy")
+  documentsArchived                   Document[]                         @relation("DocumentArchivedBy")
+  teamsLed                            Team[]                             @relation("TeamLeader")
+  teamsCreated                        Team[]                             @relation("TeamCreatedBy")
   teamMemberships                     TeamMember[]
-  projectResourcesCreated             ProjectResource[]              @relation("ProjectResourceCreatedBy")
+  projectResourcesCreated             ProjectResource[]                  @relation("ProjectResourceCreatedBy")
   competences                         UserCompetence[]
-  competencesCreated                  Competence[]                   @relation("CompetenceCreatedBy")
-  documentVersionsCreated             DocumentVersion[]              @relation("DocumentVersionCreatedBy")
+  competencesCreated                  Competence[]                       @relation("CompetenceCreatedBy")
+  documentVersionsCreated             DocumentVersion[]                  @relation("DocumentVersionCreatedBy")
   // Extension v2.0 — Gouvernance
-  governanceInstancesCreated          GovernanceInstance[]           @relation("GovernanceInstanceCreatedBy")
-  governanceMemberships               GovernanceInstanceMember[]     @relation("GovernanceInstanceMemberUser")
-  governanceMeetingsCreated           GovernanceMeeting[]            @relation("GovernanceMeetingCreatedBy")
-  governanceMeetingParticipations     GovernanceMeetingParticipant[] @relation("GovernanceMeetingParticipantUser")
-  governanceMeetingDocsUploaded       GovernanceMeetingDocument[]    @relation("GovernanceMeetingDocumentUploadedBy")
-  governanceDecisionsResponsable      GovernanceDecision[]           @relation("GovernanceDecisionResponsable")
+  governanceInstancesCreated          GovernanceInstance[]               @relation("GovernanceInstanceCreatedBy")
+  governanceMemberships               GovernanceInstanceMember[]         @relation("GovernanceInstanceMemberUser")
+  governanceMeetingsCreated           GovernanceMeeting[]                @relation("GovernanceMeetingCreatedBy")
+  governanceMeetingParticipations     GovernanceMeetingParticipant[]     @relation("GovernanceMeetingParticipantUser")
+  governanceMeetingDocsUploaded       GovernanceMeetingDocument[]        @relation("GovernanceMeetingDocumentUploadedBy")
+  governanceDecisionsResponsable      GovernanceDecision[]               @relation("GovernanceDecisionResponsable")
   // Extension v2.0 — Processus
-  processusResponsable                Processus[]                    @relation("ProcessusResponsable")
-  processusCreated                    Processus[]                    @relation("ProcessusCreatedBy")
-  processusEtapesResponsable          ProcessusEtape[]               @relation("ProcessusEtapeResponsable")
-  processusVersionsCreated            ProcessusVersion[]             @relation("ProcessusVersionCreatedBy")
-  processusExecutionsCreated          ProcessusExecution[]           @relation("ProcessusExecutionCreatedBy")
-  processusDocumentsUploaded          ProcessusDocument[]            @relation("ProcessusDocumentUploadedBy")
+  processusResponsable                Processus[]                        @relation("ProcessusResponsable")
+  processusCreated                    Processus[]                        @relation("ProcessusCreatedBy")
+  processusEtapesResponsable          ProcessusEtape[]                   @relation("ProcessusEtapeResponsable")
+  processusVersionsCreated            ProcessusVersion[]                 @relation("ProcessusVersionCreatedBy")
+  processusExecutionsCreated          ProcessusExecution[]               @relation("ProcessusExecutionCreatedBy")
+  processusDocumentsUploaded          ProcessusDocument[]                @relation("ProcessusDocumentUploadedBy")
   // Extension v2.0 — Registre des risques organisationnel
-  organizationalRisksResponsable      OrganizationalRisk[]           @relation("OrganizationalRiskResponsable")
-  organizationalRisksCreated          OrganizationalRisk[]           @relation("OrganizationalRiskCreatedBy")
-  complianceObligationsResponsable    ComplianceObligation[]         @relation("ComplianceObligationResponsable")
-  complianceObligationsCreated        ComplianceObligation[]         @relation("ComplianceObligationCreatedBy")
-  complianceControlsPerformed         ComplianceControl[]            @relation("ComplianceControlControlePar")
-  complianceDocumentsUploaded         ComplianceObligationDocument[] @relation("ComplianceObligationDocumentUploadedBy")
-  nonConformitesDetectees             NonConformite[]                @relation("NonConformiteDetecteePar")
-  nonConformiteActionsResponsable     NonConformiteAction[]          @relation("NonConformiteActionResponsable")
-  qualityDocumentsResponsable         QualityDocument[]              @relation("QualityDocumentResponsable")
-  qualityDocumentsCreated             QualityDocument[]              @relation("QualityDocumentCreatedBy")
-  qualityControlsPerformed            QualityControl[]               @relation("QualityControlControlePar")
-  qualityClaimsResponsable            QualityClaim[]                 @relation("QualityClaimResponsable")
-  qualityClaimsCreated                QualityClaim[]                 @relation("QualityClaimCreatedBy")
-  auditPlansCreated                   AuditPlan[]                    @relation("AuditPlanCreatedBy")
-  auditPlanMemberships                AuditPlanMember[]              @relation("AuditPlanMemberUser")
-  auditPlanDocumentsUploaded          AuditPlanDocument[]            @relation("AuditPlanDocumentUploadedBy")
-  auditMissionsCreated                AuditMission[]                 @relation("AuditMissionCreatedBy")
-  auditFindingsResponsable            AuditFinding[]                 @relation("AuditFindingResponsable")
-  incidentsAssigned                   Incident[]                     @relation("IncidentAssigne")
-  incidentsEscaladeA                  Incident[]                     @relation("IncidentEscaladeA")
-  incidentsDeclares                   Incident[]                     @relation("IncidentDeclarePar")
-  changeRequestsDemandees             ChangeRequest[]                @relation("ChangeRequestDemandePar")
-  changeRequestsValidees              ChangeRequest[]                @relation("ChangeRequestValidatePar")
-  leaveRequests                       Leave[]                        @relation("LeaveRequestedBy")
-  leaveDecisions                      Leave[]                        @relation("LeaveDecidedBy")
-  eventsCreated                       Event[]                        @relation("EventCreatedBy")
-  personalPlanningEntries             PersonalPlanningEntry[]        @relation("PersonalPlanningEntryOwner")
-  availabilityRequestsReceived        AvailabilityRequest[]          @relation("AvailabilityRequestTarget")
-  availabilityRequestsSent            AvailabilityRequest[]          @relation("AvailabilityRequestRequestedBy")
-  objectivesOwned                     Objective[]                    @relation("ObjectiveUser")
-  objectivesCreated                   Objective[]                    @relation("ObjectiveCreatedBy")
-  conversationsCreated                Conversation[]                 @relation("ConversationCreatedBy")
+  organizationalRisksResponsable      OrganizationalRisk[]               @relation("OrganizationalRiskResponsable")
+  organizationalRisksCreated          OrganizationalRisk[]               @relation("OrganizationalRiskCreatedBy")
+  complianceObligationsResponsable    ComplianceObligation[]             @relation("ComplianceObligationResponsable")
+  complianceObligationsCreated        ComplianceObligation[]             @relation("ComplianceObligationCreatedBy")
+  complianceControlsPerformed         ComplianceControl[]                @relation("ComplianceControlControlePar")
+  complianceDocumentsUploaded         ComplianceObligationDocument[]     @relation("ComplianceObligationDocumentUploadedBy")
+  nonConformitesDetectees             NonConformite[]                    @relation("NonConformiteDetecteePar")
+  nonConformiteActionsResponsable     NonConformiteAction[]              @relation("NonConformiteActionResponsable")
+  qualityDocumentsResponsable         QualityDocument[]                  @relation("QualityDocumentResponsable")
+  qualityDocumentsCreated             QualityDocument[]                  @relation("QualityDocumentCreatedBy")
+  qualityControlsPerformed            QualityControl[]                   @relation("QualityControlControlePar")
+  qualityClaimsResponsable            QualityClaim[]                     @relation("QualityClaimResponsable")
+  qualityClaimsCreated                QualityClaim[]                     @relation("QualityClaimCreatedBy")
+  auditPlansCreated                   AuditPlan[]                        @relation("AuditPlanCreatedBy")
+  auditPlanMemberships                AuditPlanMember[]                  @relation("AuditPlanMemberUser")
+  auditPlanDocumentsUploaded          AuditPlanDocument[]                @relation("AuditPlanDocumentUploadedBy")
+  auditMissionsCreated                AuditMission[]                     @relation("AuditMissionCreatedBy")
+  auditFindingsResponsable            AuditFinding[]                     @relation("AuditFindingResponsable")
+  incidentsAssigned                   Incident[]                         @relation("IncidentAssigne")
+  incidentsEscaladeA                  Incident[]                         @relation("IncidentEscaladeA")
+  incidentsDeclares                   Incident[]                         @relation("IncidentDeclarePar")
+  changeRequestsDemandees             ChangeRequest[]                    @relation("ChangeRequestDemandePar")
+  changeRequestsValidees              ChangeRequest[]                    @relation("ChangeRequestValidatePar")
+  leaveRequests                       Leave[]                            @relation("LeaveRequestedBy")
+  leaveDecisions                      Leave[]                            @relation("LeaveDecidedBy")
+  eventsCreated                       Event[]                            @relation("EventCreatedBy")
+  personalPlanningEntries             PersonalPlanningEntry[]            @relation("PersonalPlanningEntryOwner")
+  personalPlanningEntryParticipations PersonalPlanningEntryParticipant[] @relation("PersonalPlanningEntryParticipantUser")
+  workSchedules                       UserWorkSchedule[]
+  availabilityRequestsReceived        AvailabilityRequest[]              @relation("AvailabilityRequestTarget")
+  availabilityRequestsSent            AvailabilityRequest[]              @relation("AvailabilityRequestRequestedBy")
+  objectivesOwned                     Objective[]                        @relation("ObjectiveUser")
+  objectivesCreated                   Objective[]                        @relation("ObjectiveCreatedBy")
+  conversationsCreated                Conversation[]                     @relation("ConversationCreatedBy")
   conversationMemberships             ConversationParticipant[]
-  messagesSent                        Message[]                      @relation("MessageAuthor")
+  messagesSent                        Message[]                          @relation("MessageAuthor")
   reactions                           Reaction[]
   notifications                       Notification[]
-  automationRulesCreated              AutomationRule[]               @relation("AutomationRuleCreatedBy")
-  automationNextTaskFor               AutomationRule[]               @relation("AutomationNextTaskResponsable")
-  automationAssignedFor               AutomationRule[]               @relation("AutomationAssignUser")
-  automationOrchestrationFor          AutomationRule[]               @relation("AutomationOrchestrationResponsable")
-  transformationsResponsable          Transformation[]               @relation("TransformationResponsable")
-  transformationsCreated              Transformation[]               @relation("TransformationCreatedBy")
-  organizationalMemoryEntriesCreated  OrganizationalMemoryEntry[]    @relation("OrganizationalMemoryCreatedBy")
-  orchestrationPlaybooksCreated       OrchestrationPlaybook[]        @relation("OrchestrationPlaybookCreatedBy")
-  dependenciesCreated                 Dependency[]                   @relation("DependencyCreatedBy")
-  tagsCreated                         Tag[]                          @relation("TagCreatedBy")
-  apiKeysCreated                      ApiKey[]                       @relation("ApiKeyCreatedBy")
-  sessions                            UserSession[]                  @relation("UserSessionOwner")
-  sessionsRevoked                     UserSession[]                  @relation("UserSessionRevokedBy")
-  projectsDeleted                     Project[]                      @relation("ProjectDeletedBy")
-  tasksDeleted                        Task[]                         @relation("TaskDeletedBy")
-  documentsDeleted                    Document[]                     @relation("DocumentDeletedBy")
-  pendingAiActionsDecided             PendingAiAction[]              @relation("PendingAiActionDecidedBy")
-  decisionMatricesCreated             DecisionMatrix[]               @relation("DecisionMatrixCreatedBy")
-  retentionPoliciesUpdated            RetentionPolicy[]              @relation("RetentionPolicyUpdatedBy")
-  scenariosCreated                    Scenario[]                     @relation("ScenarioCreatedBy")
-  contractsCreated                    Contract[]                     @relation("ContractCreatedBy")
-  portalMessagesAuthored              PortalMessage[]                @relation("PortalMessageAuthor")
-  beneficiairesCreated                Beneficiaire[]                 @relation("BeneficiaireCreatedBy")
+  automationRulesCreated              AutomationRule[]                   @relation("AutomationRuleCreatedBy")
+  automationNextTaskFor               AutomationRule[]                   @relation("AutomationNextTaskResponsable")
+  automationAssignedFor               AutomationRule[]                   @relation("AutomationAssignUser")
+  automationOrchestrationFor          AutomationRule[]                   @relation("AutomationOrchestrationResponsable")
+  transformationsResponsable          Transformation[]                   @relation("TransformationResponsable")
+  transformationsCreated              Transformation[]                   @relation("TransformationCreatedBy")
+  organizationalMemoryEntriesCreated  OrganizationalMemoryEntry[]        @relation("OrganizationalMemoryCreatedBy")
+  orchestrationPlaybooksCreated       OrchestrationPlaybook[]            @relation("OrchestrationPlaybookCreatedBy")
+  dependenciesCreated                 Dependency[]                       @relation("DependencyCreatedBy")
+  tagsCreated                         Tag[]                              @relation("TagCreatedBy")
+  apiKeysCreated                      ApiKey[]                           @relation("ApiKeyCreatedBy")
+  sessions                            UserSession[]                      @relation("UserSessionOwner")
+  sessionsRevoked                     UserSession[]                      @relation("UserSessionRevokedBy")
+  projectsDeleted                     Project[]                          @relation("ProjectDeletedBy")
+  tasksDeleted                        Task[]                             @relation("TaskDeletedBy")
+  documentsDeleted                    Document[]                         @relation("DocumentDeletedBy")
+  pendingAiActionsDecided             PendingAiAction[]                  @relation("PendingAiActionDecidedBy")
+  decisionMatricesCreated             DecisionMatrix[]                   @relation("DecisionMatrixCreatedBy")
+  retentionPoliciesUpdated            RetentionPolicy[]                  @relation("RetentionPolicyUpdatedBy")
+  scenariosCreated                    Scenario[]                         @relation("ScenarioCreatedBy")
+  contractsCreated                    Contract[]                         @relation("ContractCreatedBy")
+  portalMessagesAuthored              PortalMessage[]                    @relation("PortalMessageAuthor")
+  beneficiairesCreated                Beneficiaire[]                     @relation("BeneficiaireCreatedBy")
   // Project Studio §46 (Beneficiary/User Feedback).
-  projectFeedbacksCreated             ProjectFeedback[]              @relation("ProjectFeedbackCreatedBy")
+  projectFeedbacksCreated             ProjectFeedback[]                  @relation("ProjectFeedbackCreatedBy")
   // Project Studio §49 (Indicator Management).
-  indicatorsResponsable               Indicator[]                    @relation("IndicatorResponsable")
+  indicatorsResponsable               Indicator[]                        @relation("IndicatorResponsable")
   // Project Studio §47 (Monitoring & Evaluation).
-  projectMEEvaluationsCreated         ProjectMEEvaluation[]          @relation("ProjectMEEvaluationCreatedBy")
+  projectMEEvaluationsCreated         ProjectMEEvaluation[]              @relation("ProjectMEEvaluationCreatedBy")
   // Project Studio §48 (Data Collection).
-  projectDataFormsCreated             ProjectDataForm[]              @relation("ProjectDataFormCreatedBy")
-  projectDataFormSubmissions          ProjectDataFormSubmission[]    @relation("ProjectDataFormSubmissionBy")
+  projectDataFormsCreated             ProjectDataForm[]                  @relation("ProjectDataFormCreatedBy")
+  projectDataFormSubmissions          ProjectDataFormSubmission[]        @relation("ProjectDataFormSubmissionBy")
   // Project Studio §53 (Lessons Learned).
-  projectLessonsLearnedCreated        ProjectLessonLearned[]         @relation("ProjectLessonLearnedCreatedBy")
+  projectLessonsLearnedCreated        ProjectLessonLearned[]             @relation("ProjectLessonLearnedCreatedBy")
   // Project Studio §60 (Project Templates).
-  projectTemplatesCreated             ProjectTemplate[]              @relation("ProjectTemplateCreatedBy")
+  projectTemplatesCreated             ProjectTemplate[]                  @relation("ProjectTemplateCreatedBy")
   // Project Studio §7 (Problem Tree links) / §39 (Version Control) audit fixes.
-  problemTreeNodeCommentsAuthored     ProblemTreeNodeComment[]       @relation("ProblemTreeNodeCommentAuthor")
-  documentVersionsValidated           DocumentVersion[]              @relation("DocumentVersionValidatedBy")
+  problemTreeNodeCommentsAuthored     ProblemTreeNodeComment[]           @relation("ProblemTreeNodeCommentAuthor")
+  documentVersionsValidated           DocumentVersion[]                  @relation("DocumentVersionValidatedBy")
   dashboardPreference                 DashboardWidgetPreference?
-  integrationsCreated                 Integration[]                  @relation("IntegrationCreatedBy")
+  integrationsCreated                 Integration[]                      @relation("IntegrationCreatedBy")
   passwordResetTokens                 PasswordResetToken[]
-  validationWorkflowsCreated          ValidationWorkflow[]           @relation("ValidationWorkflowCreatedBy")
-  taskValidationsSubmitted            TaskValidationRun[]            @relation("TaskValidationSubmittedBy")
-  taskApprovalsDecided                TaskApproval[]                 @relation("TaskApprovalApprover")
-  permissionOverrides                 PermissionOverride[]           @relation("PermissionOverrideTarget")
-  permissionOverridesCreated          PermissionOverride[]           @relation("PermissionOverrideCreatedBy")
-  sectionsResponsable                 ProjectSection[]               @relation("SectionResponsable")
-  sectionComments                     SectionComment[]               @relation("SectionCommentAuthor")
-  whiteboardsUpdated                  Whiteboard[]                   @relation("WhiteboardUpdatedBy")
-  documentAccessGrants                DocumentAccess[]               @relation("DocumentAccessGrantee")
-  crmOrganizationsOwned               CrmOrganization[]              @relation("CrmOrganizationOwner")
-  crmOrganizationsCreated             CrmOrganization[]              @relation("CrmOrganizationCreatedBy")
-  crmContactsOwned                    CrmContact[]                   @relation("CrmContactOwner")
-  crmContactsCreated                  CrmContact[]                   @relation("CrmContactCreatedBy")
-  crmOpportunitiesOwned               CrmOpportunity[]               @relation("CrmOpportunityOwner")
-  crmOpportunitiesCreated             CrmOpportunity[]               @relation("CrmOpportunityCreatedBy")
-  crmInteractionsAuthored             CrmInteraction[]               @relation("CrmInteractionAuthor")
-  programmesOwned                     Programme[]                    @relation("ProgrammeResponsable")
-  programmesCreated                   Programme[]                    @relation("ProgrammeCreatedBy")
-  adminRequestsCreated                AdminRequest[]                 @relation("AdminRequestDemandeur")
-  adminRequestValidationsSubmitted    AdminRequestValidationRun[]    @relation("AdminRequestValidationSubmittedBy")
-  adminRequestApprovalsDecided        AdminRequestApproval[]         @relation("AdminRequestApprovalApprover")
-  plansOwned                          Plan[]                         @relation("PlanOwner")
-  plansCreated                        Plan[]                         @relation("PlanCreatedBy")
-  evaluationsRecues                   Evaluation[]                   @relation("EvaluationEvalue")
-  evaluationsMenees                   Evaluation[]                   @relation("EvaluationEvaluateur")
-  evaluationsCreees                   Evaluation[]                   @relation("EvaluationCreatedBy")
-  knowledgeCategoriesCreated          KnowledgeCategory[]            @relation("KnowledgeCategoryCreatedBy")
-  knowledgeArticlesAuthored           KnowledgeArticle[]             @relation("KnowledgeArticleAuthor")
-  portalAccountsInvited               PortalAccount[]                @relation("PortalAccountInvitedBy")
-  courriersResponsable                Courrier[]                     @relation("CourrierResponsable")
-  courriersCreated                    Courrier[]                     @relation("CourrierCreatedBy")
+  validationWorkflowsCreated          ValidationWorkflow[]               @relation("ValidationWorkflowCreatedBy")
+  taskValidationsSubmitted            TaskValidationRun[]                @relation("TaskValidationSubmittedBy")
+  taskApprovalsDecided                TaskApproval[]                     @relation("TaskApprovalApprover")
+  permissionOverrides                 PermissionOverride[]               @relation("PermissionOverrideTarget")
+  permissionOverridesCreated          PermissionOverride[]               @relation("PermissionOverrideCreatedBy")
+  sectionsResponsable                 ProjectSection[]                   @relation("SectionResponsable")
+  sectionComments                     SectionComment[]                   @relation("SectionCommentAuthor")
+  whiteboardsUpdated                  Whiteboard[]                       @relation("WhiteboardUpdatedBy")
+  documentAccessGrants                DocumentAccess[]                   @relation("DocumentAccessGrantee")
+  crmOrganizationsOwned               CrmOrganization[]                  @relation("CrmOrganizationOwner")
+  crmOrganizationsCreated             CrmOrganization[]                  @relation("CrmOrganizationCreatedBy")
+  crmContactsOwned                    CrmContact[]                       @relation("CrmContactOwner")
+  crmContactsCreated                  CrmContact[]                       @relation("CrmContactCreatedBy")
+  crmOpportunitiesOwned               CrmOpportunity[]                   @relation("CrmOpportunityOwner")
+  crmOpportunitiesCreated             CrmOpportunity[]                   @relation("CrmOpportunityCreatedBy")
+  crmInteractionsAuthored             CrmInteraction[]                   @relation("CrmInteractionAuthor")
+  programmesOwned                     Programme[]                        @relation("ProgrammeResponsable")
+  programmesCreated                   Programme[]                        @relation("ProgrammeCreatedBy")
+  adminRequestsCreated                AdminRequest[]                     @relation("AdminRequestDemandeur")
+  adminRequestValidationsSubmitted    AdminRequestValidationRun[]        @relation("AdminRequestValidationSubmittedBy")
+  adminRequestApprovalsDecided        AdminRequestApproval[]             @relation("AdminRequestApprovalApprover")
+  plansOwned                          Plan[]                             @relation("PlanOwner")
+  plansCreated                        Plan[]                             @relation("PlanCreatedBy")
+  evaluationsRecues                   Evaluation[]                       @relation("EvaluationEvalue")
+  evaluationsMenees                   Evaluation[]                       @relation("EvaluationEvaluateur")
+  evaluationsCreees                   Evaluation[]                       @relation("EvaluationCreatedBy")
+  knowledgeCategoriesCreated          KnowledgeCategory[]                @relation("KnowledgeCategoryCreatedBy")
+  knowledgeArticlesAuthored           KnowledgeArticle[]                 @relation("KnowledgeArticleAuthor")
+  portalAccountsInvited               PortalAccount[]                    @relation("PortalAccountInvitedBy")
+  courriersResponsable                Courrier[]                         @relation("CourrierResponsable")
+  courriersCreated                    Courrier[]                         @relation("CourrierCreatedBy")
   // Extension V3.0 — Organizational Designer (§21) et Talent & Succession (§24)
-  orgDesignDraftsCreated              OrgDesignDraft[]               @relation("OrgDesignDraftCreatedBy")
-  platformOrganizationsCreated        PlatformOrganization[]         @relation("PlatformOrganizationCreatedBy")
-  decisionOutcomesCreated             DecisionOutcome[]              @relation("DecisionOutcomeCreatedBy")
-  decisionOutcomesEvaluated           DecisionOutcome[]              @relation("DecisionOutcomeEvaluatedBy")
-  dataClassificationsOwned            DataClassification[]           @relation("DataClassificationProprietaire")
-  dataClassificationsClassifiedBy     DataClassification[]           @relation("DataClassificationClassifiedBy")
-  successionPlansCreated              SuccessionPlan[]               @relation("SuccessionPlanCreatedBy")
-  successionPlanTitulaireFor          SuccessionPlan[]               @relation("SuccessionPlanTitulaire")
-  successionCandidacies               SuccessionCandidate[]          @relation("SuccessionCandidateUser")
+  orgDesignDraftsCreated              OrgDesignDraft[]                   @relation("OrgDesignDraftCreatedBy")
+  platformOrganizationsCreated        PlatformOrganization[]             @relation("PlatformOrganizationCreatedBy")
+  decisionOutcomesCreated             DecisionOutcome[]                  @relation("DecisionOutcomeCreatedBy")
+  decisionOutcomesEvaluated           DecisionOutcome[]                  @relation("DecisionOutcomeEvaluatedBy")
+  dataClassificationsOwned            DataClassification[]               @relation("DataClassificationProprietaire")
+  dataClassificationsClassifiedBy     DataClassification[]               @relation("DataClassificationClassifiedBy")
+  successionPlansCreated              SuccessionPlan[]                   @relation("SuccessionPlanCreatedBy")
+  successionPlanTitulaireFor          SuccessionPlan[]                   @relation("SuccessionPlanTitulaire")
+  successionCandidacies               SuccessionCandidate[]              @relation("SuccessionCandidateUser")
 
   @@index([departmentId])
   @@index([roleId])
@@ -994,174 +1018,176 @@ model PlatformOrganization {
   createdAt       DateTime                   @default(now())
   updatedAt       DateTime                   @updatedAt
 
-  users                         User[]                         @relation("PlatformOrganizationUsers")
-  departments                   Department[]                   @relation("PlatformOrganizationDepartments")
-  teams                         Team[]                         @relation("PlatformOrganizationTeams")
-  projects                      Project[]                      @relation("PlatformOrganizationProjects")
-  tasks                         Task[]                         @relation("PlatformOrganizationTasks")
-  projectSections               ProjectSection[]               @relation("PlatformOrganizationProjectSections")
-  documents                     Document[]                     @relation("PlatformOrganizationDocuments")
-  meetings                      Meeting[]                      @relation("PlatformOrganizationMeetings")
-  documentFolders               DocumentFolder[]               @relation("PlatformOrganizationDocumentFolders")
-  whiteboards                   Whiteboard[]                   @relation("PlatformOrganizationWhiteboards")
-  projectMembers                ProjectMember[]                @relation("PlatformOrganizationProjectMembers")
-  projectPartners               ProjectPartner[]               @relation("PlatformOrganizationProjectPartners")
-  projectRisks                  ProjectRisk[]                  @relation("PlatformOrganizationProjectRisks")
-  projectMilestones             ProjectMilestone[]             @relation("PlatformOrganizationProjectMilestones")
-  projectDeliverables           ProjectDeliverable[]           @relation("PlatformOrganizationProjectDeliverables")
-  projectResources              ProjectResource[]              @relation("PlatformOrganizationProjectResources")
-  projectIdeas                  ProjectIdea[]                  @relation("PlatformOrganizationProjectIdeas")
-  projectConceptNotes           ProjectConceptNote[]           @relation("PlatformOrganizationProjectConceptNotes")
-  financements                  Financement[]                  @relation("PlatformOrganizationFinancements")
-  projectDiagnostics            ProjectDiagnostic[]            @relation("PlatformOrganizationProjectDiagnostics")
-  problemTreeNodes              ProblemTreeNode[]              @relation("PlatformOrganizationProblemTreeNodes")
-  solutionTreeNodes             SolutionTreeNode[]             @relation("PlatformOrganizationSolutionTreeNodes")
-  theoryOfChangeNodes           TheoryOfChangeNode[]           @relation("PlatformOrganizationTheoryOfChangeNodes")
-  logframeRows                  LogframeRow[]                  @relation("PlatformOrganizationLogframeRows")
-  raciAssignments               RaciAssignment[]               @relation("PlatformOrganizationRaciAssignments")
-  budgetLines                   BudgetLine[]                   @relation("PlatformOrganizationBudgetLines")
-  fundingOpportunities          FundingOpportunity[]           @relation("PlatformOrganizationFundingOpportunities")
-  assumptions                   ProjectAssumption[]            @relation("PlatformOrganizationProjectAssumptions")
-  projectChangeRequests         ProjectChangeRequest[]         @relation("PlatformOrganizationProjectChangeRequests")
-  procurementItems              ProcurementItem[]              @relation("PlatformOrganizationProcurementItems")
-  projectContracts              ProjectContract[]              @relation("PlatformOrganizationProjectContracts")
-  projectContractPayments       ProjectContractPayment[]       @relation("PlatformOrganizationProjectContractPayments")
-  communicationPlanEntries      CommunicationPlanEntry[]       @relation("PlatformOrganizationCommunicationPlanEntries")
-  sectionComments               SectionComment[]               @relation("PlatformOrganizationSectionComments")
-  taskAssignees                 TaskAssignee[]                 @relation("PlatformOrganizationTaskAssignees")
-  checklistItems                ChecklistItem[]                @relation("PlatformOrganizationChecklistItems")
-  taskComments                  TaskComment[]                  @relation("PlatformOrganizationTaskComments")
-  taskDependencies              TaskDependency[]               @relation("PlatformOrganizationTaskDependencies")
-  documentAccesses              DocumentAccess[]               @relation("PlatformOrganizationDocumentAccesses")
-  documentVersions              DocumentVersion[]              @relation("PlatformOrganizationDocumentVersions")
-  meetingParticipants           MeetingParticipant[]           @relation("PlatformOrganizationMeetingParticipants")
-  meetingDecisions              MeetingDecision[]              @relation("PlatformOrganizationMeetingDecisions")
-  meetingExternalParticipants   MeetingExternalParticipant[]   @relation("PlatformOrganizationMeetingExternalParticipants")
-  competences                   Competence[]                   @relation("PlatformOrganizationCompetences")
-  userCompetences               UserCompetence[]               @relation("PlatformOrganizationUserCompetences")
-  knowledgeCategories           KnowledgeCategory[]            @relation("PlatformOrganizationKnowledgeCategories")
-  knowledgeArticles             KnowledgeArticle[]             @relation("PlatformOrganizationKnowledgeArticles")
-  leaves                        Leave[]                        @relation("PlatformOrganizationLeaves")
-  events                        Event[]                        @relation("PlatformOrganizationEvents")
-  personalPlanningEntries       PersonalPlanningEntry[]        @relation("PlatformOrganizationPersonalPlanningEntries")
-  availabilityRequests          AvailabilityRequest[]          @relation("PlatformOrganizationAvailabilityRequests")
-  objectives                    Objective[]                    @relation("PlatformOrganizationObjectives")
-  indicators                    Indicator[]                    @relation("PlatformOrganizationIndicators")
-  evaluations                   Evaluation[]                   @relation("PlatformOrganizationEvaluations")
-  evaluationCriteres            EvaluationCritere[]            @relation("PlatformOrganizationEvaluationCriteres")
-  conversations                 Conversation[]                 @relation("PlatformOrganizationConversations")
-  conversationParticipants      ConversationParticipant[]      @relation("PlatformOrganizationConversationParticipants")
-  messages                      Message[]                      @relation("PlatformOrganizationMessages")
-  reactions                     Reaction[]                     @relation("PlatformOrganizationReactions")
-  notifications                 Notification[]                 @relation("PlatformOrganizationNotifications")
-  crmOrganizations              CrmOrganization[]              @relation("PlatformOrganizationCrmOrganizations")
-  crmContacts                   CrmContact[]                   @relation("PlatformOrganizationCrmContacts")
-  portalAccounts                PortalAccount[]                @relation("PlatformOrganizationPortalAccounts")
-  portalInviteTokens            PortalInviteToken[]            @relation("PlatformOrganizationPortalInviteTokens")
-  crmOpportunities              CrmOpportunity[]               @relation("PlatformOrganizationCrmOpportunities")
-  crmInteractions               CrmInteraction[]               @relation("PlatformOrganizationCrmInteractions")
-  contracts                     Contract[]                     @relation("PlatformOrganizationContracts")
-  portalMessages                PortalMessage[]                @relation("PlatformOrganizationPortalMessages")
-  decisionOutcomes              DecisionOutcome[]              @relation("PlatformOrganizationDecisionOutcomes")
-  postes                        Poste[]                        @relation("PlatformOrganizationPostes")
-  posteResponsabilites          PosteResponsabilite[]          @relation("PlatformOrganizationPosteResponsabilites")
-  successionPlans               SuccessionPlan[]               @relation("PlatformOrganizationSuccessionPlans")
-  successionCandidates          SuccessionCandidate[]          @relation("PlatformOrganizationSuccessionCandidates")
-  sites                         Site[]                         @relation("PlatformOrganizationSites")
-  delegations                   Delegation[]                   @relation("PlatformOrganizationDelegations")
-  strategicAxes                 StrategicAxis[]                @relation("PlatformOrganizationStrategicAxes")
-  swotItems                     SwotItem[]                     @relation("PlatformOrganizationSwotItems")
-  plans                         Plan[]                         @relation("PlatformOrganizationPlans")
-  programmes                    Programme[]                    @relation("PlatformOrganizationProgrammes")
-  programmeRisks                ProgrammeRisk[]                @relation("PlatformOrganizationProgrammeRisks")
-  governanceInstances           GovernanceInstance[]           @relation("PlatformOrganizationGovernanceInstances")
-  governanceInstanceMembers     GovernanceInstanceMember[]     @relation("PlatformOrganizationGovernanceInstanceMembers")
-  governanceMeetings            GovernanceMeeting[]            @relation("PlatformOrganizationGovernanceMeetings")
-  governanceMeetingParticipants GovernanceMeetingParticipant[] @relation("PlatformOrganizationGovernanceMeetingParticipants")
-  governanceMeetingDocuments    GovernanceMeetingDocument[]    @relation("PlatformOrganizationGovernanceMeetingDocuments")
-  governanceDecisions           GovernanceDecision[]           @relation("PlatformOrganizationGovernanceDecisions")
-  processusListe                Processus[]                    @relation("PlatformOrganizationProcessus")
-  processusEtapes               ProcessusEtape[]               @relation("PlatformOrganizationProcessusEtapes")
-  processusVersions             ProcessusVersion[]             @relation("PlatformOrganizationProcessusVersions")
-  processusExecutions           ProcessusExecution[]           @relation("PlatformOrganizationProcessusExecutions")
-  processusExecutionEtapes      ProcessusExecutionEtape[]      @relation("PlatformOrganizationProcessusExecutionEtapes")
-  processusDocuments            ProcessusDocument[]            @relation("PlatformOrganizationProcessusDocuments")
-  organizationalRisks           OrganizationalRisk[]           @relation("PlatformOrganizationOrganizationalRisks")
-  complianceObligations         ComplianceObligation[]         @relation("PlatformOrganizationComplianceObligations")
-  complianceControls            ComplianceControl[]            @relation("PlatformOrganizationComplianceControls")
-  complianceObligationDocuments ComplianceObligationDocument[] @relation("PlatformOrganizationComplianceObligationDocuments")
-  nonConformites                NonConformite[]                @relation("PlatformOrganizationNonConformites")
-  nonConformiteActions          NonConformiteAction[]          @relation("PlatformOrganizationNonConformiteActions")
-  qualityDocuments              QualityDocument[]              @relation("PlatformOrganizationQualityDocuments")
-  qualityControls               QualityControl[]               @relation("PlatformOrganizationQualityControls")
-  qualityChecklistItems         QualityChecklistItem[]         @relation("PlatformOrganizationQualityChecklistItems")
-  qualityClaims                 QualityClaim[]                 @relation("PlatformOrganizationQualityClaims")
-  auditPlans                    AuditPlan[]                    @relation("PlatformOrganizationAuditPlans")
-  auditPlanMembers              AuditPlanMember[]              @relation("PlatformOrganizationAuditPlanMembers")
-  auditPlanDocuments            AuditPlanDocument[]            @relation("PlatformOrganizationAuditPlanDocuments")
-  auditMissions                 AuditMission[]                 @relation("PlatformOrganizationAuditMissions")
-  auditFindings                 AuditFinding[]                 @relation("PlatformOrganizationAuditFindings")
-  incidents                     Incident[]                     @relation("PlatformOrganizationIncidents")
-  changeRequests                ChangeRequest[]                @relation("PlatformOrganizationChangeRequests")
-  validationWorkflows           ValidationWorkflow[]           @relation("PlatformOrganizationValidationWorkflows")
-  validationWorkflowSteps       ValidationWorkflowStep[]       @relation("PlatformOrganizationValidationWorkflowSteps")
-  taskValidationRuns            TaskValidationRun[]            @relation("PlatformOrganizationTaskValidationRuns")
-  taskApprovals                 TaskApproval[]                 @relation("PlatformOrganizationTaskApprovals")
-  adminRequests                 AdminRequest[]                 @relation("PlatformOrganizationAdminRequests")
-  adminRequestValidationRuns    AdminRequestValidationRun[]    @relation("PlatformOrganizationAdminRequestValidationRuns")
-  adminRequestApprovals         AdminRequestApproval[]         @relation("PlatformOrganizationAdminRequestApprovals")
-  courriers                     Courrier[]                     @relation("PlatformOrganizationCourriers")
-  automationConditions          AutomationCondition[]          @relation("PlatformOrganizationAutomationConditions")
-  orchestrationPlaybooks        OrchestrationPlaybook[]        @relation("PlatformOrganizationOrchestrationPlaybooks")
-  automationRules               AutomationRule[]               @relation("PlatformOrganizationAutomationRules")
-  automationExecutions          AutomationExecution[]          @relation("PlatformOrganizationAutomationExecutions")
-  pendingAiActions              PendingAiAction[]              @relation("PlatformOrganizationPendingAiActions")
-  orgDesignDrafts               OrgDesignDraft[]               @relation("PlatformOrganizationOrgDesignDrafts")
-  dataClassifications           DataClassification[]           @relation("PlatformOrganizationDataClassifications")
-  transformations               Transformation[]               @relation("PlatformOrganizationTransformations")
-  organizationalMemoryEntries   OrganizationalMemoryEntry[]    @relation("PlatformOrganizationOrganizationalMemoryEntries")
-  decisionMatrices              DecisionMatrix[]               @relation("PlatformOrganizationDecisionMatrices")
-  decisionOptions               DecisionOption[]               @relation("PlatformOrganizationDecisionOptions")
-  auditLogs                     AuditLog[]                     @relation("PlatformOrganizationAuditLogs")
-  integrations                  Integration[]                  @relation("PlatformOrganizationIntegrations")
-  integrationEvents             IntegrationEvent[]             @relation("PlatformOrganizationIntegrationEvents")
-  dashboardWidgetPreferences    DashboardWidgetPreference[]    @relation("PlatformOrganizationDashboardWidgetPreferences")
-  aiAgentInsights               AiAgentInsight[]               @relation("PlatformOrganizationAiAgentInsights")
-  metricSnapshots               MetricSnapshot[]               @relation("PlatformOrganizationMetricSnapshots")
-  dependencies                  Dependency[]                   @relation("PlatformOrganizationDependencies")
-  scenarios                     Scenario[]                     @relation("PlatformOrganizationScenarios")
-  beneficiaires                 Beneficiaire[]                 @relation("PlatformOrganizationBeneficiaires")
+  users                             User[]                             @relation("PlatformOrganizationUsers")
+  departments                       Department[]                       @relation("PlatformOrganizationDepartments")
+  teams                             Team[]                             @relation("PlatformOrganizationTeams")
+  projects                          Project[]                          @relation("PlatformOrganizationProjects")
+  tasks                             Task[]                             @relation("PlatformOrganizationTasks")
+  projectSections                   ProjectSection[]                   @relation("PlatformOrganizationProjectSections")
+  documents                         Document[]                         @relation("PlatformOrganizationDocuments")
+  meetings                          Meeting[]                          @relation("PlatformOrganizationMeetings")
+  documentFolders                   DocumentFolder[]                   @relation("PlatformOrganizationDocumentFolders")
+  whiteboards                       Whiteboard[]                       @relation("PlatformOrganizationWhiteboards")
+  projectMembers                    ProjectMember[]                    @relation("PlatformOrganizationProjectMembers")
+  projectPartners                   ProjectPartner[]                   @relation("PlatformOrganizationProjectPartners")
+  projectRisks                      ProjectRisk[]                      @relation("PlatformOrganizationProjectRisks")
+  projectMilestones                 ProjectMilestone[]                 @relation("PlatformOrganizationProjectMilestones")
+  projectDeliverables               ProjectDeliverable[]               @relation("PlatformOrganizationProjectDeliverables")
+  projectResources                  ProjectResource[]                  @relation("PlatformOrganizationProjectResources")
+  projectIdeas                      ProjectIdea[]                      @relation("PlatformOrganizationProjectIdeas")
+  projectConceptNotes               ProjectConceptNote[]               @relation("PlatformOrganizationProjectConceptNotes")
+  financements                      Financement[]                      @relation("PlatformOrganizationFinancements")
+  projectDiagnostics                ProjectDiagnostic[]                @relation("PlatformOrganizationProjectDiagnostics")
+  problemTreeNodes                  ProblemTreeNode[]                  @relation("PlatformOrganizationProblemTreeNodes")
+  solutionTreeNodes                 SolutionTreeNode[]                 @relation("PlatformOrganizationSolutionTreeNodes")
+  theoryOfChangeNodes               TheoryOfChangeNode[]               @relation("PlatformOrganizationTheoryOfChangeNodes")
+  logframeRows                      LogframeRow[]                      @relation("PlatformOrganizationLogframeRows")
+  raciAssignments                   RaciAssignment[]                   @relation("PlatformOrganizationRaciAssignments")
+  budgetLines                       BudgetLine[]                       @relation("PlatformOrganizationBudgetLines")
+  fundingOpportunities              FundingOpportunity[]               @relation("PlatformOrganizationFundingOpportunities")
+  assumptions                       ProjectAssumption[]                @relation("PlatformOrganizationProjectAssumptions")
+  projectChangeRequests             ProjectChangeRequest[]             @relation("PlatformOrganizationProjectChangeRequests")
+  procurementItems                  ProcurementItem[]                  @relation("PlatformOrganizationProcurementItems")
+  projectContracts                  ProjectContract[]                  @relation("PlatformOrganizationProjectContracts")
+  projectContractPayments           ProjectContractPayment[]           @relation("PlatformOrganizationProjectContractPayments")
+  communicationPlanEntries          CommunicationPlanEntry[]           @relation("PlatformOrganizationCommunicationPlanEntries")
+  sectionComments                   SectionComment[]                   @relation("PlatformOrganizationSectionComments")
+  taskAssignees                     TaskAssignee[]                     @relation("PlatformOrganizationTaskAssignees")
+  checklistItems                    ChecklistItem[]                    @relation("PlatformOrganizationChecklistItems")
+  taskComments                      TaskComment[]                      @relation("PlatformOrganizationTaskComments")
+  taskDependencies                  TaskDependency[]                   @relation("PlatformOrganizationTaskDependencies")
+  documentAccesses                  DocumentAccess[]                   @relation("PlatformOrganizationDocumentAccesses")
+  documentVersions                  DocumentVersion[]                  @relation("PlatformOrganizationDocumentVersions")
+  meetingParticipants               MeetingParticipant[]               @relation("PlatformOrganizationMeetingParticipants")
+  meetingDecisions                  MeetingDecision[]                  @relation("PlatformOrganizationMeetingDecisions")
+  meetingExternalParticipants       MeetingExternalParticipant[]       @relation("PlatformOrganizationMeetingExternalParticipants")
+  competences                       Competence[]                       @relation("PlatformOrganizationCompetences")
+  userCompetences                   UserCompetence[]                   @relation("PlatformOrganizationUserCompetences")
+  knowledgeCategories               KnowledgeCategory[]                @relation("PlatformOrganizationKnowledgeCategories")
+  knowledgeArticles                 KnowledgeArticle[]                 @relation("PlatformOrganizationKnowledgeArticles")
+  leaves                            Leave[]                            @relation("PlatformOrganizationLeaves")
+  events                            Event[]                            @relation("PlatformOrganizationEvents")
+  personalPlanningEntries           PersonalPlanningEntry[]            @relation("PlatformOrganizationPersonalPlanningEntries")
+  personalPlanningEntryParticipants PersonalPlanningEntryParticipant[] @relation("PlatformOrganizationPersonalPlanningEntryParticipants")
+  availabilityRequests              AvailabilityRequest[]              @relation("PlatformOrganizationAvailabilityRequests")
+  objectives                        Objective[]                        @relation("PlatformOrganizationObjectives")
+  indicators                        Indicator[]                        @relation("PlatformOrganizationIndicators")
+  evaluations                       Evaluation[]                       @relation("PlatformOrganizationEvaluations")
+  evaluationCriteres                EvaluationCritere[]                @relation("PlatformOrganizationEvaluationCriteres")
+  conversations                     Conversation[]                     @relation("PlatformOrganizationConversations")
+  conversationParticipants          ConversationParticipant[]          @relation("PlatformOrganizationConversationParticipants")
+  messages                          Message[]                          @relation("PlatformOrganizationMessages")
+  reactions                         Reaction[]                         @relation("PlatformOrganizationReactions")
+  notifications                     Notification[]                     @relation("PlatformOrganizationNotifications")
+  crmOrganizations                  CrmOrganization[]                  @relation("PlatformOrganizationCrmOrganizations")
+  crmContacts                       CrmContact[]                       @relation("PlatformOrganizationCrmContacts")
+  portalAccounts                    PortalAccount[]                    @relation("PlatformOrganizationPortalAccounts")
+  portalInviteTokens                PortalInviteToken[]                @relation("PlatformOrganizationPortalInviteTokens")
+  crmOpportunities                  CrmOpportunity[]                   @relation("PlatformOrganizationCrmOpportunities")
+  crmInteractions                   CrmInteraction[]                   @relation("PlatformOrganizationCrmInteractions")
+  contracts                         Contract[]                         @relation("PlatformOrganizationContracts")
+  portalMessages                    PortalMessage[]                    @relation("PlatformOrganizationPortalMessages")
+  decisionOutcomes                  DecisionOutcome[]                  @relation("PlatformOrganizationDecisionOutcomes")
+  postes                            Poste[]                            @relation("PlatformOrganizationPostes")
+  posteResponsabilites              PosteResponsabilite[]              @relation("PlatformOrganizationPosteResponsabilites")
+  successionPlans                   SuccessionPlan[]                   @relation("PlatformOrganizationSuccessionPlans")
+  successionCandidates              SuccessionCandidate[]              @relation("PlatformOrganizationSuccessionCandidates")
+  sites                             Site[]                             @relation("PlatformOrganizationSites")
+  delegations                       Delegation[]                       @relation("PlatformOrganizationDelegations")
+  strategicAxes                     StrategicAxis[]                    @relation("PlatformOrganizationStrategicAxes")
+  swotItems                         SwotItem[]                         @relation("PlatformOrganizationSwotItems")
+  plans                             Plan[]                             @relation("PlatformOrganizationPlans")
+  programmes                        Programme[]                        @relation("PlatformOrganizationProgrammes")
+  programmeRisks                    ProgrammeRisk[]                    @relation("PlatformOrganizationProgrammeRisks")
+  governanceInstances               GovernanceInstance[]               @relation("PlatformOrganizationGovernanceInstances")
+  governanceInstanceMembers         GovernanceInstanceMember[]         @relation("PlatformOrganizationGovernanceInstanceMembers")
+  governanceMeetings                GovernanceMeeting[]                @relation("PlatformOrganizationGovernanceMeetings")
+  governanceMeetingParticipants     GovernanceMeetingParticipant[]     @relation("PlatformOrganizationGovernanceMeetingParticipants")
+  governanceMeetingDocuments        GovernanceMeetingDocument[]        @relation("PlatformOrganizationGovernanceMeetingDocuments")
+  governanceDecisions               GovernanceDecision[]               @relation("PlatformOrganizationGovernanceDecisions")
+  processusListe                    Processus[]                        @relation("PlatformOrganizationProcessus")
+  processusEtapes                   ProcessusEtape[]                   @relation("PlatformOrganizationProcessusEtapes")
+  processusVersions                 ProcessusVersion[]                 @relation("PlatformOrganizationProcessusVersions")
+  processusExecutions               ProcessusExecution[]               @relation("PlatformOrganizationProcessusExecutions")
+  processusExecutionEtapes          ProcessusExecutionEtape[]          @relation("PlatformOrganizationProcessusExecutionEtapes")
+  processusDocuments                ProcessusDocument[]                @relation("PlatformOrganizationProcessusDocuments")
+  organizationalRisks               OrganizationalRisk[]               @relation("PlatformOrganizationOrganizationalRisks")
+  complianceObligations             ComplianceObligation[]             @relation("PlatformOrganizationComplianceObligations")
+  complianceControls                ComplianceControl[]                @relation("PlatformOrganizationComplianceControls")
+  complianceObligationDocuments     ComplianceObligationDocument[]     @relation("PlatformOrganizationComplianceObligationDocuments")
+  nonConformites                    NonConformite[]                    @relation("PlatformOrganizationNonConformites")
+  nonConformiteActions              NonConformiteAction[]              @relation("PlatformOrganizationNonConformiteActions")
+  qualityDocuments                  QualityDocument[]                  @relation("PlatformOrganizationQualityDocuments")
+  qualityControls                   QualityControl[]                   @relation("PlatformOrganizationQualityControls")
+  qualityChecklistItems             QualityChecklistItem[]             @relation("PlatformOrganizationQualityChecklistItems")
+  qualityClaims                     QualityClaim[]                     @relation("PlatformOrganizationQualityClaims")
+  auditPlans                        AuditPlan[]                        @relation("PlatformOrganizationAuditPlans")
+  auditPlanMembers                  AuditPlanMember[]                  @relation("PlatformOrganizationAuditPlanMembers")
+  auditPlanDocuments                AuditPlanDocument[]                @relation("PlatformOrganizationAuditPlanDocuments")
+  auditMissions                     AuditMission[]                     @relation("PlatformOrganizationAuditMissions")
+  auditFindings                     AuditFinding[]                     @relation("PlatformOrganizationAuditFindings")
+  incidents                         Incident[]                         @relation("PlatformOrganizationIncidents")
+  changeRequests                    ChangeRequest[]                    @relation("PlatformOrganizationChangeRequests")
+  validationWorkflows               ValidationWorkflow[]               @relation("PlatformOrganizationValidationWorkflows")
+  validationWorkflowSteps           ValidationWorkflowStep[]           @relation("PlatformOrganizationValidationWorkflowSteps")
+  taskValidationRuns                TaskValidationRun[]                @relation("PlatformOrganizationTaskValidationRuns")
+  taskApprovals                     TaskApproval[]                     @relation("PlatformOrganizationTaskApprovals")
+  adminRequests                     AdminRequest[]                     @relation("PlatformOrganizationAdminRequests")
+  adminRequestValidationRuns        AdminRequestValidationRun[]        @relation("PlatformOrganizationAdminRequestValidationRuns")
+  adminRequestApprovals             AdminRequestApproval[]             @relation("PlatformOrganizationAdminRequestApprovals")
+  courriers                         Courrier[]                         @relation("PlatformOrganizationCourriers")
+  automationConditions              AutomationCondition[]              @relation("PlatformOrganizationAutomationConditions")
+  orchestrationPlaybooks            OrchestrationPlaybook[]            @relation("PlatformOrganizationOrchestrationPlaybooks")
+  automationRules                   AutomationRule[]                   @relation("PlatformOrganizationAutomationRules")
+  automationExecutions              AutomationExecution[]              @relation("PlatformOrganizationAutomationExecutions")
+  pendingAiActions                  PendingAiAction[]                  @relation("PlatformOrganizationPendingAiActions")
+  orgDesignDrafts                   OrgDesignDraft[]                   @relation("PlatformOrganizationOrgDesignDrafts")
+  dataClassifications               DataClassification[]               @relation("PlatformOrganizationDataClassifications")
+  transformations                   Transformation[]                   @relation("PlatformOrganizationTransformations")
+  organizationalMemoryEntries       OrganizationalMemoryEntry[]        @relation("PlatformOrganizationOrganizationalMemoryEntries")
+  decisionMatrices                  DecisionMatrix[]                   @relation("PlatformOrganizationDecisionMatrices")
+  decisionOptions                   DecisionOption[]                   @relation("PlatformOrganizationDecisionOptions")
+  auditLogs                         AuditLog[]                         @relation("PlatformOrganizationAuditLogs")
+  integrations                      Integration[]                      @relation("PlatformOrganizationIntegrations")
+  integrationEvents                 IntegrationEvent[]                 @relation("PlatformOrganizationIntegrationEvents")
+  dashboardWidgetPreferences        DashboardWidgetPreference[]        @relation("PlatformOrganizationDashboardWidgetPreferences")
+  aiAgentInsights                   AiAgentInsight[]                   @relation("PlatformOrganizationAiAgentInsights")
+  metricSnapshots                   MetricSnapshot[]                   @relation("PlatformOrganizationMetricSnapshots")
+  dependencies                      Dependency[]                       @relation("PlatformOrganizationDependencies")
+  scenarios                         Scenario[]                         @relation("PlatformOrganizationScenarios")
+  beneficiaires                     Beneficiaire[]                     @relation("PlatformOrganizationBeneficiaires")
   // Project Studio §46 (Beneficiary/User Feedback).
-  projectFeedbacks              ProjectFeedback[]              @relation("PlatformOrganizationProjectFeedbacks")
+  projectFeedbacks                  ProjectFeedback[]                  @relation("PlatformOrganizationProjectFeedbacks")
   // Project Studio §47 (Monitoring & Evaluation).
-  projectMEEvaluations          ProjectMEEvaluation[]          @relation("PlatformOrganizationProjectMEEvaluations")
-  projectMEEvaluationCriteres   ProjectMEEvaluationCritere[]   @relation("PlatformOrganizationProjectMEEvaluationCriteres")
+  projectMEEvaluations              ProjectMEEvaluation[]              @relation("PlatformOrganizationProjectMEEvaluations")
+  projectMEEvaluationCriteres       ProjectMEEvaluationCritere[]       @relation("PlatformOrganizationProjectMEEvaluationCriteres")
   // Project Studio §48 (Data Collection).
-  projectDataForms              ProjectDataForm[]              @relation("PlatformOrganizationProjectDataForms")
-  projectDataFormFields         ProjectDataFormField[]         @relation("PlatformOrganizationProjectDataFormFields")
-  projectDataFormSubmissions    ProjectDataFormSubmission[]    @relation("PlatformOrganizationProjectDataFormSubmissions")
+  projectDataForms                  ProjectDataForm[]                  @relation("PlatformOrganizationProjectDataForms")
+  projectDataFormFields             ProjectDataFormField[]             @relation("PlatformOrganizationProjectDataFormFields")
+  projectDataFormSubmissions        ProjectDataFormSubmission[]        @relation("PlatformOrganizationProjectDataFormSubmissions")
   // Project Studio §52 (Project Closure) / §53 (Lessons Learned).
-  projectClosureChecklists      ProjectClosureChecklist[]      @relation("PlatformOrganizationProjectClosureChecklists")
-  projectLessonsLearned         ProjectLessonLearned[]         @relation("PlatformOrganizationProjectLessonsLearned")
+  projectClosureChecklists          ProjectClosureChecklist[]          @relation("PlatformOrganizationProjectClosureChecklists")
+  projectLessonsLearned             ProjectLessonLearned[]             @relation("PlatformOrganizationProjectLessonsLearned")
   // Project Studio §60 (Project Templates).
-  projectTemplates              ProjectTemplate[]              @relation("PlatformOrganizationProjectTemplates")
-  projectTemplatePhases         ProjectTemplatePhase[]         @relation("PlatformOrganizationProjectTemplatePhases")
+  projectTemplates                  ProjectTemplate[]                  @relation("PlatformOrganizationProjectTemplates")
+  projectTemplatePhases             ProjectTemplatePhase[]             @relation("PlatformOrganizationProjectTemplatePhases")
   // Project Studio §7 (Problem Tree links).
-  problemTreeNodeDocuments      ProblemTreeNodeDocument[]      @relation("PlatformOrganizationProblemTreeNodeDocuments")
-  problemTreeNodeIndicators     ProblemTreeNodeIndicator[]     @relation("PlatformOrganizationProblemTreeNodeIndicators")
-  problemTreeNodeComments       ProblemTreeNodeComment[]       @relation("PlatformOrganizationProblemTreeNodeComments")
-  entities                      Entity[]                       @relation("PlatformOrganizationEntities")
-  holidays                      Holiday[]                      @relation("PlatformOrganizationHolidays")
-  tags                          Tag[]                          @relation("PlatformOrganizationTags")
-  entityTags                    EntityTag[]                    @relation("PlatformOrganizationEntityTags")
-  apiKeys                       ApiKey[]                       @relation("PlatformOrganizationApiKeys")
-  passwordResetTokens           PasswordResetToken[]           @relation("PlatformOrganizationPasswordResetTokens")
-  permissionOverrides           PermissionOverride[]           @relation("PlatformOrganizationPermissionOverrides")
-  teamMembers                   TeamMember[]                   @relation("PlatformOrganizationTeamMembers")
-  stakeholders                  Stakeholder[]                  @relation("PlatformOrganizationStakeholders")
-  stakeholderProjects           StakeholderProject[]           @relation("PlatformOrganizationStakeholderProjects")
-  stakeholderCommunications     StakeholderCommunication[]     @relation("PlatformOrganizationStakeholderCommunications")
-  userSessions                  UserSession[]                  @relation("PlatformOrganizationUserSessions")
+  problemTreeNodeDocuments          ProblemTreeNodeDocument[]          @relation("PlatformOrganizationProblemTreeNodeDocuments")
+  problemTreeNodeIndicators         ProblemTreeNodeIndicator[]         @relation("PlatformOrganizationProblemTreeNodeIndicators")
+  problemTreeNodeComments           ProblemTreeNodeComment[]           @relation("PlatformOrganizationProblemTreeNodeComments")
+  entities                          Entity[]                           @relation("PlatformOrganizationEntities")
+  holidays                          Holiday[]                          @relation("PlatformOrganizationHolidays")
+  userWorkSchedules                 UserWorkSchedule[]                 @relation("PlatformOrganizationUserWorkSchedules")
+  tags                              Tag[]                              @relation("PlatformOrganizationTags")
+  entityTags                        EntityTag[]                        @relation("PlatformOrganizationEntityTags")
+  apiKeys                           ApiKey[]                           @relation("PlatformOrganizationApiKeys")
+  passwordResetTokens               PasswordResetToken[]               @relation("PlatformOrganizationPasswordResetTokens")
+  permissionOverrides               PermissionOverride[]               @relation("PlatformOrganizationPermissionOverrides")
+  teamMembers                       TeamMember[]                       @relation("PlatformOrganizationTeamMembers")
+  stakeholders                      Stakeholder[]                      @relation("PlatformOrganizationStakeholders")
+  stakeholderProjects               StakeholderProject[]               @relation("PlatformOrganizationStakeholderProjects")
+  stakeholderCommunications         StakeholderCommunication[]         @relation("PlatformOrganizationStakeholderCommunications")
+  userSessions                      UserSession[]                      @relation("PlatformOrganizationUserSessions")
 }
 
 enum PlatformOrganizationStatut {
@@ -1613,6 +1639,7 @@ model Project {
   documents                Document[]
   events                   Event[]
   objectives               Objective[]
+  personalPlanningEntries  PersonalPlanningEntry[]
   automationRules          AutomationRule[]
   orchestrationPlaybooks   OrchestrationPlaybook[]
   permissionOverrides      PermissionOverride[]
@@ -2488,22 +2515,25 @@ model Task {
   deletedById            String?
   deletedBy              User?                 @relation("TaskDeletedBy", fields: [deletedById], references: [id])
 
-  assignees           TaskAssignee[]
-  checklistItems      ChecklistItem[]
-  comments            TaskComment[]
-  documents           Document[]
-  dependsOn           TaskDependency[]    @relation("DependentTask")
-  blocking            TaskDependency[]    @relation("PrerequisiteTask")
-  meetingDecision     MeetingDecision?
-  governanceDecision  GovernanceDecision?
-  validationRun       TaskValidationRun?
-  courrier            Courrier?
-  adminRequest        AdminRequest?
-  indicators          Indicator[]
+  assignees               TaskAssignee[]
+  checklistItems          ChecklistItem[]
+  comments                TaskComment[]
+  documents               Document[]
+  dependsOn               TaskDependency[]        @relation("DependentTask")
+  blocking                TaskDependency[]        @relation("PrerequisiteTask")
+  meetingDecision         MeetingDecision?
+  governanceDecision      GovernanceDecision?
+  validationRun           TaskValidationRun?
+  courrier                Courrier?
+  adminRequest            AdminRequest?
+  indicators              Indicator[]
   // Competences recherchees pour cette tache (V2.2 §9.2 — allocation
   // intelligente). Optionnel : le scoring de suggestAssignees se degrade
   // proprement (critere neutre) si aucune competence n'est renseignee.
-  competencesRequises Competence[]        @relation("TaskCompetencesRequises")
+  competencesRequises     Competence[]            @relation("TaskCompetencesRequises")
+  // Module "Planning personnel" §4/§10 — activites de planning personnel qui
+  // planifient cette tache (time blocking) sans la dupliquer.
+  personalPlanningEntries PersonalPlanningEntry[]
 
   @@index([projectId])
   @@index([sectionId])
@@ -3397,8 +3427,9 @@ model Objective {
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 
-  indicators Indicator[]
-  tasks      Task[]
+  indicators              Indicator[]
+  tasks                   Task[]
+  personalPlanningEntries PersonalPlanningEntry[]
 
   @@index([userId])
   @@index([projectId])
@@ -5590,6 +5621,39 @@ model Holiday {
   @@index([entityId])
 }
 
+// Module "Planning personnel" §40 — horaire hebdomadaire par utilisateur,
+// une ligne par jour (0=dimanche...6=samedi, convention JS Date.getDay()).
+// Absence de ligne pour un jour = comportement par defaut (capacite
+// hebdomadaire / 5, voir computeDailyCapacity) — aucune regression pour les
+// utilisateurs non configures.
+enum UserWorkScheduleType {
+  NORMAL
+  FLEXIBLE
+  TELETRAVAIL
+  MISSION
+  ABSENCE
+}
+
+model UserWorkSchedule {
+  id             String                @id @default(cuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationUserWorkSchedules", fields: [organizationId], references: [id])
+  jourSemaine    Int
+  heureDebut     String
+  heureFin       String
+  pauseDebut     String?
+  pauseFin       String?
+  type           UserWorkScheduleType  @default(NORMAL)
+  actif          Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([userId, jourSemaine])
+  @@index([userId])
+}
+
 // ===================== V2.2 §26-30 — Digital twin, knowledge graph, recherche, command center, briefing =====================
 // Tags (cahier §28 — "recherche universelle ... avec tags"). Modele reel
 // (choix explicite de l'utilisateur plutot qu'un champ texte libre par
@@ -6490,26 +6554,142 @@ enum PersonalPlanningEntryType {
   // decideAvailabilityRequest) — distingue un blocage manuel d'un blocage
   // issu d'une demande de collegue.
   RESERVE
+  // Module "Planning personnel" §9 — types d'activite proposes a la
+  // creation, en plus de NOTE/INDISPONIBLE conserves pour compatibilite.
+  TACHE
+  REUNION
+  RENDEZ_VOUS
+  APPEL
+  MISSION
+  FORMATION
+  DEPLACEMENT
+  TRAVAIL_PERSONNEL
+  PAUSE
+  EVENEMENT
+}
+
+// Module "Planning personnel" §6/§8 — statut propre a l'activite planifiee,
+// distinct du statut de la Tache liee (tacheId) : une meme Tache peut etre
+// planifiee sur plusieurs activites/sessions successives.
+// §12 — cycle etendu (segment 2) : A_PLANIFIER (tache non planifiee, §13)
+// jusqu'a TERMINEE/ANNULEE, en passant par EN_ATTENTE et BLOQUEE.
+enum PersonalPlanningEntryStatut {
+  A_PLANIFIER
+  PLANIFIEE
+  EN_COURS
+  EN_ATTENTE
+  BLOQUEE
+  TERMINEE
+  ANNULEE
+}
+
+// §11 (segment 2) — 4 niveaux ; remplace le trio CRITIQUE/IMPORTANTE/NORMALE
+// du segment 1 (IMPORTANTE renommee HAUTE, ajout de FAIBLE). Mappe toujours
+// sur le bloc "Ma journee" (§6), desormais avec un 4e groupe "faible".
+enum PersonalPlanningPriorite {
+  CRITIQUE
+  HAUTE
+  NORMALE
+  FAIBLE
+}
+
+enum PersonalPlanningRepetition {
+  AUCUNE
+  QUOTIDIENNE
+  HEBDOMADAIRE
+  MENSUELLE
+}
+
+// §24 (segment 3) — multi-selection (Entry.rappels[]) ; AUCUN n'existe plus
+// comme valeur, un tableau vide vaut "aucun rappel". PERSONNALISE utilise
+// PersonalPlanningEntry.rappelPersonnaliseDate.
+enum PersonalPlanningRappel {
+  LE_JOUR_MEME
+  VEILLE
+  PERSONNALISE
+}
+
+// §22 — motif renseigne quand une activite passe au statut BLOQUEE, pour
+// que la direction puisse identifier les blocages recurrents.
+enum PersonalPlanningMotifBlocage {
+  DEPENDANCE
+  INFORMATION_MANQUANTE
+  VALIDATION
+  FOURNISSEUR
+  MANQUE_RESSOURCES
+  AUTRE
 }
 
 model PersonalPlanningEntry {
-  id              String                    @id @default(cuid())
-  organizationId  String?
-  organization    PlatformOrganization?     @relation("PlatformOrganizationPersonalPlanningEntries", fields: [organizationId], references: [id])
-  userId          String
-  user            User                      @relation("PersonalPlanningEntryOwner", fields: [userId], references: [id])
-  titre           String
-  notes           String?
-  dateDebut       DateTime
-  dateFin         DateTime
-  type            PersonalPlanningEntryType @default(NOTE)
-  originRequestId String?                   @unique
-  originRequest   AvailabilityRequest?      @relation("AvailabilityRequestBlock", fields: [originRequestId], references: [id])
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
+  id                     String                        @id @default(cuid())
+  organizationId         String?
+  organization           PlatformOrganization?         @relation("PlatformOrganizationPersonalPlanningEntries", fields: [organizationId], references: [id])
+  userId                 String
+  user                   User                          @relation("PersonalPlanningEntryOwner", fields: [userId], references: [id])
+  titre                  String
+  notes                  String?
+  dateDebut              DateTime
+  dateFin                DateTime
+  type                   PersonalPlanningEntryType     @default(NOTE)
+  statut                 PersonalPlanningEntryStatut   @default(PLANIFIEE)
+  priorite               PersonalPlanningPriorite      @default(NORMALE)
+  lieu                   String?
+  projetId               String?
+  projet                 Project?                      @relation(fields: [projetId], references: [id])
+  // §4/§10 — le lien central du module : une Activite planifie une Tache
+  // existante dans une plage horaire, sans en dupliquer les donnees
+  // (statut/responsable/echeance restent portes par la Tache elle-meme).
+  tacheId                String?
+  tache                  Task?                         @relation(fields: [tacheId], references: [id])
+  objectifId             String?
+  objectif               Objective?                    @relation(fields: [objectifId], references: [id])
+  repetition             PersonalPlanningRepetition    @default(AUCUNE)
+  repetitionFin          DateTime?
+  // Partage entre toutes les occurrences generees par une meme regle de
+  // repetition — permet un futur "supprimer/modifier toute la serie" sans
+  // rejouer le calcul (voir deletePersonalPlanningEntrySeries).
+  recurrenceGroupId      String?
+  rappels                PersonalPlanningRappel[]      @default([])
+  rappelPersonnaliseDate DateTime?
+  // §22 — renseigne uniquement quand statut = BLOQUEE.
+  motifBlocage           PersonalPlanningMotifBlocage?
+  // §26bis — utilises uniquement quand type = MISSION ; objet/dates de
+  // depart-retour/taches/documents reutilisent respectivement titre,
+  // dateDebut-dateFin, tacheId, piecesJointes deja presents.
+  missionDestination     String?
+  missionBudget          Decimal?                      @db.Decimal(12, 2)
+  missionMoyenTransport  String?
+  missionHebergement     String?
+  missionRapport         String?
+  // URLs uploadthing, meme convention que Incident.photos : pas de modele
+  // Document dedie ici, celui-ci exige un projectId.
+  piecesJointes          String[]                      @default([])
+  originRequestId        String?                       @unique
+  originRequest          AvailabilityRequest?          @relation("AvailabilityRequestBlock", fields: [originRequestId], references: [id])
+  createdAt              DateTime                      @default(now())
+  updatedAt              DateTime                      @updatedAt
+
+  participants PersonalPlanningEntryParticipant[]
 
   @@index([userId])
   @@index([dateDebut])
+  @@index([tacheId])
+  @@index([recurrenceGroupId])
+  @@index([statut])
+}
+
+// Miroir de MeetingParticipant, sans le suivi de presence (non pertinent
+// pour une activite personnelle) — simple liste de collegues concernes.
+model PersonalPlanningEntryParticipant {
+  entryId        String
+  entry          PersonalPlanningEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                  @relation("PersonalPlanningEntryParticipantUser", fields: [userId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPersonalPlanningEntryParticipants", fields: [organizationId], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@id([entryId, userId])
 }
 
 // Demande de creneau sur le planning personnel d'un collegue — pattern a

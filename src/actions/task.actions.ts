@@ -16,6 +16,7 @@ import {
   runValidationRejectedRules,
   runTaskCreatedRules,
   runTaskStatusChangedRules,
+  runTaskBlockedRules,
 } from "@/lib/automation";
 import { startValidationRun, decideCurrentStep } from "@/lib/validation-workflow";
 import { suggestAssignees, type CandidateScore } from "@/lib/resource-allocation";
@@ -354,6 +355,15 @@ export async function updateTaskStatus(taskId: string, statut: string) {
       titre: task.titre,
       projectId: task.projectId,
       responsablePrincipalId: task.responsablePrincipalId,
+    });
+  }
+  if (data.statut === "BLOQUEE") {
+    await runTaskBlockedRules({
+      id: task.id,
+      titre: task.titre,
+      projectId: task.projectId,
+      responsablePrincipalId: task.responsablePrincipalId,
+      priorite: task.priorite,
     });
   }
   await runTaskStatusChangedRules({

@@ -42,7 +42,7 @@ export default async function ObjectiveDetailPage({
 }) {
   const { objectiveId } = await params;
 
-  const [objective, candidateObjectives] = await Promise.all([
+  const [objective, candidateObjectives, linkedTasks, linkedEntries] = await Promise.all([
     prisma.objective.findUnique({
       where: { id: objectiveId },
       include: {
@@ -62,11 +62,22 @@ export default async function ObjectiveDetailPage({
       orderBy: { titre: "asc" },
       select: { id: true, titre: true },
     }),
+    // §20 (Module Planning personnel) — contribution : tâches rattachées à
+    // l'objectif, terminées vs total.
+    prisma.task.findMany({ where: { objectiveId }, select: { statut: true } }),
+    prisma.personalPlanningEntry.findMany({ where: { objectifId: objectiveId }, select: { statut: true } }),
   ]);
 
   if (!objective) {
     notFound();
   }
+
+  const contribution = {
+    tachesTotal: linkedTasks.length,
+    tachesTerminees: linkedTasks.filter((t) => t.statut === "TERMINEE").length,
+    activitesTotal: linkedEntries.length,
+    activitesTerminees: linkedEntries.filter((e) => e.statut === "TERMINEE").length,
+  };
 
   const progress = objectiveProgress(
     objective.indicators.map((i) => ({
@@ -189,6 +200,32 @@ export default async function ObjectiveDetailPage({
             <Info label="Créé par" value={objective.createdBy.name} />
           </CardContent>
         </Card>
+
+        {(contribution.tachesTotal > 0 || contribution.activitesTotal > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Contribution</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {contribution.tachesTotal > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Tâches liées</span>
+                  <span className="font-medium">
+                    {contribution.tachesTerminees} / {contribution.tachesTotal} terminées
+                  </span>
+                </div>
+              )}
+              {contribution.activitesTotal > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Activités planifiées</span>
+                  <span className="font-medium">
+                    {contribution.activitesTerminees} / {contribution.activitesTotal} terminées
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

@@ -2,30 +2,149 @@ import { z } from "zod";
 
 // ---- Planning personnel (notes/creneaux prives, distincts de Leave/Event) ----
 
-export const createPersonalPlanningEntrySchema = z.object({
+const ENTRY_TYPES = [
+  "NOTE",
+  "INDISPONIBLE",
+  "TACHE",
+  "REUNION",
+  "RENDEZ_VOUS",
+  "APPEL",
+  "MISSION",
+  "FORMATION",
+  "DEPLACEMENT",
+  "TRAVAIL_PERSONNEL",
+  "PAUSE",
+  "EVENEMENT",
+] as const;
+
+const ENTRY_STATUTS = ["A_PLANIFIER", "PLANIFIEE", "EN_COURS", "EN_ATTENTE", "BLOQUEE", "TERMINEE", "ANNULEE"] as const;
+const ENTRY_PRIORITES = ["CRITIQUE", "HAUTE", "NORMALE", "FAIBLE"] as const;
+const ENTRY_REPETITIONS = ["AUCUNE", "QUOTIDIENNE", "HEBDOMADAIRE", "MENSUELLE"] as const;
+const ENTRY_RAPPELS = ["LE_JOUR_MEME", "VEILLE", "PERSONNALISE"] as const;
+const ENTRY_MOTIFS_BLOCAGE = ["DEPENDANCE", "INFORMATION_MANQUANTE", "VALIDATION", "FOURNISSEUR", "MANQUE_RESSOURCES", "AUTRE"] as const;
+
+// Garde-fou anti-emballement pour la generation d'occurrences (§9
+// repetition) — au-dela, l'utilisateur doit re-planifier manuellement.
+export const MAX_RECURRENCE_OCCURRENCES = 104;
+
+const baseEntryFields = {
   titre: z.string().min(2, "Le titre est requis."),
   notes: z.string().optional(),
   dateDebut: z.string().min(1, "La date de début est requise."),
   dateFin: z.string().min(1, "La date de fin est requise."),
-  type: z.enum(["NOTE", "INDISPONIBLE"]).optional().default("NOTE"),
-});
+  type: z.enum(ENTRY_TYPES).optional().default("NOTE"),
+  priorite: z.enum(ENTRY_PRIORITES).optional().default("NORMALE"),
+  lieu: z.string().optional(),
+  projetId: z.string().optional(),
+  tacheId: z.string().optional(),
+  objectifId: z.string().optional(),
+  participantIds: z.array(z.string()).optional().default([]),
+  etiquettes: z.array(z.string()).optional().default([]),
+  repetition: z.enum(ENTRY_REPETITIONS).optional().default("AUCUNE"),
+  repetitionFin: z.string().optional(),
+  rappels: z.array(z.enum(ENTRY_RAPPELS)).optional().default([]),
+  rappelPersonnaliseDate: z.string().optional(),
+  piecesJointes: z.array(z.string()).optional().default([]),
+  // §26bis — utilisés seulement quand type = MISSION.
+  missionDestination: z.string().optional(),
+  missionBudget: z.string().optional(),
+  missionMoyenTransport: z.string().optional(),
+  missionHebergement: z.string().optional(),
+  missionRapport: z.string().optional(),
+};
+
+function refineRappelPersonnalise<T extends { rappels: readonly string[]; rappelPersonnaliseDate?: string }>(data: T) {
+  return !data.rappels.includes("PERSONNALISE") || !!data.rappelPersonnaliseDate;
+}
+
+export const createPersonalPlanningEntrySchema = z
+  .object(baseEntryFields)
+  .refine((data) => data.repetition === "AUCUNE" || !!data.repetitionFin, {
+    message: "Une date de fin de répétition est requise.",
+    path: ["repetitionFin"],
+  })
+  .refine(refineRappelPersonnalise, {
+    message: "Une date de rappel personnalisé est requise.",
+    path: ["rappelPersonnaliseDate"],
+  });
 
 export type CreatePersonalPlanningEntryInput = z.infer<typeof createPersonalPlanningEntrySchema>;
 
-export const updatePersonalPlanningEntrySchema = z.object({
-  id: z.string().min(1),
-  titre: z.string().min(2, "Le titre est requis."),
-  notes: z.string().optional(),
-  dateDebut: z.string().min(1, "La date de début est requise."),
-  dateFin: z.string().min(1, "La date de fin est requise."),
-  type: z.enum(["NOTE", "INDISPONIBLE"]),
-});
+export const updatePersonalPlanningEntrySchema = z
+  .object({
+    id: z.string().min(1),
+    ...baseEntryFields,
+    type: z.enum(ENTRY_TYPES),
+    priorite: z.enum(ENTRY_PRIORITES),
+    statut: z.enum(ENTRY_STATUTS),
+    motifBlocage: z.enum(ENTRY_MOTIFS_BLOCAGE).optional(),
+  })
+  .refine((data) => data.repetition === "AUCUNE" || !!data.repetitionFin, {
+    message: "Une date de fin de répétition est requise.",
+    path: ["repetitionFin"],
+  })
+  .refine(refineRappelPersonnalise, {
+    message: "Une date de rappel personnalisé est requise.",
+    path: ["rappelPersonnaliseDate"],
+  })
+  .refine((data) => data.statut !== "BLOQUEE" || !!data.motifBlocage, {
+    message: "Un motif de blocage est requis.",
+    path: ["motifBlocage"],
+  });
 
 export type UpdatePersonalPlanningEntryInput = z.infer<typeof updatePersonalPlanningEntrySchema>;
 
 export const deletePersonalPlanningEntrySchema = z.object({ id: z.string().min(1) });
 
 export type DeletePersonalPlanningEntryInput = z.infer<typeof deletePersonalPlanningEntrySchema>;
+
+export const deletePersonalPlanningEntrySeriesSchema = z.object({ recurrenceGroupId: z.string().min(1) });
+
+export type DeletePersonalPlanningEntrySeriesInput = z.infer<typeof deletePersonalPlanningEntrySeriesSchema>;
+
+// ---- Drag & drop (§13/§14) ----
+
+export const scheduleInboxTaskSchema = z.object({
+  taskId: z.string().min(1),
+  dateDebut: z.string().min(1),
+  /** Minutes — 60 par défaut (§13 : la tâche glissée n'a pas de durée propre). */
+  dureeMinutes: z.number().int().positive().optional().default(60),
+});
+
+export type ScheduleInboxTaskInput = z.infer<typeof scheduleInboxTaskSchema>;
+
+export const movePersonalPlanningEntrySchema = z.object({
+  id: z.string().min(1),
+  newDateDebut: z.string().min(1),
+});
+
+export type MovePersonalPlanningEntryInput = z.infer<typeof movePersonalPlanningEntrySchema>;
+
+// ---- Suggestions de réorganisation (§16, version légère) ----
+
+export const reorganizeOverloadedDaySchema = z.object({
+  date: z.string().min(1),
+  strategy: z.enum(["REPORTER", "ETALER"]),
+});
+
+export type ReorganizeOverloadedDayInput = z.infer<typeof reorganizeOverloadedDaySchema>;
+
+// ---- Vue "À planifier" étendue (§29) ----
+
+export const reassignInboxTaskSchema = z.object({
+  taskId: z.string().min(1),
+  newResponsableId: z.string().min(1),
+});
+
+export type ReassignInboxTaskInput = z.infer<typeof reassignInboxTaskSchema>;
+
+/** Transforme une activité de capture rapide (sans tacheId) en vraie Tâche dans un projet (§29/§30). */
+export const promoteEntryToTaskSchema = z.object({
+  entryId: z.string().min(1),
+  projectId: z.string().min(1),
+});
+
+export type PromoteEntryToTaskInput = z.infer<typeof promoteEntryToTaskSchema>;
 
 export const getAvailabilitySchema = z.object({
   userId: z.string().min(1),

@@ -59,6 +59,8 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
       assigneeIds: t.assignees.map((a) => a.userId),
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
+      echeance: t.echeance,
+      dateDebut: t.dateDebut,
     })),
     leaves.map((l) => ({ userId: l.userId, dateDebut: l.dateDebut, dateFin: l.dateFin, statut: l.statut }))
   );
@@ -98,7 +100,7 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
       {workload.length === 0 ? (
         <p className="text-sm text-muted-foreground">Aucun membre dans cette équipe.</p>
       ) : (
-        <WorkloadTable rows={workload} canManage={canManage} />
+        <WorkloadTable rows={workload} canManage={canManage} showTaskCounts />
       )}
     </div>
   );

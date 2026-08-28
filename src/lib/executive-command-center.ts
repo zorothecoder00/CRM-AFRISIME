@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { computeScopePilotage, type ScopePilotage } from "@/lib/pilotage-levels";
-import { computeWorkload } from "@/lib/workload";
+import { computeWorkload, ACTIVE_TASK_STATUSES, isSameCalendarDay } from "@/lib/workload";
 import { computeTeamPrediction, type TeamPrediction } from "@/lib/predictive-scoring";
 import { computePartnerEcosystemAnalysis } from "@/lib/partner-ecosystem-graph";
 
@@ -11,6 +11,8 @@ export type ExecutiveSnapshot = {
   risquesCritiques: { id: string; titre: string; criticite: string; type: "PROJET" | "ORGANISATIONNEL" }[];
   decisionsEnAttente: { id: string; libelle: string; href: string }[];
   chargeEquipes: { sousCharge: number; chargeNormale: number; surcharge: number };
+  // Module "Planning personnel" §38 — organisation entière.
+  taches: { aujourdhui: number; terminees: number; enRetard: number; bloquees: number };
   opportunitesCrm: { total: number; montantTotal: number; parStatut: Record<string, number> };
   alertes: { id: string; titre: string; contenu: string; createdAt: Date }[];
   previsionsIa: TeamPrediction;
@@ -141,6 +143,18 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     surcharge: workload.filter((w) => w.statut === "SURCHARGE").length,
   };
 
+  // §38 — "Tâches aujourd'hui" = celles dont le début ou l'échéance tombe
+  // aujourd'hui ; "Terminées" est le sous-ensemble de celles-là déjà closes.
+  const tachesAujourdhui = tasks.filter(
+    (t) => (t.echeance && isSameCalendarDay(t.echeance, now)) || (t.dateDebut && isSameCalendarDay(t.dateDebut, now))
+  );
+  const taches = {
+    aujourdhui: tachesAujourdhui.length,
+    terminees: tachesAujourdhui.filter((t) => t.statut === "TERMINEE").length,
+    enRetard: tasks.filter((t) => ACTIVE_TASK_STATUSES.has(t.statut) && t.echeance && t.echeance < now).length,
+    bloquees: tasks.filter((t) => t.statut === "BLOQUEE").length,
+  };
+
   const parStatut: Record<string, number> = {};
   for (const o of opportunities) parStatut[o.statut] = (parStatut[o.statut] ?? 0) + 1;
 
@@ -165,6 +179,7 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
       })),
     ],
     chargeEquipes,
+    taches,
     opportunitesCrm: {
       total: opportunities.length,
       montantTotal: opportunities.reduce((s, o) => s + (o.montantEstime ? Number(o.montantEstime) : 0), 0),

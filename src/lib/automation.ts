@@ -734,6 +734,27 @@ export async function runTaskCompletedRules(task: {
   }
 }
 
+/** Module "Planning personnel" §33 — "SI une tâche critique est bloquée ALORS notifier le superviseur." */
+export async function runTaskBlockedRules(task: {
+  id: string;
+  titre: string;
+  projectId: string;
+  responsablePrincipalId: string;
+  priorite: string;
+}) {
+  const rules = await findActiveRules("TASK_BLOCKED", task.projectId);
+  for (const rule of rules) {
+    await executeAction(rule, {
+      entityType: "Task",
+      entityId: task.id,
+      label: task.titre,
+      projectId: task.projectId,
+      targetUserId: task.responsablePrincipalId,
+      conditionData: { "task.priorite": task.priorite },
+    });
+  }
+}
+
 export async function runValidationRejectedRules(task: {
   id: string;
   titre: string;
@@ -839,6 +860,40 @@ export async function runTaskOverdueRules() {
         projectId: task.projectId,
         targetUserId: task.responsablePrincipalId,
         conditionData: { "task.retardJours": retardJours, "task.priorite": task.priorite },
+      });
+    }
+  }
+}
+
+/**
+ * Module "Planning personnel" §33 — "SI une réunion est terminée ALORS
+ * demander le compte rendu." Rejoint le groupe évalué par le cron
+ * quotidien (comme TASK_OVERDUE) : une réunion dont la date est passée
+ * mais dont le compte rendu est encore vide.
+ */
+export async function runMeetingCompletedRules() {
+  const rules = await prisma.automationRule.findMany({
+    where: { trigger: "MEETING_COMPLETED", isActive: true },
+    include: { conditions: true },
+    orderBy: { ordre: "asc" },
+  });
+
+  for (const rule of rules) {
+    const meetings = await prisma.meeting.findMany({
+      where: {
+        ...(rule.projectId ? { projectId: rule.projectId } : {}),
+        dateHeure: { lt: new Date() },
+        compteRendu: null,
+      },
+      select: { id: true, titre: true, projectId: true, createdById: true },
+    });
+    for (const meeting of meetings) {
+      await executeAction(rule, {
+        entityType: "Meeting",
+        entityId: meeting.id,
+        label: meeting.titre,
+        projectId: meeting.projectId,
+        targetUserId: meeting.createdById,
       });
     }
   }

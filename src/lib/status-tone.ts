@@ -20,18 +20,18 @@ function toCardAccent(tone: StatusTone): CardAccent {
 export function toneForStatus(status: string): BadgeTone {
   const s = status.toUpperCase();
   if (s.includes("BLOQUE") || s.includes("RETARD") || s === "NON_ATTEINT") return "destructive";
-  if (s.includes("PAUSE")) return "warning";
+  if (s.includes("PAUSE") || s.includes("EN_ATTENTE")) return "warning";
   if (s.includes("TERMIN") || s === "ATTEINT") return "success";
   if (s.includes("COURS") || s.includes("REVISION")) return "info";
   return "secondary";
 }
 
-/** Idem pour les niveaux de priorite (TRES_HAUTE, HAUTE, MOYENNE, BASSE). */
+/** Idem pour les niveaux de priorite (TRES_HAUTE, HAUTE, MOYENNE, NORMALE, BASSE, FAIBLE). */
 export function toneForPriority(priority: string): BadgeTone {
   const p = priority.toUpperCase();
   if (p.includes("TRES_HAUTE") || p.includes("CRITIQUE")) return "destructive";
-  if (p.includes("HAUTE")) return "warning";
-  if (p.includes("MOYENNE")) return "info";
+  if (p.includes("HAUTE") || p.includes("IMPORTANTE")) return "warning";
+  if (p.includes("MOYENNE") || p.includes("NORMALE")) return "info";
   return "secondary";
 }
 
