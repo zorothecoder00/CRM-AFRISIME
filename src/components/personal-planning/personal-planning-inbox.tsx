@@ -39,17 +39,23 @@ function InboxTaskCard({ task, colleagues }: { task: InboxTaskRow; colleagues: {
 
   return (
     <div className={`rounded-md border p-2 text-xs ${isDragging ? "opacity-40" : ""}`}>
-      <div ref={setNodeRef} {...listeners} {...attributes} className="flex cursor-grab touch-none items-start gap-1.5">
-        <GripVertical className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground/50" />
-        <div className="min-w-0 flex-1">
-          <Link href={`/taches/${task.id}`} className="block truncate font-medium hover:underline" onClick={(e) => e.stopPropagation()}>
-            {task.titre}
-          </Link>
-          <div className="mt-0.5 flex items-center gap-1">
-            <Badge variant={toneForPriority(task.priorite)} className="text-[10px]">
-              {TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
-            </Badge>
-            <span className="truncate text-[10px] text-muted-foreground">{task.projetNom}</span>
+      <div className="flex items-start gap-1.5">
+        {/* Zone de glisser-déposer : titre + badges uniquement. Les boutons
+            d'action restent HORS de cette zone (pas seulement protégés par
+            un stopPropagation sur le Link) pour qu'un clic dessus ne soit
+            jamais intercepté comme un début de glissé. */}
+        <div ref={setNodeRef} {...listeners} {...attributes} className="flex min-w-0 flex-1 cursor-grab touch-none items-start gap-1.5">
+          <GripVertical className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground/50" />
+          <div className="min-w-0 flex-1">
+            <Link href={`/taches/${task.id}`} className="block truncate font-medium hover:underline" onClick={(e) => e.stopPropagation()}>
+              {task.titre}
+            </Link>
+            <div className="mt-0.5 flex items-center gap-1">
+              <Badge variant={toneForPriority(task.priorite)} className="text-[10px]">
+                {TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
+              </Badge>
+              <span className="truncate text-[10px] text-muted-foreground">{task.projetNom}</span>
+            </div>
           </div>
         </div>
         {colleagues.length > 0 && (
@@ -105,7 +111,10 @@ export function PersonalPlanningInbox({ tasks, colleagues }: { tasks: InboxTaskR
           <p className="text-sm text-muted-foreground">Aucune tâche en attente de planification.</p>
         ) : (
           <>
-            <p className="text-xs text-muted-foreground">Glissez une tâche sur un créneau pour la planifier.</p>
+            <p className="text-xs text-muted-foreground">
+              Glissez une tâche vers une case horaire des vues <strong>Jour</strong> ou <strong>Semaine</strong> pour la planifier (les autres vues
+              n&apos;ont pas de zone de dépôt). L&apos;icône <UserRoundCog className="inline h-3 w-3" /> affecte la tâche à un collègue.
+            </p>
             {tasks.map((t) => (
               <InboxTaskCard key={t.id} task={t} colleagues={colleagues} />
             ))}
