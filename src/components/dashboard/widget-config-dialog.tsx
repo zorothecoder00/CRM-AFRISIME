@@ -108,7 +108,7 @@ export function WidgetConfigDialog({ initialOrder }: { initialOrder: WidgetKey[]
         <p className="text-sm text-muted-foreground">
           Cochez les widgets à afficher et glissez-les pour les réordonner.
         </p>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext id="widget-config" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map((i) => i.key)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
               {items.map((item) => (

@@ -207,7 +207,7 @@ export function TaskKanbanView({
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext id="task-kanban" onDragEnd={handleDragEnd}>
       <div className="flex gap-3 overflow-x-auto pb-4">
         {COLUMNS.map((col) => (
           <KanbanColumn

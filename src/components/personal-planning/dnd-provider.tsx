@@ -61,7 +61,13 @@ export function PersonalPlanningDndProvider({ children }: { children: ReactNode 
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    // `id` fixe : sans lui, DndContext génère un id d'accessibilité
+    // ("DndDescribedBy-N") via un compteur interne à dnd-kit non réinitialisé
+    // entre le rendu serveur et l'hydratation client, ce qui produit un
+    // mismatch d'hydratation sur `aria-describedby` (avertissement React,
+    // sans rapport avec les changements du jour — présent depuis l'ajout du
+    // drag & drop).
+    <DndContext id="personal-planning-dnd" sensors={sensors} onDragEnd={handleDragEnd}>
       {children}
     </DndContext>
   );

@@ -150,7 +150,7 @@ export function OpportunityKanban({
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext id="opportunity-kanban" onDragEnd={handleDragEnd}>
       <div className="flex gap-3 overflow-x-auto pb-4">
         {COLUMNS.map((col) => (
           <KanbanColumn
