@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { DndContext, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useAction } from "@/hooks/use-action";
 import { scheduleInboxTask, movePersonalPlanningEntry } from "@/actions/personal-planning.actions";
 
@@ -32,6 +32,11 @@ export function PersonalPlanningDndProvider({ children }: { children: ReactNode 
     successMessage: (r) => (r.warnings.length > 0 ? `Déplacée — ${r.warnings.join(" ")}` : "Activité déplacée."),
   });
 
+  // Le bloc entier est désormais la zone de drag (voir EntryBlock) — un
+  // seuil de déplacement évite qu'un simple clic (qui doit ouvrir l'édition)
+  // soit interprété comme un début de glisser-déposer.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -55,5 +60,9 @@ export function PersonalPlanningDndProvider({ children }: { children: ReactNode 
     }
   }
 
-  return <DndContext onDragEnd={handleDragEnd}>{children}</DndContext>;
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      {children}
+    </DndContext>
+  );
 }

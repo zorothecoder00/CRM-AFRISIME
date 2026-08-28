@@ -29,7 +29,29 @@ export type PersonalPlanningDay = {
 
 function HourSlot({ dateKey, hour, top }: { dateKey: string; hour: number; top: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: `hour-${dateKey}-${hour}`, data: { date: dateKey, hour } });
-  return <div ref={setNodeRef} className={cn("absolute inset-x-0", isOver && "bg-primary/10")} style={{ top, height: HOUR_HEIGHT_PX }} />;
+  return (
+    <div ref={setNodeRef} className={cn("absolute inset-x-0 border-t border-border/50", isOver && "bg-primary/10")} style={{ top, height: HOUR_HEIGHT_PX }} />
+  );
+}
+
+/** Repères d'heure partagés à gauche de la grille — une seule fois pour les 7 colonnes, alignés sur les mêmes `HOUR_HEIGHT_PX`. */
+function HourGutter({ hours }: { hours: number[] }) {
+  return (
+    <div className="w-10 shrink-0">
+      <div className="mb-1 h-4 invisible text-xs">.</div>
+      <div className="relative" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
+        {hours.map((h, i) => (
+          <span
+            key={h}
+            className="absolute right-1 -translate-y-1/2 text-[10px] text-muted-foreground"
+            style={{ top: i * HOUR_HEIGHT_PX }}
+          >
+            {String(h).padStart(2, "0")}h
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function DayColumn({ day, onEdit }: { day: PersonalPlanningDay; onEdit: (entry: PersonalPlanningEntryRow) => void }) {
@@ -65,13 +87,18 @@ export function PersonalPlanningWeek({ days, refData }: { days: PersonalPlanning
 
   return (
     <div className="overflow-x-auto">
-      <div className="grid grid-cols-7 gap-2" style={{ minWidth: 900 }}>
-        <div className="col-span-7 flex items-center gap-2 pl-14 text-[10px] text-muted-foreground">
+      <div style={{ minWidth: 900 }}>
+        <div className="pl-12 text-[10px] text-muted-foreground">
           Grille {GRID_START_HOUR}h–{GRID_END_HOUR}h — glissez un bloc pour le déplacer.
         </div>
-        {days.map((day) => (
-          <DayColumn key={day.key} day={day} onEdit={setEditing} />
-        ))}
+        <div className="flex gap-2">
+          <HourGutter hours={gridHours()} />
+          <div className="grid flex-1 grid-cols-7 gap-2">
+            {days.map((day) => (
+              <DayColumn key={day.key} day={day} onEdit={setEditing} />
+            ))}
+          </div>
+        </div>
       </div>
 
       {editData && (

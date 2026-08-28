@@ -45,6 +45,7 @@ export function EntryBlock({
   const className = cn(
     "absolute left-1 right-1 overflow-hidden rounded-md border-l-2 p-1 text-left text-xs",
     colors,
+    draggable && "cursor-grab touch-none active:cursor-grabbing",
     isDragging && "opacity-40",
     (late || tightTransition) && "ring-1 ring-destructive"
   );
@@ -53,11 +54,7 @@ export function EntryBlock({
   const inner = (
     <>
       <span className="flex items-center gap-1 font-medium">
-        {draggable && (
-          <span {...listeners} {...attributes} className="shrink-0 cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground">
-            <GripVertical className="h-3 w-3" />
-          </span>
-        )}
+        {draggable && <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50" />}
         <Icon className="h-3 w-3 shrink-0" />
         <span className="truncate">{entry.titre}</span>
       </span>
@@ -83,7 +80,7 @@ export function EntryBlock({
   }
 
   return (
-    <button ref={setNodeRef} type="button" onClick={onEdit} className={className} style={style}>
+    <button ref={setNodeRef} type="button" onClick={onEdit} className={className} style={style} {...listeners} {...attributes}>
       {inner}
     </button>
   );
