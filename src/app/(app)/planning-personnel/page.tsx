@@ -20,6 +20,8 @@ import {
   isWithinInterval,
   format,
   parseISO,
+  subYears,
+  addYears,
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -74,6 +76,7 @@ export default async function PlanningPersonnelPage({
     statut?: string;
     type?: string;
     enRetard?: string;
+    aVenir?: string;
     projetId?: string;
   }>;
 }) {
@@ -84,6 +87,7 @@ export default async function PlanningPersonnelPage({
     statut: statutParam,
     type: typeParam,
     enRetard: enRetardParam,
+    aVenir: aVenirParam,
     projetId: activeProjetId,
   } = await searchParams;
   const activePriorities: PersonalPlanningPriorite[] = prioriteParam
@@ -97,6 +101,7 @@ export default async function PlanningPersonnelPage({
     ? (typeParam.split(",").filter((t) => ENTRY_TYPE_OPTIONS.includes(t as PersonalPlanningEntryType)) as PersonalPlanningEntryType[])
     : ENTRY_TYPE_OPTIONS;
   const isEnRetard = enRetardParam === "1";
+  const isAVenir = aVenirParam === "1";
   const vue: Vue = (["semaine", "jour", "mois", "agenda", "liste", "timeline"] as const).includes(vueParam as Vue)
     ? (vueParam as Vue)
     : "semaine";
@@ -116,8 +121,13 @@ export default async function PlanningPersonnelPage({
   const monthGridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const monthGridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
-  const rangeStart = vue === "jour" ? dayStart : vue === "mois" ? monthGridStart : weekStart;
-  const rangeEnd = vue === "jour" ? dayEnd : vue === "mois" ? monthGridEnd : weekEnd;
+  // §5 — les cartes "En retard"/"À venir" du tableau de bord comptent sur
+  // l'ensemble du planning (voir enRetardCount/aVenirCount plus bas), pas
+  // seulement la période affichée : quand on clique dessus, la période se
+  // désactive pour que la liste résultante corresponde vraiment au chiffre
+  // cliqué, au lieu d'être tronquée à la semaine/au mois en cours.
+  const rangeStart = isEnRetard || isAVenir ? subYears(now, 2) : vue === "jour" ? dayStart : vue === "mois" ? monthGridStart : weekStart;
+  const rangeEnd = isEnRetard || isAVenir ? addYears(now, 2) : vue === "jour" ? dayEnd : vue === "mois" ? monthGridEnd : weekEnd;
 
   const [entriesRaw, todayEntriesRaw, receivedRequests, sentRequests, colleagues, projects, tasks, objectives, inboxTasksRaw, me] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
@@ -236,6 +246,7 @@ export default async function PlanningPersonnelPage({
     if (!activeTypes.includes(e.type)) return false;
     if (activeProjetId && e.projetId !== activeProjetId) return false;
     if (isEnRetard && !(new Date(e.dateFin) < now && !["TERMINEE", "ANNULEE"].includes(e.statut))) return false;
+    if (isAVenir && !(new Date(e.dateDebut) > now && !["TERMINEE", "ANNULEE"].includes(e.statut))) return false;
     return true;
   });
   const todayEntries = [...todayEntriesRaw.map(toRow), ...todayMeetingsRaw.map(meetingToEntryRow)];
@@ -353,6 +364,7 @@ export default async function PlanningPersonnelPage({
           activeStatuts={activeStatuts}
           activeTypes={activeTypes}
           enRetard={isEnRetard}
+          aVenir={isAVenir}
           projects={projects}
           activeProjetId={activeProjetId}
         />

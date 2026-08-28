@@ -33,6 +33,7 @@ export function PersonalPlanningFilters({
   activeStatuts,
   activeTypes,
   enRetard,
+  aVenir,
   projects,
   activeProjetId,
 }: {
@@ -42,6 +43,7 @@ export function PersonalPlanningFilters({
   activeStatuts: PersonalPlanningEntryStatut[];
   activeTypes: PersonalPlanningEntryType[];
   enRetard: boolean;
+  aVenir: boolean;
   projects: { id: string; nom: string }[];
   activeProjetId?: string;
 }) {
@@ -50,6 +52,7 @@ export function PersonalPlanningFilters({
     statuts?: PersonalPlanningEntryStatut[];
     types?: PersonalPlanningEntryType[];
     enRetard?: boolean;
+    aVenir?: boolean;
     projetId?: string;
     vue?: string;
     semaine?: string;
@@ -58,6 +61,7 @@ export function PersonalPlanningFilters({
     const statuts = overrides.statuts ?? activeStatuts;
     const types = overrides.types ?? activeTypes;
     const retard = overrides.enRetard ?? enRetard;
+    const venir = overrides.aVenir ?? aVenir;
     const projetId = overrides.projetId !== undefined ? overrides.projetId : activeProjetId;
     const targetVue = overrides.vue ?? vue;
     const targetSemaine = overrides.semaine !== undefined ? overrides.semaine : semaine;
@@ -69,6 +73,7 @@ export function PersonalPlanningFilters({
     if (statuts.length > 0) params.set("statut", statuts.join(","));
     if (types.length > 0 && types.length < ENTRY_TYPE_OPTIONS.length) params.set("type", types.join(","));
     if (retard) params.set("enRetard", "1");
+    if (venir) params.set("aVenir", "1");
     if (projetId) params.set("projetId", projetId);
     return `/planning-personnel?${params.toString()}`;
   }
@@ -139,9 +144,14 @@ export function PersonalPlanningFilters({
             </Link>
           );
         })}
-        <Link href={buildHref({ enRetard: !enRetard })}>
+        <Link href={buildHref({ enRetard: !enRetard, aVenir: false })}>
           <Badge variant={enRetard ? "destructive" : "secondary"} className={cn("cursor-pointer", !enRetard && "opacity-50")}>
             En retard
+          </Badge>
+        </Link>
+        <Link href={buildHref({ aVenir: !aVenir, enRetard: false })}>
+          <Badge variant={aVenir ? "outline" : "secondary"} className={cn("cursor-pointer", !aVenir && "opacity-50")}>
+            À venir
           </Badge>
         </Link>
         {projects.length > 0 && (
