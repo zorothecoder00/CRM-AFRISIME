@@ -47,6 +47,7 @@ import { resolveDailyCapacity, computeDailyCharge } from "@/lib/personal-plannin
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
+import { PersonalPlanningPrioritySidebar } from "@/components/personal-planning/personal-planning-priority-sidebar";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningDashboardHeader } from "@/components/personal-planning/personal-planning-dashboard-header";
 import {
@@ -312,7 +313,7 @@ export default async function PlanningPersonnelPage({
   return (
     <PersonalPlanningDndProvider>
     <div className="grid gap-6 lg:grid-cols-3">
-      <div className="space-y-4 lg:col-span-2">
+      <div className="space-y-6 lg:col-span-2">
         <PersonalPlanningCrosslinks current="/planning-personnel" />
 
         <PersonalPlanningDashboardHeader
@@ -355,88 +356,108 @@ export default async function PlanningPersonnelPage({
 
         <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
 
-        <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
-
-        <PersonalPlanningFilters
-          vue={vue}
-          semaine={semaine}
-          activePriorites={activePriorities}
-          activeStatuts={activeStatuts}
-          activeTypes={activeTypes}
-          enRetard={isEnRetard}
-          aVenir={isAVenir}
-          projects={projects}
-          activeProjetId={activeProjetId}
-        />
-
-        <div className="flex items-center justify-between">
-          <Link href={prevHref}>
-            <Button variant="outline" size="icon">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
           <div className="flex items-center gap-2">
+            <Link href={prevHref}>
+              <Button variant="outline" size="icon">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </Link>
             <span className="text-sm capitalize text-muted-foreground">{periodLabel}</span>
             <Link href={todayHref}>
               <Button variant="outline" size="sm">
                 Aujourd&apos;hui
               </Button>
             </Link>
+            <Link href={nextHref}>
+              <Button variant="outline" size="icon">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
-          <Link href={nextHref}>
-            <Button variant="outline" size="icon">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </Link>
         </div>
 
-        {vue === "semaine" && (
-          <PersonalPlanningWeek
-            days={eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day): PersonalPlanningDay => ({
-              key: day.toISOString(),
-              dateKey: format(day, "yyyy-MM-dd"),
-              label: format(day, "EEEE d", { locale: fr }),
-              isToday: isSameDay(day, now),
-              entries: entries
-                .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
-                .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
-            }))}
-            refData={refData}
+        {/* Filtres avancés (type/statut/projet/raccourcis de période) repliés
+            par défaut — allège l'écran, la priorité reste visible en
+            permanence dans la colonne de gauche du calendrier ci-dessous. */}
+        <details className="group rounded-md border p-3 text-sm">
+          <summary className="cursor-pointer select-none text-muted-foreground group-open:mb-3">Plus de filtres</summary>
+          <PersonalPlanningFilters
+            vue={vue}
+            semaine={semaine}
+            activePriorites={activePriorities}
+            activeStatuts={activeStatuts}
+            activeTypes={activeTypes}
+            enRetard={isEnRetard}
+            aVenir={isAVenir}
+            projects={projects}
+            activeProjetId={activeProjetId}
           />
-        )}
+        </details>
 
-        {vue === "jour" && <PersonalPlanningDayView day={refDate} entries={entries} refData={refData} />}
-
-        {vue === "mois" && (
-          <PersonalPlanningMonth
-            days={eachDayOfInterval({ start: monthGridStart, end: monthGridEnd })}
-            currentMonth={monthStart}
-            entriesByDate={(() => {
-              const map = new Map<string, PersonalPlanningEntryRow[]>();
-              for (const e of entries) {
-                const key = e.dateDebut.slice(0, 10);
-                const list = map.get(key) ?? [];
-                list.push(e);
-                map.set(key, list);
-              }
-              return map;
-            })()}
+        <div className="grid grid-cols-[auto_1fr] gap-6">
+          <PersonalPlanningPrioritySidebar
+            vue={vue}
+            semaine={semaine}
+            activePriorites={activePriorities}
+            activeStatuts={activeStatuts}
+            activeTypes={activeTypes}
+            enRetard={isEnRetard}
+            aVenir={isAVenir}
+            activeProjetId={activeProjetId}
           />
-        )}
 
-        {vue === "agenda" && <PersonalPlanningAgenda entries={entries} />}
+          <div className="min-w-0">
+            {vue === "semaine" && (
+              <PersonalPlanningWeek
+                days={eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day): PersonalPlanningDay => ({
+                  key: day.toISOString(),
+                  dateKey: format(day, "yyyy-MM-dd"),
+                  label: format(day, "EEEE d", { locale: fr }),
+                  isToday: isSameDay(day, now),
+                  entries: entries
+                    .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
+                    .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
+                }))}
+                refData={refData}
+              />
+            )}
 
-        {vue === "timeline" && <PersonalPlanningTimeline entries={entries} />}
+            {vue === "jour" && <PersonalPlanningDayView day={refDate} entries={entries} refData={refData} />}
 
-        {vue === "liste" && (
-          <PersonalPlanningList
-            entries={entries.map((e): PersonalPlanningListRow => {
-              const raw = entriesRaw.find((r) => r.id === e.id);
-              return { ...e, responsableNom: userName, projetNom: raw ? raw.projet?.nom ?? raw.tache?.titre ?? null : "Réunion" };
-            })}
-            refData={refData}
-          />
-        )}
+            {vue === "mois" && (
+              <PersonalPlanningMonth
+                days={eachDayOfInterval({ start: monthGridStart, end: monthGridEnd })}
+                currentMonth={monthStart}
+                entriesByDate={(() => {
+                  const map = new Map<string, PersonalPlanningEntryRow[]>();
+                  for (const e of entries) {
+                    const key = e.dateDebut.slice(0, 10);
+                    const list = map.get(key) ?? [];
+                    list.push(e);
+                    map.set(key, list);
+                  }
+                  return map;
+                })()}
+              />
+            )}
+
+            {vue === "agenda" && <PersonalPlanningAgenda entries={entries} />}
+
+            {vue === "timeline" && <PersonalPlanningTimeline entries={entries} />}
+
+            {vue === "liste" && (
+              <PersonalPlanningList
+                entries={entries.map((e): PersonalPlanningListRow => {
+                  const raw = entriesRaw.find((r) => r.id === e.id);
+                  return { ...e, responsableNom: userName, projetNom: raw ? raw.projet?.nom ?? raw.tache?.titre ?? null : "Réunion" };
+                })}
+                refData={refData}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-6">
