@@ -277,9 +277,9 @@ export default async function PlanningPersonnelPage({
             <div>
               <h1 className="text-2xl font-semibold">Planning personnel</h1>
               <p className="text-sm text-muted-foreground">
-                Vos activités privées — distinct du{" "}
+                Vos activités privées — distinct de{" "}
                 <Link href="/planning" className="text-primary hover:underline">
-                  planning d&apos;activités
+                  votre agenda
                 </Link>
                 . Seule votre disponibilité (occupé/libre) est visible des autres.
               </p>

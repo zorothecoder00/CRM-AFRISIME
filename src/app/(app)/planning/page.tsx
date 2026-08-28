@@ -55,11 +55,13 @@ type DayItem =
     };
 
 /**
- * Planning hebdomadaire/quotidien (cahier des charges §IV, "Niveau 3 —
- * Opérationnel" et "Niveau individuel"). Vue agenda personnelle, distincte
- * du calendrier mensuel (/calendrier) : une semaine à la fois, groupée par
- * jour, avec les tâches (date de début OU échéance du jour), réunions et
- * événements du collaborateur connecté.
+ * "Mon agenda" — planning hebdomadaire/quotidien (cahier des charges §IV,
+ * "Niveau 3 — Opérationnel" et "Niveau individuel"). Vue en lecture seule,
+ * auto-générée depuis Task/Meeting/Event : distincte du calendrier mensuel
+ * (/calendrier) ET du Planning personnel (/planning-personnel, éditable,
+ * privé) — une semaine à la fois, groupée par jour, avec les tâches (date
+ * de début OU échéance du jour), réunions et événements du collaborateur
+ * connecté.
  */
 export default async function PlanningPage({
   searchParams,
@@ -111,7 +113,7 @@ export default async function PlanningPage({
         <div className="flex items-center gap-3">
           <CalendarRange className="size-6 text-muted-foreground" />
           <div>
-            <h1 className="text-2xl font-semibold">Mon planning</h1>
+            <h1 className="text-2xl font-semibold">Mon agenda</h1>
             <p className="text-sm text-muted-foreground">
               Semaine du {format(weekStart, "d MMMM", { locale: fr })} au {format(weekEnd, "d MMMM yyyy", { locale: fr })}
               {weekTotal > 0 && (
