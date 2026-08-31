@@ -8,7 +8,7 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { runEventCreatedRules } from "@/lib/automation";
-import { reorganizeEntriesForApprovedLeave } from "@/actions/personal-planning.actions";
+import { reorganizeEntriesForApprovedLeave } from "@/lib/personal-planning-leave-reorg";
 import {
   createLeaveSchema,
   decideLeaveSchema,

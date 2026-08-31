@@ -6,13 +6,13 @@ import { getServerSession } from "next-auth";
 import { addDays, addWeeks, addMonths } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
 import { createNotification, notifyMany } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { runTaskBlockedRules } from "@/lib/automation";
 import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } from "@/lib/personal-planning-holidays";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
+import { moveEntryToDate } from "@/lib/personal-planning-move";
 import {
   createPersonalPlanningEntrySchema,
   updatePersonalPlanningEntrySchema,
@@ -407,78 +407,6 @@ export async function deletePersonalPlanningEntrySeries(input: DeletePersonalPla
 
   revalidatePath(PLANNING_PATH);
   return { count };
-}
-
-/**
- * Déplace une entrée à une nouvelle date/heure de début en conservant sa
- * durée d'origine (§14 drag & drop) — et, si elle planifie une Tâche
- * (tacheId), répercute la nouvelle date de fin sur `Task.echeance` : c'est
- * le principe §4 "une tâche, plusieurs vues", l'activité EST la vue
- * planifiée de la tâche.
- */
-async function moveEntryToDate(tx: Prisma.TransactionClient, entryId: string, newDateDebut: Date) {
-  const existing = await tx.personalPlanningEntry.findUniqueOrThrow({ where: { id: entryId } });
-  const durationMs = existing.dateFin.getTime() - existing.dateDebut.getTime();
-  const newDateFin = new Date(newDateDebut.getTime() + durationMs);
-
-  const updated = await tx.personalPlanningEntry.update({
-    where: { id: entryId },
-    data: { dateDebut: newDateDebut, dateFin: newDateFin },
-  });
-
-  if (existing.tacheId) {
-    await tx.task.update({ where: { id: existing.tacheId }, data: { echeance: newDateFin } });
-  }
-
-  return updated;
-}
-
-/**
- * §41 — quand un congé est approuvé, les activités déjà programmées pendant
- * la période sont déplacées juste après (heure/durée conservées), comme un
- * "reporter" ciblé (même mécanique que moveEntryToDate/reorganizeOverloadedDay).
- * Notifie l'approbateur uniquement si au moins une activité a dû bouger —
- * "Alerte manager si nécessaire" du §41, pas un bruit systématique.
- */
-export async function reorganizeEntriesForApprovedLeave(
-  leaveId: string,
-  userId: string,
-  leaveDateDebut: Date,
-  leaveDateFin: Date,
-  approverId: string
-) {
-  const overlapping = await prisma.personalPlanningEntry.findMany({
-    where: {
-      userId,
-      type: { not: "RESERVE" },
-      statut: { notIn: ["TERMINEE", "ANNULEE"] },
-      dateDebut: { lt: leaveDateFin },
-      dateFin: { gt: leaveDateDebut },
-    },
-    select: { id: true, titre: true, dateDebut: true },
-  });
-
-  if (overlapping.length === 0) return { moved: 0 };
-
-  await prisma.$transaction(async (tx) => {
-    for (const entry of overlapping) {
-      const newDateDebut = new Date(leaveDateFin);
-      newDateDebut.setDate(newDateDebut.getDate() + 1);
-      newDateDebut.setHours(entry.dateDebut.getHours(), entry.dateDebut.getMinutes(), 0, 0);
-      await moveEntryToDate(tx, entry.id, newDateDebut);
-    }
-  });
-
-  await createNotification({
-    userId: approverId,
-    type: "CONGE_REORGANISATION",
-    titre: `${overlapping.length} activité(s) reprogrammée(s) suite à un congé approuvé.`,
-    lien: PLANNING_PATH,
-    entityType: "Leave",
-    entityId: leaveId,
-  });
-
-  return { moved: overlapping.length };
 }
 
 /** §13/§14 : planifie une Tâche de l'inbox "À planifier" en créant l'Activité qui la planifie. */
