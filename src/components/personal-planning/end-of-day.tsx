@@ -31,7 +31,50 @@ export function PersonalPlanningEndOfDay({
   const annulees = real.filter((e) => e.statut === "ANNULEE");
 
   const [notes, setNotes] = useState(initialNotes ?? "");
+  const [savedNotes, setSavedNotes] = useState(initialNotes ?? "");
   const { run: save, isPending } = useAction(saveDailyReviewNotes, { successMessage: "Notes enregistrées." });
+
+  async function handleBlur() {
+    if (notes === savedNotes) return;
+    const result = await save({ date: todayKey, notes });
+    if (result.ok) setSavedNotes(notes);
+  }
+
+  /**
+   * Continue automatiquement une liste à tirets : Entrée sur une ligne
+   * "- texte" ouvre une nouvelle ligne "- ", et Entrée sur un tiret resté
+   * vide referme la liste (au lieu d'empiler des puces vides) — comportement
+   * repris des éditeurs markdown usuels (Notion, GitHub...).
+   */
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter") return;
+    const el = e.currentTarget;
+    const cursor = el.selectionStart;
+    const before = notes.slice(0, cursor);
+    const after = notes.slice(cursor);
+    const lineStart = before.lastIndexOf("\n") + 1;
+    const currentLine = before.slice(lineStart);
+    const match = currentLine.match(/^(\s*)-\s(.*)$/);
+    if (!match) return;
+
+    e.preventDefault();
+    const [, indent, rest] = match;
+
+    if (rest.trim() === "") {
+      const newBefore = before.slice(0, lineStart);
+      setNotes(newBefore + after);
+      requestAnimationFrame(() => el.setSelectionRange(newBefore.length, newBefore.length));
+      return;
+    }
+
+    const insertion = `\n${indent}- `;
+    const newValue = before + insertion + after;
+    setNotes(newValue);
+    requestAnimationFrame(() => {
+      const pos = before.length + insertion.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }
 
   return (
     <Card>
@@ -74,11 +117,12 @@ export function PersonalPlanningEndOfDay({
           <Label htmlFor="daily-review-notes">Mes notes / raisons de la journée</Label>
           <Textarea
             id="daily-review-notes"
-            placeholder="Ce qui a bien/mal fonctionné, pourquoi tel blocage, contexte à garder en tête demain..."
+            placeholder={"Ce qui a bien/mal fonctionné, pourquoi tel blocage, contexte à garder en tête demain...\n\nAstuce : commencez une ligne par \"- \" pour une liste à puces, la puce suivante s'ajoute toute seule à chaque Entrée."}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => save({ date: todayKey, notes })}
-            rows={3}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            rows={6}
           />
           {isPending && <p className="text-xs text-muted-foreground">Enregistrement...</p>}
         </div>
