@@ -252,6 +252,42 @@ export function toneForFinancementStatut(status: string): BadgeTone {
   return FINANCEMENT_TONES[status.toUpperCase()] ?? "secondary";
 }
 
+/** Statut d'une mission d'audit interne (PREPARATION/COLLECTE/VERIFICATION/RAPPORT/CLOTUREE). */
+const AUDIT_MISSION_TONES: Record<string, StatusTone> = {
+  PREPARATION: "secondary",
+  COLLECTE: "info",
+  VERIFICATION: "warning",
+  RAPPORT: "warning",
+  CLOTUREE: "success",
+};
+
+export function toneForAuditMissionStatus(status: string): BadgeTone {
+  return AUDIT_MISSION_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+/** Statut d'un constat d'audit (OUVERT/EN_COURS/TRAITE/CLOS). */
+const AUDIT_FINDING_TONES: Record<string, StatusTone> = {
+  OUVERT: "destructive",
+  EN_COURS: "warning",
+  TRAITE: "info",
+  CLOS: "success",
+};
+
+export function toneForAuditFindingStatus(status: string): BadgeTone {
+  return AUDIT_FINDING_TONES[status.toUpperCase()] ?? "secondary";
+}
+
+/** Statut d'un congé (EN_ATTENTE/APPROUVE/REFUSE). */
+const LEAVE_TONES: Record<string, StatusTone> = {
+  EN_ATTENTE: "warning",
+  APPROUVE: "success",
+  REFUSE: "destructive",
+};
+
+export function toneForLeaveStatus(status: string): BadgeTone {
+  return LEAVE_TONES[status.toUpperCase()] ?? "secondary";
+}
+
 /**
  * Niveau generique FAIBLE/MOYEN(NE)/ELEVE(E) — reutilise pour la probabilite
  * et l'impact d'un risque, ainsi que l'influence et l'interet d'une partie

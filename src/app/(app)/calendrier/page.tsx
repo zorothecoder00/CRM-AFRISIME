@@ -153,6 +153,13 @@ export default async function CalendrierPage({
             {canCreateEvent && (
               <EventFormDialog projects={projects.map((p) => ({ id: p.id, label: p.nom }))} />
             )}
+            {(canCreateLeave || canManageLeaves) && (
+              <Link href="/conges">
+                <Button variant="ghost" size="sm">
+                  Historique des congés
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

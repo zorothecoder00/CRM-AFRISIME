@@ -64,6 +64,7 @@ import {
   Briefcase,
   HandCoins,
   Lock,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -94,6 +95,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "salleDeSimulation", href: "/salle-de-simulation", icon: FlaskConical, permission: PERMISSIONS.EXECUTIVE_VIEW },
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
+      { titleKey: "horairesTravail", href: "/parametres/horaires", icon: Clock },
       { titleKey: "maJournee", href: "/ma-journee", icon: Sunrise },
       { titleKey: "tableauxDeBord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { titleKey: "pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
@@ -186,6 +188,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "gouvernance", href: "/gouvernance", icon: Landmark, permission: PERMISSIONS.GOVERNANCE_READ },
       { titleKey: "processus", href: "/processus", icon: GitBranch, permission: PERMISSIONS.PROCESS_READ },
       { titleKey: "risques", href: "/risques", icon: ShieldAlert, permission: PERMISSIONS.RISK_READ },
+      { titleKey: "auditInterne", href: "/audit", icon: ClipboardCheck, permission: PERMISSIONS.AUDIT_READ },
       { titleKey: "conformite", href: "/conformite", icon: ShieldCheck, permission: PERMISSIONS.GOVERNANCE_READ },
     ],
   },

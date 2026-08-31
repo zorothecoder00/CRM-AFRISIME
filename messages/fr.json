@@ -21,6 +21,7 @@
       "salleDeSimulation": "Executive Simulation Room",
       "planning": "Mon agenda",
       "planningPersonnel": "Planning personnel",
+      "horairesTravail": "Horaires de travail",
       "maJournee": "Ma journée",
       "tableauxDeBord": "Tableaux de bord",
       "pilotage": "Niveaux de pilotage",
@@ -90,6 +91,7 @@
       "gouvernance": "Gouvernance",
       "processus": "Processus",
       "risques": "Risques",
+      "auditInterne": "Audit interne",
       "conformite": "Conformité",
       "administrationUtilisateurs": "Administration",
       "administrationPlateforme": "Plateforme multi-organisation"
