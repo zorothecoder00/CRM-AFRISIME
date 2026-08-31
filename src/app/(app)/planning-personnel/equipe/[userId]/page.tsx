@@ -9,6 +9,7 @@ import { canViewPersonalPlanningOf } from "@/lib/personal-planning-access";
 import { PersonalPlanningWeek, type PersonalPlanningDay } from "@/components/personal-planning/personal-planning-week";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
+import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
 import { Lock, ChevronLeft } from "lucide-react";
 
 /**
@@ -52,6 +53,9 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
     ...meetingsRaw.map(meetingToEntryRow),
   ];
 
+  // §39 — jours fériés/non ouvrables du SUBORDONNÉ (pas du manager qui consulte).
+  const nonWorkingMap = await findNonWorkingDaysInRange(targetUserId, weekStart, weekEnd);
+
   const days: PersonalPlanningDay[] = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => ({
     key: day.toISOString(),
     dateKey: format(day, "yyyy-MM-dd"),
@@ -60,6 +64,7 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
     entries: entries
       .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
       .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
+    nonWorkingReason: nonWorkingMap.get(format(day, "yyyy-MM-dd")) ?? null,
   }));
 
   return (
