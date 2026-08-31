@@ -55,6 +55,56 @@ export async function findHolidaysInRange(userId: string, rangeStart: Date, rang
   return result;
 }
 
+export type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+
+/**
+ * §39 — variante par lot, pour l'affichage (badge/bandeau visuel sur les
+ * vues Semaine/Jour/Mois), des TROIS raisons qui font qu'un jour est "non
+ * travaillé" côté validation (voir assertNotOnNonWorkingDay, mêmes règles
+ * de priorité : férié > dérogation ponctuelle > gabarit hebdomadaire) —
+ * les deux doivent rester alignées si l'une des règles change.
+ */
+export async function findNonWorkingDaysInRange(userId: string, rangeStart: Date, rangeEnd: Date): Promise<Map<string, NonWorkingReason>> {
+  const dayStart = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
+  const dayEnd = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
+
+  const [holidaysMap, exceptions, scheduleRows] = await Promise.all([
+    findHolidaysInRange(userId, rangeStart, rangeEnd),
+    prisma.userWorkScheduleException.findMany({
+      where: { userId, date: { gte: dayStart, lte: dayEnd } },
+      select: { date: true, type: true, motif: true },
+    }),
+    prisma.userWorkSchedule.findMany({ where: { userId }, select: { jourSemaine: true } }),
+  ]);
+
+  const result = new Map<string, NonWorkingReason>();
+  for (const [key, nom] of holidaysMap) {
+    result.set(key, { label: `Jour férié : ${nom}`, kind: "ferie" });
+  }
+
+  const exceptionByKey = new Map(exceptions.map((e) => [dateKeyOf(e.date), e]));
+  const activeDays = new Set(scheduleRows.map((s) => s.jourSemaine));
+  const hasScheduleConfigured = scheduleRows.length > 0;
+
+  const cursor = new Date(dayStart);
+  while (cursor <= dayEnd) {
+    const key = dateKeyOf(cursor);
+    if (!result.has(key)) {
+      const exception = exceptionByKey.get(key);
+      if (exception) {
+        if (exception.type === "ABSENCE") {
+          result.set(key, { label: exception.motif ? `Absence — ${exception.motif}` : "Absence", kind: "absence" });
+        }
+        // dérogation non-ABSENCE = jour explicitement travaillé, rien à marquer.
+      } else if (hasScheduleConfigured && !activeDays.has(cursor.getDay())) {
+        result.set(key, { label: "Jour non ouvrable", kind: "non_ouvrable" });
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
+}
+
 /**
  * §41 — "blocage des périodes" : avertissement (jamais bloquant) si une date
  * tombe pendant un congé déjà approuvé de l'utilisateur.

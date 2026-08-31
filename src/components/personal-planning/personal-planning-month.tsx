@@ -7,18 +7,26 @@ import type { PersonalPlanningEntryRow } from "@/components/personal-planning/pe
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const MAX_VISIBLE_PER_DAY = 3;
 
+type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+
+const NON_WORKING_STYLES: Record<string, { emoji: string; bg: string; badge: string }> = {
+  ferie: { emoji: "🎉", bg: "bg-destructive/5", badge: "bg-destructive/10 text-destructive" },
+  absence: { emoji: "🚫", bg: "bg-warning/5", badge: "bg-warning/15 text-warning" },
+  non_ouvrable: { emoji: "📅", bg: "bg-muted/30", badge: "bg-muted text-muted-foreground" },
+};
+
 /** Vue Mois (§8) : grille mensuelle dédiée aux activités personnelles (composant propre, distinct de /calendrier). */
 export function PersonalPlanningMonth({
   days,
   currentMonth,
   entriesByDate,
-  holidaysByDate,
+  nonWorkingByDate,
 }: {
   days: Date[];
   currentMonth: Date;
   entriesByDate: Map<string, PersonalPlanningEntryRow[]>;
-  /** §39 — jour férié éventuel de chaque date (yyyy-MM-dd -> nom). */
-  holidaysByDate?: Map<string, string>;
+  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable de chaque date. */
+  nonWorkingByDate?: Map<string, NonWorkingReason>;
 }) {
   return (
     <div className="overflow-hidden rounded-md border">
@@ -33,7 +41,8 @@ export function PersonalPlanningMonth({
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const entries = entriesByDate.get(key) ?? [];
-          const holidayName = holidaysByDate?.get(key);
+          const nonWorking = nonWorkingByDate?.get(key);
+          const nonWorkingStyle = nonWorking ? NON_WORKING_STYLES[nonWorking.kind] : null;
           const inMonth = isSameMonth(day, currentMonth);
           const today = isToday(day);
 
@@ -45,13 +54,13 @@ export function PersonalPlanningMonth({
                 "min-h-24 border-b border-r p-1.5 text-left align-top text-xs transition-colors hover:bg-muted/40",
                 !inMonth && "bg-muted/20 text-muted-foreground",
                 today && "bg-primary/5 ring-1 ring-inset ring-primary/40",
-                holidayName && "bg-destructive/5"
+                nonWorkingStyle?.bg
               )}
             >
               <div className={cn("mb-1 font-medium", today && "text-primary")}>{format(day, "d")}</div>
-              {holidayName && (
-                <div className="mb-0.5 truncate rounded bg-destructive/10 px-1 py-0.5 text-[10px] font-medium text-destructive" title={holidayName}>
-                  🎉 {holidayName}
+              {nonWorking && nonWorkingStyle && (
+                <div className={cn("mb-0.5 truncate rounded px-1 py-0.5 text-[10px] font-medium", nonWorkingStyle.badge)} title={nonWorking.label}>
+                  {nonWorkingStyle.emoji} {nonWorking.label}
                 </div>
               )}
               <div className="space-y-0.5">

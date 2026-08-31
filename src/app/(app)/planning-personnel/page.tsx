@@ -47,7 +47,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import { resolveDailyCapacity, computeDailyCharge } from "@/lib/personal-planning-workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
-import { findHolidaysInRange } from "@/lib/personal-planning-holidays";
+import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
 import { PersonalPlanningPrioritySidebar } from "@/components/personal-planning/personal-planning-priority-sidebar";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
@@ -132,9 +132,10 @@ export default async function PlanningPersonnelPage({
   const rangeStart = isEnRetard || isAVenir ? subYears(now, 2) : vue === "jour" ? dayStart : vue === "mois" ? monthGridStart : weekStart;
   const rangeEnd = isEnRetard || isAVenir ? addYears(now, 2) : vue === "jour" ? dayEnd : vue === "mois" ? monthGridEnd : weekEnd;
 
-  // §39 — jours fériés de la plage affichée, pour les marquer visuellement
-  // sur les vues Semaine/Jour/Mois (en plus du blocage déjà en place à la création).
-  const holidaysMap = await findHolidaysInRange(userId, rangeStart, rangeEnd);
+  // §39 — jours fériés/non ouvrables de la plage affichée, pour les marquer
+  // visuellement sur les vues Semaine/Jour/Mois (en plus du blocage déjà en
+  // place à la création).
+  const nonWorkingMap = await findNonWorkingDaysInRange(userId, rangeStart, rangeEnd);
 
   const [entriesRaw, todayEntriesRaw, receivedRequests, sentRequests, colleagues, projects, tasks, objectives, inboxTasksRaw, me] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
@@ -459,7 +460,7 @@ export default async function PlanningPersonnelPage({
                   entries: entries
                     .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
                     .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
-                  holidayName: holidaysMap.get(format(day, "yyyy-MM-dd")) ?? null,
+                  nonWorkingReason: nonWorkingMap.get(format(day, "yyyy-MM-dd")) ?? null,
                 }))}
                 refData={refData}
               />
@@ -470,7 +471,7 @@ export default async function PlanningPersonnelPage({
                 day={refDate}
                 entries={entries}
                 refData={refData}
-                holidayName={holidaysMap.get(format(refDate, "yyyy-MM-dd")) ?? null}
+                nonWorkingReason={nonWorkingMap.get(format(refDate, "yyyy-MM-dd")) ?? null}
               />
             )}
 
@@ -488,7 +489,7 @@ export default async function PlanningPersonnelPage({
                   }
                   return map;
                 })()}
-                holidaysByDate={holidaysMap}
+                nonWorkingByDate={nonWorkingMap}
               />
             )}
 

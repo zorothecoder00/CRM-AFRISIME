@@ -25,8 +25,14 @@ export type PersonalPlanningDay = {
   label: string;
   isToday: boolean;
   entries: PersonalPlanningEntryRow[];
-  /** §39 — nom du jour férié si ce jour en est un, null sinon. */
-  holidayName?: string | null;
+  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
+  nonWorkingReason?: { label: string; kind: "ferie" | "absence" | "non_ouvrable" } | null;
+};
+
+const NON_WORKING_STYLES: Record<string, { emoji: string; badge: string; bg: string }> = {
+  ferie: { emoji: "🎉", badge: "bg-destructive/10 text-destructive", bg: "bg-destructive/5" },
+  absence: { emoji: "🚫", badge: "bg-warning/15 text-warning", bg: "bg-warning/5" },
+  non_ouvrable: { emoji: "📅", badge: "bg-muted text-muted-foreground", bg: "bg-muted/30" },
 };
 
 function HourSlot({ dateKey, hour, top }: { dateKey: string; hour: number; top: number }) {
@@ -72,16 +78,21 @@ function DayColumn({
   const gridStart = gridStartOf(dayDate, bounds.startHour);
   const sorted = [...day.entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
+  const nonWorkingStyle = day.nonWorkingReason ? NON_WORKING_STYLES[day.nonWorkingReason.kind] : null;
+
   return (
     <div className={cn("flex flex-col", day.isToday && "rounded-md ring-2 ring-primary/40")}>
       <div className="mb-1 text-center text-xs font-medium capitalize">{day.label}</div>
-      {day.holidayName && (
-        <div className="mb-1 truncate rounded bg-destructive/10 px-1 py-0.5 text-center text-[10px] font-medium text-destructive" title={day.holidayName}>
-          🎉 {day.holidayName}
+      {day.nonWorkingReason && nonWorkingStyle && (
+        <div
+          className={cn("mb-1 truncate rounded px-1 py-0.5 text-center text-[10px] font-medium", nonWorkingStyle.badge)}
+          title={day.nonWorkingReason.label}
+        >
+          {nonWorkingStyle.emoji} {day.nonWorkingReason.label}
         </div>
       )}
       <div
-        className={cn("relative rounded-md border", day.holidayName && "bg-destructive/5")}
+        className={cn("relative rounded-md border", nonWorkingStyle?.bg)}
         style={{ height: hours.length * HOUR_HEIGHT_PX }}
       >
         {/* §46 — vue manager en lecture seule : pas de cases de dépôt, rien à glisser (pas de DndContext ancêtre non plus). */}

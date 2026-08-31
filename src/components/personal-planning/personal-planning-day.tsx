@@ -23,17 +23,23 @@ function HourSlot({ dayKey, hour, top }: { dayKey: string; hour: number; top: nu
 }
 
 /** Time Blocking (§7) : grille horaire d'une journée, activités positionnées par plage horaire réservée. Créneaux droppables pour §13/§14. */
+const NON_WORKING_STYLES: Record<string, { emoji: string; classes: string }> = {
+  ferie: { emoji: "🎉", classes: "border-destructive/40 bg-destructive/10 text-destructive" },
+  absence: { emoji: "🚫", classes: "border-warning/40 bg-warning/10 text-warning" },
+  non_ouvrable: { emoji: "📅", classes: "border-muted-foreground/30 bg-muted text-muted-foreground" },
+};
+
 export function PersonalPlanningDay({
   day,
   entries,
   refData,
-  holidayName,
+  nonWorkingReason,
 }: {
   day: Date;
   entries: PersonalPlanningEntryRow[];
   refData: PersonalPlanningReferenceData;
-  /** §39 — nom du jour férié si `day` en est un, null/absent sinon. */
-  holidayName?: string | null;
+  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
+  nonWorkingReason?: { label: string; kind: "ferie" | "absence" | "non_ouvrable" } | null;
 }) {
   const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
@@ -45,11 +51,13 @@ export function PersonalPlanningDay({
 
   const sorted = [...entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
+  const nonWorkingStyle = nonWorkingReason ? NON_WORKING_STYLES[nonWorkingReason.kind] : null;
+
   return (
     <div className="space-y-2">
-      {holidayName && (
-        <div className="flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-sm text-destructive">
-          🎉 Jour férié : {holidayName}
+      {nonWorkingReason && nonWorkingStyle && (
+        <div className={cn("flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm", nonWorkingStyle.classes)}>
+          {nonWorkingStyle.emoji} {nonWorkingReason.label}
         </div>
       )}
       <div className="relative rounded-md border" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
