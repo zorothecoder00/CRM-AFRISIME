@@ -26,6 +26,7 @@ type EntryWithParticipants = {
   missionMoyenTransport: string | null;
   missionHebergement: string | null;
   missionRapport: string | null;
+  recurrenceGroupId: string | null;
   // §34 — présent seulement si la requête l'inclut (voir
   // TACHE_DEPENDENCIES_INCLUDE ci-dessous) ; undefined sinon (todayEntries
   // n'a pas besoin de ce coût de requête supplémentaire).
@@ -65,6 +66,7 @@ export function toPersonalPlanningEntryRow(e: EntryWithParticipants, tagsByEntry
     missionMoyenTransport: e.missionMoyenTransport,
     missionHebergement: e.missionHebergement,
     missionRapport: e.missionRapport,
+    recurrenceGroupId: e.recurrenceGroupId,
     blockedByTitre: e.tache?.dependsOn.find((d) => d.dependsOnTask.statut !== "TERMINEE")?.dependsOnTask.titre ?? null,
   };
 }

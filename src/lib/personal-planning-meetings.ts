@@ -44,6 +44,7 @@ export function meetingToEntryRow(m: MeetingLite): PersonalPlanningEntryRow {
     missionMoyenTransport: null,
     missionHebergement: null,
     missionRapport: null,
+    recurrenceGroupId: null,
     meetingHref: `/reunions/${m.id}`,
   };
 }

@@ -7,6 +7,7 @@ import { useAction } from "@/hooks/use-action";
 import {
   updatePersonalPlanningEntry,
   deletePersonalPlanningEntry,
+  deletePersonalPlanningEntrySeries,
   promoteEntryToTask,
   getPersonalPlanningEntryHistory,
 } from "@/actions/personal-planning.actions";
@@ -54,9 +55,11 @@ export type PersonalPlanningEntryEditData = {
   missionMoyenTransport: string | null;
   missionHebergement: string | null;
   missionRapport: string | null;
+  /** §9/§44 — présent si l'entrée fait partie d'une série récurrente (occurrences partageant le même id de groupe), pour proposer "Supprimer la série". */
+  recurrenceGroupId: string | null;
 };
 
-/** Édition d'une entrée existante — dialogue contrôlé, ouvert depuis la grille hebdomadaire. Édite une occurrence unique (pas toute une série récurrente). */
+/** Édition d'une entrée existante — dialogue contrôlé, ouvert depuis la grille hebdomadaire. Édite une occurrence unique ; "Supprimer la série" (§44) supprime aussi les occurrences futures de la même série. */
 export function PersonalPlanningEntryEditDialog({
   entry,
   open,
@@ -101,6 +104,9 @@ export function PersonalPlanningEntryEditDialog({
   const { handleSubmit, watch, setValue, formState } = form;
   const { run: submit, isPending } = useAction(updatePersonalPlanningEntry, { successMessage: "Entrée modifiée." });
   const { run: remove, isPending: isDeleting } = useAction(deletePersonalPlanningEntry, { successMessage: "Entrée supprimée." });
+  const { run: removeSeries, isPending: isDeletingSeries } = useAction(deletePersonalPlanningEntrySeries, {
+    successMessage: (r) => `${r.count} occurrence(s) future(s) supprimée(s).`,
+  });
   const { run: promote, isPending: isPromoting } = useAction(promoteEntryToTask, { successMessage: "Tâche créée." });
   const [promoteProjectId, setPromoteProjectId] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -123,6 +129,13 @@ export function PersonalPlanningEntryEditDialog({
   async function onDelete() {
     if (!window.confirm(`Supprimer « ${entry.titre} » ?`)) return;
     const result = await remove({ id: entry.id });
+    if (result.ok) onOpenChange(false);
+  }
+
+  async function onDeleteSeries() {
+    if (!entry.recurrenceGroupId) return;
+    if (!window.confirm(`Supprimer toutes les occurrences futures de « ${entry.titre} » ?`)) return;
+    const result = await removeSeries({ recurrenceGroupId: entry.recurrenceGroupId });
     if (result.ok) onOpenChange(false);
   }
 
@@ -226,13 +239,30 @@ export function PersonalPlanningEntryEditDialog({
               ))}
           </div>
 
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1" disabled={isPending || isDeleting}>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" className="flex-1" disabled={isPending || isDeleting || isDeletingSeries}>
               {isPending ? "Enregistrement..." : "Enregistrer"}
             </Button>
-            <Button type="button" variant="outline" className="text-destructive" disabled={isPending || isDeleting} onClick={onDelete}>
+            <Button
+              type="button"
+              variant="outline"
+              className="text-destructive"
+              disabled={isPending || isDeleting || isDeletingSeries}
+              onClick={onDelete}
+            >
               {isDeleting ? "Suppression..." : "Supprimer"}
             </Button>
+            {entry.recurrenceGroupId && (
+              <Button
+                type="button"
+                variant="outline"
+                className="text-destructive"
+                disabled={isPending || isDeleting || isDeletingSeries}
+                onClick={onDeleteSeries}
+              >
+                {isDeletingSeries ? "Suppression..." : "Supprimer la série"}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>
