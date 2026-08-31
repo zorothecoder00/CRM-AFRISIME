@@ -18,8 +18,21 @@ export type PersonalPlanningListRow = PersonalPlanningEntryRow & {
   projetNom: string | null;
 };
 
+type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+
+const NON_WORKING_EMOJI: Record<string, string> = { ferie: "🎉", absence: "🚫", non_ouvrable: "📅" };
+
 /** Vue Liste (§8) : échéance / priorité / statut / projet / responsable — les activités personnelles, pas les tâches (voir §10). */
-export function PersonalPlanningList({ entries, refData }: { entries: PersonalPlanningListRow[]; refData: PersonalPlanningReferenceData }) {
+export function PersonalPlanningList({
+  entries,
+  refData,
+  nonWorkingByDate,
+}: {
+  entries: PersonalPlanningListRow[];
+  refData: PersonalPlanningReferenceData;
+  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable de chaque date (yyyy-MM-dd), pour signaler une échéance qui y tombe. */
+  nonWorkingByDate?: Map<string, NonWorkingReason>;
+}) {
   const [editing, setEditing] = useState<PersonalPlanningListRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
     editing && editing.type !== "RESERVE" && !editing.meetingHref ? { ...editing, type: editing.type } : null;
@@ -44,7 +57,10 @@ export function PersonalPlanningList({ entries, refData }: { entries: PersonalPl
           </TableRow>
         </TableHeader>
         <TableBody>
-          {entries.map((entry) => (
+          {entries.map((entry) => {
+            const dueKey = entry.dateFin.slice(0, 10);
+            const nonWorking = nonWorkingByDate?.get(dueKey);
+            return (
             <TableRow key={entry.id}>
               <TableCell className="font-medium">
                 {entry.meetingHref ? (
@@ -55,7 +71,16 @@ export function PersonalPlanningList({ entries, refData }: { entries: PersonalPl
                   entry.titre
                 )}
               </TableCell>
-              <TableCell>{new Date(entry.dateFin).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</TableCell>
+              <TableCell>
+                <span className="flex items-center gap-1">
+                  {new Date(entry.dateFin).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  {nonWorking && (
+                    <span title={nonWorking.label} className="text-xs">
+                      {NON_WORKING_EMOJI[nonWorking.kind]}
+                    </span>
+                  )}
+                </span>
+              </TableCell>
               <TableCell>
                 <Badge variant={toneForPriority(entry.priorite)}>
                   {ENTRY_PRIORITE_META[entry.priorite].emoji} {ENTRY_PRIORITE_META[entry.priorite].label}
@@ -76,7 +101,8 @@ export function PersonalPlanningList({ entries, refData }: { entries: PersonalPl
                 )}
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
 

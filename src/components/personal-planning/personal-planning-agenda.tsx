@@ -1,11 +1,27 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { ENTRY_TYPE_META, ENTRY_PRIORITE_META } from "@/lib/personal-planning-types";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 import { ListChecks, Sparkles } from "lucide-react";
 
+type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+
+const NON_WORKING_STYLES: Record<string, { emoji: string; badge: string }> = {
+  ferie: { emoji: "🎉", badge: "bg-destructive/10 text-destructive" },
+  absence: { emoji: "🚫", badge: "bg-warning/15 text-warning" },
+  non_ouvrable: { emoji: "📅", badge: "bg-muted text-muted-foreground" },
+};
+
 /** Vue Agenda (§8) : liste chronologique plate, groupée par jour. */
-export function PersonalPlanningAgenda({ entries }: { entries: PersonalPlanningEntryRow[] }) {
+export function PersonalPlanningAgenda({
+  entries,
+  nonWorkingByDate,
+}: {
+  entries: PersonalPlanningEntryRow[];
+  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable de chaque date (yyyy-MM-dd). */
+  nonWorkingByDate?: Map<string, NonWorkingReason>;
+}) {
   if (entries.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
@@ -25,10 +41,18 @@ export function PersonalPlanningAgenda({ entries }: { entries: PersonalPlanningE
 
   return (
     <div className="space-y-4">
-      {Array.from(groups.entries()).map(([dateKey, group]) => (
+      {Array.from(groups.entries()).map(([dateKey, group]) => {
+        const nonWorking = nonWorkingByDate?.get(dateKey);
+        const style = nonWorking ? NON_WORKING_STYLES[nonWorking.kind] : null;
+        return (
         <div key={dateKey}>
-          <h3 className="mb-1.5 text-sm font-semibold capitalize">
+          <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold capitalize">
             {new Date(dateKey).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+            {nonWorking && style && (
+              <Badge variant="outline" className={cn("gap-1 text-[10px] font-normal normal-case", style.badge)}>
+                {style.emoji} {nonWorking.label}
+              </Badge>
+            )}
           </h3>
           <ul className="space-y-1.5">
             {group.map((entry) => {
@@ -68,7 +92,8 @@ export function PersonalPlanningAgenda({ entries }: { entries: PersonalPlanningE
             })}
           </ul>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -493,7 +493,7 @@ export default async function PlanningPersonnelPage({
               />
             )}
 
-            {vue === "agenda" && <PersonalPlanningAgenda entries={entries} />}
+            {vue === "agenda" && <PersonalPlanningAgenda entries={entries} nonWorkingByDate={nonWorkingMap} />}
 
             {vue === "timeline" && <PersonalPlanningTimeline entries={entries} />}
 
@@ -504,6 +504,7 @@ export default async function PlanningPersonnelPage({
                   return { ...e, responsableNom: userName, projetNom: raw ? raw.projet?.nom ?? raw.tache?.titre ?? null : "Réunion" };
                 })}
                 refData={refData}
+                nonWorkingByDate={nonWorkingMap}
               />
             )}
           </div>
