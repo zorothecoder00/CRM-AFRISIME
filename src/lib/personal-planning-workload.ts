@@ -48,10 +48,22 @@ export function resolveDailyCapacity(
   return Math.max(0, minutes) / 60;
 }
 
-export function computeDailyCharge(entries: DailyChargeEntry[], capaciteHeures: number): DailyCharge {
+/**
+ * §26bis — une Mission (ou toute activité) peut s'étaler sur plusieurs
+ * jours ; sans ce plafonnement, une entrée entière (ex. 7 jours) comptait
+ * pour sa durée totale dès qu'elle chevauchait le jour évalué, gonflant
+ * massivement chargeHeures/tauxOccupation ("surcharge" à plusieurs milliers
+ * de %) pour chaque jour qu'elle traverse. On ne compte que la portion de
+ * l'entrée réellement comprise dans ce jour-là.
+ */
+export function computeDailyCharge(entries: DailyChargeEntry[], capaciteHeures: number, day: Date = new Date()): DailyCharge {
+  const dayStartMs = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0).getTime();
+  const dayEndMs = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999).getTime();
+
   const chargeHeures = entries.reduce((sum, e) => {
-    const ms = new Date(e.dateFin).getTime() - new Date(e.dateDebut).getTime();
-    return sum + Math.max(0, ms) / 3_600_000;
+    const start = Math.max(new Date(e.dateDebut).getTime(), dayStartMs);
+    const end = Math.min(new Date(e.dateFin).getTime(), dayEndMs);
+    return sum + Math.max(0, end - start) / 3_600_000;
   }, 0);
 
   const tauxOccupation = capaciteHeures > 0 ? Math.round((chargeHeures / capaciteHeures) * 100) : 0;
