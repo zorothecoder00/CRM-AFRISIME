@@ -22,6 +22,10 @@ export function EntryBlock({
   onEdit,
   tightTransition,
   readOnly,
+  rangeStart,
+  rangeEnd,
+  clippedAtStart,
+  clippedAtEnd,
 }: {
   entry: PersonalPlanningEntryRow;
   top: number;
@@ -31,6 +35,12 @@ export function EntryBlock({
   tightTransition?: boolean;
   /** §46 — vue manager sur le planning d'un subordonné : ni glissé, ni édition, ni navigation. */
   readOnly?: boolean;
+  /** §26bis — heures affichées dans le libellé, bornées au jour visible (voir clippedEntryRange) ; par défaut les dates réelles de l'entrée. */
+  rangeStart?: Date;
+  rangeEnd?: Date;
+  /** Affiche "…" côté début/fin quand l'activité continue hors de ce jour. */
+  clippedAtStart?: boolean;
+  clippedAtEnd?: boolean;
 }) {
   const isMeeting = !!entry.meetingHref;
   const draggable = !readOnly && entry.type !== "RESERVE" && !isMeeting;
@@ -39,8 +49,8 @@ export function EntryBlock({
     data: { originalDateDebut: entry.dateDebut },
     disabled: !draggable,
   });
-  const start = new Date(entry.dateDebut);
-  const end = new Date(entry.dateFin);
+  const start = rangeStart ?? new Date(entry.dateDebut);
+  const end = rangeEnd ?? new Date(entry.dateFin);
   const meta = ENTRY_TYPE_META[entry.type];
   const Icon = meta.icon;
   const colors = PRIORITE_BG[entry.priorite] ?? PRIORITE_BG.NORMALE;
@@ -62,8 +72,10 @@ export function EntryBlock({
         <span className="truncate">{entry.titre}</span>
       </span>
       <span className="text-[10px] text-muted-foreground">
+        {clippedAtStart && "… "}
         {start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}–
         {end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+        {clippedAtEnd && " …"}
       </span>
       {entry.blockedByTitre && (
         <span className="flex items-center gap-0.5 truncate text-[10px] text-muted-foreground" title={`Dépend de : ${entry.blockedByTitre}`}>

@@ -8,7 +8,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import { detectTightTransition } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
 import type { PersonalPlanningEntryType } from "@/lib/personal-planning-types";
-import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, computeGridBounds, type GridBounds } from "@/lib/personal-planning-grid";
+import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, computeGridBounds, clippedEntryRange, type GridBounds } from "@/lib/personal-planning-grid";
 
 export type PersonalPlanningEntryRow = Omit<PersonalPlanningEntryEditData, "type"> & {
   type: PersonalPlanningEntryType;
@@ -66,7 +66,8 @@ function DayColumn({
   readOnly?: boolean;
 }) {
   const hours = gridHours(bounds.startHour, bounds.endHour);
-  const gridStart = gridStartOf(new Date(day.dateKey), bounds.startHour);
+  const dayDate = new Date(day.dateKey);
+  const gridStart = gridStartOf(dayDate, bounds.startHour);
   const sorted = [...day.entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
   return (
@@ -76,8 +77,9 @@ function DayColumn({
         {/* §46 — vue manager en lecture seule : pas de cases de dépôt, rien à glisser (pas de DndContext ancêtre non plus). */}
         {!readOnly && hours.map((h, i) => <HourSlot key={h} dateKey={day.dateKey} hour={h} top={i * HOUR_HEIGHT_PX} />)}
         {sorted.map((entry, i) => {
-          const top = Math.max(0, offsetPx(new Date(entry.dateDebut), gridStart));
-          const height = Math.max(18, offsetPx(new Date(entry.dateFin), gridStart) - top);
+          const range = clippedEntryRange(entry, dayDate);
+          const top = Math.max(0, offsetPx(range.start, gridStart));
+          const height = Math.max(18, offsetPx(range.end, gridStart) - top);
           const next = sorted[i + 1];
           const tight = next ? detectTightTransition(entry, next) : false;
           return (
@@ -89,6 +91,10 @@ function DayColumn({
               onEdit={() => onEdit(entry)}
               tightTransition={tight}
               readOnly={readOnly}
+              rangeStart={range.start}
+              rangeEnd={range.end}
+              clippedAtStart={range.clippedAtStart}
+              clippedAtEnd={range.clippedAtEnd}
             />
           );
         })}

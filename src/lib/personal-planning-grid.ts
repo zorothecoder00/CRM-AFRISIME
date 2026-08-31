@@ -20,6 +20,32 @@ export function gridStartOf(day: Date, startHour: number = GRID_START_HOUR): Dat
 export type GridBounds = { startHour: number; endHour: number };
 
 /**
+ * §26bis — une activité multi-jours (Mission) dépasse le jour affiché dans
+ * ses deux extrémités. Le bloc positionné dans la grille (voir EntryBlock)
+ * doit être borné à ce jour : sans ça, sa hauteur se calcule sur sa durée
+ * réelle totale (ex. 182h pour une mission d'une semaine) et s'étend sur
+ * des milliers de pixels au-delà de la grille visible, même si les heures
+ * affichées dans la grille elle-même (computeGridBounds) sont correctes.
+ */
+export function clippedEntryRange(
+  entry: { dateDebut: string; dateFin: string },
+  day: Date
+): { start: Date; end: Date; clippedAtStart: boolean; clippedAtEnd: boolean } {
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0);
+  const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999);
+  const entryStart = new Date(entry.dateDebut);
+  const entryEnd = new Date(entry.dateFin);
+  const clippedAtStart = entryStart < dayStart;
+  const clippedAtEnd = entryEnd > dayEnd;
+  return {
+    start: clippedAtStart ? dayStart : entryStart,
+    end: clippedAtEnd ? dayEnd : entryEnd,
+    clippedAtStart,
+    clippedAtEnd,
+  };
+}
+
+/**
  * §26bis/§27 — une activité (typiquement une Mission étalée sur la journée
  * entière, voire plusieurs jours) peut déborder de la plage par défaut
  * 7h-20h ; sans ça, la grille la tronque net à 20h sans aucun indice que ça

@@ -9,7 +9,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 import { detectTightTransition } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
-import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, dateKeyOf, computeGridBounds } from "@/lib/personal-planning-grid";
+import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, dateKeyOf, computeGridBounds, clippedEntryRange } from "@/lib/personal-planning-grid";
 
 function HourSlot({ dayKey, hour, top }: { dayKey: string; hour: number; top: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: `hour-${dayKey}-${hour}`, data: { date: dayKey, hour } });
@@ -59,11 +59,25 @@ export function PersonalPlanningDay({
           <HourSlot key={h} dayKey={dayKey} hour={h} top={i * HOUR_HEIGHT_PX} />
         ))}
         {sorted.map((entry, i) => {
-          const top = Math.max(0, offsetPx(new Date(entry.dateDebut), gridStart));
-          const height = Math.max(20, offsetPx(new Date(entry.dateFin), gridStart) - top);
+          const range = clippedEntryRange(entry, day);
+          const top = Math.max(0, offsetPx(range.start, gridStart));
+          const height = Math.max(20, offsetPx(range.end, gridStart) - top);
           const next = sorted[i + 1];
           const tight = next ? detectTightTransition(entry, next) : false;
-          return <EntryBlock key={entry.id} entry={entry} top={top} height={height} onEdit={() => setEditing(entry)} tightTransition={tight} />;
+          return (
+            <EntryBlock
+              key={entry.id}
+              entry={entry}
+              top={top}
+              height={height}
+              onEdit={() => setEditing(entry)}
+              tightTransition={tight}
+              rangeStart={range.start}
+              rangeEnd={range.end}
+              clippedAtStart={range.clippedAtStart}
+              clippedAtEnd={range.clippedAtEnd}
+            />
+          );
         })}
       </div>
 
