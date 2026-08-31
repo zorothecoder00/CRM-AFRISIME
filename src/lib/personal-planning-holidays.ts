@@ -55,21 +55,36 @@ export async function findHolidaysInRange(userId: string, rangeStart: Date, rang
   return result;
 }
 
-export type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+export type NonWorkingReason = { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" };
+
+const LEAVE_TYPE_LABELS: Record<string, string> = { CONGE_PAYE: "congé payé", MALADIE: "maladie", AUTRE: "congé" };
 
 /**
- * §39 — variante par lot, pour l'affichage (badge/bandeau visuel sur les
- * vues Semaine/Jour/Mois), des TROIS raisons qui font qu'un jour est "non
+ * §41 — variante par lot des congés APPROUVE d'un utilisateur qui recoupent
+ * la plage [rangeStart, rangeEnd], pour marquer chaque jour concerné en une
+ * seule requête (voir findApprovedLeaveOnDate pour la version un-seul-jour).
+ */
+async function findApprovedLeavesInRange(userId: string, rangeStart: Date, rangeEnd: Date) {
+  return prisma.leave.findMany({
+    where: { userId, statut: "APPROUVE", dateDebut: { lte: rangeEnd }, dateFin: { gte: rangeStart } },
+    select: { type: true, dateDebut: true, dateFin: true },
+  });
+}
+
+/**
+ * §39/§41 — variante par lot, pour l'affichage (badge/bandeau visuel sur les
+ * vues Semaine/Jour/Mois), des QUATRE raisons qui font qu'un jour est "non
  * travaillé" côté validation (voir assertNotOnNonWorkingDay, mêmes règles
- * de priorité : férié > dérogation ponctuelle > gabarit hebdomadaire) —
- * les deux doivent rester alignées si l'une des règles change.
+ * de priorité : férié > congé approuvé > dérogation ponctuelle > gabarit
+ * hebdomadaire) — les deux doivent rester alignées si l'une des règles change.
  */
 export async function findNonWorkingDaysInRange(userId: string, rangeStart: Date, rangeEnd: Date): Promise<Map<string, NonWorkingReason>> {
   const dayStart = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
   const dayEnd = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
 
-  const [holidaysMap, exceptions, scheduleRows] = await Promise.all([
+  const [holidaysMap, leaves, exceptions, scheduleRows] = await Promise.all([
     findHolidaysInRange(userId, rangeStart, rangeEnd),
+    findApprovedLeavesInRange(userId, dayStart, dayEnd),
     prisma.userWorkScheduleException.findMany({
       where: { userId, date: { gte: dayStart, lte: dayEnd } },
       select: { date: true, type: true, motif: true },
@@ -80,6 +95,18 @@ export async function findNonWorkingDaysInRange(userId: string, rangeStart: Date
   const result = new Map<string, NonWorkingReason>();
   for (const [key, nom] of holidaysMap) {
     result.set(key, { label: `Jour férié : ${nom}`, kind: "ferie" });
+  }
+
+  if (leaves.length > 0) {
+    const cursorLeave = new Date(dayStart);
+    while (cursorLeave <= dayEnd) {
+      const key = dateKeyOf(cursorLeave);
+      if (!result.has(key)) {
+        const leave = leaves.find((l) => l.dateDebut <= cursorLeave && l.dateFin >= cursorLeave);
+        if (leave) result.set(key, { label: `Congé approuvé (${LEAVE_TYPE_LABELS[leave.type] ?? leave.type})`, kind: "conge" });
+      }
+      cursorLeave.setDate(cursorLeave.getDate() + 1);
+    }
   }
 
   const exceptionByKey = new Map(exceptions.map((e) => [dateKeyOf(e.date), e]));
@@ -106,8 +133,11 @@ export async function findNonWorkingDaysInRange(userId: string, rangeStart: Date
 }
 
 /**
- * §41 — "blocage des périodes" : avertissement (jamais bloquant) si une date
- * tombe pendant un congé déjà approuvé de l'utilisateur.
+ * §41 — congé déjà APPROUVE de l'utilisateur sur cette date, s'il y en a un.
+ * Pour les types bloqués (voir BLOCKED_ON_NON_WORKING_DAY), assertNotOnNonWorkingDay
+ * l'utilise pour un vrai blocage ("blocage des périodes") ; pour les autres
+ * types (Mission, Déplacement, ...), collectPlanningWarnings s'en sert pour
+ * un simple avertissement non bloquant.
  */
 export async function findApprovedLeaveOnDate(userId: string, date: Date): Promise<string | null> {
   const leave = await prisma.leave.findFirst({
@@ -127,9 +157,10 @@ export async function findApprovedLeaveOnDate(userId: string, date: Date): Promi
 const BLOCKED_ON_NON_WORKING_DAY = new Set(["TACHE", "REUNION", "RENDEZ_VOUS", "APPEL", "FORMATION", "TRAVAIL_PERSONNEL"]);
 
 /**
- * §39 — contrairement à findHolidayOnDate/findApprovedLeaveOnDate (avertissements),
- * ceci BLOQUE réellement : jour férié de l'entité, ou date marquée ABSENCE
- * via une dérogation ponctuelle (§39bis, UserWorkScheduleException), ou jour
+ * §39/§41 — contrairement à findHolidayOnDate/findApprovedLeaveOnDate (avertissements
+ * pour les types non listés ici), ceci BLOQUE réellement : jour férié de l'entité,
+ * congé déjà APPROUVE de l'utilisateur ("blocage des périodes", §41), date marquée
+ * ABSENCE via une dérogation ponctuelle (§39bis, UserWorkScheduleException), ou jour
  * de semaine explicitement retiré du gabarit hebdomadaire (§40) — uniquement
  * si l'utilisateur a déjà configuré au moins un jour, pour ne jamais bloquer
  * silencieusement quelqu'un qui n'a encore rien paramétré.
@@ -141,6 +172,13 @@ export async function assertNotOnNonWorkingDay(userId: string, date: Date, entry
   if (holidayName) {
     throw new Error(
       `Impossible de planifier ce type d'activité un jour férié (${holidayName}). Changez de date, ou utilisez un type Mission/Déplacement/Événement si c'est volontaire.`
+    );
+  }
+
+  const leave = await findApprovedLeaveOnDate(userId, date);
+  if (leave) {
+    throw new Error(
+      `Impossible de planifier ce type d'activité : vous êtes en ${leave} à cette date. Changez de date, ou utilisez un type Mission/Déplacement/Événement si c'est volontaire.`
     );
   }
 

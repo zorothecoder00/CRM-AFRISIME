@@ -4,10 +4,11 @@ import { cn } from "@/lib/utils";
 import { ENTRY_TYPE_META } from "@/lib/personal-planning-types";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 
-type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+type NonWorkingReason = { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" };
 
 const NON_WORKING_STYLES: Record<string, { emoji: string; badge: string }> = {
   ferie: { emoji: "🎉", badge: "bg-destructive/10 text-destructive" },
+  conge: { emoji: "🏖️", badge: "bg-primary/10 text-primary" },
   absence: { emoji: "🚫", badge: "bg-warning/15 text-warning" },
   non_ouvrable: { emoji: "📅", badge: "bg-muted text-muted-foreground" },
 };

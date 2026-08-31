@@ -25,12 +25,13 @@ export type PersonalPlanningDay = {
   label: string;
   isToday: boolean;
   entries: PersonalPlanningEntryRow[];
-  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
-  nonWorkingReason?: { label: string; kind: "ferie" | "absence" | "non_ouvrable" } | null;
+  /** §39/§41 — jour férié, congé approuvé, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
+  nonWorkingReason?: { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" } | null;
 };
 
 const NON_WORKING_STYLES: Record<string, { emoji: string; badge: string; bg: string }> = {
   ferie: { emoji: "🎉", badge: "bg-destructive/10 text-destructive", bg: "bg-destructive/5" },
+  conge: { emoji: "🏖️", badge: "bg-primary/10 text-primary", bg: "bg-primary/5" },
   absence: { emoji: "🚫", badge: "bg-warning/15 text-warning", bg: "bg-warning/5" },
   non_ouvrable: { emoji: "📅", badge: "bg-muted text-muted-foreground", bg: "bg-muted/30" },
 };

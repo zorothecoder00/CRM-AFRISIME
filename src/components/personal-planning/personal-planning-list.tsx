@@ -18,9 +18,9 @@ export type PersonalPlanningListRow = PersonalPlanningEntryRow & {
   projetNom: string | null;
 };
 
-type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+type NonWorkingReason = { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" };
 
-const NON_WORKING_EMOJI: Record<string, string> = { ferie: "🎉", absence: "🚫", non_ouvrable: "📅" };
+const NON_WORKING_EMOJI: Record<string, string> = { ferie: "🎉", conge: "🏖️", absence: "🚫", non_ouvrable: "📅" };
 
 /** Vue Liste (§8) : échéance / priorité / statut / projet / responsable — les activités personnelles, pas les tâches (voir §10). */
 export function PersonalPlanningList({

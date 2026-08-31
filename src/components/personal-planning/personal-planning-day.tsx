@@ -25,6 +25,7 @@ function HourSlot({ dayKey, hour, top }: { dayKey: string; hour: number; top: nu
 /** Time Blocking (§7) : grille horaire d'une journée, activités positionnées par plage horaire réservée. Créneaux droppables pour §13/§14. */
 const NON_WORKING_STYLES: Record<string, { emoji: string; classes: string }> = {
   ferie: { emoji: "🎉", classes: "border-destructive/40 bg-destructive/10 text-destructive" },
+  conge: { emoji: "🏖️", classes: "border-primary/40 bg-primary/10 text-primary" },
   absence: { emoji: "🚫", classes: "border-warning/40 bg-warning/10 text-warning" },
   non_ouvrable: { emoji: "📅", classes: "border-muted-foreground/30 bg-muted text-muted-foreground" },
 };
@@ -38,8 +39,8 @@ export function PersonalPlanningDay({
   day: Date;
   entries: PersonalPlanningEntryRow[];
   refData: PersonalPlanningReferenceData;
-  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
-  nonWorkingReason?: { label: string; kind: "ferie" | "absence" | "non_ouvrable" } | null;
+  /** §39/§41 — jour férié, congé approuvé, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
+  nonWorkingReason?: { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" } | null;
 }) {
   const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =

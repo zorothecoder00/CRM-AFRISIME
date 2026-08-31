@@ -7,10 +7,11 @@ import type { PersonalPlanningEntryRow } from "@/components/personal-planning/pe
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const MAX_VISIBLE_PER_DAY = 3;
 
-type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+type NonWorkingReason = { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" };
 
 const NON_WORKING_STYLES: Record<string, { emoji: string; bg: string; badge: string }> = {
   ferie: { emoji: "🎉", bg: "bg-destructive/5", badge: "bg-destructive/10 text-destructive" },
+  conge: { emoji: "🏖️", bg: "bg-primary/5", badge: "bg-primary/10 text-primary" },
   absence: { emoji: "🚫", bg: "bg-warning/5", badge: "bg-warning/15 text-warning" },
   non_ouvrable: { emoji: "📅", bg: "bg-muted/30", badge: "bg-muted text-muted-foreground" },
 };
