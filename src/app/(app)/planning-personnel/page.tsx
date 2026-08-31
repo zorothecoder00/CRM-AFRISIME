@@ -44,12 +44,15 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
 import { SentRequestsList } from "@/components/personal-planning/sent-requests-list";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
-import { resolveDailyCapacity, computeDailyCharge } from "@/lib/personal-planning-workload";
+import { resolveDailyCapacity, computeDailyCharge, computePlanningHealth } from "@/lib/personal-planning-workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
+import { countReporteesToday } from "@/lib/personal-planning-reportees";
+import { computeTaskHealthStats } from "@/lib/personal-planning-task-stats";
+import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
 import { PersonalPlanningPrioritySidebar } from "@/components/personal-planning/personal-planning-priority-sidebar";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
@@ -284,30 +287,23 @@ export default async function PlanningPersonnelPage({
     .filter((c): c is { entry: (typeof conflictCandidates)[number]; conflictWith: string } => c.conflictWith !== null);
 
   // §22 — bilan de fin de journée (déplacé depuis /ma-journee, à la demande
-  // de l'utilisateur). "reportée" : entrées déplacées aujourd'hui (§47
-  // logAudit) dont l'ancienne date tombait aujourd'hui et la nouvelle non.
+  // de l'utilisateur). §43 — le même compte alimente le critère "tâches
+  // reportées" du Planning Health.
   const todayStart = startOfDay(now);
-  const todayEnd = endOfDay(now);
-  const [movedTodayLogs, dailyReview] = await Promise.all([
-    prisma.auditLog.findMany({
-      where: { userId, entityType: "PersonalPlanningEntry", action: "personal_planning_entry.moved", createdAt: { gte: todayStart, lte: todayEnd } },
-      select: { entityId: true, changes: true },
-    }),
+  const [reporteesCount, dailyReview, taskHealthStats] = await Promise.all([
+    countReporteesToday(userId, now),
     prisma.personalPlanningDailyReview.findUnique({ where: { userId_date: { userId, date: todayStart } }, select: { notes: true } }),
+    computeTaskHealthStats(userId, now),
   ]);
-  const reporteesCount = new Set(
-    movedTodayLogs
-      .filter((log) => {
-        const changes = log.changes as { dateDebut?: { avant?: string; apres?: string } } | null;
-        const avant = changes?.dateDebut?.avant ? new Date(changes.dateDebut.avant) : null;
-        const apres = changes?.dateDebut?.apres ? new Date(changes.dateDebut.apres) : null;
-        if (!avant || !apres) return false;
-        const avantEtaitAujourdhui = avant >= todayStart && avant <= todayEnd;
-        const apresEstAujourdhui = apres >= todayStart && apres <= todayEnd;
-        return avantEtaitAujourdhui && !apresEstAujourdhui;
-      })
-      .map((log) => log.entityId)
-  ).size;
+
+  // §43 « Planning Health » — même formule que /ma-journee (computePlanningHealth),
+  // désormais aussi affichée sur ce hub principal (voir aussi §42 pour `conflicts`).
+  const planningHealth = computePlanningHealth({
+    ...taskHealthStats,
+    tauxOccupation: charge.tauxOccupation,
+    conflits: conflicts.length,
+    tachesReportees: reporteesCount,
+  });
 
   const inboxTasks: InboxTaskRow[] = inboxTasksRaw.map((t) => ({
     id: t.id,
@@ -408,6 +404,8 @@ export default async function PlanningPersonnelPage({
         </div>
 
         <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
+
+        <PlanningHealthBadge score={planningHealth} />
 
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 

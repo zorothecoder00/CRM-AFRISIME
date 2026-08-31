@@ -17,6 +17,7 @@ import { computeWorkload, ACTIVE_TASK_STATUSES } from "@/lib/workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
+import { countReporteesToday } from "@/lib/personal-planning-reportees";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
 import { dateKeyOf } from "@/lib/personal-planning-grid";
@@ -180,12 +181,16 @@ export default async function MaJourneePage() {
     tempsReelHeures: myWorkload?.heuresConsommeesTotal ?? 0,
   };
 
+  const reporteesCount = await countReporteesToday(userId, now);
+
   const planningHealth = computePlanningHealth({
     totalActiveTaches: totalActiveTachesCount,
     tachesNonPlanifiees: tachesNonPlanifieesCount,
     respectDesEcheances: performanceStats.respectDesEcheances,
     tauxOccupation: charge.tauxOccupation,
     tachesEnRetard: performanceStats.tachesEnRetard,
+    conflits: conflicts.length,
+    tachesReportees: reporteesCount,
   });
 
   const refData: PersonalPlanningReferenceData = {

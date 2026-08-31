@@ -92,15 +92,17 @@ export type PlanningHealthInputs = {
   respectDesEcheances: number | null;
   tauxOccupation: number;
   tachesEnRetard: number;
+  conflits: number;
+  tachesReportees: number;
 };
 
 /**
- * §43 « Planning Health » — moyenne non pondérée de 5 sous-scores (0-100
- * chacun) : tâches planifiées vs total, respect des échéances (§35),
- * écart à la surcharge, pénalité activités non planifiées/inbox, pénalité
- * tâches en retard. "Tâches reportées" cité au §43 n'est pas trackée
- * (aucun historique de déplacement conservé, même limite assumée qu'au
- * §22) : absente du calcul plutôt que simulée.
+ * §43 « Planning Health » — moyenne non pondérée de 7 sous-scores (0-100
+ * chacun), les 7 critères cités au cahier : tâches planifiées vs total,
+ * respect des échéances (§35), écart à la surcharge, pénalité activités
+ * non planifiées/inbox, pénalité tâches en retard, pénalité conflits de
+ * planning (§42), pénalité tâches reportées aujourd'hui (§22, via
+ * countReporteesToday — le déplacement est tracké depuis §47/logAudit).
  */
 export function computePlanningHealth(inputs: PlanningHealthInputs): number {
   const tachesPlanifieesScore =
@@ -111,8 +113,11 @@ export function computePlanningHealth(inputs: PlanningHealthInputs): number {
   const surchargeScore = Math.max(0, 100 - Math.max(0, inputs.tauxOccupation - 100));
   const nonPlanifieesScore = Math.max(0, 100 - inputs.tachesNonPlanifiees * 10);
   const retardScore = Math.max(0, 100 - inputs.tachesEnRetard * 15);
+  const conflitsScore = Math.max(0, 100 - inputs.conflits * 15);
+  const reporteesScore = Math.max(0, 100 - inputs.tachesReportees * 10);
 
-  const moyenne = (tachesPlanifieesScore + respectEcheancesScore + surchargeScore + nonPlanifieesScore + retardScore) / 5;
+  const moyenne =
+    (tachesPlanifieesScore + respectEcheancesScore + surchargeScore + nonPlanifieesScore + retardScore + conflitsScore + reporteesScore) / 7;
   return Math.round(Math.max(0, Math.min(100, moyenne)));
 }
 
