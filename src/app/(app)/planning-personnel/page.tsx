@@ -48,6 +48,8 @@ import { resolveDailyCapacity, computeDailyCharge } from "@/lib/personal-plannin
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
+import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
+import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
 import { PersonalPlanningPrioritySidebar } from "@/components/personal-planning/personal-planning-priority-sidebar";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
@@ -269,6 +271,18 @@ export default async function PlanningPersonnelPage({
   const charge = computeDailyCharge(todayEntries, dailyCapacity);
   const todayKey = format(now, "yyyy-MM-dd");
 
+  // §42 — conflits détectés parmi les activités réelles de la période affichée
+  // (ni réservations système, ni réunions) ; désactivé en mode "En retard"/
+  // "À venir" où la plage s'étend sur ±2 ans (voir rangeStart/rangeEnd plus
+  // haut), non pertinent pour une carte "conflits de la période courante".
+  const conflictCandidates = isEnRetard || isAVenir ? [] : allEntries.filter((e) => e.type !== "RESERVE" && !e.meetingHref);
+  const conflictLabels = await Promise.all(
+    conflictCandidates.map((e) => findScheduleConflict(userId, new Date(e.dateDebut), new Date(e.dateFin), e.id))
+  );
+  const conflicts = conflictCandidates
+    .map((entry, i) => ({ entry, conflictWith: conflictLabels[i] }))
+    .filter((c): c is { entry: (typeof conflictCandidates)[number]; conflictWith: string } => c.conflictWith !== null);
+
   // §22 — bilan de fin de journée (déplacé depuis /ma-journee, à la demande
   // de l'utilisateur). "reportée" : entrées déplacées aujourd'hui (§47
   // logAudit) dont l'ancienne date tombait aujourd'hui et la nouvelle non.
@@ -394,6 +408,8 @@ export default async function PlanningPersonnelPage({
         </div>
 
         <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
+
+        <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
         <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
 
