@@ -9,6 +9,7 @@ import { useAction } from "@/hooks/use-action";
 import { saveDailyReviewNotes } from "@/actions/personal-planning.actions";
 import { ENTRY_MOTIF_BLOCAGE_LABELS } from "@/lib/personal-planning-types";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
+import Link from "next/link";
 import { Moon } from "lucide-react";
 
 /** §22 — Revue de fin de journée : bilan des activités du jour par statut + notes personnelles libres. */
@@ -32,7 +33,9 @@ export function PersonalPlanningEndOfDay({
 
   const [notes, setNotes] = useState(initialNotes ?? "");
   const [savedNotes, setSavedNotes] = useState(initialNotes ?? "");
-  const { run: save, isPending } = useAction(saveDailyReviewNotes, { successMessage: "Notes enregistrées." });
+  const { run: save, isPending } = useAction(saveDailyReviewNotes, {
+    successMessage: (result) => (result.notes ? "Notes enregistrées." : "Notes supprimées."),
+  });
 
   async function handleBlur() {
     if (notes === savedNotes) return;
@@ -78,9 +81,14 @@ export function PersonalPlanningEndOfDay({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center gap-2">
-        <Moon className="size-5 text-primary" />
-        <CardTitle className="text-base">Bilan de ma journée</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Moon className="size-5 text-primary" />
+          <CardTitle className="text-base">Bilan de ma journée</CardTitle>
+        </div>
+        <Link href="/planning-personnel/bilans" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+          Historique des bilans →
+        </Link>
       </CardHeader>
       <CardContent className="space-y-4">
         {real.length > 0 && (
