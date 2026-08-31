@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/planning-personnel", label: "Planning personnel" },
   { href: "/ma-journee", label: "Ma journée" },
+  { href: "/planning-personnel/bilans", label: "Historique des bilans" },
+  { href: "/planning-personnel/missions", label: "Historique des missions" },
   { href: "/parametres/horaires", label: "Horaires de travail" },
 ] as const;
 

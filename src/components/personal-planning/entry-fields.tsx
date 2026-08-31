@@ -212,6 +212,38 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
         </div>
       </div>
 
+      {type === "MISSION" && (
+        <div className="space-y-4 rounded-md border border-dashed p-3">
+          <p className="text-xs font-medium text-muted-foreground">Détails de la mission (§26bis)</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-missionDestination`}>Destination</Label>
+              <Input id={`${idPrefix}-missionDestination`} {...register("missionDestination")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-missionBudget`}>Budget</Label>
+              <Input id={`${idPrefix}-missionBudget`} type="number" step="0.01" {...register("missionBudget")} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-missionMoyenTransport`}>Moyen de transport</Label>
+              <Input id={`${idPrefix}-missionMoyenTransport`} {...register("missionMoyenTransport")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-missionHebergement`}>Hébergement</Label>
+              <Input id={`${idPrefix}-missionHebergement`} {...register("missionHebergement")} />
+            </div>
+          </div>
+          {showMissionReport && (
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-missionRapport`}>Rapport de mission (à remplir après)</Label>
+              <Textarea id={`${idPrefix}-missionRapport`} {...register("missionRapport")} />
+            </div>
+          )}
+        </div>
+      )}
+
       <Button type="button" variant="ghost" size="sm" onClick={() => setShowMore((v) => !v)} className="gap-1 px-0">
         {showMore ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         Plus d&apos;options (lieu, participants, objectif, étiquettes, répétition, rappel, pièces jointes)
@@ -303,38 +335,6 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
               </div>
             )}
           </div>
-
-          {type === "MISSION" && (
-            <div className="space-y-4 rounded-md border border-dashed p-3">
-              <p className="text-xs font-medium text-muted-foreground">Détails de la mission (§26bis)</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-missionDestination`}>Destination</Label>
-                  <Input id={`${idPrefix}-missionDestination`} {...register("missionDestination")} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-missionBudget`}>Budget</Label>
-                  <Input id={`${idPrefix}-missionBudget`} type="number" step="0.01" {...register("missionBudget")} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-missionMoyenTransport`}>Moyen de transport</Label>
-                  <Input id={`${idPrefix}-missionMoyenTransport`} {...register("missionMoyenTransport")} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-missionHebergement`}>Hébergement</Label>
-                  <Input id={`${idPrefix}-missionHebergement`} {...register("missionHebergement")} />
-                </div>
-              </div>
-              {showMissionReport && (
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-missionRapport`}>Rapport de mission (à remplir après)</Label>
-                  <Textarea id={`${idPrefix}-missionRapport`} {...register("missionRapport")} />
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label>Pièces jointes</Label>

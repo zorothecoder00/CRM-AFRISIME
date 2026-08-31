@@ -244,6 +244,9 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
     ...first,
     dateDebut: first.dateDebut.toISOString(),
     dateFin: first.dateFin.toISOString(),
+    // §26bis — missionBudget est un Decimal Prisma : non serialisable tel quel
+    // vers un Client Component (voir memoire "Decimal serialization").
+    missionBudget: first.missionBudget ? first.missionBudget.toString() : null,
     occurrencesCreated: created.length,
     warnings,
   };
@@ -356,7 +359,12 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
   }
 
   revalidatePath(PLANNING_PATH);
-  return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString() };
+  return {
+    ...entry,
+    dateDebut: entry.dateDebut.toISOString(),
+    dateFin: entry.dateFin.toISOString(),
+    missionBudget: entry.missionBudget ? entry.missionBudget.toString() : null,
+  };
 }
 
 export async function deletePersonalPlanningEntry(input: DeletePersonalPlanningEntryInput) {

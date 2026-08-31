@@ -8,6 +8,7 @@ export type CalendarDayItems = {
   meetings: { id: string; titre: string }[];
   leaves: { id: string; userName: string }[];
   events: { id: string; titre: string }[];
+  missions: { id: string; titre: string; destination: string | null }[];
 };
 
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -47,7 +48,8 @@ export function MonthGrid({
             (items?.tasks.length ?? 0) +
             (items?.meetings.length ?? 0) +
             (items?.leaves.length ?? 0) +
-            (items?.events.length ?? 0);
+            (items?.events.length ?? 0) +
+            (items?.missions.length ?? 0);
 
           return (
             <Link
@@ -86,6 +88,11 @@ export function MonthGrid({
                 {items?.events.slice(0, 1).map((e) => (
                   <span key={e.id} className="truncate rounded bg-emerald-500/10 px-1 text-[10px] text-emerald-700 dark:text-emerald-300">
                     {e.titre}
+                  </span>
+                ))}
+                {items?.missions.slice(0, 1).map((m) => (
+                  <span key={m.id} className="truncate rounded bg-teal-500/10 px-1 text-[10px] text-teal-700 dark:text-teal-300">
+                    🚗 {m.destination ?? m.titre}
                   </span>
                 ))}
                 {total > 4 && (

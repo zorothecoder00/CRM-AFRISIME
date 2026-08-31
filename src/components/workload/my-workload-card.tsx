@@ -22,6 +22,11 @@ export function MyWorkloadCard({ workload }: { workload: UserWorkload }) {
             Vous êtes en congé approuvé aujourd&apos;hui.
           </div>
         )}
+        {workload.enMissionAujourdhui && (
+          <div className="rounded-md border p-2 text-sm text-muted-foreground">
+            Vous êtes en mission aujourd&apos;hui.
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <Stat label="Tâches actives" value={String(workload.tacheCount)} />

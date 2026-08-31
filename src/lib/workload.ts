@@ -41,6 +41,14 @@ export type WorkloadLeaveInput = {
   statut: string;
 };
 
+/** Mission (PersonalPlanningEntry type=MISSION, §26bis) en cours — reduit la disponibilite au meme titre qu'un conge, sans modifier le calcul d'heures (base sur les Taches). */
+export type WorkloadMissionInput = {
+  userId: string;
+  dateDebut: Date;
+  dateFin: Date;
+  statut: string;
+};
+
 export type WorkloadUserInput = {
   id: string;
   name: string;
@@ -69,13 +77,16 @@ export type UserWorkload = {
   tachesEnRetard: number;
   tachesAujourdhui: number;
   tachesBloquees: number;
+  // §26bis — 0/false par défaut si l'appelant ne fournit pas missions sur computeWorkload.
+  enMissionAujourdhui: boolean;
 };
 
 export function computeWorkload(
   users: WorkloadUserInput[],
   tasks: WorkloadTaskInput[],
   leaves: WorkloadLeaveInput[],
-  today: Date = new Date()
+  today: Date = new Date(),
+  missions: WorkloadMissionInput[] = []
 ): UserWorkload[] {
   const tacheCountByUser = new Map<string, number>();
   const chargeHeuresByUser = new Map<string, number>();
@@ -123,6 +134,12 @@ export function computeWorkload(
       .map((l) => l.userId)
   );
 
+  const onMissionUserIds = new Set(
+    missions
+      .filter((m) => m.statut !== "ANNULEE" && m.dateDebut <= today && m.dateFin >= today)
+      .map((m) => m.userId)
+  );
+
   return users
     .map((user) => {
       const chargeHeures = chargeHeuresByUser.get(user.id) ?? 0;
@@ -152,6 +169,7 @@ export function computeWorkload(
         tachesEnRetard: tachesEnRetardByUser.get(user.id) ?? 0,
         tachesAujourdhui: tachesAujourdhuiByUser.get(user.id) ?? 0,
         tachesBloquees: tachesBloqueesByUser.get(user.id) ?? 0,
+        enMissionAujourdhui: onMissionUserIds.has(user.id),
       };
     })
     .sort((a, b) => b.tauxOccupation - a.tauxOccupation);

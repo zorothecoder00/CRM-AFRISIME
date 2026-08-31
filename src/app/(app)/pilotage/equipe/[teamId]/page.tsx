@@ -34,7 +34,7 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
   if (!team) notFound();
 
   const userIds = team.members.map((m) => m.userId);
-  const [tasks, leaves] = await Promise.all([
+  const [tasks, leaves, missions] = await Promise.all([
     prisma.task.findMany({
       where: {
         OR: [{ responsablePrincipalId: { in: userIds } }, { assignees: { some: { userId: { in: userIds } } } }],
@@ -42,6 +42,10 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
       include: { assignees: { select: { userId: true } } },
     }),
     prisma.leave.findMany({ where: { statut: "APPROUVE", userId: { in: userIds } } }),
+    prisma.personalPlanningEntry.findMany({
+      where: { type: "MISSION", statut: { not: "ANNULEE" }, userId: { in: userIds } },
+      select: { userId: true, dateDebut: true, dateFin: true, statut: true },
+    }),
   ]);
 
   const workload = computeWorkload(
@@ -62,7 +66,9 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
       echeance: t.echeance,
       dateDebut: t.dateDebut,
     })),
-    leaves.map((l) => ({ userId: l.userId, dateDebut: l.dateDebut, dateFin: l.dateFin, statut: l.statut }))
+    leaves.map((l) => ({ userId: l.userId, dateDebut: l.dateDebut, dateFin: l.dateFin, statut: l.statut })),
+    undefined,
+    missions
   );
 
   const canManage = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);

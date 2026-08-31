@@ -99,6 +99,7 @@ export function WorkloadTable({
                     {row.statut === "SOUS_CHARGE" && <Badge variant="outline">Sous-charge</Badge>}
                     {row.statut === "CHARGE_NORMALE" && <Badge variant="secondary">Charge normale</Badge>}
                     {row.enCongeAujourdhui && <Badge variant="outline">En congé</Badge>}
+                    {row.enMissionAujourdhui && <Badge variant="outline">Mission</Badge>}
                   </div>
                 </TableCell>
               </TableRow>

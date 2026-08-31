@@ -11,7 +11,7 @@ export default async function ChargeDeTravailPage() {
   const canRead = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManage = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
 
-  const [users, tasks, leaves] = await Promise.all([
+  const [users, tasks, leaves, missions] = await Promise.all([
     prisma.user.findMany({
       where: { isActive: true },
       include: { role: true },
@@ -21,6 +21,10 @@ export default async function ChargeDeTravailPage() {
       include: { assignees: { select: { userId: true } } },
     }),
     prisma.leave.findMany({ where: { statut: "APPROUVE" } }),
+    prisma.personalPlanningEntry.findMany({
+      where: { type: "MISSION", statut: { not: "ANNULEE" } },
+      select: { userId: true, dateDebut: true, dateFin: true, statut: true },
+    }),
   ]);
 
   const workload = computeWorkload(
@@ -44,7 +48,9 @@ export default async function ChargeDeTravailPage() {
       dateDebut: l.dateDebut,
       dateFin: l.dateFin,
       statut: l.statut,
-    }))
+    })),
+    undefined,
+    missions
   );
 
   const myWorkload = workload.find((w) => w.userId === session!.user.id);

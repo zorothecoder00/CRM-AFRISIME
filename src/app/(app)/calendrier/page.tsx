@@ -48,7 +48,7 @@ export default async function CalendrierPage({
   const gridEnd = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
-  const [tasks, meetings, leaves, events, projects, pendingLeaves] = await Promise.all([
+  const [tasks, meetings, leaves, events, missions, projects, pendingLeaves] = await Promise.all([
     prisma.task.findMany({
       where: {
         OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
@@ -78,6 +78,16 @@ export default async function CalendrierPage({
       },
       select: { id: true, titre: true, dateDebut: true, dateFin: true },
     }),
+    prisma.personalPlanningEntry.findMany({
+      where: {
+        userId,
+        type: "MISSION",
+        statut: { not: "ANNULEE" },
+        dateDebut: { lte: gridEnd },
+        dateFin: { gte: gridStart },
+      },
+      select: { id: true, titre: true, dateDebut: true, dateFin: true, missionDestination: true },
+    }),
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     canManageLeaves
       ? prisma.leave.findMany({
@@ -91,7 +101,7 @@ export default async function CalendrierPage({
   const itemsByDate = new Map<string, CalendarDayItems>();
   function ensure(key: string): CalendarDayItems {
     if (!itemsByDate.has(key)) {
-      itemsByDate.set(key, { tasks: [], meetings: [], leaves: [], events: [] });
+      itemsByDate.set(key, { tasks: [], meetings: [], leaves: [], events: [], missions: [] });
     }
     return itemsByDate.get(key)!;
   }
@@ -117,6 +127,11 @@ export default async function CalendrierPage({
         })
       ) {
         ensure(key).events.push({ id: e.id, titre: e.titre });
+      }
+    }
+    for (const m of missions) {
+      if (isWithinInterval(day, { start: startOfDay(m.dateDebut), end: endOfDay(m.dateFin) })) {
+        ensure(key).missions.push({ id: m.id, titre: m.titre, destination: m.missionDestination });
       }
     }
   }
@@ -145,7 +160,7 @@ export default async function CalendrierPage({
           <div>
             <h1 className="text-2xl font-semibold">Calendrier</h1>
             <p className="text-sm text-muted-foreground">
-              Vue consolidée de mes tâches, réunions, congés et événements.
+              Vue consolidée de mes tâches, réunions, congés, missions et événements.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -227,6 +242,14 @@ export default async function CalendrierPage({
                   </Badge>
                   {e.titre}
                 </div>
+              ))}
+              {selectedItems?.missions.map((m) => (
+                <Link key={m.id} href="/planning-personnel/missions" className="block hover:underline">
+                  <Badge variant="outline" className="mr-2">
+                    🚗 Mission
+                  </Badge>
+                  {m.destination ? `${m.titre} — ${m.destination}` : m.titre}
+                </Link>
               ))}
             </CardContent>
           </Card>

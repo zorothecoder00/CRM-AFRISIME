@@ -11,6 +11,9 @@ import {
   isSameDay,
   isToday,
   isWeekend,
+  isWithinInterval,
+  startOfDay,
+  endOfDay,
   format,
   parseISO,
 } from "date-fns";
@@ -20,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority } from "@/lib/status-tone";
-import { ChevronLeft, ChevronRight, ListChecks, CalendarClock, CalendarDays, CalendarRange, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, ListChecks, CalendarClock, CalendarDays, CalendarRange, Sparkles, Briefcase } from "lucide-react";
 
 const TASK_STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -41,6 +44,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 type DayItem =
   | { kind: "meeting"; id: string; time: Date; title: string; href: string }
   | { kind: "event"; id: string; time: Date; title: string }
+  | { kind: "mission"; id: string; time: Date; title: string; destination: string | null }
   | {
       kind: "task";
       id: string;
@@ -77,7 +81,7 @@ export default async function PlanningPage({
   const weekEnd = endOfWeek(refDate, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  const [tasks, meetings, events] = await Promise.all([
+  const [tasks, meetings, events, missions] = await Promise.all([
     prisma.task.findMany({
       where: {
         AND: [
@@ -100,12 +104,23 @@ export default async function PlanningPage({
       where: { createdById: userId, dateDebut: { gte: weekStart, lte: weekEnd } },
       orderBy: { dateDebut: "asc" },
     }),
+    prisma.personalPlanningEntry.findMany({
+      where: {
+        userId,
+        type: "MISSION",
+        statut: { not: "ANNULEE" },
+        dateDebut: { lte: weekEnd },
+        dateFin: { gte: weekStart },
+      },
+      select: { id: true, titre: true, dateDebut: true, dateFin: true, missionDestination: true },
+      orderBy: { dateDebut: "asc" },
+    }),
   ]);
 
   const prevHref = `/planning?semaine=${format(subWeeks(weekStart, 1), "yyyy-MM-dd")}`;
   const nextHref = `/planning?semaine=${format(addWeeks(weekStart, 1), "yyyy-MM-dd")}`;
   const todayHref = `/planning`;
-  const weekTotal = tasks.length + meetings.length + events.length;
+  const weekTotal = tasks.length + meetings.length + events.length + missions.length;
 
   return (
     <div className="space-y-6">
@@ -122,7 +137,9 @@ export default async function PlanningPage({
                   {tasks.length > 0 && `${tasks.length} tâche${tasks.length > 1 ? "s" : ""}`}
                   {tasks.length > 0 && (meetings.length > 0 || events.length > 0) && ", "}
                   {meetings.length > 0 && `${meetings.length} réunion${meetings.length > 1 ? "s" : ""}`}
-                  {meetings.length > 0 && events.length > 0 && ", "}
+                  {meetings.length > 0 && (missions.length > 0 || events.length > 0) && ", "}
+                  {missions.length > 0 && `${missions.length} mission${missions.length > 1 ? "s" : ""}`}
+                  {missions.length > 0 && events.length > 0 && ", "}
                   {events.length > 0 && `${events.length} événement${events.length > 1 ? "s" : ""}`}
                 </>
               )}
@@ -152,6 +169,9 @@ export default async function PlanningPage({
         {days.map((day) => {
           const dayMeetings = meetings.filter((m) => isSameDay(m.dateHeure, day));
           const dayEvents = events.filter((e) => isSameDay(e.dateDebut, day));
+          const dayMissions = missions.filter((m) =>
+            isWithinInterval(day, { start: startOfDay(m.dateDebut), end: endOfDay(m.dateFin) })
+          );
 
           // Une tâche peut apparaître deux fois dans la semaine (un jour pour
           // son début, un autre pour son échéance) — mais une seule fois si
@@ -189,6 +209,7 @@ export default async function PlanningPage({
           const dayItems: DayItem[] = [
             ...dayMeetings.map((m): DayItem => ({ kind: "meeting", id: m.id, time: m.dateHeure, title: m.titre, href: `/reunions/${m.id}` })),
             ...dayEvents.map((e): DayItem => ({ kind: "event", id: e.id, time: e.dateDebut, title: e.titre })),
+            ...dayMissions.map((m): DayItem => ({ kind: "mission", id: m.id, time: m.dateDebut, title: m.titre, destination: m.missionDestination })),
             ...dayTasks,
           ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
@@ -249,6 +270,20 @@ export default async function PlanningPage({
                           <span className="font-medium">{format(item.time, "HH:mm")}</span> {item.title}
                         </span>
                       </div>
+                    );
+                  }
+                  if (item.kind === "mission") {
+                    return (
+                      <Link
+                        key={`mission-${item.id}`}
+                        href="/planning-personnel/missions"
+                        className="flex items-start gap-1.5 rounded-md border-l-2 border-l-teal-500 bg-teal-500/5 p-1.5 text-xs transition-colors hover:bg-teal-500/10"
+                      >
+                        <Briefcase className="mt-0.5 h-3 w-3 shrink-0 text-teal-600 dark:text-teal-400" />
+                        <span>
+                          🚗 {item.destination ? `${item.title} — ${item.destination}` : item.title}
+                        </span>
+                      </Link>
                     );
                   }
                   return (
