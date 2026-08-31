@@ -1,6 +1,7 @@
 const ACTION_LABELS: Record<string, string> = {
   "personal_planning_entry.updated": "Entrée modifiée",
   "personal_planning_entry.moved": "Entrée déplacée",
+  "personal_planning_entry.reorganized": "Réorganisée (surcharge, §16)",
   "personal_planning_entry.promoted_to_task": "Transformée en tâche de projet",
 };
 

@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { addDays, addWeeks, addMonths } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { createNotification, notifyMany } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
@@ -315,8 +316,15 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
 
   // §47 — historique/traçabilité : ne journalise que si un champ suivi a
   // réellement changé, pour ne pas noyer l'historique d'une entrée dans des
-  // entrées vides (ex. modification des seules pièces jointes).
-  if (existing.statut !== entry.statut || existing.priorite !== entry.priorite || existing.dateDebut.getTime() !== entry.dateDebut.getTime()) {
+  // entrées vides (ex. modification des seules pièces jointes). dateFin
+  // (échéance) suivie au même titre que dateDebut — cf. l'exemple du cahier
+  // "Ama a changé l'échéance", auparavant invisible dans cet historique.
+  if (
+    existing.statut !== entry.statut ||
+    existing.priorite !== entry.priorite ||
+    existing.dateDebut.getTime() !== entry.dateDebut.getTime() ||
+    existing.dateFin.getTime() !== entry.dateFin.getTime()
+  ) {
     await logAudit({
       userId: session.user.id,
       action: "personal_planning_entry.updated",
@@ -328,6 +336,10 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
         dateDebut:
           existing.dateDebut.getTime() !== entry.dateDebut.getTime()
             ? { avant: existing.dateDebut.toISOString(), apres: entry.dateDebut.toISOString() }
+            : undefined,
+        dateFin:
+          existing.dateFin.getTime() !== entry.dateFin.getTime()
+            ? { avant: existing.dateFin.toISOString(), apres: entry.dateFin.toISOString() }
             : undefined,
       },
     });
@@ -602,11 +614,21 @@ export async function reorganizeOverloadedDay(input: ReorganizeOverloadedDayInpu
   });
 
   let moved = 0;
+  // §47 — la réorganisation par surcharge peut déplacer/raccourcir plusieurs
+  // activités d'un coup ; chacune reçoit sa propre entrée d'historique
+  // (mêmes champs qu'un déplacement manuel), journalisée après coup une fois
+  // la transaction validée, plutôt que dans le transaction.
+  const auditRecords: { entryId: string; changes: Prisma.InputJsonValue }[] = [];
 
   if (data.strategy === "REPORTER") {
     await prisma.$transaction(async (tx) => {
       for (const e of dayEntries) {
-        await moveEntryToDate(tx, e.id, addDays(e.dateDebut, 1));
+        const newDateDebut = addDays(e.dateDebut, 1);
+        await moveEntryToDate(tx, e.id, newDateDebut);
+        auditRecords.push({
+          entryId: e.id,
+          changes: { strategy: data.strategy, dateDebut: { avant: e.dateDebut.toISOString(), apres: newDateDebut.toISOString() } },
+        });
         moved += 1;
       }
     });
@@ -631,6 +653,10 @@ export async function reorganizeOverloadedDay(input: ReorganizeOverloadedDayInpu
         if (e.tacheId) {
           await tx.task.update({ where: { id: e.tacheId }, data: { echeance: newDateFin } });
         }
+        auditRecords.push({
+          entryId: e.id,
+          changes: { strategy: data.strategy, dateFin: { avant: e.dateFin.toISOString(), apres: newDateFin.toISOString() } },
+        });
         moved += 1;
         remainingHeures -= (currentMinutes - newMinutes) / 60;
       }
@@ -648,13 +674,30 @@ export async function reorganizeOverloadedDay(input: ReorganizeOverloadedDayInpu
     await prisma.$transaction(async (tx) => {
       for (const e of ordered) {
         if (remainingHeures <= capaciteHeures || dayOffset > REORGANIZE_MAX_SPREAD_DAYS) break;
-        await moveEntryToDate(tx, e.id, addDays(e.dateDebut, dayOffset));
+        const newDateDebut = addDays(e.dateDebut, dayOffset);
+        await moveEntryToDate(tx, e.id, newDateDebut);
+        auditRecords.push({
+          entryId: e.id,
+          changes: { strategy: data.strategy, dateDebut: { avant: e.dateDebut.toISOString(), apres: newDateDebut.toISOString() } },
+        });
         moved += 1;
         remainingHeures -= (e.dateFin.getTime() - e.dateDebut.getTime()) / 3_600_000;
         dayOffset += 1;
       }
     });
   }
+
+  await Promise.all(
+    auditRecords.map((r) =>
+      logAudit({
+        userId: session.user.id,
+        action: "personal_planning_entry.reorganized",
+        entityType: "PersonalPlanningEntry",
+        entityId: r.entryId,
+        changes: r.changes,
+      })
+    )
+  );
 
   revalidatePath(PLANNING_PATH);
   return { moved };
