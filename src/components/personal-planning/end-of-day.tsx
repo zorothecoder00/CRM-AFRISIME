@@ -44,10 +44,11 @@ export function PersonalPlanningEndOfDay({
   }
 
   /**
-   * Continue automatiquement une liste à tirets : Entrée sur une ligne
-   * "- texte" ouvre une nouvelle ligne "- ", et Entrée sur un tiret resté
-   * vide referme la liste (au lieu d'empiler des puces vides) — comportement
-   * repris des éditeurs markdown usuels (Notion, GitHub...).
+   * Continue automatiquement une liste à tirets : Entrée sur une ligne qui
+   * commence par "-" (avec ou sans espace/texte après — "-", "- " et
+   * "- texte" comptent tous) ouvre une nouvelle ligne "- ". Un tiret laissé
+   * vide s'efface au Retour arrière comme n'importe quel caractère, pas
+   * besoin d'un geste spécial pour "sortir" de la liste.
    */
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key !== "Enter") return;
@@ -57,19 +58,11 @@ export function PersonalPlanningEndOfDay({
     const after = notes.slice(cursor);
     const lineStart = before.lastIndexOf("\n") + 1;
     const currentLine = before.slice(lineStart);
-    const match = currentLine.match(/^(\s*)-\s(.*)$/);
+    const match = currentLine.match(/^(\s*)-(?:\s|$)/);
     if (!match) return;
 
     e.preventDefault();
-    const [, indent, rest] = match;
-
-    if (rest.trim() === "") {
-      const newBefore = before.slice(0, lineStart);
-      setNotes(newBefore + after);
-      requestAnimationFrame(() => el.setSelectionRange(newBefore.length, newBefore.length));
-      return;
-    }
-
+    const indent = match[1];
     const insertion = `\n${indent}- `;
     const newValue = before + insertion + after;
     setNotes(newValue);
