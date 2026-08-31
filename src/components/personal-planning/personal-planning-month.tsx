@@ -12,10 +12,13 @@ export function PersonalPlanningMonth({
   days,
   currentMonth,
   entriesByDate,
+  holidaysByDate,
 }: {
   days: Date[];
   currentMonth: Date;
   entriesByDate: Map<string, PersonalPlanningEntryRow[]>;
+  /** §39 — jour férié éventuel de chaque date (yyyy-MM-dd -> nom). */
+  holidaysByDate?: Map<string, string>;
 }) {
   return (
     <div className="overflow-hidden rounded-md border">
@@ -30,6 +33,7 @@ export function PersonalPlanningMonth({
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const entries = entriesByDate.get(key) ?? [];
+          const holidayName = holidaysByDate?.get(key);
           const inMonth = isSameMonth(day, currentMonth);
           const today = isToday(day);
 
@@ -40,10 +44,16 @@ export function PersonalPlanningMonth({
               className={cn(
                 "min-h-24 border-b border-r p-1.5 text-left align-top text-xs transition-colors hover:bg-muted/40",
                 !inMonth && "bg-muted/20 text-muted-foreground",
-                today && "bg-primary/5 ring-1 ring-inset ring-primary/40"
+                today && "bg-primary/5 ring-1 ring-inset ring-primary/40",
+                holidayName && "bg-destructive/5"
               )}
             >
               <div className={cn("mb-1 font-medium", today && "text-primary")}>{format(day, "d")}</div>
+              {holidayName && (
+                <div className="mb-0.5 truncate rounded bg-destructive/10 px-1 py-0.5 text-[10px] font-medium text-destructive" title={holidayName}>
+                  🎉 {holidayName}
+                </div>
+              )}
               <div className="space-y-0.5">
                 {entries.slice(0, MAX_VISIBLE_PER_DAY).map((e) => (
                   <div key={e.id} className="truncate rounded bg-muted px-1 py-0.5">

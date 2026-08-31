@@ -18,6 +18,7 @@ import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
+import { findHolidayOnDate } from "@/lib/personal-planning-holidays";
 import { Sunrise } from "lucide-react";
 
 /**
@@ -34,6 +35,8 @@ export default async function MaJourneePage() {
   const now = new Date();
   const dayStart = startOfDay(now);
   const dayEnd = endOfDay(now);
+
+  const holidayName = await findHolidayOnDate(userId, now);
 
   const [entriesRaw, meetingsRaw, colleagues, projects, tasks, objectives, me] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
@@ -223,7 +226,7 @@ export default async function MaJourneePage() {
 
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
-        <PersonalPlanningDay day={now} entries={entries} refData={refData} />
+        <PersonalPlanningDay day={now} entries={entries} refData={refData} holidayName={holidayName} />
 
         <div className="flex flex-wrap items-center gap-3">
           <PlanningHealthBadge score={planningHealth} />

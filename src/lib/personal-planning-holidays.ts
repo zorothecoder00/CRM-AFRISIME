@@ -1,5 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import { getDepartmentEntityId } from "@/lib/entity-scope";
+import { dateKeyOf } from "@/lib/personal-planning-grid";
+
+type HolidayLite = { nom: string; date: Date; recurrenceAnnuelle: boolean };
+
+async function getEntityHolidays(userId: string): Promise<HolidayLite[]> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { departmentId: true } });
+  if (!user?.departmentId) return [];
+
+  const allDepartments = await prisma.department.findMany({ select: { id: true, parentId: true, entityId: true } });
+  const entityId = getDepartmentEntityId(user.departmentId, allDepartments);
+  if (!entityId) return [];
+
+  return prisma.holiday.findMany({ where: { entityId }, select: { nom: true, date: true, recurrenceAnnuelle: true } });
+}
+
+function matchHoliday(holidays: HolidayLite[], date: Date): string | null {
+  const match = holidays.find((h) =>
+    h.recurrenceAnnuelle
+      ? h.date.getMonth() === date.getMonth() && h.date.getDate() === date.getDate()
+      : h.date.getFullYear() === date.getFullYear() && h.date.getMonth() === date.getMonth() && h.date.getDate() === date.getDate()
+  );
+  return match?.nom ?? null;
+}
 
 /**
  * Module "Planning personnel" §39 — avertissement (jamais bloquant, cohérent
@@ -8,20 +31,28 @@ import { getDepartmentEntityId } from "@/lib/entity-scope";
  * date exacte.
  */
 export async function findHolidayOnDate(userId: string, date: Date): Promise<string | null> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { departmentId: true } });
-  if (!user?.departmentId) return null;
+  const holidays = await getEntityHolidays(userId);
+  return matchHoliday(holidays, date);
+}
 
-  const allDepartments = await prisma.department.findMany({ select: { id: true, parentId: true, entityId: true } });
-  const entityId = getDepartmentEntityId(user.departmentId, allDepartments);
-  if (!entityId) return null;
+/**
+ * §39 — variante par lot pour les vues Semaine/Jour/Mois : un seul aller-retour
+ * base de données pour marquer visuellement chaque jour férié de la plage
+ * affichée, plutôt que d'appeler findHolidayOnDate une fois par jour.
+ */
+export async function findHolidaysInRange(userId: string, rangeStart: Date, rangeEnd: Date): Promise<Map<string, string>> {
+  const holidays = await getEntityHolidays(userId);
+  const result = new Map<string, string>();
+  if (holidays.length === 0) return result;
 
-  const holidays = await prisma.holiday.findMany({ where: { entityId }, select: { nom: true, date: true, recurrenceAnnuelle: true } });
-  const match = holidays.find((h) =>
-    h.recurrenceAnnuelle
-      ? h.date.getMonth() === date.getMonth() && h.date.getDate() === date.getDate()
-      : h.date.getFullYear() === date.getFullYear() && h.date.getMonth() === date.getMonth() && h.date.getDate() === date.getDate()
-  );
-  return match?.nom ?? null;
+  const cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
+  const end = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
+  while (cursor <= end) {
+    const nom = matchHoliday(holidays, cursor);
+    if (nom) result.set(dateKeyOf(cursor), nom);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
 }
 
 /**

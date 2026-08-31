@@ -25,6 +25,8 @@ export type PersonalPlanningDay = {
   label: string;
   isToday: boolean;
   entries: PersonalPlanningEntryRow[];
+  /** §39 — nom du jour férié si ce jour en est un, null sinon. */
+  holidayName?: string | null;
 };
 
 function HourSlot({ dateKey, hour, top }: { dateKey: string; hour: number; top: number }) {
@@ -73,7 +75,15 @@ function DayColumn({
   return (
     <div className={cn("flex flex-col", day.isToday && "rounded-md ring-2 ring-primary/40")}>
       <div className="mb-1 text-center text-xs font-medium capitalize">{day.label}</div>
-      <div className="relative rounded-md border" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
+      {day.holidayName && (
+        <div className="mb-1 truncate rounded bg-destructive/10 px-1 py-0.5 text-center text-[10px] font-medium text-destructive" title={day.holidayName}>
+          🎉 {day.holidayName}
+        </div>
+      )}
+      <div
+        className={cn("relative rounded-md border", day.holidayName && "bg-destructive/5")}
+        style={{ height: hours.length * HOUR_HEIGHT_PX }}
+      >
         {/* §46 — vue manager en lecture seule : pas de cases de dépôt, rien à glisser (pas de DndContext ancêtre non plus). */}
         {!readOnly && hours.map((h, i) => <HourSlot key={h} dateKey={day.dateKey} hour={h} top={i * HOUR_HEIGHT_PX} />)}
         {sorted.map((entry, i) => {

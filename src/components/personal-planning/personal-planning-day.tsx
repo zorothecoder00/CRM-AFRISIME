@@ -27,10 +27,13 @@ export function PersonalPlanningDay({
   day,
   entries,
   refData,
+  holidayName,
 }: {
   day: Date;
   entries: PersonalPlanningEntryRow[];
   refData: PersonalPlanningReferenceData;
+  /** §39 — nom du jour férié si `day` en est un, null/absent sinon. */
+  holidayName?: string | null;
 }) {
   const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
@@ -43,7 +46,13 @@ export function PersonalPlanningDay({
   const sorted = [...entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
   return (
-    <div className="relative rounded-md border" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
+    <div className="space-y-2">
+      {holidayName && (
+        <div className="flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-sm text-destructive">
+          🎉 Jour férié : {holidayName}
+        </div>
+      )}
+      <div className="relative rounded-md border" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
       {hours.map((h, i) => (
         <div
           key={h}
@@ -90,6 +99,7 @@ export function PersonalPlanningDay({
       {editData && (
         <PersonalPlanningEntryEditDialog entry={editData} open={!!editing} onOpenChange={(o) => setEditing(o ? editing : null)} refData={refData} />
       )}
+      </div>
     </div>
   );
 }
