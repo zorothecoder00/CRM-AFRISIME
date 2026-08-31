@@ -953,7 +953,12 @@ export async function saveDailyReviewNotes(input: SaveDailyReviewNotesInput) {
     update: { notes: data.notes || null },
   });
 
-  revalidatePath("/ma-journee");
+  // Le bilan vit sur /planning-personnel (déplacé depuis /ma-journee, voir
+  // le commentaire en tête de cette page) — revalider l'ancien chemin ne
+  // rafraîchissait ni la carte du bilan ni /planning-personnel/bilans,
+  // laissant les deux affichant les notes déjà supprimées côté base.
+  revalidatePath("/planning-personnel");
+  revalidatePath("/planning-personnel/bilans");
   return { id: review.id, notes: review.notes };
 }
 
