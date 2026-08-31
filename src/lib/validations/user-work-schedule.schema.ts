@@ -20,3 +20,21 @@ export const saveWorkScheduleSchema = z.object({
 
 export type SaveWorkScheduleInput = z.infer<typeof saveWorkScheduleSchema>;
 export type DayScheduleInput = z.infer<typeof dayScheduleSchema>;
+
+/** §39 — dérogation ponctuelle à une date précise (distincte du gabarit hebdomadaire récurrent ci-dessus). */
+export const createWorkScheduleExceptionSchema = z
+  .object({
+    date: z.string().min(1, "Date requise."),
+    type: z.enum(WORK_SCHEDULE_TYPES).default("ABSENCE"),
+    heureDebut: z.string().regex(HOUR_PATTERN, "Format HH:mm attendu.").optional().or(z.literal("")),
+    heureFin: z.string().regex(HOUR_PATTERN, "Format HH:mm attendu.").optional().or(z.literal("")),
+    pauseDebut: z.string().regex(HOUR_PATTERN).optional().or(z.literal("")),
+    pauseFin: z.string().regex(HOUR_PATTERN).optional().or(z.literal("")),
+    motif: z.string().max(200).optional(),
+  })
+  .refine((d) => d.type === "ABSENCE" || (!!d.heureDebut && !!d.heureFin), {
+    message: "Heures de début et de fin requises sauf pour une absence.",
+    path: ["heureDebut"],
+  });
+
+export type CreateWorkScheduleExceptionInput = z.infer<typeof createWorkScheduleExceptionSchema>;

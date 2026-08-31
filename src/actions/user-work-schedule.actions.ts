@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { saveWorkScheduleSchema, type SaveWorkScheduleInput } from "@/lib/validations/user-work-schedule.schema";
+import {
+  saveWorkScheduleSchema,
+  createWorkScheduleExceptionSchema,
+  type SaveWorkScheduleInput,
+  type CreateWorkScheduleExceptionInput,
+} from "@/lib/validations/user-work-schedule.schema";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
@@ -53,4 +58,54 @@ export async function saveWorkSchedule(input: SaveWorkScheduleInput) {
 
   revalidatePath("/parametres/horaires");
   return { ok: true };
+}
+
+function truncateToDay(dateStr: string): Date {
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** §39 — ajoute (ou remplace, upsert) une dérogation ponctuelle à une date précise. */
+export async function createWorkScheduleException(input: CreateWorkScheduleExceptionInput) {
+  const session = await requireSession();
+  const data = createWorkScheduleExceptionSchema.parse(input);
+  const date = truncateToDay(data.date);
+
+  const exception = await prisma.userWorkScheduleException.upsert({
+    where: { userId_date: { userId: session.user.id, date } },
+    update: {
+      type: data.type,
+      heureDebut: data.type === "ABSENCE" ? null : data.heureDebut || null,
+      heureFin: data.type === "ABSENCE" ? null : data.heureFin || null,
+      pauseDebut: data.pauseDebut || null,
+      pauseFin: data.pauseFin || null,
+      motif: data.motif || null,
+    },
+    create: {
+      userId: session.user.id,
+      date,
+      type: data.type,
+      heureDebut: data.type === "ABSENCE" ? null : data.heureDebut || null,
+      heureFin: data.type === "ABSENCE" ? null : data.heureFin || null,
+      pauseDebut: data.pauseDebut || null,
+      pauseFin: data.pauseFin || null,
+      motif: data.motif || null,
+    },
+  });
+
+  revalidatePath("/parametres/horaires");
+  return { id: exception.id };
+}
+
+export async function deleteWorkScheduleException(exceptionId: string) {
+  const session = await requireSession();
+
+  const existing = await prisma.userWorkScheduleException.findUniqueOrThrow({ where: { id: exceptionId } });
+  if (existing.userId !== session.user.id) {
+    throw new Error("Vous ne pouvez supprimer que vos propres dérogations.");
+  }
+
+  await prisma.userWorkScheduleException.delete({ where: { id: exceptionId } });
+  revalidatePath("/parametres/horaires");
 }

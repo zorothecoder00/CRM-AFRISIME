@@ -11,7 +11,7 @@ import { createNotification, notifyMany } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { runTaskBlockedRules } from "@/lib/automation";
-import { findHolidayOnDate, findApprovedLeaveOnDate } from "@/lib/personal-planning-holidays";
+import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } from "@/lib/personal-planning-holidays";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import {
   createPersonalPlanningEntrySchema,
@@ -192,6 +192,13 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
   const occurrences = computeOccurrences(dateDebut, dateFin, data.repetition, repetitionFin);
   const recurrenceGroupId = occurrences.length > 1 ? randomUUID() : null;
 
+  // §39 — bloque réellement (contrairement aux avertissements ci-dessous)
+  // les types "travail" un jour férié/non ouvré ; vérifie chaque occurrence
+  // d'une série récurrente, pas seulement la première.
+  for (const o of occurrences) {
+    await assertNotOnNonWorkingDay(session.user.id, o.dateDebut, data.type);
+  }
+
   const commonData = {
     userId: session.user.id,
     titre: data.titre,
@@ -264,6 +271,13 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
   const dateFin = new Date(data.dateFin);
   if (dateFin < dateDebut) {
     throw new Error("La date de fin doit être postérieure à la date de début.");
+  }
+
+  // §39 — ne re-vérifie que si la date ou le type a réellement changé (une
+  // activité déjà planifiée un jour férié reste modifiable sur d'autres
+  // champs sans se faire bloquer rétroactivement par sa propre date).
+  if (dateDebut.getTime() !== existing.dateDebut.getTime() || data.type !== existing.type) {
+    await assertNotOnNonWorkingDay(session.user.id, dateDebut, data.type);
   }
 
   const entry = await prisma.personalPlanningEntry.update({
@@ -484,6 +498,8 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
   const dateDebut = new Date(data.dateDebut);
   const dateFin = new Date(dateDebut.getTime() + data.dureeMinutes * 60_000);
 
+  await assertNotOnNonWorkingDay(session.user.id, dateDebut, "TACHE");
+
   const entry = await prisma.$transaction(async (tx) => {
     const created = await tx.personalPlanningEntry.create({
       data: { userId: session.user.id, titre: task.titre, type: "TACHE", tacheId: task.id, dateDebut, dateFin },
@@ -597,6 +613,8 @@ export async function movePersonalPlanningEntry(input: MovePersonalPlanningEntry
   if (existing.type === "RESERVE") {
     throw new Error("Un créneau réservé via une demande de collègue ne peut pas être déplacé ici.");
   }
+
+  await assertNotOnNonWorkingDay(session.user.id, new Date(data.newDateDebut), existing.type);
 
   const entry = await prisma.$transaction((tx) => moveEntryToDate(tx, data.id, new Date(data.newDateDebut)));
 

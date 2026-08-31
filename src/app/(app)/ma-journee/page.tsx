@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPlanningDay } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
-import { PersonalPlanningEndOfDay } from "@/components/personal-planning/end-of-day";
 import { PersonalPerformance } from "@/components/personal-planning/personal-performance";
 import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
@@ -24,9 +23,10 @@ import { Sunrise } from "lucide-react";
 /**
  * Page dédiée "Ma journée" (cahier des charges "Module Planning personnel"
  * §21 — "je recommande une page dédiée") : combine le bloc priorités/
- * surcharge (§6/§15/§16), la grille horaire du jour (§7) et le bilan de fin
- * de journée (§22), distincte du widget "Ma journée" affiché en plus dans
- * `/planning-personnel`.
+ * surcharge (§6/§15/§16) et la grille horaire du jour (§7), distincte du
+ * widget "Ma journée" affiché en plus dans `/planning-personnel`. Le bilan
+ * de fin de journée (§22) vit désormais sur `/planning-personnel`, à la
+ * demande de l'utilisateur.
  */
 export default async function MaJourneePage() {
   const session = await getServerSession(authOptions);
@@ -61,41 +61,15 @@ export default async function MaJourneePage() {
   ]);
 
   // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
-  const todaySchedule = await prisma.userWorkSchedule.findUnique({
-    where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
-  });
-
-  // §22 — "reportée" du bilan de fin de journée : entrées déplacées
-  // aujourd'hui (§47 logAudit) dont l'ancienne date tombait aujourd'hui et
-  // la nouvelle non — sans l'historique de déplacement écrit au §47, ce
-  // compteur restait impossible à calculer (limite documentée jusqu'ici).
-  const movedTodayLogs = await prisma.auditLog.findMany({
-    where: {
-      userId,
-      entityType: "PersonalPlanningEntry",
-      action: "personal_planning_entry.moved",
-      createdAt: { gte: dayStart, lte: dayEnd },
-    },
-    select: { entityId: true, changes: true },
-  });
-  const dailyReview = await prisma.personalPlanningDailyReview.findUnique({
-    where: { userId_date: { userId, date: dayStart } },
-    select: { notes: true },
-  });
-
-  const reporteesCount = new Set(
-    movedTodayLogs
-      .filter((log) => {
-        const changes = log.changes as { dateDebut?: { avant?: string; apres?: string } } | null;
-        const avant = changes?.dateDebut?.avant ? new Date(changes.dateDebut.avant) : null;
-        const apres = changes?.dateDebut?.apres ? new Date(changes.dateDebut.apres) : null;
-        if (!avant || !apres) return false;
-        const avantEtaitAujourdhui = avant >= dayStart && avant <= dayEnd;
-        const apresEstAujourdhui = apres >= dayStart && apres <= dayEnd;
-        return avantEtaitAujourdhui && !apresEstAujourdhui;
-      })
-      .map((log) => log.entityId)
-  ).size;
+  // §39 — dérogation ponctuelle pour la date du jour, si elle existe (prime sur le gabarit hebdomadaire).
+  const [todaySchedule, todayException] = await Promise.all([
+    prisma.userWorkSchedule.findUnique({
+      where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
+    }),
+    prisma.userWorkScheduleException.findUnique({
+      where: { userId_date: { userId, date: startOfDay(now) } },
+    }),
+  ]);
 
   // §35/§36 — "Ma performance" : tâches actives (peu importe leur âge) +
   // terminées/annulées des 30 derniers jours, fenêtre glissante pour que les
@@ -150,7 +124,7 @@ export default async function MaJourneePage() {
     ...meetingsRaw.map(meetingToEntryRow),
   ];
 
-  const dailyCapacity = resolveDailyCapacity(todaySchedule, Number(me.capaciteHebdomadaireHeures));
+  const dailyCapacity = resolveDailyCapacity(todaySchedule, Number(me.capaciteHebdomadaireHeures), todayException);
   const charge = computeDailyCharge(entries, dailyCapacity);
   const todayKey = now.toISOString().slice(0, 10);
 
@@ -250,8 +224,6 @@ export default async function MaJourneePage() {
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
         <PersonalPlanningDay day={now} entries={entries} refData={refData} />
-
-        <PersonalPlanningEndOfDay entries={entries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
 
         <div className="flex flex-wrap items-center gap-3">
           <PlanningHealthBadge score={planningHealth} />

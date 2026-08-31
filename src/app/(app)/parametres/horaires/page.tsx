@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkScheduleForm } from "@/components/parametres/work-schedule-form";
+import { WorkScheduleExceptions } from "@/components/parametres/work-schedule-exceptions";
 import type { DayScheduleInput } from "@/lib/validations/user-work-schedule.schema";
 
 const DEFAULT_ACTIVE_DAYS = new Set([1, 2, 3, 4, 5]); // lundi-vendredi
@@ -9,7 +10,10 @@ const DEFAULT_ACTIVE_DAYS = new Set([1, 2, 3, 4, 5]); // lundi-vendredi
 /** §40 : horaires de travail hebdomadaires — alimente computeDailyCapacity (§15) à la place du /5 uniforme quand configuré. */
 export default async function ParametresHorairesPage() {
   const session = await getServerSession(authOptions);
-  const schedules = await prisma.userWorkSchedule.findMany({ where: { userId: session!.user.id } });
+  const [schedules, exceptions] = await Promise.all([
+    prisma.userWorkSchedule.findMany({ where: { userId: session!.user.id } }),
+    prisma.userWorkScheduleException.findMany({ where: { userId: session!.user.id }, orderBy: { date: "desc" } }),
+  ]);
   const byDay = new Map(schedules.map((s) => [s.jourSemaine, s]));
 
   const days: DayScheduleInput[] = Array.from({ length: 7 }, (_, jourSemaine) => {
@@ -47,6 +51,17 @@ export default async function ParametresHorairesPage() {
       </div>
 
       <WorkScheduleForm initialDays={days} />
+
+      <WorkScheduleExceptions
+        exceptions={exceptions.map((e) => ({
+          id: e.id,
+          date: e.date.toISOString(),
+          type: e.type,
+          heureDebut: e.heureDebut,
+          heureFin: e.heureFin,
+          motif: e.motif,
+        }))}
+      />
     </div>
   );
 }

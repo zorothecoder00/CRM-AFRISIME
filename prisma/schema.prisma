@@ -622,6 +622,7 @@ model User {
   personalPlanningEntryParticipations PersonalPlanningEntryParticipant[] @relation("PersonalPlanningEntryParticipantUser")
   personalPlanningDailyReviews        PersonalPlanningDailyReview[]
   workSchedules                       UserWorkSchedule[]
+  workScheduleExceptions              UserWorkScheduleException[]
   availabilityRequestsReceived        AvailabilityRequest[]              @relation("AvailabilityRequestTarget")
   availabilityRequestsSent            AvailabilityRequest[]              @relation("AvailabilityRequestRequestedBy")
   objectivesOwned                     Objective[]                        @relation("ObjectiveUser")
@@ -1193,6 +1194,7 @@ model PlatformOrganization {
   entities                          Entity[]                           @relation("PlatformOrganizationEntities")
   holidays                          Holiday[]                          @relation("PlatformOrganizationHolidays")
   userWorkSchedules                 UserWorkSchedule[]                 @relation("PlatformOrganizationUserWorkSchedules")
+  userWorkScheduleExceptions        UserWorkScheduleException[]        @relation("PlatformOrganizationUserWorkScheduleExceptions")
   tags                              Tag[]                              @relation("PlatformOrganizationTags")
   entityTags                        EntityTag[]                        @relation("PlatformOrganizationEntityTags")
   apiKeys                           ApiKey[]                           @relation("PlatformOrganizationApiKeys")
@@ -5669,6 +5671,30 @@ model UserWorkSchedule {
   updatedAt      DateTime              @updatedAt
 
   @@unique([userId, jourSemaine])
+  @@index([userId])
+}
+
+// §39 — derogation ponctuelle a une date precise, distincte du gabarit
+// hebdomadaire recurrent de UserWorkSchedule (ex. horaires reduits un
+// vendredi donne, ou journee exceptionnellement non travaillee sans passer
+// par une Demande de conge). heureDebut/heureFin nuls quand type=ABSENCE.
+model UserWorkScheduleException {
+  id             String                @id @default(cuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id])
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationUserWorkScheduleExceptions", fields: [organizationId], references: [id])
+  date           DateTime
+  heureDebut     String?
+  heureFin       String?
+  pauseDebut     String?
+  pauseFin       String?
+  type           UserWorkScheduleType  @default(NORMAL)
+  motif          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([userId, date])
   @@index([userId])
 }
 

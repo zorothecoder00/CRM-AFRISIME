@@ -33,6 +33,7 @@ import { PersonalPlanningAgenda } from "@/components/personal-planning/personal-
 import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
 import { PersonalPlanningList, type PersonalPlanningListRow } from "@/components/personal-planning/personal-planning-list";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
+import { PersonalPlanningEndOfDay } from "@/components/personal-planning/end-of-day";
 import { PersonalPlanningViewSwitcher } from "@/components/personal-planning/view-switcher";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
@@ -195,9 +196,15 @@ export default async function PlanningPersonnelPage({
   ]);
 
   // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
-  const todaySchedule = await prisma.userWorkSchedule.findUnique({
-    where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
-  });
+  // §39 — dérogation ponctuelle pour la date du jour, si elle existe (prime sur le gabarit hebdomadaire).
+  const [todaySchedule, todayException] = await Promise.all([
+    prisma.userWorkSchedule.findUnique({
+      where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
+    }),
+    prisma.userWorkScheduleException.findUnique({
+      where: { userId_date: { userId, date: startOfDay(now) } },
+    }),
+  ]);
 
   // §5 — tableau de bord "Mon Planning" : "En retard"/"À venir" portent sur
   // l'ensemble du planning (pas seulement la période affichée par la vue
@@ -252,9 +259,35 @@ export default async function PlanningPersonnelPage({
   });
   const todayEntries = [...todayEntriesRaw.map(toRow), ...todayMeetingsRaw.map(meetingToEntryRow)];
 
-  const dailyCapacity = resolveDailyCapacity(todaySchedule, Number(me.capaciteHebdomadaireHeures));
+  const dailyCapacity = resolveDailyCapacity(todaySchedule, Number(me.capaciteHebdomadaireHeures), todayException);
   const charge = computeDailyCharge(todayEntries, dailyCapacity);
   const todayKey = format(now, "yyyy-MM-dd");
+
+  // §22 — bilan de fin de journée (déplacé depuis /ma-journee, à la demande
+  // de l'utilisateur). "reportée" : entrées déplacées aujourd'hui (§47
+  // logAudit) dont l'ancienne date tombait aujourd'hui et la nouvelle non.
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
+  const [movedTodayLogs, dailyReview] = await Promise.all([
+    prisma.auditLog.findMany({
+      where: { userId, entityType: "PersonalPlanningEntry", action: "personal_planning_entry.moved", createdAt: { gte: todayStart, lte: todayEnd } },
+      select: { entityId: true, changes: true },
+    }),
+    prisma.personalPlanningDailyReview.findUnique({ where: { userId_date: { userId, date: todayStart } }, select: { notes: true } }),
+  ]);
+  const reporteesCount = new Set(
+    movedTodayLogs
+      .filter((log) => {
+        const changes = log.changes as { dateDebut?: { avant?: string; apres?: string } } | null;
+        const avant = changes?.dateDebut?.avant ? new Date(changes.dateDebut.avant) : null;
+        const apres = changes?.dateDebut?.apres ? new Date(changes.dateDebut.apres) : null;
+        if (!avant || !apres) return false;
+        const avantEtaitAujourdhui = avant >= todayStart && avant <= todayEnd;
+        const apresEstAujourdhui = apres >= todayStart && apres <= todayEnd;
+        return avantEtaitAujourdhui && !apresEstAujourdhui;
+      })
+      .map((log) => log.entityId)
+  ).size;
 
   const inboxTasks: InboxTaskRow[] = inboxTasksRaw.map((t) => ({
     id: t.id,
@@ -355,6 +388,8 @@ export default async function PlanningPersonnelPage({
         </div>
 
         <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
+
+        <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />

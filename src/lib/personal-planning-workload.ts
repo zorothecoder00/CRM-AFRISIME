@@ -26,6 +26,8 @@ function parseHourMinutes(hhmm: string): number {
   return h * 60 + m;
 }
 
+type DaySchedule = { heureDebut: string | null; heureFin: string | null; pauseDebut: string | null; pauseFin: string | null; type: string };
+
 /**
  * §40 — si l'utilisateur a configuré un horaire pour ce jour précis
  * (UserWorkSchedule), l'utilise à la place du /5 uniforme de
@@ -33,17 +35,23 @@ function parseHourMinutes(hhmm: string): number {
  * silencieux sur la capacité hebdo) ; un jour non configuré ou sans ligne
  * active retombe sur computeDailyCapacity — aucune régression pour les
  * utilisateurs qui n'ont pas encore renseigné leurs horaires.
+ *
+ * §39 — `exception` (UserWorkScheduleException, dérogation à une date
+ * précise) prime sur le gabarit hebdomadaire récurrent quand fournie.
  */
 export function resolveDailyCapacity(
-  schedule: { heureDebut: string; heureFin: string; pauseDebut: string | null; pauseFin: string | null; type: string } | null,
-  capaciteHebdomadaireHeures: number
+  schedule: DaySchedule | null,
+  capaciteHebdomadaireHeures: number,
+  exception: DaySchedule | null = null
 ): number {
-  if (!schedule) return computeDailyCapacity(capaciteHebdomadaireHeures);
-  if (schedule.type === "ABSENCE") return 0;
+  const effective = exception ?? schedule;
+  if (!effective) return computeDailyCapacity(capaciteHebdomadaireHeures);
+  if (effective.type === "ABSENCE") return 0;
+  if (!effective.heureDebut || !effective.heureFin) return computeDailyCapacity(capaciteHebdomadaireHeures);
 
-  let minutes = parseHourMinutes(schedule.heureFin) - parseHourMinutes(schedule.heureDebut);
-  if (schedule.pauseDebut && schedule.pauseFin) {
-    minutes -= Math.max(0, parseHourMinutes(schedule.pauseFin) - parseHourMinutes(schedule.pauseDebut));
+  let minutes = parseHourMinutes(effective.heureFin) - parseHourMinutes(effective.heureDebut);
+  if (effective.pauseDebut && effective.pauseFin) {
+    minutes -= Math.max(0, parseHourMinutes(effective.pauseFin) - parseHourMinutes(effective.pauseDebut));
   }
   return Math.max(0, minutes) / 60;
 }
