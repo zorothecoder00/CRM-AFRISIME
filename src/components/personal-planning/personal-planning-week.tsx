@@ -8,7 +8,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import { detectTightTransition } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
 import type { PersonalPlanningEntryType } from "@/lib/personal-planning-types";
-import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx } from "@/lib/personal-planning-grid";
+import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, computeGridBounds, type GridBounds } from "@/lib/personal-planning-grid";
 
 export type PersonalPlanningEntryRow = Omit<PersonalPlanningEntryEditData, "type"> & {
   type: PersonalPlanningEntryType;
@@ -56,15 +56,17 @@ function HourGutter({ hours }: { hours: number[] }) {
 
 function DayColumn({
   day,
+  bounds,
   onEdit,
   readOnly,
 }: {
   day: PersonalPlanningDay;
+  bounds: GridBounds;
   onEdit: (entry: PersonalPlanningEntryRow) => void;
   readOnly?: boolean;
 }) {
-  const hours = gridHours();
-  const gridStart = gridStartOf(new Date(day.dateKey));
+  const hours = gridHours(bounds.startHour, bounds.endHour);
+  const gridStart = gridStartOf(new Date(day.dateKey), bounds.startHour);
   const sorted = [...day.entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
   return (
@@ -115,17 +117,31 @@ export function PersonalPlanningWeek({
   const editData: PersonalPlanningEntryEditData | null =
     !readOnly && editing && editing.type !== "RESERVE" && !editing.meetingHref ? { ...editing, type: editing.type } : null;
 
+  // §26bis/§27 — bornes partagées par les 7 colonnes (elles doivent rester
+  // alignées) : la plus large des bornes par jour, pour qu'une activité qui
+  // déborde de 7h-20h un jour donné (ex. une Mission) reste visible sans
+  // décaler les autres colonnes.
+  const bounds = days.reduce<GridBounds>(
+    (acc, day) => {
+      const b = computeGridBounds(day.entries, new Date(day.dateKey));
+      return { startHour: Math.min(acc.startHour, b.startHour), endHour: Math.max(acc.endHour, b.endHour) };
+    },
+    { startHour: GRID_START_HOUR, endHour: GRID_END_HOUR }
+  );
+
   return (
     <div className="overflow-x-auto">
       <div style={{ minWidth: 900 }}>
         <div className="pl-12 text-[10px] text-muted-foreground">
-          {readOnly ? `Grille ${GRID_START_HOUR}h–${GRID_END_HOUR}h — lecture seule.` : `Grille ${GRID_START_HOUR}h–${GRID_END_HOUR}h — glissez un bloc pour le déplacer.`}
+          {readOnly
+            ? `Grille ${bounds.startHour}h–${bounds.endHour}h — lecture seule.`
+            : `Grille ${bounds.startHour}h–${bounds.endHour}h — glissez un bloc pour le déplacer.`}
         </div>
         <div className="flex gap-2">
-          <HourGutter hours={gridHours()} />
+          <HourGutter hours={gridHours(bounds.startHour, bounds.endHour)} />
           <div className="grid flex-1 grid-cols-7 gap-2">
             {days.map((day) => (
-              <DayColumn key={day.key} day={day} onEdit={setEditing} readOnly={readOnly} />
+              <DayColumn key={day.key} day={day} bounds={bounds} onEdit={setEditing} readOnly={readOnly} />
             ))}
           </div>
         </div>

@@ -9,7 +9,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 import { detectTightTransition } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
-import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, dateKeyOf } from "@/lib/personal-planning-grid";
+import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, dateKeyOf, computeGridBounds } from "@/lib/personal-planning-grid";
 
 function HourSlot({ dayKey, hour, top }: { dayKey: string; hour: number; top: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: `hour-${dayKey}-${hour}`, data: { date: dayKey, hour } });
@@ -35,9 +35,10 @@ export function PersonalPlanningDay({
   const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
     editing && editing.type !== "RESERVE" ? { ...editing, type: editing.type } : null;
-  const hours = gridHours();
+  const bounds = computeGridBounds(entries, day);
+  const hours = gridHours(bounds.startHour, bounds.endHour);
   const dayKey = dateKeyOf(day);
-  const gridStart = gridStartOf(day);
+  const gridStart = gridStartOf(day, bounds.startHour);
 
   const sorted = [...entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
