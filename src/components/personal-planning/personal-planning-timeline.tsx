@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { ENTRY_TYPE_META } from "@/lib/personal-planning-types";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
+
+type NonWorkingReason = { label: string; kind: "ferie" | "absence" | "non_ouvrable" };
+
+const NON_WORKING_STYLES: Record<string, { emoji: string; badge: string }> = {
+  ferie: { emoji: "🎉", badge: "bg-destructive/10 text-destructive" },
+  absence: { emoji: "🚫", badge: "bg-warning/15 text-warning" },
+  non_ouvrable: { emoji: "📅", badge: "bg-muted text-muted-foreground" },
+};
 
 function groupByDate(entries: PersonalPlanningEntryRow[]) {
   const groups = new Map<string, PersonalPlanningEntryRow[]>();
@@ -16,7 +25,14 @@ function groupByDate(entries: PersonalPlanningEntryRow[]) {
 }
 
 /** Vue Timeline (§8) : vision temporelle des activités, groupées par date avec ligne connectrice — même style que TaskTimelineView. */
-export function PersonalPlanningTimeline({ entries }: { entries: PersonalPlanningEntryRow[] }) {
+export function PersonalPlanningTimeline({
+  entries,
+  nonWorkingByDate,
+}: {
+  entries: PersonalPlanningEntryRow[];
+  /** §39 — jour férié, absence exceptionnelle ou jour non ouvrable de chaque date (yyyy-MM-dd). */
+  nonWorkingByDate?: Map<string, NonWorkingReason>;
+}) {
   const groups = groupByDate(entries);
 
   if (entries.length === 0) {
@@ -25,11 +41,19 @@ export function PersonalPlanningTimeline({ entries }: { entries: PersonalPlannin
 
   return (
     <ol className="space-y-6">
-      {Array.from(groups.entries()).map(([dateKey, group]) => (
+      {Array.from(groups.entries()).map(([dateKey, group]) => {
+        const nonWorking = nonWorkingByDate?.get(dateKey);
+        const style = nonWorking ? NON_WORKING_STYLES[nonWorking.kind] : null;
+        return (
         <li key={dateKey} className="relative border-l-2 pl-4">
           <div className="absolute -left-[5px] top-1 h-2 w-2 rounded-full bg-primary" />
-          <div className="mb-2 text-sm font-semibold capitalize">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold capitalize">
             {new Date(dateKey).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            {nonWorking && style && (
+              <Badge variant="outline" className={cn("gap-1 text-[10px] font-normal normal-case", style.badge)}>
+                {style.emoji} {nonWorking.label}
+              </Badge>
+            )}
           </div>
           <ul className="space-y-1.5">
             {group.map((entry) => {
@@ -53,7 +77,8 @@ export function PersonalPlanningTimeline({ entries }: { entries: PersonalPlannin
             })}
           </ul>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

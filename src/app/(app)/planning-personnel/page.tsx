@@ -495,7 +495,7 @@ export default async function PlanningPersonnelPage({
 
             {vue === "agenda" && <PersonalPlanningAgenda entries={entries} nonWorkingByDate={nonWorkingMap} />}
 
-            {vue === "timeline" && <PersonalPlanningTimeline entries={entries} />}
+            {vue === "timeline" && <PersonalPlanningTimeline entries={entries} nonWorkingByDate={nonWorkingMap} />}
 
             {vue === "liste" && (
               <PersonalPlanningList
