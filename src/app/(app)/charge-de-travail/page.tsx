@@ -74,7 +74,10 @@ export default async function ChargeDeTravailPage({
 
       {myWorkload && <MyWorkloadCard workload={myWorkload} />}
 
-      {canRead && (
+      {/* Depuis Planning personnel, la page reste strictement personnelle —
+          la charge de l'equipe (donnees des autres collaborateurs) n'est
+          affichee que hors de ce contexte. */}
+      {canRead && from !== "planning-personnel" && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Charge de l&apos;équipe</h2>
           <WorkloadTable rows={workload} canManage={canManage} />

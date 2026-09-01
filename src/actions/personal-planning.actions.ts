@@ -14,12 +14,14 @@ import { runTaskBlockedRules } from "@/lib/automation";
 import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } from "@/lib/personal-planning-holidays";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { moveEntryToDate } from "@/lib/personal-planning-move";
+import { suggestNextAvailableSlot } from "@/lib/personal-planning-slot-suggestion";
 import {
   createPersonalPlanningEntrySchema,
   updatePersonalPlanningEntrySchema,
   deletePersonalPlanningEntrySchema,
   deletePersonalPlanningEntrySeriesSchema,
   scheduleInboxTaskSchema,
+  suggestScheduleSlotSchema,
   movePersonalPlanningEntrySchema,
   reorganizeOverloadedDaySchema,
   requestTaskReassignmentSchema,
@@ -36,6 +38,7 @@ import {
   type DeletePersonalPlanningEntryInput,
   type DeletePersonalPlanningEntrySeriesInput,
   type ScheduleInboxTaskInput,
+  type SuggestScheduleSlotInput,
   type MovePersonalPlanningEntryInput,
   type ReorganizeOverloadedDayInput,
   type RequestTaskReassignmentInput,
@@ -494,6 +497,32 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
   revalidatePath(PLANNING_PATH, "layout");
   const warnings = await collectPlanningWarnings(session.user.id, entry.dateDebut, entry.dateFin, entry.id);
   return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString(), warnings };
+}
+
+/**
+ * "À planifier" (prototype V2) — propose le premier créneau libre pour une
+ * tâche de l'inbox, au lieu d'un formulaire manuel vide. Ne crée rien : la
+ * confirmation reste un appel explicite à scheduleInboxTask (validation
+ * humaine), voir suggestNextAvailableSlot.
+ */
+export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
+  const session = await requireSession();
+  const data = suggestScheduleSlotSchema.parse(input);
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    select: { id: true, tempsEstimeHeures: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+  });
+  const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
+  if (!isOwner) {
+    throw new Error("Vous ne pouvez planifier que vos propres tâches.");
+  }
+
+  const durationMinutes = task.tempsEstimeHeures ? Math.round(Number(task.tempsEstimeHeures) * 60) : 60;
+  const from = data.after ? new Date(data.after) : new Date();
+  const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from);
+  if (!slot) return null;
+  return { dateDebut: slot.dateDebut.toISOString(), dateFin: slot.dateFin.toISOString(), dureeMinutes: durationMinutes };
 }
 
 /** §29 : réaffecte une tâche de l'inbox "À planifier" à un autre collaborateur. */

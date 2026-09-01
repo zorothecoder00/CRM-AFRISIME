@@ -42,11 +42,16 @@ export default async function ObjectifsPage({
   const { periode, scope, from } = await searchParams;
   const session = await getServerSession(authOptions);
 
+  // Depuis Planning personnel, on ne montre que MES objectifs — pas ceux de
+  // l'organisation/equipe/departement assignes a d'autres personnes.
+  const personalScope = from === "planning-personnel" ? { userId: session!.user.id } : {};
+
   const [objectives, users, projects, departments, programmes, axes, allObjectives] = await Promise.all([
     prisma.objective.findMany({
       where: {
         periode: periode as ObjectivePeriod | undefined,
         scope: scope as ObjectiveScope | undefined,
+        ...personalScope,
       },
       include: {
         user: true,

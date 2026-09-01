@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  PERSONAL_PLANNING_NAV,
+  PERSONAL_PLANNING_NAV_GROUPS,
   PERSONAL_PLANNING_HOME_ITEM,
   type PersonalPlanningNavItem,
 } from "./personal-planning-nav";
@@ -13,10 +13,12 @@ import {
 export function PersonalPlanningSidebarNav({
   aPlanifierCount,
   alertesCount,
+  permissions,
   onNavigate,
 }: {
   aPlanifierCount: number;
   alertesCount: number;
+  permissions: string[];
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -79,13 +81,19 @@ export function PersonalPlanningSidebarNav({
     );
   }
 
+  const visibleGroups = PERSONAL_PLANNING_NAV_GROUPS.filter(
+    (group) => group.items.length > 0 && (!group.permission || permissions.includes(group.permission))
+  );
+
   return (
     <nav className="flex-1 space-y-5 overflow-y-auto p-3">
       <div className="space-y-1">{renderItem(PERSONAL_PLANNING_HOME_ITEM)}</div>
-      <div className="space-y-1">
-        <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">Planning personnel</div>
-        {PERSONAL_PLANNING_NAV.map(renderItem)}
-      </div>
+      {visibleGroups.map((group) => (
+        <div key={group.title} className="space-y-1">
+          <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{group.title}</div>
+          {group.items.map(renderItem)}
+        </div>
+      ))}
     </nav>
   );
 }

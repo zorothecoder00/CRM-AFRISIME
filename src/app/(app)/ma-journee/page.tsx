@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { startOfDay, endOfDay, subDays } from "date-fns";
+import { startOfDay, endOfDay, subDays, startOfWeek, subWeeks } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPlanningDay } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
 import { PersonalPerformance } from "@/components/personal-planning/personal-performance";
+import { PersonalPerformanceTrend, type PerformanceTrendWeek } from "@/components/personal-planning/personal-performance-trend";
 import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
@@ -89,6 +90,27 @@ export default async function MaJourneePage() {
       ],
     },
     include: { assignees: { select: { userId: true } } },
+  });
+
+  // Tendance (prototype V2) — tâches terminées par semaine sur les 6
+  // dernières semaines glissantes (S-5 → S), distinct de myTasks (fenêtre
+  // 30 jours) car une semaine peut remonter plus loin.
+  const sixWeeksAgo = startOfWeek(subWeeks(now, 5), { weekStartsOn: 1 });
+  const recentlyCompletedTasks = await prisma.task.findMany({
+    where: {
+      OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
+      statut: "TERMINEE",
+      completedAt: { gte: sixWeeksAgo },
+    },
+    select: { completedAt: true },
+  });
+  const performanceTrend: PerformanceTrendWeek[] = Array.from({ length: 6 }, (_, i) => {
+    const weekStart = startOfWeek(subWeeks(now, 5 - i), { weekStartsOn: 1 });
+    const weekEnd = subWeeks(weekStart, -1);
+    const count = recentlyCompletedTasks.filter(
+      (t) => t.completedAt && t.completedAt >= weekStart && t.completedAt < weekEnd
+    ).length;
+    return { label: i === 5 ? "S" : `S-${5 - i}`, count };
   });
 
   // §43 « Planning Health » — mêmes critères "à planifier" que l'inbox
@@ -243,6 +265,7 @@ export default async function MaJourneePage() {
         </div>
 
         <PersonalPerformance stats={performanceStats} />
+        <PersonalPerformanceTrend weeks={performanceTrend} />
       </div>
     </PersonalPlanningDndProvider>
   );

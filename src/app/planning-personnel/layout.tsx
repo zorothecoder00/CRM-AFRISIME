@@ -37,13 +37,14 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
         OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
         dateDebut: null,
         personalPlanningEntries: { none: {} },
+        deletedAt: null,
       },
     }),
   ]);
 
   return (
     <div className="flex h-screen">
-      <PersonalPlanningSidebar aPlanifierCount={aPlanifierCount} alertesCount={unreadCount} />
+      <PersonalPlanningSidebar aPlanifierCount={aPlanifierCount} alertesCount={unreadCount} permissions={session.user.permissions} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <PersonalPlanningTopbar
           userName={session.user.name ?? session.user.email ?? ""}
@@ -58,6 +59,7 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
           }))}
           unreadCount={unreadCount}
           aPlanifierCount={aPlanifierCount}
+          permissions={session.user.permissions}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="mx-auto w-full max-w-[1600px]">{children}</div>

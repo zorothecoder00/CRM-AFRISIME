@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,10 +26,20 @@ export default async function ReunionsPage({
 }) {
   const { periode = "avenir", from } = await searchParams;
   const now = new Date();
+  const session = await getServerSession(authOptions);
+  const userId = session!.user.id;
+
+  // Depuis Planning personnel, on ne montre que MES reunions (organisateur
+  // ou participant) — pas celles de toute l'organisation.
+  const personalScope =
+    from === "planning-personnel" ? { OR: [{ createdById: userId }, { participants: { some: { userId } } }] } : {};
 
   const [meetings, projects, users] = await Promise.all([
     prisma.meeting.findMany({
-      where: periode === "avenir" ? { dateHeure: { gte: now } } : periode === "passees" ? { dateHeure: { lt: now } } : {},
+      where: {
+        ...(periode === "avenir" ? { dateHeure: { gte: now } } : periode === "passees" ? { dateHeure: { lt: now } } : {}),
+        ...personalScope,
+      },
       include: { project: true, participants: true },
       orderBy: { dateHeure: periode === "passees" ? "desc" : "asc" },
     }),

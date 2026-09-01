@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,14 +34,30 @@ export default async function PersonalPlanningMissionsPage({
   }
   if (statut) where.statut = statut as never;
 
-  const missions = await prisma.personalPlanningEntry.findMany({
-    where,
-    include: {
-      tache: { select: { id: true, titre: true } },
-      participants: { include: { user: { select: { name: true } } } },
-    },
-    orderBy: { dateDebut: "desc" },
-  });
+  const [missions, allMissions] = await Promise.all([
+    prisma.personalPlanningEntry.findMany({
+      where,
+      include: {
+        tache: { select: { id: true, titre: true } },
+        participants: { include: { user: { select: { name: true } } } },
+      },
+      orderBy: { dateDebut: "desc" },
+    }),
+    // KPIs (prototype V2) calculés sur TOUTES les missions, independamment
+    // des filtres du formulaire — meme convention que "En retard"/"A venir"
+    // sur le hub, qui restent stables quelle que soit la vue affichee.
+    prisma.personalPlanningEntry.findMany({
+      where: { userId, type: "MISSION" },
+      select: { dateDebut: true, dateFin: true, statut: true, missionBudget: true },
+    }),
+  ]);
+
+  const now = new Date();
+  const missionsAVenir = allMissions.filter((m) => m.dateDebut > now && !["TERMINEE", "ANNULEE"].includes(m.statut)).length;
+  const joursEnMission = allMissions.reduce((sum, m) => sum + differenceInCalendarDays(m.dateFin, m.dateDebut) + 1, 0);
+  const budgetEngage = allMissions
+    .filter((m) => m.statut !== "ANNULEE" && m.missionBudget !== null)
+    .reduce((sum, m) => sum + Number(m.missionBudget), 0);
 
   const hasFilters = !!du || !!au || !!statut;
   const statutOptions = Object.keys(ENTRY_STATUT_LABELS) as Array<keyof typeof ENTRY_STATUT_LABELS>;
@@ -56,6 +72,21 @@ export default async function PersonalPlanningMissionsPage({
         <div>
           <h1 className="text-2xl font-semibold">Historique de mes missions</h1>
           <p className="text-sm text-muted-foreground">{missions.length} mission(s) — déplacements professionnels.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-md border p-3 text-center">
+          <div className="text-2xl font-semibold">{missionsAVenir}</div>
+          <div className="text-xs text-muted-foreground">Missions à venir</div>
+        </div>
+        <div className="rounded-md border p-3 text-center">
+          <div className="text-2xl font-semibold">{joursEnMission}</div>
+          <div className="text-xs text-muted-foreground">Jours en mission (total)</div>
+        </div>
+        <div className="rounded-md border p-3 text-center">
+          <div className="text-2xl font-semibold">{formatMontant(budgetEngage, devise)}</div>
+          <div className="text-xs text-muted-foreground">Budget engagé</div>
         </div>
       </div>
 

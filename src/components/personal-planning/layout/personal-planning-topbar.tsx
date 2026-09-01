@@ -24,6 +24,7 @@ export function PersonalPlanningTopbar({
   notifications,
   unreadCount,
   aPlanifierCount,
+  permissions,
 }: {
   userName: string;
   userImage?: string | null;
@@ -31,6 +32,7 @@ export function PersonalPlanningTopbar({
   notifications: NotificationPreview[];
   unreadCount: number;
   aPlanifierCount: number;
+  permissions: string[];
 }) {
   const initials = userName
     .split(" ")
@@ -42,7 +44,7 @@ export function PersonalPlanningTopbar({
   return (
     <header className="flex h-16 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur">
       <div className="flex items-center gap-3">
-        <PersonalPlanningMobileSidebar aPlanifierCount={aPlanifierCount} alertesCount={unreadCount} />
+        <PersonalPlanningMobileSidebar aPlanifierCount={aPlanifierCount} alertesCount={unreadCount} permissions={permissions} />
         <CalendarCheck2 className="hidden size-6 text-primary sm:block" />
         <div>
           <div className="flex items-baseline gap-2">

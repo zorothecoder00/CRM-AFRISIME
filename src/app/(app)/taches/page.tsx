@@ -40,7 +40,9 @@ export default async function TachesPage({
   // memorisee de l'utilisateur plutot que sur "liste" en dur.
   const taskScope = taskVisibilityWhere(session!.user.roleKey, session!.user.id);
   const projectScope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
-  const onlyMine = mine === "1";
+  // Depuis Planning personnel, la vue est strictement personnelle — pas
+  // d'echappatoire vers "toutes les taches" via le parametre mine=.
+  const onlyMine = mine === "1" || from === "planning-personnel";
   // Filtre annuel/mensuel — sur l'échéance, déjà affichée en colonne.
   const dateRange = buildDateRangeFilter(annee, mois);
 
@@ -157,12 +159,14 @@ export default async function TachesPage({
         <div className="flex flex-wrap items-center gap-2">
           <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
           <PeriodFilter dateLabel="Échéance" />
-          <Link href={mineHref}>
-            <Button variant={onlyMine ? "default" : "outline"} size="sm">
-              <User className="mr-1 h-4 w-4" />
-              Mes tâches
-            </Button>
-          </Link>
+          {from !== "planning-personnel" && (
+            <Link href={mineHref}>
+              <Button variant={onlyMine ? "default" : "outline"} size="sm">
+                <User className="mr-1 h-4 w-4" />
+                Mes tâches
+              </Button>
+            </Link>
+          )}
           <TaskViewSwitcher activeVue={vue} projetId={projetId} onlyMine={onlyMine} annee={annee} mois={mois} />
           <div className="flex rounded-md border">
             <Link href="/calendrier">

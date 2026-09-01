@@ -116,6 +116,14 @@ export const scheduleInboxTaskSchema = z.object({
 
 export type ScheduleInboxTaskInput = z.infer<typeof scheduleInboxTaskSchema>;
 
+export const suggestScheduleSlotSchema = z.object({
+  taskId: z.string().min(1),
+  /** ISO — recherche à partir de cette date (permet "proposer un autre créneau" en repartant après la précédente proposition). */
+  after: z.string().min(1).optional(),
+});
+
+export type SuggestScheduleSlotInput = z.infer<typeof suggestScheduleSlotSchema>;
+
 export const movePersonalPlanningEntrySchema = z.object({
   id: z.string().min(1),
   newDateDebut: z.string().min(1),

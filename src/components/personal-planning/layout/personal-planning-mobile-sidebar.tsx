@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PersonalPlanningSidebarNav } from "./personal-planning-sidebar-nav";
 
-export function PersonalPlanningMobileSidebar({ aPlanifierCount, alertesCount }: { aPlanifierCount: number; alertesCount: number }) {
+export function PersonalPlanningMobileSidebar({
+  aPlanifierCount,
+  alertesCount,
+  permissions,
+}: {
+  aPlanifierCount: number;
+  alertesCount: number;
+  permissions: string[];
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,7 +30,12 @@ export function PersonalPlanningMobileSidebar({ aPlanifierCount, alertesCount }:
           <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
           <SheetTitle className="sr-only">Planning personnel</SheetTitle>
         </SheetHeader>
-        <PersonalPlanningSidebarNav aPlanifierCount={aPlanifierCount} alertesCount={alertesCount} onNavigate={() => setOpen(false)} />
+        <PersonalPlanningSidebarNav
+          aPlanifierCount={aPlanifierCount}
+          alertesCount={alertesCount}
+          permissions={permissions}
+          onNavigate={() => setOpen(false)}
+        />
       </SheetContent>
     </Sheet>
   );

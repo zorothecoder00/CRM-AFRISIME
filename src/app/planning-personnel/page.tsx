@@ -238,12 +238,28 @@ export default async function PlanningPersonnelPage({
   // §5 — tableau de bord "Mon Planning" : "En retard"/"À venir" portent sur
   // l'ensemble du planning (pas seulement la période affichée par la vue
   // active), contrairement à `entries` filtré plus bas par `vue`/`semaine`.
-  const [enRetardCount, aVenirCount] = await Promise.all([
+  const yesterday = subDays(now, 1);
+  const [enRetardCount, aVenirCount, yesterdayEntriesCount, yesterdayMeetingsCount, enRetardYesterdayCount, aVenirYesterdayCount] = await Promise.all([
     prisma.personalPlanningEntry.count({
       where: { userId, type: { not: "RESERVE" }, dateFin: { lt: now }, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
     }),
     prisma.personalPlanningEntry.count({
       where: { userId, type: { not: "RESERVE" }, dateDebut: { gt: now }, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+    }),
+    // Deltas (prototype V2) — mêmes requêtes recalculées à J-1 pour une
+    // comparaison honnête (pas de table d'historique de KPIs à ce jour),
+    // limitées aux tuiles où le recalcul reste simple et fiable.
+    prisma.personalPlanningEntry.count({
+      where: { userId, dateDebut: { lte: endOfDay(yesterday) }, dateFin: { gte: startOfDay(yesterday) } },
+    }),
+    prisma.meeting.count({
+      where: { participants: { some: { userId } }, dateHeure: { gte: startOfDay(yesterday), lte: endOfDay(yesterday) } },
+    }),
+    prisma.personalPlanningEntry.count({
+      where: { userId, type: { not: "RESERVE" }, dateFin: { lt: yesterday }, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+    }),
+    prisma.personalPlanningEntry.count({
+      where: { userId, type: { not: "RESERVE" }, dateDebut: { gt: yesterday }, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
     }),
   ]);
 
@@ -441,10 +457,14 @@ export default async function PlanningPersonnelPage({
         <PersonalPlanningStats
           stats={{
             tachesJour: todayEntriesRaw.length,
+            tachesJourHier: yesterdayEntriesCount,
             tachesJourPlanifiees: plannedTodayCount,
             enRetard: enRetardCount,
+            enRetardHier: enRetardYesterdayCount,
             aVenir: aVenirCount,
+            aVenirHier: aVenirYesterdayCount,
             reunions: todayMeetingsRaw.length,
+            reunionsHier: yesterdayMeetingsCount,
             chargePercent: charge.tauxOccupation,
             chargeHeures: charge.chargeHeures,
             capaciteHeures: charge.capaciteHeures,
