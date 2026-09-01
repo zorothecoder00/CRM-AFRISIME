@@ -35,6 +35,9 @@ const baseEntryFields = {
   type: z.enum(ENTRY_TYPES).optional().default("NOTE"),
   priorite: z.enum(ENTRY_PRIORITES).optional().default("NORMALE"),
   lieu: z.string().optional(),
+  // §15 (cahier de corrections UI/UX) — quand renseigné avec un lieu, réserve
+  // automatiquement un bloc "Déplacement" juste avant cette activité.
+  dureeTrajetMinutes: z.coerce.number().int().min(0).max(480).optional(),
   projetId: z.string().optional(),
   tacheId: z.string().optional(),
   objectifId: z.string().optional(),

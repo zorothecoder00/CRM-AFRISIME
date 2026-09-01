@@ -230,6 +230,27 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
     )
   );
 
+  // §15 (cahier de corrections UI/UX) — un lieu + un temps de trajet
+  // réservent automatiquement un bloc "Déplacement" juste avant l'activité,
+  // une occurrence par occurrence créée (y compris pour une série
+  // récurrente). Volontairement un bloc indépendant (pas de lien formel vers
+  // l'activité) : plus simple, cohérent avec le fait que ce module ne
+  // maintient déjà aucun lien de ce type entre entrées.
+  if (data.lieu && data.dureeTrajetMinutes && data.dureeTrajetMinutes > 0) {
+    const dureeMs = data.dureeTrajetMinutes * 60_000;
+    await prisma.personalPlanningEntry.createMany({
+      data: occurrences.map((o) => ({
+        userId: session.user.id,
+        titre: `🚗 Déplacement vers ${data.lieu}`,
+        type: "DEPLACEMENT" as const,
+        priorite: data.priorite,
+        lieu: data.lieu,
+        dateDebut: new Date(o.dateDebut.getTime() - dureeMs),
+        dateFin: o.dateDebut,
+      })),
+    });
+  }
+
   await Promise.all(
     created.map((entry) =>
       Promise.all([

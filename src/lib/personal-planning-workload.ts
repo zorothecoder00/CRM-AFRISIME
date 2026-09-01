@@ -103,6 +103,9 @@ export type PlanningHealthInputs = {
   tachesReportees: number;
 };
 
+export type PlanningHealthCriterion = { key: string; label: string; score: number };
+export type PlanningHealthBreakdown = { score: number; criteria: PlanningHealthCriterion[] };
+
 /**
  * §43 « Planning Health » — moyenne non pondérée de 7 sous-scores (0-100
  * chacun), les 7 critères cités au cahier : tâches planifiées vs total,
@@ -110,8 +113,13 @@ export type PlanningHealthInputs = {
  * non planifiées/inbox, pénalité tâches en retard, pénalité conflits de
  * planning (§42), pénalité tâches reportées aujourd'hui (§22, via
  * countReporteesToday — le déplacement est tracké depuis §47/logAudit).
+ *
+ * Détail des 7 sous-scores exposé pour que l'utilisateur comprenne d'où
+ * vient le total (cahier de corrections UI/UX §9) — chaque critère reste
+ * noté sur 100 (pondération égale), pas de barème /25 /20 /15... arbitraire
+ * qui changerait silencieusement le calcul existant.
  */
-export function computePlanningHealth(inputs: PlanningHealthInputs): number {
+export function computePlanningHealthBreakdown(inputs: PlanningHealthInputs): PlanningHealthBreakdown {
   const tachesPlanifieesScore =
     inputs.totalActiveTaches > 0
       ? ((inputs.totalActiveTaches - inputs.tachesNonPlanifiees) / inputs.totalActiveTaches) * 100
@@ -123,9 +131,22 @@ export function computePlanningHealth(inputs: PlanningHealthInputs): number {
   const conflitsScore = Math.max(0, 100 - inputs.conflits * 15);
   const reporteesScore = Math.max(0, 100 - inputs.tachesReportees * 10);
 
-  const moyenne =
-    (tachesPlanifieesScore + respectEcheancesScore + surchargeScore + nonPlanifieesScore + retardScore + conflitsScore + reporteesScore) / 7;
-  return Math.round(Math.max(0, Math.min(100, moyenne)));
+  const criteria: PlanningHealthCriterion[] = [
+    { key: "planification", label: "Tâches planifiées", score: Math.round(tachesPlanifieesScore) },
+    { key: "echeances", label: "Respect des échéances", score: Math.round(respectEcheancesScore) },
+    { key: "surcharge", label: "Charge de travail", score: Math.round(surchargeScore) },
+    { key: "nonPlanifiees", label: "Tâches non planifiées", score: Math.round(nonPlanifieesScore) },
+    { key: "retards", label: "Retards", score: Math.round(retardScore) },
+    { key: "conflits", label: "Conflits", score: Math.round(conflitsScore) },
+    { key: "reportees", label: "Reports", score: Math.round(reporteesScore) },
+  ];
+
+  const moyenne = criteria.reduce((sum, c) => sum + c.score, 0) / criteria.length;
+  return { score: Math.round(Math.max(0, Math.min(100, moyenne))), criteria };
+}
+
+export function computePlanningHealth(inputs: PlanningHealthInputs): number {
+  return computePlanningHealthBreakdown(inputs).score;
 }
 
 const TIGHT_TRANSITION_MINUTES = 15;

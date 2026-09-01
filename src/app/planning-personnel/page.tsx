@@ -45,7 +45,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
 import { SentRequestsList } from "@/components/personal-planning/sent-requests-list";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
-import { resolveDailyCapacity, computeDailyCharge, computePlanningHealth } from "@/lib/personal-planning-workload";
+import { resolveDailyCapacity, computeDailyCharge, computePlanningHealthBreakdown } from "@/lib/personal-planning-workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
@@ -304,12 +304,15 @@ export default async function PlanningPersonnelPage({
 
   // §43 « Planning Health » — même formule que /ma-journee (computePlanningHealth),
   // désormais aussi affichée sur ce hub principal (voir aussi §42 pour `conflicts`).
-  const planningHealth = computePlanningHealth({
+  // Détail des 7 sous-scores (cahier de corrections UI/UX §9) exposé via
+  // PersonalPlanningHealthCard, pas seulement le total.
+  const planningHealthBreakdown = computePlanningHealthBreakdown({
     ...taskHealthStats,
     tauxOccupation: charge.tauxOccupation,
     conflits: conflicts.length,
     tachesReportees: reporteesCount,
   });
+  const planningHealth = planningHealthBreakdown.score;
 
   const inboxTasks: InboxTaskRow[] = inboxTasksRaw.map((t) => ({
     id: t.id,
@@ -524,7 +527,7 @@ export default async function PlanningPersonnelPage({
 
           <div id="a-planifier" className="scroll-mt-20 space-y-6">
             <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
-            <PersonalPlanningHealthCard score={planningHealth} />
+            <PersonalPlanningHealthCard score={planningHealth} criteria={planningHealthBreakdown.criteria} />
             <PersonalPlanningDailyLoadCard charge={charge} />
             <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
           </div>

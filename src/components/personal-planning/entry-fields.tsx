@@ -36,6 +36,7 @@ type FieldValues = {
   type: string;
   priorite: string;
   lieu?: string;
+  dureeTrajetMinutes?: number;
   projetId?: string;
   tacheId?: string;
   objectifId?: string;
@@ -251,10 +252,22 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
 
       {showMore && (
         <div className="space-y-4 rounded-md border p-3">
-          <div className="space-y-2">
-            <Label htmlFor={`${idPrefix}-lieu`}>Lieu</Label>
-            <Input id={`${idPrefix}-lieu`} {...register("lieu")} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-lieu`}>Lieu</Label>
+              <Input id={`${idPrefix}-lieu`} {...register("lieu")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-dureeTrajetMinutes`}>Temps de trajet avant (minutes)</Label>
+              <Input id={`${idPrefix}-dureeTrajetMinutes`} type="number" min={0} max={480} step={5} {...register("dureeTrajetMinutes")} />
+            </div>
           </div>
+          {/* §15 — avec un lieu et un temps de trajet, un bloc "🚗 Déplacement" est
+              réservé automatiquement juste avant, à la création (pas à l'édition —
+              évite de dupliquer/désynchroniser le bloc si l'horaire change ensuite). */}
+          <p className="-mt-2 text-xs text-muted-foreground">
+            Avec un lieu renseigné, un bloc « 🚗 Déplacement » est réservé automatiquement juste avant, à la création de l&apos;activité.
+          </p>
 
           {refData.colleagues.length > 0 && (
             <div className="space-y-2">
