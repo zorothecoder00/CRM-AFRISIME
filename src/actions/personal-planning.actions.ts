@@ -71,7 +71,7 @@ async function collectPlanningWarnings(userId: string, dateDebut: Date, dateFin:
   const warnings: string[] = [];
   if (holiday) warnings.push(`Jour férié : ${holiday}.`);
   if (leave) warnings.push(`Cette période chevauche un ${leave}.`);
-  if (conflict) warnings.push(`Conflit d'horaire avec : ${conflict}.`);
+  if (conflict) warnings.push(`Conflit d'horaire avec : ${conflict.titre}.`);
   return warnings;
 }
 

@@ -1,18 +1,28 @@
 import { prisma } from "@/lib/prisma";
 
+export type ScheduleConflict = {
+  titre: string;
+  /** Id de l'autre PersonalPlanningEntry en conflit, si c'en est une (pas une réunion). */
+  entryId: string | null;
+  /** Lien vers la réunion en conflit, si c'en est une. */
+  meetingHref: string | null;
+};
+
 /**
  * §42 — détecte un chevauchement horaire pour l'utilisateur, jamais
  * bloquant (même logique avertissement que §39/§41, voir
  * personal-planning-holidays.ts) : ses autres activités actives ET ses
- * réunions (Meeting, en tant que participant). Retourne le titre du premier
- * conflit trouvé.
+ * réunions (Meeting, en tant que participant). Retourne le premier conflit
+ * trouvé, avec de quoi agir dessus (id de l'entrée ou lien de la réunion —
+ * cahier de corrections UI/UX §14 : "Déplacer la réunion"/"Déplacer la
+ * mission" doivent être des actions concrètes, pas un bouton générique).
  */
 export async function findScheduleConflict(
   userId: string,
   dateDebut: Date,
   dateFin: Date,
   excludeEntryId?: string
-): Promise<string | null> {
+): Promise<ScheduleConflict | null> {
   const [entry, meeting] = await Promise.all([
     prisma.personalPlanningEntry.findFirst({
       where: {
@@ -22,7 +32,7 @@ export async function findScheduleConflict(
         dateDebut: { lt: dateFin },
         dateFin: { gt: dateDebut },
       },
-      select: { titre: true },
+      select: { id: true, titre: true },
     }),
     prisma.meeting.findFirst({
       where: {
@@ -31,9 +41,11 @@ export async function findScheduleConflict(
         // simple : sa date/heure tombe dans la plage testée.
         dateHeure: { gte: dateDebut, lt: dateFin },
       },
-      select: { titre: true },
+      select: { id: true, titre: true },
     }),
   ]);
 
-  return entry?.titre ?? meeting?.titre ?? null;
+  if (entry) return { titre: entry.titre, entryId: entry.id, meetingHref: null };
+  if (meeting) return { titre: meeting.titre, entryId: null, meetingHref: `/reunions/${meeting.id}` };
+  return null;
 }

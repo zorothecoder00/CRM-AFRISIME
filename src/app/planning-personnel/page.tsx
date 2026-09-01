@@ -64,7 +64,9 @@ import {
   type PersonalPlanningEntryStatut,
   type PersonalPlanningEntryType,
 } from "@/lib/personal-planning-types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { PersonalPlanningCapacityBar } from "@/components/personal-planning/personal-planning-capacity-bar";
 
 type Vue = "semaine" | "jour" | "mois" | "agenda" | "liste" | "timeline";
 
@@ -113,6 +115,15 @@ export default async function PlanningPersonnelPage({
     : ENTRY_TYPE_OPTIONS;
   const isEnRetard = enRetardParam === "1";
   const isAVenir = aVenirParam === "1";
+  // §18 (cahier de corrections UI/UX) — compteur affiché sur le bouton
+  // "Filtres" pour indiquer d'un coup d'œil que des filtres sont actifs.
+  const activeFilterCount =
+    (activePriorities.length < ENTRY_PRIORITE_ORDER.length ? 1 : 0) +
+    (activeStatuts.length > 0 ? 1 : 0) +
+    (activeTypes.length < ENTRY_TYPE_OPTIONS.length ? 1 : 0) +
+    (isEnRetard ? 1 : 0) +
+    (isAVenir ? 1 : 0) +
+    (activeProjetId ? 1 : 0);
   const vue: Vue = (["semaine", "jour", "mois", "agenda", "liste", "timeline"] as const).includes(vueParam as Vue)
     ? (vueParam as Vue)
     : "semaine";
@@ -288,9 +299,31 @@ export default async function PlanningPersonnelPage({
   const conflictLabels = await Promise.all(
     conflictCandidates.map((e) => findScheduleConflict(userId, new Date(e.dateDebut), new Date(e.dateFin), e.id))
   );
-  const conflicts = conflictCandidates
+  const conflictsRaw = conflictCandidates
     .map((entry, i) => ({ entry, conflictWith: conflictLabels[i] }))
-    .filter((c): c is { entry: (typeof conflictCandidates)[number]; conflictWith: string } => c.conflictWith !== null);
+    .filter(
+      (c): c is { entry: (typeof conflictCandidates)[number]; conflictWith: NonNullable<(typeof conflictLabels)[number]> } =>
+        c.conflictWith !== null
+    );
+
+  // §14 (cahier de corrections UI/UX) — "Déplacer" doit pouvoir cibler
+  // l'AUTRE activité du conflit, pas seulement la première : quand l'autre
+  // côté est une PersonalPlanningEntry (pas une réunion, déjà couverte par
+  // meetingHref), on va chercher ses données complètes pour pouvoir
+  // rouvrir son propre dialogue d'édition.
+  const otherEntryIds = [...new Set(conflictsRaw.map((c) => c.conflictWith.entryId).filter((id): id is string => !!id))];
+  const otherEntriesRaw =
+    otherEntryIds.length > 0
+      ? await prisma.personalPlanningEntry.findMany({
+          where: { id: { in: otherEntryIds } },
+          include: { tache: { select: { titre: true, projectId: true, ...TACHE_DEPENDENCIES_SELECT } }, projet: { select: { nom: true } }, participants: { select: { userId: true } } },
+        })
+      : [];
+  const otherEntryById = new Map(otherEntriesRaw.map((e) => [e.id, toPersonalPlanningEntryRow(e, new Map())]));
+  const conflicts = conflictsRaw.map((c) => ({
+    ...c,
+    otherEntry: c.conflictWith.entryId ? otherEntryById.get(c.conflictWith.entryId) : undefined,
+  }));
 
   // §22 — bilan de fin de journée (déplacé depuis /ma-journee, à la demande
   // de l'utilisateur). §43 — le même compte alimente le critère "tâches
@@ -448,11 +481,26 @@ export default async function PlanningPersonnelPage({
               </div>
             </div>
 
+            {/* §19/§20 (cahier de corrections UI/UX) — synthèse de la charge du
+                jour directement au-dessus du calendrier. */}
+            <PersonalPlanningCapacityBar charge={charge} />
+
             {/* Filtres avancés (type/statut/projet/raccourcis de période) repliés
                 par défaut — allège l'écran, la priorité reste visible en
-                permanence dans la colonne de gauche. */}
-            <details className="group rounded-md border p-3 text-sm">
-              <summary className="cursor-pointer select-none text-muted-foreground group-open:mb-3">Plus de filtres</summary>
+                permanence dans la colonne de gauche. Présentation en vrai
+                bouton (icône + compteur) plutôt qu'un simple lien texte
+                (cahier de corrections UI/UX §18 : "trop discret"). */}
+            <details className="group rounded-md border text-sm">
+              <summary className="flex cursor-pointer select-none items-center gap-2 rounded-md p-3 font-medium hover:bg-muted/40 group-open:border-b group-open:rounded-b-none">
+                <SlidersHorizontal className="h-4 w-4" />
+                Filtres
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="ml-0.5 text-[10px]">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </summary>
+              <div className="p-3 pt-0">
               <PersonalPlanningFilters
                 vue={vue}
                 semaine={semaine}
@@ -464,6 +512,7 @@ export default async function PlanningPersonnelPage({
                 projects={projects}
                 activeProjetId={activeProjetId}
               />
+              </div>
             </details>
 
             {vue === "semaine" && (

@@ -142,7 +142,10 @@ export default async function MaJourneePage() {
   );
   const conflicts = realTodayEntries
     .map((entry, i) => ({ entry, conflictWith: conflictLabels[i] }))
-    .filter((c): c is { entry: (typeof realTodayEntries)[number]; conflictWith: string } => c.conflictWith !== null);
+    .filter(
+      (c): c is { entry: (typeof realTodayEntries)[number]; conflictWith: NonNullable<(typeof conflictLabels)[number]> } =>
+        c.conflictWith !== null
+    );
 
   // §35/§36 — "Ma performance", calculée depuis myTasks (fenêtre 30 jours,
   // voir plus haut). computeWorkload réutilisé pour charge/temps (même
