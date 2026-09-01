@@ -58,7 +58,7 @@ export const PERSONAL_PLANNING_NAV_GROUPS: PersonalPlanningNavGroup[] = [
       { href: "/planning-personnel/charge-de-travail", label: "Temps / Charge", icon: Clock3 },
       { href: "/notifications", label: "Alertes", icon: Bell, badgeKey: "alertes" },
       { href: "/planning-personnel/performance", label: "Ma performance", icon: BarChart3 },
-      { href: "/parametres/profil?from=planning-personnel", label: "Paramètres", icon: Settings },
+      { href: "/planning-personnel/parametres", label: "Paramètres", icon: Settings },
     ],
   },
   // Management (prototype V2) — montre les donnees d'AUTRES collaborateurs,
