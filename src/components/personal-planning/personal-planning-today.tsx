@@ -11,7 +11,7 @@ import { ENTRY_TYPE_META, ENTRY_PRIORITE_META, ENTRY_PRIORITE_ORDER } from "@/li
 import type { DailyCharge } from "@/lib/personal-planning-workload";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 import { RequestReassignmentDialog, type ColleagueOption } from "@/components/personal-planning/request-reassignment-dialog";
-import { CalendarCheck2, ListChecks, TriangleAlert } from "lucide-react";
+import { Sun, ListChecks, TriangleAlert, ArrowRight } from "lucide-react";
 
 const GROUP_TITLE: Record<(typeof ENTRY_PRIORITE_ORDER)[number], string> = {
   CRITIQUE: "Priorités critiques",
@@ -45,12 +45,13 @@ export function PersonalPlanningToday({
   const reassignableEntries = sorted.filter((e) => e.priorite !== "CRITIQUE" && e.tacheId && !e.meetingHref);
 
   return (
-    <Card>
+    <Card className="min-h-[22rem]">
       <CardHeader className="flex flex-row items-center gap-2">
-        <CalendarCheck2 className="size-5 text-primary" />
+        <Sun className="size-5 text-primary" />
         <CardTitle className="text-base">Ma journée</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-1 flex-col space-y-4">
+        <div className="flex-1 space-y-4">
         {charge.enSurcharge && (
           <div className="flex flex-wrap items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-sm">
             <TriangleAlert className="h-4 w-4 shrink-0 text-destructive" />
@@ -123,6 +124,15 @@ export function PersonalPlanningToday({
             );
           })
         )}
+        </div>
+
+        <Link
+          href="/ma-journee"
+          className="mt-auto flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
+        >
+          Voir toute ma journée
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </CardContent>
       <RequestReassignmentDialog
         open={reassignOpen}

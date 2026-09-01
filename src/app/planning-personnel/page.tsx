@@ -38,8 +38,9 @@ import { PersonalPlanningViewSwitcher } from "@/components/personal-planning/vie
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
-import { RequestAvailabilityDialog } from "@/components/personal-planning/request-availability-dialog";
+import { QuickCaptureButton } from "@/components/personal-planning/quick-capture-button";
 import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
+import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
 import { SentRequestsList } from "@/components/personal-planning/sent-requests-list";
@@ -52,11 +53,10 @@ import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
 import { countReporteesToday } from "@/lib/personal-planning-reportees";
 import { computeTaskHealthStats } from "@/lib/personal-planning-task-stats";
-import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
+import { PersonalPlanningHealthCard } from "@/components/personal-planning/personal-planning-health-card";
+import { PersonalPlanningDailyLoadCard } from "@/components/personal-planning/personal-planning-daily-load-card";
+import { PersonalPlanningStats } from "@/components/personal-planning/personal-planning-stats";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
-import { PersonalPlanningPrioritySidebar } from "@/components/personal-planning/personal-planning-priority-sidebar";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
-import { PersonalPlanningDashboardHeader } from "@/components/personal-planning/personal-planning-dashboard-header";
 import {
   ENTRY_PRIORITE_ORDER,
   ENTRY_TYPE_OPTIONS,
@@ -64,9 +64,12 @@ import {
   type PersonalPlanningEntryStatut,
   type PersonalPlanningEntryType,
 } from "@/lib/personal-planning-types";
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Vue = "semaine" | "jour" | "mois" | "agenda" | "liste" | "timeline";
+
+/** Aperçu limité sur le hub — la liste complète reste consultable via /planning-personnel/demandes. */
+const REQUESTS_PREVIEW_LIMIT = 5;
 
 /**
  * Module "Planning personnel" (cahier des charges §1-10) : notes/créneaux
@@ -116,6 +119,7 @@ export default async function PlanningPersonnelPage({
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const userName = session!.user.name ?? "Moi";
+  const canCreateTask = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
 
   const refDate = semaine ? parseISO(semaine) : new Date();
   const now = new Date();
@@ -142,7 +146,7 @@ export default async function PlanningPersonnelPage({
   // place à la création).
   const nonWorkingMap = await findNonWorkingDaysInRange(userId, rangeStart, rangeEnd);
 
-  const [entriesRaw, todayEntriesRaw, receivedRequests, sentRequests, colleagues, projects, tasks, objectives, inboxTasksRaw, me] = await Promise.all([
+  const [entriesRaw, todayEntriesRaw, receivedRequests, sentRequests, colleagues, projects, tasks, objectives, inboxTasksRaw, me, plans, competences] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
       where: { userId, dateDebut: { lte: rangeEnd }, dateFin: { gte: rangeStart } },
       include: {
@@ -180,7 +184,7 @@ export default async function PlanningPersonnelPage({
     prisma.project.findMany({
       where: { members: { some: { userId } } },
       orderBy: { nom: "asc" },
-      select: { id: true, nom: true },
+      select: { id: true, nom: true, sections: { select: { id: true, nom: true } } },
     }),
     prisma.task.findMany({
       where: { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },
@@ -204,6 +208,8 @@ export default async function PlanningPersonnelPage({
       select: { id: true, titre: true, priorite: true, project: { select: { nom: true } } },
     }),
     prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { capaciteHebdomadaireHeures: true } }),
+    canCreateTask ? prisma.plan.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }) : Promise.resolve([]),
+    canCreateTask ? prisma.competence.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }) : Promise.resolve([]),
   ]);
 
   // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
@@ -358,112 +364,103 @@ export default async function PlanningPersonnelPage({
   }));
 
   const colleagueOptions = colleagues.map((c) => ({ id: c.id, label: c.name }));
+  const projectsForTaskForm = projects.map((p) => ({ id: p.id, nom: p.nom, sections: p.sections.map((s) => ({ id: s.id, label: s.nom })) }));
+  const dateLabel = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const plannedTodayCount = todayEntriesRaw.filter((e) => e.statut === "PLANIFIEE").length;
 
   return (
     <PersonalPlanningDndProvider>
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="space-y-6 lg:col-span-2">
-        <PersonalPlanningCrosslinks current="/planning-personnel" />
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-lg font-semibold">Bonjour {userName} 👋</p>
+            <p className="text-sm capitalize text-muted-foreground">{dateLabel}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Vos activités privées — distinct de{" "}
+              <Link href="/planning" className="text-primary hover:underline">
+                votre agenda
+              </Link>
+              . Seule votre disponibilité (occupé/libre) est visible des autres.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {canCreateTask && (
+              <TaskFormDialog
+                projects={projectsForTaskForm}
+                users={colleagueOptions}
+                objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
+                plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
+                competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
+              />
+            )}
+            <PersonalPlanningEntryFormDialog refData={refData} />
+            {session!.user.permissions.includes(PERMISSIONS.MEETING_CREATE) && (
+              <MeetingFormDialog projects={projects.map((p) => ({ id: p.id, label: p.nom }))} users={colleagueOptions} />
+            )}
+            <QuickCaptureButton />
+          </div>
+        </div>
 
-        <PersonalPlanningDashboardHeader
-          userName={userName}
-          today={now}
+        <PersonalPlanningStats
           stats={{
-            aujourdHui: todayEntriesRaw.length,
+            tachesJour: todayEntriesRaw.length,
+            tachesJourPlanifiees: plannedTodayCount,
             enRetard: enRetardCount,
             aVenir: aVenirCount,
             reunions: todayMeetingsRaw.length,
             chargePercent: charge.tauxOccupation,
+            planningHealth,
           }}
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Lock className="size-6 text-muted-foreground" />
-            <div>
-              <h1 className="text-2xl font-semibold">Planning personnel</h1>
-              <p className="text-sm text-muted-foreground">
-                Vos activités privées — distinct de{" "}
-                <Link href="/planning" className="text-primary hover:underline">
-                  votre agenda
-                </Link>
-                . Seule votre disponibilité (occupé/libre) est visible des autres.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <RequestAvailabilityDialog colleagues={colleagueOptions} />
-            {session!.user.permissions.includes(PERMISSIONS.MEETING_CREATE) && (
-              <MeetingFormDialog
-                projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
-                users={colleagueOptions}
-              />
-            )}
-            <PersonalPlanningEntryFormDialog refData={refData} />
-          </div>
-        </div>
-
-        <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
-
-        <PlanningHealthBadge score={planningHealth} />
-
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
-        <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
-
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
-          <div className="flex items-center gap-2">
-            <Link href={prevHref}>
-              <Button variant="outline" size="icon">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <span className="text-sm capitalize text-muted-foreground">{periodLabel}</span>
-            <Link href={todayHref}>
-              <Button variant="outline" size="sm">
-                Aujourd&apos;hui
-              </Button>
-            </Link>
-            <Link href={nextHref}>
-              <Button variant="outline" size="icon">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </Link>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[260px_minmax(0,1fr)_280px]">
+          <div className="space-y-6">
+            <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
           </div>
-        </div>
 
-        {/* Filtres avancés (type/statut/projet/raccourcis de période) repliés
-            par défaut — allège l'écran, la priorité reste visible en
-            permanence dans la colonne de gauche du calendrier ci-dessous. */}
-        <details className="group rounded-md border p-3 text-sm">
-          <summary className="cursor-pointer select-none text-muted-foreground group-open:mb-3">Plus de filtres</summary>
-          <PersonalPlanningFilters
-            vue={vue}
-            semaine={semaine}
-            activePriorites={activePriorities}
-            activeStatuts={activeStatuts}
-            activeTypes={activeTypes}
-            enRetard={isEnRetard}
-            aVenir={isAVenir}
-            projects={projects}
-            activeProjetId={activeProjetId}
-          />
-        </details>
+          <div className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
+              <div className="flex items-center gap-2">
+                <Link href={prevHref}>
+                  <Button variant="outline" size="icon">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <span className="text-sm capitalize text-muted-foreground">{periodLabel}</span>
+                <Link href={todayHref}>
+                  <Button variant="outline" size="sm">
+                    Aujourd&apos;hui
+                  </Button>
+                </Link>
+                <Link href={nextHref}>
+                  <Button variant="outline" size="icon">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-[auto_1fr] gap-6">
-          <PersonalPlanningPrioritySidebar
-            vue={vue}
-            semaine={semaine}
-            activePriorites={activePriorities}
-            activeStatuts={activeStatuts}
-            activeTypes={activeTypes}
-            enRetard={isEnRetard}
-            aVenir={isAVenir}
-            activeProjetId={activeProjetId}
-          />
+            {/* Filtres avancés (type/statut/projet/raccourcis de période) repliés
+                par défaut — allège l'écran, la priorité reste visible en
+                permanence dans la colonne de gauche. */}
+            <details className="group rounded-md border p-3 text-sm">
+              <summary className="cursor-pointer select-none text-muted-foreground group-open:mb-3">Plus de filtres</summary>
+              <PersonalPlanningFilters
+                vue={vue}
+                semaine={semaine}
+                activePriorites={activePriorities}
+                activeStatuts={activeStatuts}
+                activeTypes={activeTypes}
+                enRetard={isEnRetard}
+                aVenir={isAVenir}
+                projects={projects}
+                activeProjetId={activeProjetId}
+              />
+            </details>
 
-          <div className="min-w-0">
             {vue === "semaine" && (
               <PersonalPlanningWeek
                 days={eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day): PersonalPlanningDay => ({
@@ -522,31 +519,53 @@ export default async function PlanningPersonnelPage({
               />
             )}
           </div>
+
+          <div id="a-planifier" className="scroll-mt-20 space-y-6">
+            <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
+            <PersonalPlanningHealthCard score={planningHealth} />
+            <PersonalPlanningDailyLoadCard charge={charge} />
+            <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Demandes reçues</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ReceivedRequestsSection requests={receivedRows.slice(0, REQUESTS_PREVIEW_LIMIT)} />
+              {receivedRows.length > 0 && (
+                <Link
+                  href="/planning-personnel/demandes?type=recues"
+                  className="flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
+                >
+                  Voir toutes mes demandes reçues ({receivedRows.length})
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Mes demandes envoyées</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <SentRequestsList requests={sentRows.slice(0, REQUESTS_PREVIEW_LIMIT)} />
+              {sentRows.length > 0 && (
+                <Link
+                  href="/planning-personnel/demandes?type=envoyees"
+                  className="flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
+                >
+                  Voir toutes mes demandes envoyées ({sentRows.length})
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      <div className="space-y-6">
-        <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Demandes reçues</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ReceivedRequestsSection requests={receivedRows} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mes demandes envoyées</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SentRequestsList requests={sentRows} />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
     </PersonalPlanningDndProvider>
   );
 }

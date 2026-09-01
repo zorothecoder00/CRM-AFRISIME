@@ -7,6 +7,17 @@ export const GRID_START_HOUR = 7;
 export const GRID_END_HOUR = 20;
 export const HOUR_HEIGHT_PX = 56;
 
+/**
+ * Barre de défilement de largeur FIXE pour les grilles horaires (vues
+ * Jour/Semaine) : sans ça, le scrollbar natif du navigateur change de
+ * largeur au survol/glissé (comportement par défaut de Chrome/Edge sous
+ * Windows), ce qui donnait l'impression d'un défilement "tantôt mince tantôt
+ * gros" d'un rendu à l'autre. Règles CSS réelles dans globals.css
+ * (`.thin-scrollbar`) — les variantes arbitraires Tailwind
+ * (`[&::-webkit-scrollbar]:...`) ne généraient aucune règle.
+ */
+export const THIN_SCROLLBAR_CLASS = "thin-scrollbar";
+
 export function gridHours(startHour: number = GRID_START_HOUR, endHour: number = GRID_END_HOUR): number[] {
   return Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 }
@@ -80,4 +91,13 @@ export function offsetPx(date: Date, gridStart: Date): number {
 
 export function dateKeyOf(day: Date): string {
   return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+}
+
+/** Une activité qui court sur plusieurs jours (typiquement une Mission, §26bis) — rendue en bandeau "toute la journée" plutôt qu'étirée sur toute la hauteur d'une grille horaire (vues Jour et Semaine). */
+export function isMultiDayEntry(entry: { dateDebut: string; dateFin: string }): boolean {
+  const start = new Date(entry.dateDebut);
+  const end = new Date(entry.dateFin);
+  return (
+    start.getFullYear() !== end.getFullYear() || start.getMonth() !== end.getMonth() || start.getDate() !== end.getDate()
+  );
 }

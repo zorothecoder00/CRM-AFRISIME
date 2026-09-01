@@ -217,3 +217,33 @@
     display: none;
   }
 }
+
+/*
+ * Barre de defilement fine et de largeur FIXE (grilles horaires du planning
+ * personnel, vues Jour/Semaine) : ecrite en CSS brut plutot qu'en variantes
+ * arbitraires Tailwind (`[&::-webkit-scrollbar]:...`) — testees d'abord,
+ * elles ne generaient AUCUNE regle (verifie via document.styleSheets), le
+ * scrollbar redevenait alors le scrollbar natif variable du navigateur.
+ * Couleur pleine (pas de /30, /40) : un scrollbar quasi transparent se
+ * confond avec le fond et semble avoir disparu.
+ */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--foreground);
+}

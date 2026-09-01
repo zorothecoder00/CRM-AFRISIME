@@ -10,7 +10,11 @@ import { toneForPriority } from "@/lib/status-tone";
 import { useAction } from "@/hooks/use-action";
 import { reassignInboxTask } from "@/actions/personal-planning.actions";
 import { deleteTask } from "@/actions/trash.actions";
-import { GripVertical, Inbox, UserRoundCog, Trash2 } from "lucide-react";
+import { GripVertical, Inbox, UserRoundCog, Trash2, ArrowRight } from "lucide-react";
+
+/** Nombre de tâches affichées dans l'aperçu — au-delà, "Voir toutes les tâches"
+ * évite que le bloc n'allonge la page indéfiniment quand l'inbox grossit. */
+const PREVIEW_LIMIT = 5;
 
 export type InboxTaskRow = {
   id: string;
@@ -115,10 +119,19 @@ export function PersonalPlanningInbox({ tasks, colleagues }: { tasks: InboxTaskR
               Glissez une tâche vers une case horaire des vues <strong>Jour</strong> ou <strong>Semaine</strong> pour la planifier (les autres vues
               n&apos;ont pas de zone de dépôt). L&apos;icône <UserRoundCog className="inline h-3 w-3" /> affecte la tâche à un collègue.
             </p>
-            {tasks.map((t) => (
+            {tasks.slice(0, PREVIEW_LIMIT).map((t) => (
               <InboxTaskCard key={t.id} task={t} colleagues={colleagues} />
             ))}
           </>
+        )}
+        {tasks.length > 0 && (
+          <Link
+            href="/taches?mine=1"
+            className="mt-1.5 flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
+          >
+            Voir toutes les tâches ({tasks.length})
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         )}
       </CardContent>
     </Card>

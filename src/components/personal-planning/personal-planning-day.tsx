@@ -9,7 +9,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
 import { detectTightTransition } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
-import { GRID_START_HOUR, GRID_END_HOUR, HOUR_HEIGHT_PX, gridHours, gridStartOf, offsetPx, dateKeyOf, computeGridBounds, clippedEntryRange } from "@/lib/personal-planning-grid";
+import { HOUR_HEIGHT_PX, THIN_SCROLLBAR_CLASS, gridHours, gridStartOf, offsetPx, dateKeyOf, clippedEntryRange, isMultiDayEntry } from "@/lib/personal-planning-grid";
 
 function HourSlot({ dayKey, hour, top }: { dayKey: string; hour: number; top: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: `hour-${dayKey}-${hour}`, data: { date: dayKey, hour } });
@@ -45,12 +45,20 @@ export function PersonalPlanningDay({
   const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
     editing && editing.type !== "RESERVE" ? { ...editing, type: editing.type } : null;
-  const bounds = computeGridBounds(entries, day);
+  // Les activités multi-jours (Mission, §26bis) sont rendues à part en
+  // bandeau "toute la journée" plutôt qu'étirées sur toute la hauteur de la
+  // grille horaire — bien plus lisible qu'un long bloc vertical. Exclues du
+  // calcul des bornes (computeGridBounds) : elles ne doivent pas dicter
+  // l'amplitude de la grille horaire.
+  const allDayEntries = entries.filter(isMultiDayEntry);
+  const sorted = entries.filter((e) => !isMultiDayEntry(e)).sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
+  // Journée complète (0h-24h) toujours affichée — plus de plage 7h-20h qui
+  // masquait les activités matinales/nocturnes ; le défilement interne
+  // ci-dessous évite qu'un tableau de 24 lignes n'allonge toute la page.
+  const bounds = { startHour: 0, endHour: 24 };
   const hours = gridHours(bounds.startHour, bounds.endHour);
   const dayKey = dateKeyOf(day);
   const gridStart = gridStartOf(day, bounds.startHour);
-
-  const sorted = [...entries].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
   const nonWorkingStyle = nonWorkingReason ? NON_WORKING_STYLES[nonWorkingReason.kind] : null;
 
@@ -61,7 +69,21 @@ export function PersonalPlanningDay({
           {nonWorkingStyle.emoji} {nonWorkingReason.label}
         </div>
       )}
-      <div className="relative rounded-md border" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
+      {allDayEntries.length > 0 && (
+        <div className="space-y-1 rounded-md border bg-muted/10 p-1.5">
+          {allDayEntries.map((entry) => (
+            <EntryBlock key={entry.id} entry={entry} onEdit={() => setEditing(entry)} allDay />
+          ))}
+        </div>
+      )}
+      {/* Hauteur FIXE (même valeur que la vue Semaine, pas un simple
+          max-height) + défilement interne : les 24 lignes restent
+          consultables sans étirer toute la page, avec une taille de grille
+          identique d'un jour à l'autre. pt : le libellé "00:00" est centré
+          sur sa ligne via -translate-y-1/2 et déborde légèrement au-dessus
+          de top:0 — sans cette marge, le conteneur défilant le rognait. */}
+      <div className={cn("h-[min(70vh,900px)] overflow-y-auto rounded-md border pt-2", THIN_SCROLLBAR_CLASS)}>
+      <div className="relative" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
       {hours.map((h, i) => (
         <div
           key={h}
@@ -99,15 +121,16 @@ export function PersonalPlanningDay({
         })}
       </div>
 
-      {entries.length === 0 && (
+      {sorted.length === 0 && allDayEntries.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <Badge variant="outline">Rien de prévu entre {GRID_START_HOUR}h et {GRID_END_HOUR}h</Badge>
+          <Badge variant="outline">Rien de prévu aujourd&apos;hui</Badge>
         </div>
       )}
 
       {editData && (
         <PersonalPlanningEntryEditDialog entry={editData} open={!!editing} onOpenChange={(o) => setEditing(o ? editing : null)} refData={refData} />
       )}
+      </div>
       </div>
     </div>
   );
