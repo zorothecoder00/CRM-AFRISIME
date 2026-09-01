@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock3 } from "lucide-react";
-import type { DailyCharge } from "@/lib/personal-planning-workload";
-
-function formatHours(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
-}
+import { formatHours, type DailyCharge } from "@/lib/personal-planning-workload";
 
 /** Widget "Charge du jour" du hub — reprend le même calcul que le bandeau de surcharge (§15). */
 export function PersonalPlanningDailyLoadCard({ charge }: { charge: DailyCharge }) {

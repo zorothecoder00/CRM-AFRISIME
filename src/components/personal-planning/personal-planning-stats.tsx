@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { CalendarCheck, Clock, CalendarClock, Users, Gauge, HeartPulse, type LucideIcon } from "lucide-react";
+import { formatHours } from "@/lib/personal-planning-workload";
+import { CalendarCheck, Clock, CalendarClock, Users, HeartPulse, type LucideIcon } from "lucide-react";
 
 export type PersonalPlanningStatsData = {
   tachesJour: number;
@@ -9,6 +10,8 @@ export type PersonalPlanningStatsData = {
   aVenir: number;
   reunions: number;
   chargePercent: number;
+  chargeHeures: number;
+  capaciteHeures: number;
   planningHealth: number;
 };
 
@@ -57,11 +60,11 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         sublabel="Aujourd'hui"
         href="/planning-personnel?vue=jour&type=REUNION"
       />
-      <StatTile
-        icon={Gauge}
+      <ChargeRingTile
         tone={chargeTone}
+        percent={stats.chargePercent}
         label="Charge de travail"
-        value={`${stats.chargePercent}%`}
+        hoursLabel={`${formatHours(stats.chargeHeures)} / ${formatHours(stats.capaciteHeures)}`}
         sublabel={stats.chargePercent > 100 ? "Surcharge" : "Aujourd'hui"}
         href="/ma-journee"
       />
@@ -100,12 +103,78 @@ function StatTile({
   href: string;
 }) {
   return (
-    <Link href={href} className="flex items-center gap-2 rounded-md border p-2 transition-colors hover:bg-muted/40">
+    <Link href={href} className="flex items-center justify-center gap-2 rounded-md border p-2 text-center transition-colors hover:bg-muted/40">
       <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", TONE_CLASSES[tone])}>
         <Icon className="size-4" />
       </div>
       <div className="min-w-0">
         <div className="text-lg font-semibold leading-tight">{value}</div>
+        <div className="truncate text-xs text-muted-foreground">{label}</div>
+        <div className="truncate text-[10px] leading-tight text-muted-foreground/70">{sublabel}</div>
+      </div>
+    </Link>
+  );
+}
+
+const STROKE_CLASSES: Record<"good" | "warn" | "bad", string> = {
+  good: "stroke-success",
+  warn: "stroke-warning",
+  bad: "stroke-destructive",
+};
+
+const RING_TEXT_CLASSES: Record<"good" | "warn" | "bad", string> = {
+  good: "text-success",
+  warn: "text-warning",
+  bad: "text-destructive",
+};
+
+/**
+ * Carte "Charge de travail" : le pourcentage est entouré d'un anneau qui en
+ * montre visuellement le remplissage (au lieu d'un simple texte), et la
+ * valeur principale affiche la charge en heures (ex. "7h30 / 8h") plutôt que
+ * de répéter le pourcentage.
+ */
+function ChargeRingTile({
+  tone,
+  percent,
+  label,
+  hoursLabel,
+  sublabel,
+  href,
+}: {
+  tone: "good" | "warn" | "bad";
+  percent: number;
+  label: string;
+  hoursLabel: string;
+  sublabel: string;
+  href: string;
+}) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const radius = 15;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - clamped / 100);
+
+  return (
+    <Link href={href} className="flex items-center justify-center gap-2 rounded-md border p-2 text-center transition-colors hover:bg-muted/40">
+      <div className="relative flex size-9 shrink-0 items-center justify-center">
+        <svg viewBox="0 0 36 36" className="size-9 -rotate-90">
+          <circle cx="18" cy="18" r={radius} fill="none" className="stroke-muted" strokeWidth="3.5" />
+          <circle
+            cx="18"
+            cy="18"
+            r={radius}
+            fill="none"
+            className={STROKE_CLASSES[tone]}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+          />
+        </svg>
+        <span className={cn("absolute text-[9px] font-bold", RING_TEXT_CLASSES[tone])}>{Math.round(percent)}%</span>
+      </div>
+      <div className="min-w-0">
+        <div className="text-lg font-semibold leading-tight">{hoursLabel}</div>
         <div className="truncate text-xs text-muted-foreground">{label}</div>
         <div className="truncate text-[10px] leading-tight text-muted-foreground/70">{sublabel}</div>
       </div>

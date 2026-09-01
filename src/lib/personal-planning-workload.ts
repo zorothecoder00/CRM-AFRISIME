@@ -17,6 +17,13 @@ export type DailyCharge = {
 
 const WORK_DAYS_PER_WEEK = 5;
 
+/** Formatage court d'une durée décimale en heures — "7h" ou "7h30". */
+export function formatHours(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
+}
+
 export function computeDailyCapacity(capaciteHebdomadaireHeures: number): number {
   return capaciteHebdomadaireHeures / WORK_DAYS_PER_WEEK;
 }

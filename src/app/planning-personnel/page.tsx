@@ -409,6 +409,8 @@ export default async function PlanningPersonnelPage({
             aVenir: aVenirCount,
             reunions: todayMeetingsRaw.length,
             chargePercent: charge.tauxOccupation,
+            chargeHeures: charge.chargeHeures,
+            capaciteHeures: charge.capaciteHeures,
             planningHealth,
           }}
         />
