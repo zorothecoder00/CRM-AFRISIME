@@ -68,19 +68,22 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
   refData,
   idPrefix,
   showMissionReport = false,
+  defaultShowMore = false,
 }: {
   form: UseFormReturn<T>;
   refData: PersonalPlanningReferenceData;
   idPrefix: string;
   /** Le rapport de mission ne se remplit qu'après coup (édition), comme le compte rendu de réunion. */
   showMissionReport?: boolean;
+  /** Ouvre directement "Plus d'options" (lieu/répétition/rappel...) — utile quand le contexte d'ouverture porte déjà sur un de ces champs (ex. page Récurrences). */
+  defaultShowMore?: boolean;
 }) {
   const register = form.register as unknown as (name: keyof FieldValues) => ReturnType<UseFormReturn<FieldValues>["register"]>;
   const watch = form.watch as unknown as (name: keyof FieldValues) => unknown;
   const setValue = form.setValue as unknown as (name: keyof FieldValues, value: unknown, opts?: { shouldDirty?: boolean }) => void;
   const errors = form.formState.errors as unknown as Record<string, { message?: string } | undefined>;
 
-  const [showMore, setShowMore] = useState(false);
+  const [showMore, setShowMore] = useState(defaultShowMore);
   const [tagsText, setTagsText] = useState(((watch("etiquettes") as string[] | undefined) ?? []).join(", "));
 
   const projetId = watch("projetId") as string | undefined;

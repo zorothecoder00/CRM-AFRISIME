@@ -266,7 +266,11 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
     await notifyTaskColleaguesOfSchedule(data.tacheId, session.user.id, session.user.name ?? "Un collègue", dateDebut);
   }
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   const first = created[0];
   const warnings = await collectPlanningWarnings(session.user.id, first.dateDebut, first.dateFin, first.id);
   return {
@@ -405,7 +409,11 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
     }
   }
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return {
     ...entry,
     dateDebut: entry.dateDebut.toISOString(),
@@ -425,7 +433,11 @@ export async function deletePersonalPlanningEntry(input: DeletePersonalPlanningE
 
   await prisma.personalPlanningEntry.delete({ where: { id: data.id } });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return { id: data.id };
 }
 
@@ -438,7 +450,11 @@ export async function deletePersonalPlanningEntrySeries(input: DeletePersonalPla
     where: { recurrenceGroupId: data.recurrenceGroupId, userId: session.user.id, dateDebut: { gte: new Date() } },
   });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return { count };
 }
 
@@ -471,7 +487,11 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
 
   await notifyTaskColleaguesOfSchedule(task.id, session.user.id, session.user.name ?? "Un collègue", dateDebut);
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   const warnings = await collectPlanningWarnings(session.user.id, entry.dateDebut, entry.dateFin, entry.id);
   return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString(), warnings };
 }
@@ -507,7 +527,11 @@ export async function reassignInboxTask(input: ReassignInboxTaskInput) {
     entityId: task.id,
   });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   revalidatePath("/taches");
   return { id: task.id };
 }
@@ -557,7 +581,11 @@ export async function promoteEntryToTask(input: PromoteEntryToTaskInput) {
     changes: { taskId: task.id, projectId: data.projectId },
   });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   revalidatePath("/taches");
   return { id: task.id };
 }
@@ -592,7 +620,11 @@ export async function movePersonalPlanningEntry(input: MovePersonalPlanningEntry
     await notifyTaskColleaguesOfSchedule(entry.tacheId, session.user.id, session.user.name ?? "Un collègue", entry.dateDebut);
   }
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   const warnings = await collectPlanningWarnings(session.user.id, entry.dateDebut, entry.dateFin, entry.id);
   return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString(), warnings };
 }
@@ -720,7 +752,11 @@ export async function reorganizeOverloadedDay(input: ReorganizeOverloadedDayInpu
     )
   );
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return { moved };
 }
 
@@ -837,7 +873,11 @@ export async function createAvailabilityRequest(input: CreateAvailabilityRequest
     entityId: request.id,
   });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return { ...request, dateDebut: request.dateDebut.toISOString(), dateFin: request.dateFin.toISOString() };
 }
 
@@ -900,7 +940,11 @@ export async function decideAvailabilityRequest(input: DecideAvailabilityRequest
     entityId: request.id,
   });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return { ...request, dateDebut: request.dateDebut.toISOString(), dateFin: request.dateFin.toISOString() };
 }
 
@@ -921,7 +965,11 @@ export async function cancelAvailabilityRequest(input: CancelAvailabilityRequest
     data: { statut: "ANNULEE", decidedAt: new Date() },
   });
 
-  revalidatePath(PLANNING_PATH);
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
+  // sous-pages restaient périmées après une action déclenchée ailleurs
+  // (ex. créer une activité depuis /planning-personnel/recurrences).
+  revalidatePath(PLANNING_PATH, "layout");
   return { ...request, dateDebut: request.dateDebut.toISOString(), dateFin: request.dateFin.toISOString() };
 }
 
@@ -972,11 +1020,9 @@ export async function saveDailyReviewNotes(input: SaveDailyReviewNotesInput) {
   });
 
   // Le bilan vit sur /planning-personnel (déplacé depuis /ma-journee, voir
-  // le commentaire en tête de cette page) — revalider l'ancien chemin ne
-  // rafraîchissait ni la carte du bilan ni /planning-personnel/bilans,
-  // laissant les deux affichant les notes déjà supprimées côté base.
-  revalidatePath("/planning-personnel");
-  revalidatePath("/planning-personnel/bilans");
+  // le commentaire en tête de cette page) — "layout" revalide en plus
+  // /planning-personnel/bilans (et le reste du sous-arbre) en un seul appel.
+  revalidatePath(PLANNING_PATH, "layout");
   return { id: review.id, notes: review.notes };
 }
 

@@ -25,12 +25,31 @@ const DEFAULT_VALUES: Partial<CreatePersonalPlanningEntryInput> = {
   piecesJointes: [],
 };
 
-/** Création d'une activité de planning personnel (§9), privée par défaut. */
-export function PersonalPlanningEntryFormDialog({ refData }: { refData: PersonalPlanningReferenceData }) {
+/**
+ * Création d'une activité de planning personnel (§9), privée par défaut.
+ * `defaultValues`/`defaultShowMore`/`triggerLabel`/`dialogTitle` permettent
+ * de préconfigurer le formulaire pour un contexte précis (ex. la page
+ * Récurrences pré-sélectionne une répétition et ouvre directement "Plus
+ * d'options") sans dupliquer tout le dialogue.
+ */
+export function PersonalPlanningEntryFormDialog({
+  refData,
+  defaultValues,
+  defaultShowMore = false,
+  triggerLabel = "Nouvelle activité",
+  dialogTitle = "Nouvelle activité de planning personnel",
+}: {
+  refData: PersonalPlanningReferenceData;
+  defaultValues?: Partial<CreatePersonalPlanningEntryInput>;
+  defaultShowMore?: boolean;
+  triggerLabel?: string;
+  dialogTitle?: string;
+}) {
   const [open, setOpen] = useState(false);
+  const mergedDefaults = { ...DEFAULT_VALUES, ...defaultValues };
   const form = useForm<CreatePersonalPlanningEntryInput>({
     resolver: zodResolver(createPersonalPlanningEntrySchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: mergedDefaults,
   });
   const { handleSubmit, reset } = form;
   const { run: submit, isPending } = useAction(createPersonalPlanningEntry, {
@@ -43,7 +62,7 @@ export function PersonalPlanningEntryFormDialog({ refData }: { refData: Personal
     if (result.ok) {
       // §39/§41/§42 — avertissements de planification, jamais bloquants.
       result.data.warnings.forEach((w) => toast.warning(w));
-      reset(DEFAULT_VALUES);
+      reset(mergedDefaults);
       setOpen(false);
     }
   }
@@ -53,15 +72,15 @@ export function PersonalPlanningEntryFormDialog({ refData }: { refData: Personal
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="mr-1 h-4 w-4" />
-          Nouvelle activité
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Nouvelle activité de planning personnel</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <PersonalPlanningEntryFields form={form} refData={refData} idPrefix="new" />
+          <PersonalPlanningEntryFields form={form} refData={refData} idPrefix="new" defaultShowMore={defaultShowMore} />
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ajout..." : "Ajouter"}
           </Button>

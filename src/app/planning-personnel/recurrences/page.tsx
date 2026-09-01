@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { DeleteSeriesButton } from "@/components/personal-planning/delete-series-button";
+import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
+import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import { ENTRY_RAPPEL_LABELS, ENTRY_TYPE_META, type PersonalPlanningRappel, type PersonalPlanningEntryType } from "@/lib/personal-planning-types";
 import { Repeat } from "lucide-react";
 
@@ -42,20 +44,41 @@ export default async function PersonalPlanningRecurrencesPage() {
   const userId = session!.user.id;
   const now = new Date();
 
-  const entries = await prisma.personalPlanningEntry.findMany({
-    where: { userId, recurrenceGroupId: { not: null } },
-    orderBy: { dateDebut: "asc" },
-    select: {
-      id: true,
-      titre: true,
-      type: true,
-      repetition: true,
-      repetitionFin: true,
-      recurrenceGroupId: true,
-      rappels: true,
-      dateDebut: true,
-    },
-  });
+  const [entries, colleagues, projects, tasks, objectives] = await Promise.all([
+    prisma.personalPlanningEntry.findMany({
+      where: { userId, recurrenceGroupId: { not: null } },
+      orderBy: { dateDebut: "asc" },
+      select: {
+        id: true,
+        titre: true,
+        type: true,
+        repetition: true,
+        repetitionFin: true,
+        recurrenceGroupId: true,
+        rappels: true,
+        dateDebut: true,
+      },
+    }),
+    prisma.user.findMany({ where: { isActive: true, id: { not: userId } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.project.findMany({ where: { members: { some: { userId } } }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    prisma.task.findMany({
+      where: { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },
+      orderBy: { titre: "asc" },
+      select: { id: true, titre: true, projectId: true },
+    }),
+    prisma.objective.findMany({ where: { userId }, orderBy: { titre: "asc" }, select: { id: true, titre: true } }),
+  ]);
+
+  // §9 — mêmes données de référence que le formulaire "Nouvelle activité"
+  // du hub, pour pouvoir ouvrir ce même dialogue directement depuis cette
+  // page (au lieu de renvoyer l'utilisateur vers /planning-personnel sans
+  // rien lui faire faire une fois arrivé là-bas).
+  const refData: PersonalPlanningReferenceData = {
+    colleagues: colleagues.map((c) => ({ id: c.id, label: c.name })),
+    projects,
+    tasks,
+    objectives,
+  };
 
   type Group = {
     recurrenceGroupId: string;
@@ -102,13 +125,17 @@ export default async function PersonalPlanningRecurrencesPage() {
           <div>
             <h1 className="text-2xl font-semibold">Récurrences</h1>
             <p className="text-sm text-muted-foreground">
-              {series.length} activité(s) répétitive(s) — créez-en une depuis « Nouvelle activité », option Répétition.
+              {series.length} activité(s) répétitive(s).
             </p>
           </div>
         </div>
-        <Link href="/planning-personnel">
-          <Button size="sm">+ Nouvelle activité récurrente</Button>
-        </Link>
+        <PersonalPlanningEntryFormDialog
+          refData={refData}
+          defaultValues={{ repetition: "HEBDOMADAIRE" }}
+          defaultShowMore
+          triggerLabel="Nouvelle activité récurrente"
+          dialogTitle="Nouvelle activité récurrente"
+        />
       </div>
 
       <Card>
