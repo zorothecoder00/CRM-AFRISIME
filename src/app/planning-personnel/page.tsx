@@ -35,11 +35,8 @@ import { PersonalPlanningList, type PersonalPlanningListRow } from "@/components
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
 import { PersonalPlanningEndOfDay } from "@/components/personal-planning/end-of-day";
 import { PersonalPlanningViewSwitcher } from "@/components/personal-planning/view-switcher";
-import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
-import { QuickCaptureButton } from "@/components/personal-planning/quick-capture-button";
-import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
@@ -436,22 +433,19 @@ export default async function PlanningPersonnelPage({
               . Seule votre disponibilité (occupé/libre) est visible des autres.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {canCreateTask && (
-              <TaskFormDialog
-                projects={projectsForTaskForm}
-                users={colleagueOptions}
-                objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
-                plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
-                competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
-              />
-            )}
-            <PersonalPlanningEntryFormDialog refData={refData} />
-            {session!.user.permissions.includes(PERMISSIONS.MEETING_CREATE) && (
-              <MeetingFormDialog projects={projects.map((p) => ({ id: p.id, label: p.nom }))} users={colleagueOptions} />
-            )}
-            <QuickCaptureButton />
-          </div>
+          {/* Les 5 boutons partagés (Demander un créneau, Nouvelle réunion,
+              Nouvelle activité, Capture rapide, Générer/optimiser) vivent
+              désormais dans la barre d'outils du layout (prototype V2) — ne
+              reste ici que "Nouvelle tâche", spécifique à ce hub. */}
+          {canCreateTask && (
+            <TaskFormDialog
+              projects={projectsForTaskForm}
+              users={colleagueOptions}
+              objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
+              plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
+              competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
+            />
+          )}
         </div>
 
         <PersonalPlanningStats

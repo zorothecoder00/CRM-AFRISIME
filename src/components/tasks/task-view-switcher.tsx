@@ -29,17 +29,24 @@ export function TaskViewSwitcher({
   onlyMine,
   annee,
   mois,
+  from,
 }: {
   activeVue: string;
   projetId?: string;
   onlyMine: boolean;
   annee?: string;
   mois?: string;
+  /** Préservé tel quel dans chaque lien — sans ça, changer de vue depuis
+   * planning-personnel (?from=planning-personnel) perdait ce paramètre :
+   * le fil d'Ariane retombait sur le tableau de bord ET, pire, `onlyMine`
+   * (dérivé de `from` autant que de `mine=1`, voir /taches) redevenait
+   * organisation entière au lieu de rester scopé à l'utilisateur. */
+  from?: string;
 }) {
   function hrefFor(key: string) {
     return `?vue=${key}${projetId ? `&projetId=${projetId}` : ""}${onlyMine ? "&mine=1" : ""}${
       annee ? `&annee=${annee}` : ""
-    }${annee && mois ? `&mois=${mois}` : ""}`;
+    }${annee && mois ? `&mois=${mois}` : ""}${from ? `&from=${from}` : ""}`;
   }
 
   return (

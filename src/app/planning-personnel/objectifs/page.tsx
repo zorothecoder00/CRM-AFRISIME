@@ -7,10 +7,11 @@ import type { ObjectivePeriod, ObjectiveScope } from "@/generated/prisma/enums";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/ui/back-link";
+import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
 import { ProgressBar } from "@/components/objectives/progress-bar";
-import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 
 const PERIOD_LABELS: Record<string, string> = {
   ANNUEL: "Annuel",
@@ -34,24 +35,29 @@ const STATUS_LABELS: Record<string, string> = {
   ANNULE: "Annulé",
 };
 
-export default async function ObjectifsPage({
+/**
+ * "Mes objectifs" (prototype V2) — page dédiée au module Planning personnel :
+ * même contenu/filtres que /objectifs (page générale), mais strictement mes
+ * objectifs (userId = moi), sans condition ni échappatoire — même pour un
+ * super admin. Vit sous /planning-personnel/*, donc partage sa sidebar/
+ * toolbar sans jamais retomber sur le layout global (voir /taches, /reunions
+ * pour le même souci évité ici dès la conception).
+ */
+export default async function PersonalPlanningObjectifsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string; scope?: string; from?: string }>;
+  searchParams: Promise<{ periode?: string; scope?: string }>;
 }) {
-  const { periode, scope, from } = await searchParams;
+  const { periode, scope } = await searchParams;
   const session = await getServerSession(authOptions);
-
-  // Depuis Planning personnel, on ne montre que MES objectifs — pas ceux de
-  // l'organisation/equipe/departement assignes a d'autres personnes.
-  const personalScope = from === "planning-personnel" ? { userId: session!.user.id } : {};
+  const userId = session!.user.id;
 
   const [objectives, users, projects, departments, programmes, axes, allObjectives] = await Promise.all([
     prisma.objective.findMany({
       where: {
         periode: periode as ObjectivePeriod | undefined,
         scope: scope as ObjectiveScope | undefined,
-        ...personalScope,
+        userId,
       },
       include: {
         user: true,
@@ -76,17 +82,18 @@ export default async function ObjectifsPage({
     const params = new URLSearchParams();
     if (key === "periode" ? value : periode) params.set("periode", key === "periode" ? value! : periode!);
     if (key === "scope" ? value : scope) params.set("scope", key === "scope" ? value! : scope!);
-    if (from) params.set("from", from);
     const qs = params.toString();
-    return `/objectifs${qs ? `?${qs}` : ""}`;
+    return `/planning-personnel/objectifs${qs ? `?${qs}` : ""}`;
   };
 
   return (
     <div className="space-y-6">
-      <ContextualBackLink from={from} />
+      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
+      <PersonalPlanningCrosslinks current="/planning-personnel" />
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Objectifs &amp; KPI</h1>
+          <h1 className="text-2xl font-semibold">Mes objectifs</h1>
           <p className="text-sm text-muted-foreground">{objectives.length} objectif(s)</p>
         </div>
         <ObjectiveFormDialog
@@ -96,7 +103,7 @@ export default async function ObjectifsPage({
           programmes={programmes.map((p) => ({ id: p.id, label: p.nom }))}
           axes={axes.map((a) => ({ id: a.id, label: a.nom }))}
           objectives={allObjectives.map((o) => ({ id: o.id, label: o.titre }))}
-          currentUserId={session!.user.id}
+          currentUserId={userId}
         />
       </div>
 
@@ -146,7 +153,7 @@ export default async function ObjectifsPage({
                   : objective.programme?.nom;
 
           return (
-            <Link key={objective.id} href={`/objectifs/${objective.id}`}>
+            <Link key={objective.id} href={`/objectifs/${objective.id}?from=planning-personnel`}>
               <Card
                 accent={accentForStatus(objective.statut)}
                 className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"

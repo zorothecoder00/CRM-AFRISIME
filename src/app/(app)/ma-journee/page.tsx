@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { startOfDay, endOfDay, subDays, startOfWeek, subWeeks } from "date-fns";
+import { startOfDay, endOfDay, subDays } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPlanningDay } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
-import { PersonalPerformance } from "@/components/personal-planning/personal-performance";
-import { PersonalPerformanceTrend, type PerformanceTrendWeek } from "@/components/personal-planning/personal-performance-trend";
 import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
@@ -14,7 +12,7 @@ import { QuickCaptureButton } from "@/components/personal-planning/quick-capture
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import { resolveDailyCapacity, computeDailyCharge, computePlanningHealth } from "@/lib/personal-planning-workload";
-import { computeWorkload, ACTIVE_TASK_STATUSES } from "@/lib/workload";
+import { ACTIVE_TASK_STATUSES } from "@/lib/workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { PersonalPlanningConflictsCard } from "@/components/personal-planning/personal-planning-conflicts-card";
@@ -78,9 +76,10 @@ export default async function MaJourneePage() {
     }),
   ]);
 
-  // §35/§36 — "Ma performance" : tâches actives (peu importe leur âge) +
-  // terminées/annulées des 30 derniers jours, fenêtre glissante pour que les
-  // chiffres restent un signal récent plutôt qu'un cumul depuis toujours.
+  // Entrée du score Planning Health (tachesEnRetard/respectDesEcheances) —
+  // même fenêtre glissante 30 jours que "Ma performance"
+  // (/planning-personnel/performance, qui en affiche la version complète),
+  // gardée ici uniquement pour alimenter PlanningHealthBadge.
   const thirtyDaysAgo = subDays(now, 30);
   const myTasks = await prisma.task.findMany({
     where: {
@@ -89,28 +88,7 @@ export default async function MaJourneePage() {
         { OR: [{ statut: { in: [...ACTIVE_TASK_STATUSES] as never[] } }, { updatedAt: { gte: thirtyDaysAgo } }] },
       ],
     },
-    include: { assignees: { select: { userId: true } } },
-  });
-
-  // Tendance (prototype V2) — tâches terminées par semaine sur les 6
-  // dernières semaines glissantes (S-5 → S), distinct de myTasks (fenêtre
-  // 30 jours) car une semaine peut remonter plus loin.
-  const sixWeeksAgo = startOfWeek(subWeeks(now, 5), { weekStartsOn: 1 });
-  const recentlyCompletedTasks = await prisma.task.findMany({
-    where: {
-      OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
-      statut: "TERMINEE",
-      completedAt: { gte: sixWeeksAgo },
-    },
-    select: { completedAt: true },
-  });
-  const performanceTrend: PerformanceTrendWeek[] = Array.from({ length: 6 }, (_, i) => {
-    const weekStart = startOfWeek(subWeeks(now, 5 - i), { weekStartsOn: 1 });
-    const weekEnd = subWeeks(weekStart, -1);
-    const count = recentlyCompletedTasks.filter(
-      (t) => t.completedAt && t.completedAt >= weekStart && t.completedAt < weekEnd
-    ).length;
-    return { label: i === 5 ? "S" : `S-${5 - i}`, count };
+    select: { statut: true, echeance: true, completedAt: true },
   });
 
   // §43 « Planning Health » — mêmes critères "à planifier" que l'inbox
@@ -169,51 +147,26 @@ export default async function MaJourneePage() {
         c.conflictWith !== null
     );
 
-  // §35/§36 — "Ma performance", calculée depuis myTasks (fenêtre 30 jours,
-  // voir plus haut). computeWorkload réutilisé pour charge/temps (même
-  // calcul que le dashboard équipe §37), le reste (taux d'exécution, respect
-  // des échéances) est propre à cette vue individuelle.
-  const [myWorkload] = computeWorkload(
-    [{ id: userId, name: "", roleLabel: "", capaciteHebdomadaireHeures: Number(me.capaciteHebdomadaireHeures) }],
-    myTasks.map((t) => ({
-      statut: t.statut,
-      tempsEstimeHeures: t.tempsEstimeHeures !== null ? Number(t.tempsEstimeHeures) : null,
-      tempsReelHeures: t.tempsReelHeures !== null ? Number(t.tempsReelHeures) : null,
-      responsablePrincipalId: t.responsablePrincipalId,
-      assigneeIds: t.assignees.map((a) => a.userId),
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
-    })),
-    []
-  );
   const tachesTerminees = myTasks.filter((t) => t.statut === "TERMINEE");
   const tachesAvecEcheanceTerminees = tachesTerminees.filter((t) => t.echeance);
-  const performanceStats = {
-    tauxExecution: myTasks.length > 0 ? Math.round((tachesTerminees.length / myTasks.length) * 100) : 0,
-    tachesTerminees: tachesTerminees.length,
-    tachesEnRetard: myTasks.filter((t) => ACTIVE_TASK_STATUSES.has(t.statut) && t.echeance && t.echeance < now).length,
-    tachesBloquees: myTasks.filter((t) => t.statut === "BLOQUEE").length,
-    respectDesEcheances:
-      tachesAvecEcheanceTerminees.length > 0
-        ? Math.round(
-            (tachesAvecEcheanceTerminees.filter((t) => t.completedAt && t.echeance && t.completedAt <= t.echeance).length /
-              tachesAvecEcheanceTerminees.length) *
-              100
-          )
-        : null,
-    chargeMoyenne: myWorkload?.tauxOccupation ?? 0,
-    tempsPlanifieHeures: myWorkload?.chargeHeures ?? 0,
-    tempsReelHeures: myWorkload?.heuresConsommeesTotal ?? 0,
-  };
+  const tachesEnRetard = myTasks.filter((t) => ACTIVE_TASK_STATUSES.has(t.statut) && t.echeance && t.echeance < now).length;
+  const respectDesEcheances =
+    tachesAvecEcheanceTerminees.length > 0
+      ? Math.round(
+          (tachesAvecEcheanceTerminees.filter((t) => t.completedAt && t.echeance && t.completedAt <= t.echeance).length /
+            tachesAvecEcheanceTerminees.length) *
+            100
+        )
+      : null;
 
   const reporteesCount = await countReporteesToday(userId, now);
 
   const planningHealth = computePlanningHealth({
     totalActiveTaches: totalActiveTachesCount,
     tachesNonPlanifiees: tachesNonPlanifieesCount,
-    respectDesEcheances: performanceStats.respectDesEcheances,
+    respectDesEcheances,
     tauxOccupation: charge.tauxOccupation,
-    tachesEnRetard: performanceStats.tachesEnRetard,
+    tachesEnRetard,
     conflits: conflicts.length,
     tachesReportees: reporteesCount,
   });
@@ -263,9 +216,6 @@ export default async function MaJourneePage() {
         <div className="flex flex-wrap items-center gap-3">
           <PlanningHealthBadge score={planningHealth} />
         </div>
-
-        <PersonalPerformance stats={performanceStats} />
-        <PersonalPerformanceTrend weeks={performanceTrend} />
       </div>
     </PersonalPlanningDndProvider>
   );

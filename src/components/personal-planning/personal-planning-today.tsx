@@ -30,7 +30,7 @@ type Strategy = "REPORTER" | "ETALER" | "REDUIRE" | "DEPLACER_REUNION" | "REAFFE
  * (+ "Étaler sur les jours suivants", déjà proposé avant ce cahier — gardé
  * en 6e option plutôt que retiré, la fonctionnalité marchait déjà).
  */
-function ReorganizeDialog({
+export function ReorganizeDialog({
   open,
   onOpenChange,
   todayKey,

@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/ui/back-link";
+import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
-import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { Repeat } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,26 +20,27 @@ const STATUS_LABELS: Record<string, string> = {
 
 const PERIOD_LABELS = { avenir: "À venir", passees: "Passées", toutes: "Toutes" } as const;
 
-export default async function ReunionsPage({
+/**
+ * "Réunions" (prototype V2) — page dédiée au module Planning personnel :
+ * même contenu/filtres que /reunions (page générale), mais strictement mes
+ * réunions (organisateur ou participant), sans condition ni échappatoire —
+ * même pour un super admin.
+ */
+export default async function PersonalPlanningReunionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string; from?: string }>;
+  searchParams: Promise<{ periode?: string }>;
 }) {
-  const { periode = "avenir", from } = await searchParams;
+  const { periode = "avenir" } = await searchParams;
   const now = new Date();
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
-
-  // Depuis Planning personnel, on ne montre que MES reunions (organisateur
-  // ou participant) — pas celles de toute l'organisation.
-  const personalScope =
-    from === "planning-personnel" ? { OR: [{ createdById: userId }, { participants: { some: { userId } } }] } : {};
 
   const [meetings, projects, users] = await Promise.all([
     prisma.meeting.findMany({
       where: {
         ...(periode === "avenir" ? { dateHeure: { gte: now } } : periode === "passees" ? { dateHeure: { lt: now } } : {}),
-        ...personalScope,
+        OR: [{ createdById: userId }, { participants: { some: { userId } } }],
       },
       include: { project: true, participants: true },
       orderBy: { dateHeure: periode === "passees" ? "desc" : "asc" },
@@ -49,16 +51,18 @@ export default async function ReunionsPage({
 
   return (
     <div className="space-y-6">
-      <ContextualBackLink from={from} />
+      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
+      <PersonalPlanningCrosslinks current="/planning-personnel" />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Réunions</h1>
+          <h1 className="text-2xl font-semibold">Mes réunions</h1>
           <p className="text-sm text-muted-foreground">{meetings.length} réunion(s)</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-md border">
             {Object.entries(PERIOD_LABELS).map(([key, label], i) => (
-              <Link key={key} href={`/reunions?periode=${key}${from ? `&from=${from}` : ""}`}>
+              <Link key={key} href={`/planning-personnel/reunions?periode=${key}`}>
                 <Button
                   variant={periode === key ? "default" : "ghost"}
                   size="sm"
@@ -78,7 +82,7 @@ export default async function ReunionsPage({
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {meetings.map((meeting) => (
-          <Link key={meeting.id} href={`/reunions/${meeting.id}`}>
+          <Link key={meeting.id} href={`/reunions/${meeting.id}?from=planning-personnel`}>
             <Card
               accent={accentForStatus(meeting.statut)}
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"

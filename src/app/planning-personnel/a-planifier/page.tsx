@@ -51,7 +51,8 @@ export default async function PersonalPlanningAPlanifierPage() {
       <div className="flex items-center gap-2">
         <Inbox className="size-5 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold">À planifier</h1>
+          <h1 className="text-2xl font-semibold">À planifier — Inbox</h1>
+          <p className="text-sm text-muted-foreground">Capture → interprétation → proposition de créneau → validation</p>
           <p className="text-sm text-muted-foreground">
             {tasks.length} tâche(s) sans date — affectez-les, liez-les à une activité, ou supprimez-les.
           </p>

@@ -13,7 +13,7 @@ import {
   Bell,
   BarChart3,
   Settings,
-  Building2,
+  Grid3x3,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -49,32 +49,29 @@ export const PERSONAL_PLANNING_NAV_GROUPS: PersonalPlanningNavGroup[] = [
       { href: "/planning-personnel", label: "Ma journée", icon: Home },
       { href: "/planning-personnel/calendrier", label: "Calendrier", icon: CalendarDays },
       { href: "/planning-personnel/a-planifier", label: "À planifier", icon: Inbox, badgeKey: "aPlanifier" },
-      { href: "/taches?from=planning-personnel", label: "Mes tâches", icon: ListChecks },
-      { href: "/planning-personnel?vue=agenda", label: "Agenda", icon: LayoutList },
+      { href: "/planning-personnel/mes-taches", label: "Mes tâches", icon: ListChecks },
+      { href: "/planning-personnel/agenda", label: "Agenda", icon: LayoutList },
       { href: "/planning-personnel/recurrences", label: "Récurrences", icon: Repeat },
-      { href: "/reunions?from=planning-personnel", label: "Réunions", icon: Users },
+      { href: "/planning-personnel/reunions", label: "Réunions", icon: Users },
       { href: "/planning-personnel/missions", label: "Missions", icon: Briefcase },
-      { href: "/objectifs?from=planning-personnel", label: "Mes objectifs", icon: Target },
-      { href: "/charge-de-travail?from=planning-personnel", label: "Temps / Charge", icon: Clock3 },
+      { href: "/planning-personnel/objectifs", label: "Mes objectifs", icon: Target },
+      { href: "/planning-personnel/charge-de-travail", label: "Temps / Charge", icon: Clock3 },
       { href: "/notifications", label: "Alertes", icon: Bell, badgeKey: "alertes" },
-      { href: "/ma-journee", label: "Ma performance", icon: BarChart3 },
+      { href: "/planning-personnel/performance", label: "Ma performance", icon: BarChart3 },
       { href: "/parametres/profil?from=planning-personnel", label: "Paramètres", icon: Settings },
     ],
   },
   // Management (prototype V2) — montre les donnees d'AUTRES collaborateurs,
-  // donc gardee derriere DASHBOARD_READ (meme permission que les pages
-  // /pilotage vers lesquelles ces deux liens redirigent) et separee
-  // visuellement du groupe personnel ci-dessus. Reutilise les pages
-  // /pilotage deja existantes plutot que d'en rebatir une version reduite :
-  // /planning-personnel/equipe route vers l'equipe dirigee par l'utilisateur
-  // (redirection directe si une seule), /pilotage est le tableau de bord
-  // organisation deja construit (§XXIII, niveaux Organisation -> Individu).
+  // donc gardee derriere DASHBOARD_READ, separee visuellement du groupe
+  // personnel ci-dessus. "Planning de mon equipe" reutilise /pilotage/equipe
+  // (deja existant) ; "Workforce Control" est la page dediee du prototype
+  // (PAS "Niveaux de pilotage", absent du prototype).
   {
     title: "Management",
     permission: PERMISSIONS.DASHBOARD_READ,
     items: [
       { href: "/planning-personnel/equipe", label: "Planning de mon équipe", icon: Users },
-      { href: "/pilotage", label: "Niveaux de pilotage", icon: Building2 },
+      { href: "/planning-personnel/workforce-control", label: "Workforce Control", icon: Grid3x3 },
     ],
   },
 ];
