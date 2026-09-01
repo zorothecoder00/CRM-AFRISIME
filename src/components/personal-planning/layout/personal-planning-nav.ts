@@ -31,7 +31,7 @@ export const PERSONAL_PLANNING_NAV: PersonalPlanningNavItem[] = [
   { href: "/planning-personnel#a-planifier", label: "À planifier", icon: Inbox, badgeKey: "aPlanifier" },
   { href: "/taches", label: "Mes tâches", icon: ListChecks },
   { href: "/planning-personnel?vue=agenda", label: "Agenda", icon: LayoutList },
-  { href: "/planning-personnel?vue=liste", label: "Récurrences", icon: Repeat },
+  { href: "/planning-personnel/recurrences", label: "Récurrences", icon: Repeat },
   { href: "/reunions", label: "Réunions", icon: Users },
   { href: "/planning-personnel/missions", label: "Missions", icon: Briefcase },
   { href: "/objectifs", label: "Mes objectifs", icon: Target },
