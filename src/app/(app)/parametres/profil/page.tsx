@@ -14,6 +14,7 @@ export default async function ParametresProfilPage() {
       select: {
         name: true,
         email: true,
+        phone: true,
         image: true,
         mfaEnabled: true,
         role: { select: { label: true } },
@@ -40,6 +41,7 @@ export default async function ParametresProfilPage() {
       <ProfileForm
         initialName={user.name}
         initialEmail={user.email}
+        initialPhone={user.phone}
         initialImage={user.image}
         roleLabel={user.role.label}
         departmentName={user.department?.name ?? null}

@@ -507,6 +507,11 @@ model User {
   // PUSH/MESSAGERIE_EXTERNE) ; createNotification() les croise avec les
   // canaux demandes par l'appelant avant de journaliser une tentative.
   notificationChannelsPreferred NotificationChannel[] @default([INTERNE])
+  // Numero utilise comme cible des canaux SMS et MESSAGERIE_EXTERNE
+  // (WhatsApp) — format libre saisi par l'utilisateur, normalise a l'envoi
+  // via DEFAULT_PHONE_PREFIX (src/lib/notifications/phone.ts). Distinct du
+  // `telephone` de CrmContact/CrmOrganization (contacts externes).
+  phone                         String?
   createdAt                     DateTime              @default(now())
   updatedAt                     DateTime              @updatedAt
 
@@ -632,6 +637,7 @@ model User {
   messagesSent                        Message[]                          @relation("MessageAuthor")
   reactions                           Reaction[]
   notifications                       Notification[]
+  pushSubscriptions                   PushSubscription[]
   automationRulesCreated              AutomationRule[]                   @relation("AutomationRuleCreatedBy")
   automationNextTaskFor               AutomationRule[]                   @relation("AutomationNextTaskResponsable")
   automationAssignedFor               AutomationRule[]                   @relation("AutomationAssignUser")
@@ -3741,6 +3747,27 @@ model Notification {
 
   @@unique([userId, type, entityType, entityId])
   @@index([userId, isRead])
+}
+
+// Abonnement Web Push (canal PUSH) — un navigateur/appareil enregistre son
+// endpoint via PushManager.subscribe() cote client (voir public/sw.js et
+// src/components/notifications/push-subscribe-button.tsx). Contrairement a
+// EMAIL/SMS/MESSAGERIE_EXTERNE (fournisseurs tiers, cf. NotificationChannel),
+// PUSH ne depend d'aucun compte externe : les cles VAPID (env
+// VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY) suffisent, livrees directement aux
+// services push des navigateurs (FCM, Mozilla...). Un utilisateur peut avoir
+// plusieurs abonnements (un par navigateur/appareil) ; `endpoint` est unique
+// et sert de cle naturelle pour eviter les doublons a la re-souscription.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Règle d'automatisation (cahier des charges §15 ; étendue V2.2 §7-§8).

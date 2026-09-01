@@ -31,6 +31,7 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export const updateProfileSchema = z.object({
   name: z.string().min(2, "Le nom est requis."),
   email: z.string().email("Email invalide."),
+  phone: z.string().optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

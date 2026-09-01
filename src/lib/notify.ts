@@ -2,6 +2,10 @@ import { addDays, startOfDay, endOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { TaskStatus } from "@/generated/prisma/enums";
 import type { NotificationChannel, NotificationNiveau, NotificationType } from "@/generated/prisma/enums";
+import { sendEmail } from "@/lib/notifications/email";
+import { sendSms } from "@/lib/notifications/sms";
+import { sendWhatsApp } from "@/lib/notifications/whatsapp";
+import { sendPush } from "@/lib/notifications/push";
 
 const ACTIVE_TASK_STATUSES: TaskStatus[] = [
   TaskStatus.A_FAIRE,
@@ -75,22 +79,58 @@ export async function createNotification(params: {
 
   const externalChannels = channels.filter((c) => c !== "INTERNE");
   if (externalChannels.length > 0) {
-    await attemptExternalDelivery(userId, externalChannels, titre);
+    await attemptExternalDelivery(userId, externalChannels, titre, lien);
   }
 }
 
 /**
- * Tentative d'envoi externe (V2.2 §39) — journalise l'intention sans envoi
- * réel, croisée avec les préférences de l'utilisateur. Aucun fournisseur
- * SMTP/SMS/push n'est câblé dans cette version (voir mémoire projet :
- * même blocage que l'email §18 et l'IA §15 — pas de clé API disponible).
+ * Tentative d'envoi externe (V2.2 §39), croisée avec les préférences de
+ * l'utilisateur : seuls les canaux à la fois demandés par l'appelant ET
+ * choisis dans User.notificationChannelsPreferred sont tentés. Chaque canal
+ * échoue indépendamment (un fournisseur mal configuré ou en erreur ne doit
+ * pas bloquer les autres) ; le résultat (envoyé ou raison de l'échec) est
+ * toujours journalisé dans AuditLog pour diagnostic. EMAIL/SMS/
+ * MESSAGERIE_EXTERNE restent des no-op silencieux tant qu'aucun fournisseur
+ * n'est configuré (ENABLED=false ou clés absentes, voir src/lib/notifications/*) ;
+ * PUSH fonctionne dès qu'un navigateur est abonné (aucun compte tiers requis).
  */
-async function attemptExternalDelivery(userId: string, requestedChannels: NotificationChannel[], titre: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { notificationChannelsPreferred: true } });
+async function attemptExternalDelivery(
+  userId: string,
+  requestedChannels: NotificationChannel[],
+  titre: string,
+  lien?: string
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, phone: true, notificationChannelsPreferred: true },
+  });
   if (!user) return;
 
   const matched = requestedChannels.filter((c) => user.notificationChannelsPreferred.includes(c));
   if (matched.length === 0) return;
+
+  const results = await Promise.all(
+    matched.map(async (channel) => {
+      try {
+        switch (channel) {
+          case "EMAIL":
+            return { channel, ...(await sendEmail({ to: user.email, subject: titre, html: `<p>${titre}</p>` })) };
+          case "SMS":
+            if (!user.phone) return { channel, sent: false, reason: "Aucun numéro de téléphone enregistré." };
+            return { channel, ...(await sendSms({ to: user.phone, message: titre })) };
+          case "MESSAGERIE_EXTERNE":
+            if (!user.phone) return { channel, sent: false, reason: "Aucun numéro de téléphone enregistré." };
+            return { channel, ...(await sendWhatsApp({ to: user.phone, message: titre })) };
+          case "PUSH":
+            return { channel, ...(await sendPush({ userId, title: titre, url: lien })) };
+          default:
+            return { channel, sent: false, reason: "Canal inconnu." };
+        }
+      } catch (err) {
+        return { channel, sent: false, reason: err instanceof Error ? err.message : "Erreur inconnue." };
+      }
+    })
+  );
 
   await prisma.auditLog.create({
     data: {
@@ -98,7 +138,7 @@ async function attemptExternalDelivery(userId: string, requestedChannels: Notifi
       action: "notification.external_delivery_attempted",
       entityType: "Notification",
       entityId: userId,
-      changes: { channels: matched, titre },
+      changes: { titre, results },
     },
   });
 }

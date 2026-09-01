@@ -17,6 +17,7 @@ export async function GET() {
       id: true,
       name: true,
       email: true,
+      phone: true,
       image: true,
       mfaEnabled: true,
       role: { select: { label: true } },
@@ -28,6 +29,7 @@ export async function GET() {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     image: user.image,
     mfaEnabled: user.mfaEnabled,
     roleLabel: user.role.label,
@@ -53,8 +55,8 @@ export async function PATCH(request: NextRequest) {
   try {
     const user = await prisma.user.update({
       where: { id: session.user.id },
-      data: { name: parsed.data.name, email: parsed.data.email },
-      select: { id: true, name: true, email: true, image: true },
+      data: { name: parsed.data.name, email: parsed.data.email, phone: parsed.data.phone || null },
+      select: { id: true, name: true, email: true, phone: true, image: true },
     });
     return NextResponse.json(user);
   } catch (err) {

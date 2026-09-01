@@ -17,6 +17,7 @@ import { ShieldCheck, ShieldAlert } from "lucide-react";
 export function ProfileForm({
   initialName,
   initialEmail,
+  initialPhone,
   initialImage,
   roleLabel,
   departmentName,
@@ -24,6 +25,7 @@ export function ProfileForm({
 }: {
   initialName: string;
   initialEmail: string;
+  initialPhone: string | null;
   initialImage: string | null;
   roleLabel: string;
   departmentName: string | null;
@@ -34,6 +36,7 @@ export function ProfileForm({
 
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
+  const [phone, setPhone] = useState(initialPhone ?? "");
   const [image, setImage] = useState(initialImage);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +56,7 @@ export function ProfileForm({
       const res = await fetch("/api/me/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, phone: phone || undefined }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -118,6 +121,17 @@ export function ProfileForm({
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Téléphone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+228 90 00 00 00"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Utilisé pour les notifications SMS et WhatsApp.</p>
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" disabled={isSubmitting}>

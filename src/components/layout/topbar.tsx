@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock } from "lucide-react";
+import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
@@ -82,6 +82,12 @@ export function Topbar({
               <Link href="/parametres/horaires">
                 <Clock className="mr-2 h-4 w-4" />
                 Horaires de travail
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/parametres/notifications">
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
