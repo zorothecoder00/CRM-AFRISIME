@@ -126,7 +126,7 @@ export function PersonalPlanningInbox({ tasks, colleagues }: { tasks: InboxTaskR
         )}
         {tasks.length > 0 && (
           <Link
-            href="/taches?mine=1"
+            href="/planning-personnel/a-planifier"
             className="mt-1.5 flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
           >
             Voir toutes les tâches ({tasks.length})

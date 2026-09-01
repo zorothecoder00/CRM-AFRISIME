@@ -5,8 +5,14 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { computeWorkload } from "@/lib/workload";
 import { MyWorkloadCard } from "@/components/workload/my-workload-card";
 import { WorkloadTable } from "@/components/workload/workload-table";
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 
-export default async function ChargeDeTravailPage() {
+export default async function ChargeDeTravailPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const session = await getServerSession(authOptions);
   const canRead = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManage = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
@@ -57,6 +63,7 @@ export default async function ChargeDeTravailPage() {
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} />
       <div>
         <h1 className="text-2xl font-semibold">Charge de travail</h1>
         <p className="text-sm text-muted-foreground">

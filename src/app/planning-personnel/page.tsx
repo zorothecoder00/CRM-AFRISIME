@@ -214,6 +214,7 @@ export default async function PlanningPersonnelPage({
         OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
         dateDebut: null,
         personalPlanningEntries: { none: {} },
+        deletedAt: null,
       },
       orderBy: { createdAt: "desc" },
       select: { id: true, titre: true, priorite: true, project: { select: { nom: true } } },

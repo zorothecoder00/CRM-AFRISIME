@@ -4,8 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { UserCompetencesManager } from "@/components/profile/user-competences-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 
-export default async function ParametresProfilPage() {
+export default async function ParametresProfilPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const session = await getServerSession(authOptions);
 
   const [user, competences, catalogue] = await Promise.all([
@@ -31,6 +37,7 @@ export default async function ParametresProfilPage() {
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} />
       <div>
         <h1 className="text-2xl font-semibold">Mon profil</h1>
         <p className="text-sm text-muted-foreground">

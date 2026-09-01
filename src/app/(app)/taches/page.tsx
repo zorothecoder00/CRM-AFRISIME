@@ -16,6 +16,7 @@ import { TaskPortfolioView } from "@/components/tasks/task-portfolio-view";
 import { TaskWhiteboardView } from "@/components/tasks/task-whiteboard-view";
 import { TaskViewSwitcher } from "@/components/tasks/task-view-switcher";
 import { PeriodFilter } from "@/components/ui/period-filter";
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { ProjectFilter } from "@/components/ui/project-filter";
 import { buildDateRangeFilter } from "@/lib/date-filter";
 import type { WhiteboardNote } from "@/actions/whiteboard.actions";
@@ -25,9 +26,9 @@ import { User } from "lucide-react";
 export default async function TachesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string; projetId?: string; mine?: string; annee?: string; mois?: string }>;
+  searchParams: Promise<{ vue?: string; projetId?: string; mine?: string; annee?: string; mois?: string; from?: string }>;
 }) {
-  const { vue: vueParam, projetId, mine, annee, mois } = await searchParams;
+  const { vue: vueParam, projetId, mine, annee, mois, from } = await searchParams;
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
@@ -145,6 +146,7 @@ export default async function TachesPage({
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Tâches</h1>

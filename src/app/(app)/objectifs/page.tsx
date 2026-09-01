@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
 import { ProgressBar } from "@/components/objectives/progress-bar";
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 
 const PERIOD_LABELS: Record<string, string> = {
   ANNUEL: "Annuel",
@@ -36,9 +37,9 @@ const STATUS_LABELS: Record<string, string> = {
 export default async function ObjectifsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string; scope?: string }>;
+  searchParams: Promise<{ periode?: string; scope?: string; from?: string }>;
 }) {
-  const { periode, scope } = await searchParams;
+  const { periode, scope, from } = await searchParams;
   const session = await getServerSession(authOptions);
 
   const [objectives, users, projects, departments, programmes, axes, allObjectives] = await Promise.all([
@@ -76,6 +77,7 @@ export default async function ObjectifsPage({
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Objectifs &amp; KPI</h1>

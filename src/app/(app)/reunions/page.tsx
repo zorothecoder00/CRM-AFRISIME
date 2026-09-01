@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { Repeat } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,9 +20,9 @@ const PERIOD_LABELS = { avenir: "À venir", passees: "Passées", toutes: "Toutes
 export default async function ReunionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string }>;
+  searchParams: Promise<{ periode?: string; from?: string }>;
 }) {
-  const { periode = "avenir" } = await searchParams;
+  const { periode = "avenir", from } = await searchParams;
   const now = new Date();
 
   const [meetings, projects, users] = await Promise.all([
@@ -36,6 +37,7 @@ export default async function ReunionsPage({
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Réunions</h1>
