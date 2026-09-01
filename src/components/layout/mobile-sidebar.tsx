@@ -18,7 +18,7 @@ export function MobileSidebar({ permissions, roleKey }: { permissions: string[];
         </Button>
       </SheetTrigger>
       <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
-        <SheetHeader className="flex flex-col items-center border-b bg-slate-400 px-4 py-4">
+        <SheetHeader className="flex flex-col items-center border-b bg-amber-100 px-4 py-4">
           {/* Le logo integre deja le nom "AfriSime Work Space" — le libelle
               texte visible a ete retire (redondant), SheetTitle garde pour
               l'accessibilite (lecteur d'ecran) mais visuellement masque. Fond

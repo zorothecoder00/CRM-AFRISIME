@@ -8,7 +8,7 @@ import { PersonalPlanningSidebarNav } from "./personal-planning-sidebar-nav";
 export function PersonalPlanningSidebar({ aPlanifierCount, alertesCount }: { aPlanifierCount: number; alertesCount: number }) {
   return (
     <aside className="show-desktop relative z-10 flex w-64 flex-col border-r bg-sidebar text-sidebar-foreground shadow-[6px_0_24px_-12px_rgba(0,0,0,0.5)]">
-      <div className="flex flex-col items-center border-b bg-slate-400 px-4 py-4">
+      <div className="flex flex-col items-center border-b bg-amber-100 px-4 py-4">
         <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" priority />
       </div>
       <PersonalPlanningSidebarNav aPlanifierCount={aPlanifierCount} alertesCount={alertesCount} />
