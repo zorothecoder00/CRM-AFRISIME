@@ -236,7 +236,7 @@ export function PersonalPlanningToday({
         </div>
 
         <Link
-          href="/ma-journee"
+          href="/planning-personnel/ma-journee"
           className="mt-auto flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
         >
           Voir toute ma journée

@@ -12,7 +12,7 @@ export type TaskHealthStats = {
 /**
  * §43 « Planning Health » — les 4 métriques basées sur les Tâches (pas les
  * activités de planning personnel) nécessaires au score : sous-ensemble
- * ciblé de ce que /ma-journee calcule déjà pour "Ma performance" (§35/36),
+ * ciblé de ce que /planning-personnel/ma-journee calcule déjà pour "Ma performance" (§35/36),
  * sans les champs inutiles au score (tauxExecution, tachesTerminees,
  * tachesBloquees) — pour /planning-personnel qui n'a pas besoin du reste.
  */

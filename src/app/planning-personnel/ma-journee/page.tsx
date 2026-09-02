@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { startOfDay, endOfDay, subDays } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { BackLink } from "@/components/ui/back-link";
 import { PersonalPlanningDay } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
 import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
@@ -29,6 +30,10 @@ import { Sunrise } from "lucide-react";
  * widget "Ma journée" affiché en plus dans `/planning-personnel`. Le bilan
  * de fin de journée (§22) vit désormais sur `/planning-personnel`, à la
  * demande de l'utilisateur.
+ *
+ * Vit sous /planning-personnel/* (et non plus /ma-journee à la racine) pour
+ * rester dans la sidebar/topbar dédiées du module au lieu de renvoyer vers
+ * le shell du dashboard principal — incohérence UX relevée par l'utilisateur.
  */
 export default async function MaJourneePage() {
   const session = await getServerSession(authOptions);
@@ -180,7 +185,8 @@ export default async function MaJourneePage() {
   return (
     <PersonalPlanningDndProvider>
       <div className="space-y-4">
-        <PersonalPlanningCrosslinks current="/ma-journee" />
+        <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
+        <PersonalPlanningCrosslinks current="/planning-personnel/ma-journee" />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

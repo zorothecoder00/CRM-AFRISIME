@@ -74,7 +74,7 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           accent="primary"
         />
       </Link>
-      <Link href="/ma-journee" className="block">
+      <Link href="/planning-personnel/ma-journee" className="block">
         <KpiCard label="Charge de travail" value={`${formatHours(stats.chargeHeures)} / ${formatHours(stats.capaciteHeures)}`} accent={chargeAccent} />
       </Link>
       <Link href="/planning-personnel#planning-health" className="block">

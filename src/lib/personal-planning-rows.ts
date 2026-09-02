@@ -38,7 +38,7 @@ export const TACHE_DEPENDENCIES_SELECT = {
   dependsOn: { select: { dependsOnTask: { select: { titre: true, statut: true } } } },
 } as const;
 
-/** Convertit une PersonalPlanningEntry brute (Prisma) en ligne sérialisable pour les composants client — partagé entre /planning-personnel et /ma-journee. */
+/** Convertit une PersonalPlanningEntry brute (Prisma) en ligne sérialisable pour les composants client — partagé entre /planning-personnel et /planning-personnel/ma-journee. */
 export function toPersonalPlanningEntryRow(e: EntryWithParticipants, tagsByEntry: Map<string, string[]>): PersonalPlanningEntryRow {
   return {
     id: e.id,

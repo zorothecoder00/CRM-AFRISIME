@@ -96,7 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
       { titleKey: "horairesTravail", href: "/parametres/horaires", icon: Clock },
-      { titleKey: "maJournee", href: "/ma-journee", icon: Sunrise },
+      { titleKey: "maJournee", href: "/planning-personnel/ma-journee", icon: Sunrise },
       { titleKey: "tableauxDeBord", href: "/tableaux-de-bord", icon: LayoutGrid, permission: PERMISSIONS.DASHBOARD_READ },
       { titleKey: "pilotage", href: "/pilotage", icon: Network, permission: PERMISSIONS.DASHBOARD_READ },
     ],

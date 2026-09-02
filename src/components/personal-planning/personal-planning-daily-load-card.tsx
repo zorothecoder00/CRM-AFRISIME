@@ -33,7 +33,7 @@ export function PersonalPlanningDailyLoadCard({ charge }: { charge: DailyCharge 
         ) : (
           <p className="text-xs text-muted-foreground">Disponible : {formatHours(disponible)}</p>
         )}
-        <Link href="/ma-journee" className="inline-block text-xs text-primary hover:underline">
+        <Link href="/planning-personnel/ma-journee" className="inline-block text-xs text-primary hover:underline">
           Détails →
         </Link>
       </CardContent>
