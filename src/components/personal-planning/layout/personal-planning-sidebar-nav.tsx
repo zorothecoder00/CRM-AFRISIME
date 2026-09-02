@@ -15,11 +15,14 @@ export function PersonalPlanningSidebarNav({
   alertesCount,
   permissions,
   onNavigate,
+  collapsed = false,
 }: {
   aPlanifierCount: number;
   alertesCount: number;
   permissions: string[];
   onNavigate?: () => void;
+  /** Mode replie (rail d'icones) — jamais force sur le tiroir mobile, qui reste toujours en toutes lettres. */
+  collapsed?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -56,8 +59,10 @@ export function PersonalPlanningSidebarNav({
         key={item.href}
         href={item.href}
         onClick={onNavigate}
+        title={collapsed ? item.label : undefined}
         className={cn(
           "group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
+          collapsed && "justify-center px-0",
           active
             ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
             : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
@@ -65,17 +70,24 @@ export function PersonalPlanningSidebarNav({
       >
         <span
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+            "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
             active ? "bg-black/20 text-sidebar-primary shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
           )}
         >
           <Icon className="h-4 w-4" />
+          {collapsed && count > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-sidebar-primary" />
+          )}
         </span>
-        <span className="flex-1 truncate">{item.label}</span>
-        {count > 0 && (
-          <span className="ml-auto rounded-full bg-sidebar-primary/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-            {count}
-          </span>
+        {!collapsed && (
+          <>
+            <span className="flex-1 truncate">{item.label}</span>
+            {count > 0 && (
+              <span className="ml-auto rounded-full bg-sidebar-primary/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                {count}
+              </span>
+            )}
+          </>
         )}
       </Link>
     );
@@ -90,7 +102,9 @@ export function PersonalPlanningSidebarNav({
       <div className="space-y-1">{renderItem(PERSONAL_PLANNING_HOME_ITEM)}</div>
       {visibleGroups.map((group) => (
         <div key={group.title} className="space-y-1">
-          <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{group.title}</div>
+          {!collapsed && (
+            <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{group.title}</div>
+          )}
           {group.items.map(renderItem)}
         </div>
       ))}

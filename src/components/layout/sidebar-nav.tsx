@@ -12,11 +12,14 @@ export function SidebarNav({
   roleKey,
   onNavigate,
   className,
+  collapsed = false,
 }: {
   permissions: string[];
   roleKey?: string;
   onNavigate?: () => void;
   className?: string;
+  /** Mode replie (rail d'icones) — jamais force sur le tiroir mobile, qui reste toujours en toutes lettres. */
+  collapsed?: boolean;
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
@@ -31,13 +34,16 @@ export function SidebarNav({
       return (
         <div
           key={item.href}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/30"
-          title={t("moduleAVenir")}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/30",
+            collapsed && "justify-center px-0"
+          )}
+          title={collapsed ? title : t("moduleAVenir")}
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
             <Icon className="h-4 w-4" />
           </span>
-          {title}
+          {!collapsed && title}
         </div>
       );
     }
@@ -47,8 +53,10 @@ export function SidebarNav({
         key={item.href}
         href={item.href}
         onClick={onNavigate}
+        title={collapsed ? title : undefined}
         className={cn(
           "group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
+          collapsed && "justify-center px-0",
           isActive
             ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
             : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
@@ -64,7 +72,7 @@ export function SidebarNav({
         >
           <Icon className="h-4 w-4" />
         </span>
-        {title}
+        {!collapsed && title}
       </Link>
     );
   }
@@ -73,7 +81,9 @@ export function SidebarNav({
     <nav className={cn("flex-1 space-y-5 overflow-y-auto p-3", className)}>
       {contextualItems.length > 0 && (
         <div className="space-y-1">
-          <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{t("pourVous")}</div>
+          {!collapsed && (
+            <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{t("pourVous")}</div>
+          )}
           {contextualItems.map(renderItem)}
         </div>
       )}
@@ -83,9 +93,11 @@ export function SidebarNav({
 
         return (
           <div key={group.labelKey} className="space-y-1">
-            <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-foreground/50 uppercase">
-              {t(`groups.${group.labelKey}`)}
-            </div>
+            {!collapsed && (
+              <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-foreground/50 uppercase">
+                {t(`groups.${group.labelKey}`)}
+              </div>
+            )}
             {items.map(renderItem)}
           </div>
         );
