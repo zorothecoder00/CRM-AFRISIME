@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
+import { toneForTaskStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checklist } from "@/components/tasks/checklist";
 import { SubtasksSection } from "@/components/tasks/subtasks-section";
@@ -228,7 +228,7 @@ export default async function TaskDetailPage({
             {canChangeStatus ? (
               <TaskStatusSelect taskId={task.id} statut={task.statut} />
             ) : (
-              <Badge variant={toneForStatus(task.statut)}>{STATUS_LABELS[task.statut]}</Badge>
+              <Badge variant={toneForTaskStatus(task.statut)}>{STATUS_LABELS[task.statut]}</Badge>
             )}
             <Badge variant={toneForPriority(task.priorite)}>{PRIORITY_LABELS[task.priorite]}</Badge>
             {task.creeParWorkflow && <Badge variant="outline">Créée par workflow</Badge>}

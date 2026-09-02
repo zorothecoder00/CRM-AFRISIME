@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
-import { toneForPriority, toneForStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
+import { toneForPriority, toneForTaskStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
 import type { TaskRow } from "@/components/tasks/task-list-view";
 
 type Option = { id: string; label: string };
@@ -139,7 +139,7 @@ function KanbanColumn({
   onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
-  const accent = COLUMN_ACCENT[toneForStatus(columnKey)];
+  const accent = COLUMN_ACCENT[toneForTaskStatus(columnKey)];
 
   return (
     <div

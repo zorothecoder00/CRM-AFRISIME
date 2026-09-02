@@ -24,7 +24,7 @@ export async function computeTaskHealthStats(userId: string, now: Date): Promise
   const [totalActiveTaches, tachesNonPlanifiees, tachesEnRetard, tachesAvecEcheanceRecentes] = await Promise.all([
     prisma.task.count({ where: { ...ownerFilter, statut: { in: activeStatuts } } }),
     prisma.task.count({
-      where: { ...ownerFilter, statut: { in: activeStatuts }, dateDebut: null, personalPlanningEntries: { none: {} } },
+      where: { ...ownerFilter, statut: { in: activeStatuts }, personalPlanningEntries: { none: {} } },
     }),
     prisma.task.count({ where: { ...ownerFilter, statut: { in: activeStatuts }, echeance: { lt: now } } }),
     prisma.task.findMany({

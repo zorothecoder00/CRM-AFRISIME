@@ -327,7 +327,11 @@ export async function updateTaskStatus(taskId: string, statut: string) {
       where: { id: data.taskId },
       data: {
         statut: data.statut,
-        avancement: data.statut === "TERMINEE" ? 100 : undefined,
+        // Symetrique : avancement n'est jamais saisi a la main nulle part
+        // dans l'appli (uniquement derive du statut ici, ou de la moyenne
+        // des sous-taches par recomputeParentTaskFromSubtasks) — sans ce
+        // reset, rouvrir une tache Terminee la laissait bloquee a 100 %.
+        avancement: data.statut === "TERMINEE" ? 100 : 0,
         completedAt: data.statut === "TERMINEE" ? new Date() : null,
       },
     })

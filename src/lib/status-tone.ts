@@ -35,6 +35,19 @@ export function toneForPriority(priority: string): BadgeTone {
   return "secondary";
 }
 
+/**
+ * Meme mapping que toneForPriority, mais en couleur pleine (pas de fond
+ * transparent a 10%) — pour une petite puce ronde a cote d'un titre plutot
+ * qu'un badge texte complet (ex. liste "À planifier").
+ */
+export function dotClassForPriority(priority: string): string {
+  const p = priority.toUpperCase();
+  if (p.includes("TRES_HAUTE") || p.includes("CRITIQUE")) return "bg-destructive";
+  if (p.includes("HAUTE") || p.includes("IMPORTANTE")) return "bg-warning";
+  if (p.includes("MOYENNE") || p.includes("NORMALE")) return "bg-info";
+  return "bg-muted-foreground";
+}
+
 /** Meme mapping que toneForStatus, pour l'accent (barre + fond teinte) de Card. */
 export function accentForStatus(status: string): CardAccent {
   return toCardAccent(toneForStatus(status) as StatusTone);
@@ -43,6 +56,31 @@ export function accentForStatus(status: string): CardAccent {
 /** Meme mapping que toneForPriority, pour l'accent de Card. */
 export function accentForPriority(priority: string): CardAccent {
   return toCardAccent(toneForPriority(priority) as StatusTone);
+}
+
+/**
+ * Statut d'une tache (A_FAIRE/EN_COURS/EN_REVISION/BLOQUEE/TERMINEE/ANNULEE) :
+ * mapping dedie, une teinte distincte par statut. toneForStatus (generique,
+ * a mots-cles) fait collision ici — A_FAIRE et ANNULEE tombent toutes deux
+ * sur "secondary", EN_COURS et EN_REVISION toutes deux sur "info" — ce qui
+ * les rend indiscernables au premier coup d'oeil, contrairement a
+ * toneForPriority ou chaque niveau a sa propre teinte.
+ */
+const TASK_STATUS_TONES: Record<string, BadgeTone> = {
+  // "secondary" (fond quasi blanc) est illisible sans bordure sur cette
+  // teinte — "outline" (bordure + texte foncé) reste visible tout en
+  // restant neutre pour un statut aussi frequent. A l'inverse "secondary"
+  // convient a Annulee, qui doit justement s'effacer visuellement.
+  A_FAIRE: "outline",
+  EN_COURS: "info",
+  EN_REVISION: "warning",
+  BLOQUEE: "destructive",
+  TERMINEE: "success",
+  ANNULEE: "secondary",
+};
+
+export function toneForTaskStatus(status: string): BadgeTone {
+  return TASK_STATUS_TONES[status.toUpperCase()] ?? "secondary";
 }
 
 /**

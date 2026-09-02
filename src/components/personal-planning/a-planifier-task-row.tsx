@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toneForPriority } from "@/lib/status-tone";
+import { dotClassForPriority, toneForPriority } from "@/lib/status-tone";
 import { useAction } from "@/hooks/use-action";
 import { reassignInboxTask } from "@/actions/personal-planning.actions";
 import { deleteTask } from "@/actions/trash.actions";
@@ -47,14 +47,17 @@ export function APlanifierTaskRow({ task, colleagues }: { task: APlanifierTask; 
     <div className="space-y-2 rounded-md border p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <Link href={`/taches/${task.id}?from=planning-personnel`} className="flex items-center gap-1 font-medium hover:underline">
-            {task.titre}
-            <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClassForPriority(task.priorite)}`}
+              title={TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
+            />
+            <Link href={`/taches/${task.id}?from=planning-personnel`} className="flex items-center gap-1 font-medium hover:underline">
+              {task.titre}
+              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+            </Link>
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <Badge variant={toneForPriority(task.priorite)} className="text-[10px]">
-              {TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
-            </Badge>
             <span className="text-xs text-muted-foreground">{task.projetNom}</span>
             {task.echeance && (
               <span className="text-xs text-muted-foreground">
@@ -62,6 +65,9 @@ export function APlanifierTaskRow({ task, colleagues }: { task: APlanifierTask; 
               </span>
             )}
           </div>
+          <Badge variant={toneForPriority(task.priorite)} className="mt-1.5 text-[10px]">
+            {TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
+          </Badge>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           <ScheduleTaskDialog taskId={task.id} titre={task.titre} />

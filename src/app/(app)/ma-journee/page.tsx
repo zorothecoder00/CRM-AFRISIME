@@ -92,7 +92,7 @@ export default async function MaJourneePage() {
   });
 
   // §43 « Planning Health » — mêmes critères "à planifier" que l'inbox
-  // (`/planning-personnel`) : tâche active sans date et sans activité liée.
+  // (`/planning-personnel`) : tâche active sans activité liée.
   const [totalActiveTachesCount, tachesNonPlanifieesCount] = await Promise.all([
     prisma.task.count({
       where: {
@@ -104,7 +104,6 @@ export default async function MaJourneePage() {
       where: {
         OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
         statut: { in: [...ACTIVE_TASK_STATUSES] as never[] },
-        dateDebut: null,
         personalPlanningEntries: { none: {} },
       },
     }),

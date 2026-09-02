@@ -67,58 +67,59 @@ export default async function PersonalPlanningMissionsPage({
       <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
       <PersonalPlanningCrosslinks current="/planning-personnel/missions" />
 
-      <div className="flex items-center gap-2">
-        <Briefcase className="size-5 text-primary" />
-        <div>
-          <h1 className="text-2xl font-semibold">Historique de mes missions</h1>
-          <p className="text-sm text-muted-foreground">{missions.length} mission(s) — déplacements professionnels.</p>
+      <div className="space-y-4 rounded-md border bg-card p-4">
+        <div className="flex items-center gap-2">
+          <Briefcase className="size-5 text-primary" />
+          <div>
+            <h1 className="text-2xl font-semibold">Historique de mes missions</h1>
+            <p className="text-sm text-muted-foreground">{missions.length} mission(s) — déplacements professionnels.</p>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-md border p-3 text-center">
-          <div className="text-2xl font-semibold">{missionsAVenir}</div>
-          <div className="text-xs text-muted-foreground">Missions à venir</div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-md border p-3 text-center">
+            <div className="text-2xl font-semibold">{missionsAVenir}</div>
+            <div className="text-xs text-muted-foreground">Missions à venir</div>
+          </div>
+          <div className="rounded-md border p-3 text-center">
+            <div className="text-2xl font-semibold">{joursEnMission}</div>
+            <div className="text-xs text-muted-foreground">Jours en mission (total)</div>
+          </div>
+          <div className="rounded-md border p-3 text-center">
+            <div className="text-2xl font-semibold">{formatMontant(budgetEngage, devise)}</div>
+            <div className="text-xs text-muted-foreground">Budget engagé</div>
+          </div>
         </div>
-        <div className="rounded-md border p-3 text-center">
-          <div className="text-2xl font-semibold">{joursEnMission}</div>
-          <div className="text-xs text-muted-foreground">Jours en mission (total)</div>
-        </div>
-        <div className="rounded-md border p-3 text-center">
-          <div className="text-2xl font-semibold">{formatMontant(budgetEngage, devise)}</div>
-          <div className="text-xs text-muted-foreground">Budget engagé</div>
-        </div>
-      </div>
 
-      <form className="flex flex-wrap items-end gap-2" action="/planning-personnel/missions">
-        <Input name="du" type="date" defaultValue={du} className="w-auto" />
-        <Input name="au" type="date" defaultValue={au} className="w-auto" />
-        <select
-          name="statut"
-          defaultValue={statut ?? ""}
-          className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
-        >
-          <option value="">Tous les statuts</option>
-          {statutOptions.map((s) => (
-            <option key={s} value={s}>
-              {ENTRY_STATUT_LABELS[s]}
-            </option>
-          ))}
-        </select>
-        <Button type="submit" variant="outline">
-          Filtrer
-        </Button>
-        {hasFilters && (
-          <Link href="/planning-personnel/missions">
-            <Button type="button" variant="ghost">
-              Réinitialiser
-            </Button>
-          </Link>
-        )}
-      </form>
+        <form className="flex flex-wrap items-end gap-2" action="/planning-personnel/missions">
+          <Input name="du" type="date" defaultValue={du} className="w-auto" />
+          <Input name="au" type="date" defaultValue={au} className="w-auto" />
+          <select
+            name="statut"
+            defaultValue={statut ?? ""}
+            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="">Tous les statuts</option>
+            {statutOptions.map((s) => (
+              <option key={s} value={s}>
+                {ENTRY_STATUT_LABELS[s]}
+              </option>
+            ))}
+          </select>
+          <Button type="submit" variant="outline">
+            Filtrer
+          </Button>
+          {hasFilters && (
+            <Link href="/planning-personnel/missions">
+              <Button type="button" variant="ghost">
+                Réinitialiser
+              </Button>
+            </Link>
+          )}
+        </form>
 
-      <div className="space-y-3">
-        {missions.map((m) => (
+        <div className="space-y-3">
+          {missions.map((m) => (
           <Card key={m.id}>
             <CardContent className="space-y-2 py-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -185,6 +186,7 @@ export default async function PersonalPlanningMissionsPage({
         {missions.length === 0 && (
           <p className="text-sm text-muted-foreground">Aucune mission {hasFilters ? "pour ces filtres" : "enregistrée pour le moment"}.</p>
         )}
+        </div>
       </div>
     </div>
   );

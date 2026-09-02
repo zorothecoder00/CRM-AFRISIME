@@ -91,52 +91,53 @@ export default async function PersonalPlanningObjectifsPage({
       <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
       <PersonalPlanningCrosslinks current="/planning-personnel" />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Mes objectifs</h1>
-          <p className="text-sm text-muted-foreground">{objectives.length} objectif(s)</p>
+      <div className="space-y-4 rounded-md border bg-card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Mes objectifs</h1>
+            <p className="text-sm text-muted-foreground">{objectives.length} objectif(s)</p>
+          </div>
+          <ObjectiveFormDialog
+            users={users.map((u) => ({ id: u.id, label: u.name }))}
+            projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
+            departments={departments.map((d) => ({ id: d.id, label: d.name }))}
+            programmes={programmes.map((p) => ({ id: p.id, label: p.nom }))}
+            axes={axes.map((a) => ({ id: a.id, label: a.nom }))}
+            objectives={allObjectives.map((o) => ({ id: o.id, label: o.titre }))}
+            currentUserId={userId}
+          />
         </div>
-        <ObjectiveFormDialog
-          users={users.map((u) => ({ id: u.id, label: u.name }))}
-          projects={projects.map((p) => ({ id: p.id, label: p.nom }))}
-          departments={departments.map((d) => ({ id: d.id, label: d.name }))}
-          programmes={programmes.map((p) => ({ id: p.id, label: p.nom }))}
-          axes={axes.map((a) => ({ id: a.id, label: a.nom }))}
-          objectives={allObjectives.map((o) => ({ id: o.id, label: o.titre }))}
-          currentUserId={userId}
-        />
-      </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link href={filterHref("periode", undefined)}>
-          <Button variant={!periode ? "default" : "outline"} size="sm">
-            Toutes périodes
-          </Button>
-        </Link>
-        {Object.entries(PERIOD_LABELS).map(([key, label]) => (
-          <Link key={key} href={filterHref("periode", key)}>
-            <Button variant={periode === key ? "default" : "outline"} size="sm">
-              {label}
+        <div className="flex flex-wrap gap-2">
+          <Link href={filterHref("periode", undefined)}>
+            <Button variant={!periode ? "default" : "outline"} size="sm">
+              Toutes périodes
             </Button>
           </Link>
-        ))}
-        <span className="mx-2 text-muted-foreground">·</span>
-        <Link href={filterHref("scope", undefined)}>
-          <Button variant={!scope ? "default" : "outline"} size="sm">
-            Toutes portées
-          </Button>
-        </Link>
-        {Object.entries(SCOPE_LABELS).map(([key, label]) => (
-          <Link key={key} href={filterHref("scope", key)}>
-            <Button variant={scope === key ? "default" : "outline"} size="sm">
-              {label}
+          {Object.entries(PERIOD_LABELS).map(([key, label]) => (
+            <Link key={key} href={filterHref("periode", key)}>
+              <Button variant={periode === key ? "default" : "outline"} size="sm">
+                {label}
+              </Button>
+            </Link>
+          ))}
+          <span className="mx-2 text-muted-foreground">·</span>
+          <Link href={filterHref("scope", undefined)}>
+            <Button variant={!scope ? "default" : "outline"} size="sm">
+              Toutes portées
             </Button>
           </Link>
-        ))}
-      </div>
+          {Object.entries(SCOPE_LABELS).map(([key, label]) => (
+            <Link key={key} href={filterHref("scope", key)}>
+              <Button variant={scope === key ? "default" : "outline"} size="sm">
+                {label}
+              </Button>
+            </Link>
+          ))}
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {objectives.map((objective) => {
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {objectives.map((objective) => {
           const progress = objectiveProgress(
             objective.indicators.map((i) => ({
               valeurActuelle: Number(i.valeurActuelle),
@@ -182,6 +183,7 @@ export default async function PersonalPlanningObjectifsPage({
         {objectives.length === 0 && (
           <p className="text-sm text-muted-foreground">Aucun objectif pour le moment.</p>
         )}
+        </div>
       </div>
     </div>
   );

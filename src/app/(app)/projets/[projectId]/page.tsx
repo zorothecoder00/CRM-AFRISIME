@@ -1,7 +1,7 @@
 import { loadProjectPageData } from "@/lib/project-page-data";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus, toneForTaskStatus, accentForStatus } from "@/lib/status-tone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -319,7 +319,7 @@ export default async function ProjectDetailPage({
                   <span className="text-xs text-muted-foreground">
                     {task.responsablePrincipal.name}
                   </span>
-                  <Badge variant={toneForStatus(task.statut)}>{TASK_STATUS_LABELS[task.statut]}</Badge>
+                  <Badge variant={toneForTaskStatus(task.statut)}>{TASK_STATUS_LABELS[task.statut]}</Badge>
                 </div>
               </Link>
             ))}

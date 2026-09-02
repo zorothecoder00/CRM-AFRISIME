@@ -39,7 +39,6 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
     prisma.task.count({
       where: {
         OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
-        dateDebut: null,
         personalPlanningEntries: { none: {} },
         deletedAt: null,
       },

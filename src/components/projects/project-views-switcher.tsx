@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toneForStatus } from "@/lib/status-tone";
+import { toneForTaskStatus } from "@/lib/status-tone";
 import { HierarchyTree, type SectionNode } from "@/components/projects/hierarchy-tree";
 import { TaskKanbanView } from "@/components/tasks/task-kanban-view";
 import { TaskListView } from "@/components/tasks/task-list-view";
@@ -125,7 +125,7 @@ export function ProjectViewsSwitcher({
               <span className="font-medium">{task.titre}</span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{task.responsableNom}</span>
-                <Badge variant={toneForStatus(task.statut)}>{TASK_STATUS_LABELS[task.statut]}</Badge>
+                <Badge variant={toneForTaskStatus(task.statut)}>{TASK_STATUS_LABELS[task.statut]}</Badge>
               </div>
             </Link>
           ))}

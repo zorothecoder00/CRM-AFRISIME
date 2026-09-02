@@ -64,6 +64,11 @@ async function requireSession() {
  * bloquants) pour un créneau donné : jour férié, congé approuvé, conflit
  * d'horaire. Un seul appel composite plutôt que trois champs séparés à
  * maintenir côté client.
+ *
+ * Le conflit d'horaire fait exception dans scheduleInboxTask, qui bloque
+ * dessus en amont (voir son propre appel à findScheduleConflict) — ici il
+ * ne reste donc plus que pour renvoyer null sur ce champ dans ce cas précis,
+ * jour férié/congé restant eux de simples avertissements partout.
  */
 async function collectPlanningWarnings(userId: string, dateDebut: Date, dateFin: Date, excludeEntryId?: string): Promise<string[]> {
   const [holiday, leave, conflict] = await Promise.all([
@@ -479,6 +484,18 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
   const dateFin = new Date(dateDebut.getTime() + data.dureeMinutes * 60_000);
 
   await assertNotOnNonWorkingDay(session.user.id, dateDebut, "TACHE");
+
+  // Contrairement à collectPlanningWarnings (jamais bloquant ailleurs dans le
+  // module), "Lier à une activité" bloque explicitement sur un chevauchement
+  // avec une autre activité/réunion (ex. planifier une tâche en pleine
+  // mission) : ici la suggestion automatique est censée déjà proposer un
+  // créneau libre, donc un conflit ne peut venir que d'une heure saisie à la
+  // main — mieux vaut l'empêcher que de laisser créer un double-booking
+  // silencieux qu'un simple toast pourrait faire manquer.
+  const conflict = await findScheduleConflict(session.user.id, dateDebut, dateFin);
+  if (conflict) {
+    throw new Error(`Conflit d'horaire avec « ${conflict.titre} » — choisissez un autre créneau.`);
+  }
 
   const entry = await prisma.$transaction(async (tx) => {
     const created = await tx.personalPlanningEntry.create({

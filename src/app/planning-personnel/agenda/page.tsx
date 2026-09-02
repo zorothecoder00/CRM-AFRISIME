@@ -54,22 +54,24 @@ export default async function PersonalPlanningAgendaPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
       <PersonalPlanningCrosslinks current="/planning-personnel" />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <CalendarRange className="size-5 text-primary" />
-          <div>
-            <h1 className="text-2xl font-semibold">Agenda consolidé</h1>
-            <p className="text-sm text-muted-foreground">Une chronologie unique de toutes vos activités ({entries.length}).</p>
+      <div className="space-y-4 rounded-md border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarRange className="size-5 text-primary" />
+            <div>
+              <h1 className="text-2xl font-semibold">Agenda consolidé</h1>
+              <p className="text-sm text-muted-foreground">Une chronologie unique de toutes vos activités ({entries.length}).</p>
+            </div>
           </div>
+          <AgendaExportButton rows={exportRows} />
         </div>
-        <AgendaExportButton rows={exportRows} />
-      </div>
 
-      <PersonalPlanningTimeline entries={entries} />
+        <PersonalPlanningTimeline entries={entries} />
+      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
 import { updateTaskStatus } from "@/actions/task.actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toneForStatus } from "@/lib/status-tone";
+import { toneForTaskStatus } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 import { badgeVariants } from "@/components/ui/badge";
 
@@ -35,10 +35,20 @@ export function TaskStatusSelect({ taskId, statut }: { taskId: string; statut: s
     if (result.ok) router.refresh();
   }
 
+  const tone = toneForTaskStatus(statut);
+
   return (
     <Select value={statut} onValueChange={handleChange} disabled={isPending}>
       <SelectTrigger
-        className={cn(badgeVariants({ variant: toneForStatus(statut) }), "h-6 w-auto border-none px-2 py-0 [&_svg]:opacity-70")}
+        className={cn(
+          badgeVariants({ variant: tone }),
+          "h-6 w-auto px-2 py-0 [&_svg]:opacity-70",
+          // Le variant "outline" (À faire, tone quasi blanche sans bordure)
+          // a besoin de garder sa bordure pour rester visible ; les autres
+          // teintes sont pleines, la bordure par défaut du Select ferait
+          // doublon.
+          tone !== "outline" && "border-none"
+        )}
       >
         <SelectValue>{STATUS_LABELS[statut]}</SelectValue>
       </SelectTrigger>

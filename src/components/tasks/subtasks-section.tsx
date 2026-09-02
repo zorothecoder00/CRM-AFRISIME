@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
-import { toneForStatus, toneForPriority } from "@/lib/status-tone";
+import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { Plus } from "lucide-react";
 
 export type SubtaskRow = {
@@ -126,7 +126,7 @@ export function SubtasksSection({
               {canChangeThisStatus ? (
                 <TaskStatusSelect taskId={s.id} statut={s.statut} />
               ) : (
-                <Badge variant={toneForStatus(s.statut)} className="text-[10px]">
+                <Badge variant={toneForTaskStatus(s.statut)} className="text-[10px]">
                   {STATUS_LABELS[s.statut]}
                 </Badge>
               )}

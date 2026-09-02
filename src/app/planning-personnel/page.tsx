@@ -204,12 +204,11 @@ export default async function PlanningPersonnelPage({
       orderBy: { titre: "asc" },
       select: { id: true, titre: true },
     }),
-    // §13 — "À planifier" : tâches de l'utilisateur sans date, pas encore
-    // planifiées via une activité (personalPlanningEntries: none).
+    // §13 — "À planifier" : tâches de l'utilisateur pas encore planifiées
+    // via une activité (personalPlanningEntries: none) — voir a-planifier/page.tsx.
     prisma.task.findMany({
       where: {
         OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
-        dateDebut: null,
         personalPlanningEntries: { none: {} },
         deletedAt: null,
       },

@@ -14,10 +14,11 @@ import { useMemo, useState } from "react";
 import { useAction } from "@/hooks/use-action";
 import { deleteTask } from "@/actions/trash.actions";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, toneForPriority } from "@/lib/status-tone";
+import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -42,7 +43,21 @@ export type TaskRow = {
   echeance: string | null;
   tempsEstimeHeures: number | null;
   avancement: number;
+  // Rempli uniquement pour le planning personnel (showCreneau) : plage
+  // horaire réelle de la session PersonalPlanningEntry qui planifie cette
+  // tâche (§4/§10) — la seule/prochaine à venir, sinon la dernière passée.
+  creneau?: { debut: string; fin: string } | null;
 };
+
+function formatCreneau(creneau: { debut: string; fin: string }): string {
+  const debut = new Date(creneau.debut);
+  const fin = new Date(creneau.fin);
+  const isToday = debut.toDateString() === new Date().toDateString();
+  const dateLabel = isToday ? "" : `${debut.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })} `;
+  const heureDebut = debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const heureFin = fin.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return `${dateLabel}${heureDebut}–${heureFin}`;
+}
 
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
@@ -63,6 +78,7 @@ const PRIORITY_LABELS: Record<string, string> = {
 function buildColumns(options: {
   canManage: boolean;
   canDelete: boolean;
+  showCreneau: boolean;
   onEdit: (id: string) => void;
   onDelete: (task: TaskRow) => void;
 }): ColumnDef<TaskRow>[] {
@@ -84,7 +100,7 @@ function buildColumns(options: {
         options.canManage ? (
           <TaskStatusSelect taskId={row.original.id} statut={row.original.statut} />
         ) : (
-          <Badge variant={toneForStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
+          <Badge variant={toneForTaskStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
         ),
     },
     {
@@ -96,7 +112,17 @@ function buildColumns(options: {
         </Badge>
       ),
     },
-    { accessorKey: "responsableNom", header: "Responsable" },
+    options.showCreneau
+      ? {
+          accessorKey: "creneau",
+          header: "Créneau",
+          cell: ({ row }) => (
+            <span className={row.original.creneau ? undefined : "text-muted-foreground"}>
+              {row.original.creneau ? formatCreneau(row.original.creneau) : "Non planifiée"}
+            </span>
+          ),
+        }
+      : { accessorKey: "responsableNom", header: "Responsable" },
     {
       accessorKey: "echeance",
       header: "Échéance",
@@ -130,11 +156,18 @@ export function TaskListView({
   users = [],
   canManage = false,
   canDelete = false,
+  showCreneau = false,
+  className,
 }: {
   tasks: TaskRow[];
   users?: Option[];
   canManage?: boolean;
   canDelete?: boolean;
+  // Planning personnel (§4/§10) : remplace la colonne "Responsable" (toujours
+  // l'utilisateur courant sur /planning-personnel/mes-taches, donc sans
+  // intérêt) par la plage horaire réelle de la tâche.
+  showCreneau?: boolean;
+  className?: string;
 }) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -146,10 +179,11 @@ export function TaskListView({
       buildColumns({
         canManage,
         canDelete,
+        showCreneau,
         onEdit: setEditingId,
         onDelete: (task) => remove(task.id),
       }),
-    [canManage, canDelete, remove]
+    [canManage, canDelete, showCreneau, remove]
   );
 
   const table = useReactTable({
@@ -164,7 +198,7 @@ export function TaskListView({
   const editingTask = tasks.find((t) => t.id === editingId) ?? null;
 
   return (
-    <div className="rounded-md border">
+    <div className={cn("rounded-md border", className)}>
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

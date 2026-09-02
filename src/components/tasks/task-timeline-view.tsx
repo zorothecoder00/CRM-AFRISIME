@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus } from "@/lib/status-tone";
+import { toneForTaskStatus } from "@/lib/status-tone";
 import type { TaskRow } from "@/components/tasks/task-list-view";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -60,7 +60,7 @@ export function TaskTimelineView({ tasks }: { tasks: TaskRow[] }) {
                 >
                   <span className="font-medium">{task.titre}</span>
                   <span className="text-xs text-muted-foreground">{task.projectNom}</span>
-                  <Badge variant={toneForStatus(task.statut)} className="ml-auto">
+                  <Badge variant={toneForTaskStatus(task.statut)} className="ml-auto">
                     {STATUS_LABELS[task.statut] ?? task.statut}
                   </Badge>
                 </Link>

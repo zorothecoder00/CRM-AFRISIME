@@ -72,7 +72,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
         Lier à une activité
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-h-none overflow-y-visible sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Planifier « {titre} »</DialogTitle>
           </DialogHeader>
