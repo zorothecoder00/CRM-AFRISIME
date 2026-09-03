@@ -28,12 +28,43 @@ export function computeDailyCapacity(capaciteHebdomadaireHeures: number): number
   return capaciteHebdomadaireHeures / WORK_DAYS_PER_WEEK;
 }
 
-function parseHourMinutes(hhmm: string): number {
+export function parseHourMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
 
-type DaySchedule = { heureDebut: string | null; heureFin: string | null; pauseDebut: string | null; pauseFin: string | null; type: string };
+/** §39 — gabarit d'exception ponctuelle (UserWorkScheduleException) : un seul horaire, une seule pause, inchangé. */
+type ExceptionDaySchedule = { heureDebut: string | null; heureFin: string | null; pauseDebut: string | null; pauseFin: string | null; type: string };
+
+export type ScheduleBreakLike = { heureDebut: string; heureFin: string };
+export type ScheduleShiftLike = { heureDebut: string; heureFin: string; breaks: ScheduleBreakLike[] };
+/** Un jour peut désormais porter plusieurs horaires (shifts) — demande utilisateur (ex. matin + soir) — chacun avec ses propres pauses. */
+export type MultiShiftDaySchedule = { type: string; shifts: ScheduleShiftLike[] };
+
+function minutesInShift(shift: ScheduleShiftLike): number {
+  let minutes = parseHourMinutes(shift.heureFin) - parseHourMinutes(shift.heureDebut);
+  for (const b of shift.breaks) {
+    minutes -= Math.max(0, parseHourMinutes(b.heureFin) - parseHourMinutes(b.heureDebut));
+  }
+  return Math.max(0, minutes);
+}
+
+/**
+ * Regroupe les lignes UserWorkSchedule (une par shift, ordre 0..n) par jour
+ * de semaine — les appelants font un seul `findMany` (avec `breaks` inclus)
+ * plutôt qu'un `findUnique` par jour comme avant le passage multi-horaires.
+ */
+export function groupSchedulesByWeekday<T extends { jourSemaine: number; type: string; heureDebut: string; heureFin: string; breaks: ScheduleBreakLike[] }>(
+  rows: T[]
+): Map<number, MultiShiftDaySchedule> {
+  const byDay = new Map<number, MultiShiftDaySchedule>();
+  for (const row of rows) {
+    const day = byDay.get(row.jourSemaine) ?? { type: row.type, shifts: [] };
+    day.shifts.push({ heureDebut: row.heureDebut, heureFin: row.heureFin, breaks: row.breaks });
+    byDay.set(row.jourSemaine, day);
+  }
+  return byDay;
+}
 
 /**
  * §40 — si l'utilisateur a configuré un horaire pour ce jour précis
@@ -41,26 +72,35 @@ type DaySchedule = { heureDebut: string | null; heureFin: string | null; pauseDe
  * computeDailyCapacity. ABSENCE vaut 0h disponible ce jour-là (pas de repli
  * silencieux sur la capacité hebdo) ; un jour non configuré ou sans ligne
  * active retombe sur computeDailyCapacity — aucune régression pour les
- * utilisateurs qui n'ont pas encore renseigné leurs horaires.
+ * utilisateurs qui n'ont pas encore renseigné leurs horaires. Un jour peut
+ * porter plusieurs horaires (shifts) : la capacité est la somme de chacun,
+ * pauses déduites.
  *
  * §39 — `exception` (UserWorkScheduleException, dérogation à une date
- * précise) prime sur le gabarit hebdomadaire récurrent quand fournie.
+ * précise, toujours un seul horaire/une seule pause) prime sur le gabarit
+ * hebdomadaire récurrent quand fournie.
  */
 export function resolveDailyCapacity(
-  schedule: DaySchedule | null,
+  schedule: MultiShiftDaySchedule | null,
   capaciteHebdomadaireHeures: number,
-  exception: DaySchedule | null = null
+  exception: ExceptionDaySchedule | null = null
 ): number {
-  const effective = exception ?? schedule;
-  if (!effective) return computeDailyCapacity(capaciteHebdomadaireHeures);
-  if (effective.type === "ABSENCE") return 0;
-  if (!effective.heureDebut || !effective.heureFin) return computeDailyCapacity(capaciteHebdomadaireHeures);
-
-  let minutes = parseHourMinutes(effective.heureFin) - parseHourMinutes(effective.heureDebut);
-  if (effective.pauseDebut && effective.pauseFin) {
-    minutes -= Math.max(0, parseHourMinutes(effective.pauseFin) - parseHourMinutes(effective.pauseDebut));
+  if (exception) {
+    if (exception.type === "ABSENCE") return 0;
+    if (!exception.heureDebut || !exception.heureFin) return computeDailyCapacity(capaciteHebdomadaireHeures);
+    let minutes = parseHourMinutes(exception.heureFin) - parseHourMinutes(exception.heureDebut);
+    if (exception.pauseDebut && exception.pauseFin) {
+      minutes -= Math.max(0, parseHourMinutes(exception.pauseFin) - parseHourMinutes(exception.pauseDebut));
+    }
+    return Math.max(0, minutes) / 60;
   }
-  return Math.max(0, minutes) / 60;
+
+  if (!schedule) return computeDailyCapacity(capaciteHebdomadaireHeures);
+  if (schedule.type === "ABSENCE") return 0;
+  if (schedule.shifts.length === 0) return computeDailyCapacity(capaciteHebdomadaireHeures);
+
+  const totalMinutes = schedule.shifts.reduce((sum, shift) => sum + minutesInShift(shift), 0);
+  return totalMinutes / 60;
 }
 
 /**

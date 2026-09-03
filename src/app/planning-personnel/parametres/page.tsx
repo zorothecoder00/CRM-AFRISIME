@@ -26,33 +26,40 @@ export default async function PersonalPlanningParametresPage() {
   const userId = session!.user.id;
 
   const [schedules, exceptions, user] = await Promise.all([
-    prisma.userWorkSchedule.findMany({ where: { userId } }),
+    prisma.userWorkSchedule.findMany({
+      where: { userId },
+      include: { breaks: { orderBy: { ordre: "asc" } } },
+      orderBy: [{ jourSemaine: "asc" }, { ordre: "asc" }],
+    }),
     prisma.userWorkScheduleException.findMany({ where: { userId }, orderBy: { date: "desc" } }),
     prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true, notificationChannelsPreferred: true } }),
   ]);
 
-  const byDay = new Map(schedules.map((s) => [s.jourSemaine, s]));
+  const byDay = new Map<number, typeof schedules>();
+  for (const s of schedules) {
+    const list = byDay.get(s.jourSemaine) ?? [];
+    list.push(s);
+    byDay.set(s.jourSemaine, list);
+  }
   const days: DayScheduleInput[] = Array.from({ length: 7 }, (_, jourSemaine) => {
     const existing = byDay.get(jourSemaine);
-    if (existing) {
+    if (existing && existing.length > 0) {
       return {
         jourSemaine,
         actif: true,
-        heureDebut: existing.heureDebut,
-        heureFin: existing.heureFin,
-        pauseDebut: existing.pauseDebut ?? "",
-        pauseFin: existing.pauseFin ?? "",
-        type: existing.type,
+        type: existing[0].type,
+        shifts: existing.map((s) => ({
+          heureDebut: s.heureDebut,
+          heureFin: s.heureFin,
+          breaks: s.breaks.map((b) => ({ heureDebut: b.heureDebut, heureFin: b.heureFin })),
+        })),
       };
     }
     return {
       jourSemaine,
       actif: DEFAULT_ACTIVE_DAYS.has(jourSemaine),
-      heureDebut: "08:00",
-      heureFin: "17:00",
-      pauseDebut: "",
-      pauseFin: "",
       type: "NORMAL" as const,
+      shifts: [{ heureDebut: "08:00", heureFin: "17:00", breaks: [] }],
     };
   });
 

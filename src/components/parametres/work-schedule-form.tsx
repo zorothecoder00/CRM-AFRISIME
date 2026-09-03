@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useAction } from "@/hooks/use-action";
 import { saveWorkSchedule } from "@/actions/user-work-schedule.actions";
-import type { DayScheduleInput } from "@/lib/validations/user-work-schedule.schema";
+import type { DayScheduleInput, ShiftScheduleInput } from "@/lib/validations/user-work-schedule.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Plus, X } from "lucide-react";
 
 const DAY_LABELS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
@@ -20,44 +21,104 @@ const TYPE_LABELS: Record<DayScheduleInput["type"], string> = {
   ABSENCE: "Absence",
 };
 
-/** §40 : une ligne par jour de semaine — le moteur de planification connaît ainsi la capacité réelle disponible (voir computeDailyCapacity). */
+const EMPTY_SHIFT: ShiftScheduleInput = { heureDebut: "08:00", heureFin: "17:00", breaks: [] };
+const MAX_SHIFTS_PER_DAY = 4;
+const MAX_BREAKS_PER_SHIFT = 5;
+
+/**
+ * §40 : une carte par jour de semaine. Demande utilisateur — un jour peut
+ * porter plusieurs horaires (ex. matin + soir), chacun avec ses propres
+ * pauses, plutôt qu'un seul horaire/une seule pause par jour. Le moteur de
+ * planification connaît ainsi la capacité réelle disponible (voir
+ * resolveDailyCapacity côté serveur).
+ */
 export function WorkScheduleForm({ initialDays }: { initialDays: DayScheduleInput[] }) {
   const [days, setDays] = useState<DayScheduleInput[]>(initialDays);
   const { run: submit, isPending } = useAction(saveWorkSchedule, { successMessage: "Horaires enregistrés." });
 
-  function updateDay(index: number, patch: Partial<DayScheduleInput>) {
-    setDays((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+  function updateDay(dayIndex: number, patch: Partial<DayScheduleInput>) {
+    setDays((prev) => prev.map((d, i) => (i === dayIndex ? { ...d, ...patch } : d)));
+  }
+
+  function addShift(dayIndex: number) {
+    setDays((prev) =>
+      prev.map((d, i) => (i === dayIndex ? { ...d, shifts: [...d.shifts, { ...EMPTY_SHIFT, breaks: [] }] } : d))
+    );
+  }
+
+  function removeShift(dayIndex: number, shiftIndex: number) {
+    setDays((prev) =>
+      prev.map((d, i) => (i === dayIndex ? { ...d, shifts: d.shifts.filter((_, si) => si !== shiftIndex) } : d))
+    );
+  }
+
+  function updateShift(dayIndex: number, shiftIndex: number, patch: Partial<ShiftScheduleInput>) {
+    setDays((prev) =>
+      prev.map((d, i) =>
+        i === dayIndex ? { ...d, shifts: d.shifts.map((s, si) => (si === shiftIndex ? { ...s, ...patch } : s)) } : d
+      )
+    );
+  }
+
+  function addBreak(dayIndex: number, shiftIndex: number) {
+    setDays((prev) =>
+      prev.map((d, i) =>
+        i === dayIndex
+          ? {
+              ...d,
+              shifts: d.shifts.map((s, si) =>
+                si === shiftIndex ? { ...s, breaks: [...s.breaks, { heureDebut: "12:00", heureFin: "13:00" }] } : s
+              ),
+            }
+          : d
+      )
+    );
+  }
+
+  function removeBreak(dayIndex: number, shiftIndex: number, breakIndex: number) {
+    setDays((prev) =>
+      prev.map((d, i) =>
+        i === dayIndex
+          ? {
+              ...d,
+              shifts: d.shifts.map((s, si) =>
+                si === shiftIndex ? { ...s, breaks: s.breaks.filter((_, bi) => bi !== breakIndex) } : s
+              ),
+            }
+          : d
+      )
+    );
+  }
+
+  function updateBreak(dayIndex: number, shiftIndex: number, breakIndex: number, patch: Partial<ShiftScheduleInput["breaks"][number]>) {
+    setDays((prev) =>
+      prev.map((d, i) =>
+        i === dayIndex
+          ? {
+              ...d,
+              shifts: d.shifts.map((s, si) =>
+                si === shiftIndex
+                  ? { ...s, breaks: s.breaks.map((b, bi) => (bi === breakIndex ? { ...b, ...patch } : b)) }
+                  : s
+              ),
+            }
+          : d
+      )
+    );
   }
 
   return (
     <Card>
       <CardContent className="space-y-3 py-4">
-        {days.map((day, i) => (
-          <div key={day.jourSemaine} className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
-            <label className="flex w-32 shrink-0 items-center gap-2">
-              <Checkbox checked={day.actif} onCheckedChange={(c) => updateDay(i, { actif: c === true })} />
-              {DAY_LABELS[day.jourSemaine]}
-            </label>
-            {day.actif && (
-              <>
-                <Input
-                  type="time"
-                  value={day.heureDebut}
-                  onChange={(e) => updateDay(i, { heureDebut: e.target.value })}
-                  className="w-28"
-                />
-                <span className="text-muted-foreground">à</span>
-                <Input type="time" value={day.heureFin} onChange={(e) => updateDay(i, { heureFin: e.target.value })} className="w-28" />
-                <span className="text-xs text-muted-foreground">Pause</span>
-                <Input
-                  type="time"
-                  value={day.pauseDebut ?? ""}
-                  onChange={(e) => updateDay(i, { pauseDebut: e.target.value })}
-                  className="w-28"
-                />
-                <span className="text-muted-foreground">–</span>
-                <Input type="time" value={day.pauseFin ?? ""} onChange={(e) => updateDay(i, { pauseFin: e.target.value })} className="w-28" />
-                <Select value={day.type} onValueChange={(v) => updateDay(i, { type: v as DayScheduleInput["type"] })}>
+        {days.map((day, dayIndex) => (
+          <div key={day.jourSemaine} className="space-y-2 rounded-md border p-2.5 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex w-32 shrink-0 items-center gap-2">
+                <Checkbox checked={day.actif} onCheckedChange={(c) => updateDay(dayIndex, { actif: c === true })} />
+                {DAY_LABELS[day.jourSemaine]}
+              </label>
+              {day.actif && (
+                <Select value={day.type} onValueChange={(v) => updateDay(dayIndex, { type: v as DayScheduleInput["type"] })}>
                   <SelectTrigger className="w-36">
                     <SelectValue />
                   </SelectTrigger>
@@ -69,7 +130,100 @@ export function WorkScheduleForm({ initialDays }: { initialDays: DayScheduleInpu
                     ))}
                   </SelectContent>
                 </Select>
-              </>
+              )}
+            </div>
+
+            {day.actif && day.type !== "ABSENCE" && (
+              <div className="space-y-2 pl-2">
+                {day.shifts.map((shift, shiftIndex) => (
+                  <div key={shiftIndex} className="space-y-1.5 rounded-md bg-muted/30 p-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Horaire {shiftIndex + 1}</span>
+                      <Input
+                        type="time"
+                        value={shift.heureDebut}
+                        onChange={(e) => updateShift(dayIndex, shiftIndex, { heureDebut: e.target.value })}
+                        className="w-28"
+                      />
+                      <span className="text-muted-foreground">à</span>
+                      <Input
+                        type="time"
+                        value={shift.heureFin}
+                        onChange={(e) => updateShift(dayIndex, shiftIndex, { heureFin: e.target.value })}
+                        className="w-28"
+                      />
+                      {day.shifts.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => removeShift(dayIndex, shiftIndex)}
+                          title="Retirer cet horaire"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pl-4">
+                      {shift.breaks.map((brk, breakIndex) => (
+                        <div key={breakIndex} className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">Pause</span>
+                          <Input
+                            type="time"
+                            value={brk.heureDebut}
+                            onChange={(e) => updateBreak(dayIndex, shiftIndex, breakIndex, { heureDebut: e.target.value })}
+                            className="w-24"
+                          />
+                          <span className="text-muted-foreground">–</span>
+                          <Input
+                            type="time"
+                            value={brk.heureFin}
+                            onChange={(e) => updateBreak(dayIndex, shiftIndex, breakIndex, { heureFin: e.target.value })}
+                            className="w-24"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => removeBreak(dayIndex, shiftIndex, breakIndex)}
+                            title="Retirer cette pause"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      {shift.breaks.length < MAX_BREAKS_PER_SHIFT && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 text-xs text-muted-foreground"
+                          onClick={() => addBreak(dayIndex, shiftIndex)}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Pause
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {day.shifts.length < MAX_SHIFTS_PER_DAY && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => addShift(dayIndex)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Ajouter un horaire
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         ))}

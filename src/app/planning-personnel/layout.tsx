@@ -27,6 +27,7 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
   }
 
   const userId = session.user.id;
+  const dateLabel = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   const [recentNotifications, unreadCount, aPlanifierCount, colleagues, projects, tasks, objectives] = await Promise.all([
     prisma.notification.findMany({
@@ -71,6 +72,7 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
           userName={session.user.name ?? session.user.email ?? ""}
           userImage={session.user.image}
           roleLabel={session.user.roleLabel}
+          dateLabel={dateLabel}
           notifications={recentNotifications.map((n) => ({
             id: n.id,
             titre: n.titre,

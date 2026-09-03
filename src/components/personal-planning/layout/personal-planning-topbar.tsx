@@ -21,6 +21,7 @@ export function PersonalPlanningTopbar({
   userName,
   userImage,
   roleLabel,
+  dateLabel,
   notifications,
   unreadCount,
   aPlanifierCount,
@@ -29,6 +30,8 @@ export function PersonalPlanningTopbar({
   userName: string;
   userImage?: string | null;
   roleLabel: string;
+  /** Date du jour + rappel disponibilité — affiché à la suite du titre "Planning personnel" plutôt que sous "Bonjour + nom" sur le hub (demande utilisateur). */
+  dateLabel: string;
   notifications: NotificationPreview[];
   unreadCount: number;
   aPlanifierCount: number;
@@ -51,6 +54,9 @@ export function PersonalPlanningTopbar({
             <h1 className="text-base font-semibold leading-none">Planning personnel</h1>
             <span className="show-from-lg text-xs text-muted-foreground">Planifier · Collaborer · Exécuter · Contrôler</span>
           </div>
+          <p className="show-from-lg text-xs text-muted-foreground">
+            <span className="capitalize">{dateLabel}</span> · Seule votre disponibilité (occupé/libre) est visible des autres.
+          </p>
         </div>
       </div>
 

@@ -198,8 +198,10 @@ export async function assertNotOnNonWorkingDay(userId: string, date: Date, entry
   const scheduleCount = await prisma.userWorkSchedule.count({ where: { userId } });
   if (scheduleCount === 0) return; // aucun horaire configuré : pas d'hypothèse de jour non ouvré.
 
-  const activeDay = await prisma.userWorkSchedule.findUnique({
-    where: { userId_jourSemaine: { userId, jourSemaine: date.getDay() } },
+  // Un jour peut désormais porter plusieurs horaires (shifts) : simple test
+  // d'existence, peu importe combien de lignes ce jour porte.
+  const activeDay = await prisma.userWorkSchedule.findFirst({
+    where: { userId, jourSemaine: date.getDay() },
   });
   if (!activeDay) {
     throw new Error("Impossible de planifier ce type d'activité : ce jour ne fait pas partie de vos jours ouvrables (voir Horaires de travail).");

@@ -12,7 +12,7 @@ import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/
 import { QuickCaptureButton } from "@/components/personal-planning/quick-capture-button";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
-import { resolveDailyCapacity, computeDailyCharge, computePlanningHealth } from "@/lib/personal-planning-workload";
+import { resolveDailyCapacity, computeDailyCharge, computePlanningHealth, groupSchedulesByWeekday } from "@/lib/personal-planning-workload";
 import { ACTIVE_TASK_STATUSES } from "@/lib/workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
@@ -72,14 +72,17 @@ export default async function MaJourneePage() {
 
   // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
   // §39 — dérogation ponctuelle pour la date du jour, si elle existe (prime sur le gabarit hebdomadaire).
-  const [todaySchedule, todayException] = await Promise.all([
-    prisma.userWorkSchedule.findUnique({
-      where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
+  const [todayScheduleRows, todayException] = await Promise.all([
+    prisma.userWorkSchedule.findMany({
+      where: { userId, jourSemaine: now.getDay() },
+      include: { breaks: { orderBy: { ordre: "asc" } } },
+      orderBy: { ordre: "asc" },
     }),
     prisma.userWorkScheduleException.findUnique({
       where: { userId_date: { userId, date: startOfDay(now) } },
     }),
   ]);
+  const todaySchedule = groupSchedulesByWeekday(todayScheduleRows).get(now.getDay()) ?? null;
 
   // Entrée du score Planning Health (tachesEnRetard/respectDesEcheances) —
   // même fenêtre glissante 30 jours que "Ma performance"

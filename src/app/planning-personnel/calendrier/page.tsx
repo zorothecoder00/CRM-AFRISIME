@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
 import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningWeekLoadChart, type WeekLoadDay } from "@/components/personal-planning/personal-planning-week-load-chart";
-import { resolveDailyCapacity, computeDailyCharge, formatHours } from "@/lib/personal-planning-workload";
+import { resolveDailyCapacity, computeDailyCharge, formatHours, groupSchedulesByWeekday } from "@/lib/personal-planning-workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
 
@@ -44,7 +44,7 @@ export default async function PersonalPlanningCalendrierPage({
       select: { id: true, titre: true, dateHeure: true, lieu: true, statut: true },
     }),
     prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { capaciteHebdomadaireHeures: true } }),
-    prisma.userWorkSchedule.findMany({ where: { userId } }),
+    prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
     prisma.userWorkScheduleException.findMany({ where: { userId, date: { in: weekDays } } }),
   ]);
 
@@ -56,7 +56,7 @@ export default async function PersonalPlanningCalendrierPage({
     }),
   ];
 
-  const scheduleByWeekday = new Map(schedules.map((s) => [s.jourSemaine, s]));
+  const scheduleByWeekday = groupSchedulesByWeekday(schedules);
   const exceptionByDate = new Map(exceptions.map((e) => [format(e.date, "yyyy-MM-dd"), e]));
 
   const days: WeekLoadDay[] = weekDays.map((day) => {

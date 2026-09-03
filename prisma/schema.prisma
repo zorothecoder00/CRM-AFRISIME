@@ -5681,24 +5681,43 @@ enum UserWorkScheduleType {
   ABSENCE
 }
 
+// Un jour peut porter plusieurs horaires (ex. matin 8h-12h + soir 17h-20h,
+// demande utilisateur) : la contrainte d'unicite porte desormais sur
+// [userId, jourSemaine, ordre] plutot que [userId, jourSemaine]. `type`
+// reste un attribut de JOURNEE (pas de shift) : le formulaire applique la
+// meme valeur a tous les horaires d'un jour donne, jamais mixte.
 model UserWorkSchedule {
-  id             String                @id @default(cuid())
+  id             String                  @id @default(cuid())
   userId         String
-  user           User                  @relation(fields: [userId], references: [id])
+  user           User                    @relation(fields: [userId], references: [id])
   organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationUserWorkSchedules", fields: [organizationId], references: [id])
+  organization   PlatformOrganization?   @relation("PlatformOrganizationUserWorkSchedules", fields: [organizationId], references: [id])
   jourSemaine    Int
+  ordre          Int                     @default(0)
   heureDebut     String
   heureFin       String
-  pauseDebut     String?
-  pauseFin       String?
-  type           UserWorkScheduleType  @default(NORMAL)
-  actif          Boolean               @default(true)
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  type           UserWorkScheduleType    @default(NORMAL)
+  actif          Boolean                 @default(true)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  breaks         UserWorkScheduleBreak[]
 
-  @@unique([userId, jourSemaine])
+  @@unique([userId, jourSemaine, ordre])
   @@index([userId])
+}
+
+// Pause a l'interieur d'un horaire (UserWorkSchedule) — plusieurs pauses par
+// horaire desormais possibles (remplace les anciens pauseDebut/pauseFin
+// uniques portes directement par UserWorkSchedule).
+model UserWorkScheduleBreak {
+  id         String           @id @default(cuid())
+  scheduleId String
+  schedule   UserWorkSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  heureDebut String
+  heureFin   String
+  ordre      Int              @default(0)
+
+  @@index([scheduleId])
 }
 
 // §39 — derogation ponctuelle a une date precise, distincte du gabarit

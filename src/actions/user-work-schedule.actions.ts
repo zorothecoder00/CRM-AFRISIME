@@ -18,45 +18,49 @@ async function requireSession() {
 }
 
 /**
- * §40 — enregistre l'horaire hebdomadaire de l'utilisateur, une ligne par
- * jour (upsert sur la contrainte unique [userId, jourSemaine]). Un jour
- * "inactif" (actif=false, ex. dimanche par défaut) est simplement supprimé :
- * l'absence de ligne pour un jour vaut "non travaillé" pour
+ * §40 — enregistre l'horaire hebdomadaire de l'utilisateur : un jour peut
+ * désormais porter plusieurs horaires (shifts, ordre 0..n), chacun avec ses
+ * propres pauses (demande utilisateur). Plus simple qu'un diff ligne à ligne
+ * vu le nombre variable de shifts : on repart de zéro pour chaque jour
+ * (delete cascade ses pauses) puis recrée ce qui est actif. Un jour
+ * "inactif" (actif=false, ex. dimanche par défaut) reste simplement
+ * supprimé : l'absence de ligne pour un jour vaut "non travaillé" pour
  * computeDailyCapacity, pas besoin de la stocker.
  */
 export async function saveWorkSchedule(input: SaveWorkScheduleInput) {
   const session = await requireSession();
   const data = saveWorkScheduleSchema.parse(input);
 
-  await prisma.$transaction([
-    prisma.userWorkSchedule.deleteMany({ where: { userId: session.user.id, jourSemaine: { in: data.days.filter((d) => !d.actif).map((d) => d.jourSemaine) } } }),
-    ...data.days
-      .filter((d) => d.actif)
-      .map((d) =>
-        prisma.userWorkSchedule.upsert({
-          where: { userId_jourSemaine: { userId: session.user.id, jourSemaine: d.jourSemaine } },
-          update: {
-            heureDebut: d.heureDebut,
-            heureFin: d.heureFin,
-            pauseDebut: d.pauseDebut || null,
-            pauseFin: d.pauseFin || null,
-            type: d.type,
-            actif: true,
-          },
-          create: {
+  await prisma.$transaction(async (tx) => {
+    for (const day of data.days) {
+      await tx.userWorkSchedule.deleteMany({ where: { userId: session.user.id, jourSemaine: day.jourSemaine } });
+      if (!day.actif) continue;
+
+      for (let ordre = 0; ordre < day.shifts.length; ordre++) {
+        const shift = day.shifts[ordre];
+        await tx.userWorkSchedule.create({
+          data: {
             userId: session.user.id,
-            jourSemaine: d.jourSemaine,
-            heureDebut: d.heureDebut,
-            heureFin: d.heureFin,
-            pauseDebut: d.pauseDebut || null,
-            pauseFin: d.pauseFin || null,
-            type: d.type,
+            jourSemaine: day.jourSemaine,
+            ordre,
+            heureDebut: shift.heureDebut,
+            heureFin: shift.heureFin,
+            type: day.type,
+            breaks: {
+              create: shift.breaks.map((b, breakOrdre) => ({
+                heureDebut: b.heureDebut,
+                heureFin: b.heureFin,
+                ordre: breakOrdre,
+              })),
+            },
           },
-        })
-      ),
-  ]);
+        });
+      }
+    }
+  });
 
   revalidatePath("/parametres/horaires");
+  revalidatePath("/planning-personnel/parametres");
   return { ok: true };
 }
 

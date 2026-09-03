@@ -41,7 +41,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { ReceivedRequestsSection } from "@/components/personal-planning/received-requests-section";
 import { SentRequestsList } from "@/components/personal-planning/sent-requests-list";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
-import { resolveDailyCapacity, computeDailyCharge, computePlanningHealthBreakdown } from "@/lib/personal-planning-workload";
+import { resolveDailyCapacity, computeDailyCharge, computePlanningHealthBreakdown, groupSchedulesByWeekday } from "@/lib/personal-planning-workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
@@ -53,7 +53,7 @@ import { PersonalPlanningHealthCard } from "@/components/personal-planning/perso
 import { PersonalPlanningDailyLoadCard } from "@/components/personal-planning/personal-planning-daily-load-card";
 import { PersonalPlanningStats } from "@/components/personal-planning/personal-planning-stats";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
-import { CollapsiblePlanningSidePanel } from "@/components/personal-planning/collapsible-side-panel";
+import { CollapsiblePlanningSidePanel, SidePanelProvider, SidePanelToggleButton } from "@/components/personal-planning/collapsible-side-panel";
 import {
   ENTRY_PRIORITE_ORDER,
   ENTRY_TYPE_OPTIONS,
@@ -222,14 +222,17 @@ export default async function PlanningPersonnelPage({
 
   // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
   // §39 — dérogation ponctuelle pour la date du jour, si elle existe (prime sur le gabarit hebdomadaire).
-  const [todaySchedule, todayException] = await Promise.all([
-    prisma.userWorkSchedule.findUnique({
-      where: { userId_jourSemaine: { userId, jourSemaine: now.getDay() } },
+  const [todayScheduleRows, todayException] = await Promise.all([
+    prisma.userWorkSchedule.findMany({
+      where: { userId, jourSemaine: now.getDay() },
+      include: { breaks: { orderBy: { ordre: "asc" } } },
+      orderBy: { ordre: "asc" },
     }),
     prisma.userWorkScheduleException.findUnique({
       where: { userId_date: { userId, date: startOfDay(now) } },
     }),
   ]);
+  const todaySchedule = groupSchedulesByWeekday(todayScheduleRows).get(now.getDay()) ?? null;
 
   // §5 — tableau de bord "Mon Planning" : "En retard"/"À venir" portent sur
   // l'ensemble du planning (pas seulement la période affichée par la vue
@@ -414,24 +417,13 @@ export default async function PlanningPersonnelPage({
 
   const colleagueOptions = colleagues.map((c) => ({ id: c.id, label: c.name }));
   const projectsForTaskForm = projects.map((p) => ({ id: p.id, nom: p.nom, sections: p.sections.map((s) => ({ id: s.id, label: s.nom })) }));
-  const dateLabel = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const plannedTodayCount = todayEntriesRaw.filter((e) => e.statut === "PLANIFIEE").length;
 
   return (
     <PersonalPlanningDndProvider>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-lg font-semibold">Bonjour {userName} 👋</p>
-            <p className="text-sm capitalize text-muted-foreground">{dateLabel}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Vos activités privées — distinct de{" "}
-              <Link href="/planning" className="text-primary hover:underline">
-                votre agenda
-              </Link>
-              . Seule votre disponibilité (occupé/libre) est visible des autres.
-            </p>
-          </div>
+          <p className="text-lg font-semibold">Bonjour {userName} 👋</p>
           {/* Les 5 boutons partagés (Demander un créneau, Nouvelle réunion,
               Nouvelle activité, Capture rapide, Générer/optimiser) vivent
               désormais dans la barre d'outils du layout (prototype V2) — ne
@@ -467,6 +459,7 @@ export default async function PlanningPersonnelPage({
 
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
+        <SidePanelProvider>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -488,6 +481,7 @@ export default async function PlanningPersonnelPage({
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </Link>
+                <SidePanelToggleButton />
               </div>
             </div>
 
@@ -592,6 +586,7 @@ export default async function PlanningPersonnelPage({
             </CollapsiblePlanningSidePanel>
           </div>
         </div>
+        </SidePanelProvider>
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card>

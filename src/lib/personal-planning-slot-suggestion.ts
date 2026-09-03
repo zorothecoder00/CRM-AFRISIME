@@ -2,43 +2,63 @@ import { prisma } from "@/lib/prisma";
 import { addDays } from "date-fns";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
 import { dateKeyOf, GRID_START_HOUR, GRID_END_HOUR } from "@/lib/personal-planning-grid";
+import { groupSchedulesByWeekday, parseHourMinutes, type MultiShiftDaySchedule } from "@/lib/personal-planning-workload";
 
 const SEARCH_WINDOW_DAYS = 21;
 const SLOT_STEP_MINUTES = 15;
 const MEETING_DEFAULT_DURATION_MINUTES = 60;
 
-type WorkWindow = { startMin: number; endMin: number; pauseStartMin: number | null; pauseEndMin: number | null };
+type WorkWindow = { startMin: number; endMin: number };
 
-function parseHourMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
+type ExceptionDaySchedule = { heureDebut: string | null; heureFin: string | null; pauseDebut: string | null; pauseFin: string | null; type: string };
+
+/** Retire une pause (si elle existe) d'un intervalle [startMin, endMin[, en 0, 1 ou 2 sous-intervalles. */
+function splitAroundBreak(startMin: number, endMin: number, pauseStartMin: number | null, pauseEndMin: number | null): WorkWindow[] {
+  if (pauseStartMin === null || pauseEndMin === null || pauseEndMin <= pauseStartMin) return [{ startMin, endMin }];
+  const windows: WorkWindow[] = [];
+  if (pauseStartMin > startMin) windows.push({ startMin, endMin: Math.min(pauseStartMin, endMin) });
+  if (pauseEndMin < endMin) windows.push({ startMin: Math.max(pauseEndMin, startMin), endMin });
+  return windows;
 }
 
 /**
- * Fenêtre de travail (en minutes depuis minuit) pour un jour donné : horaire
- * configuré (UserWorkSchedule/exception) s'il existe, sinon un créneau par
- * défaut GRID_START_HOUR–GRID_END_HOUR (même plage que les vues Jour/Semaine)
- * — pas d'hypothèse de pause si rien n'est configuré.
+ * Fenêtres de travail (en minutes depuis minuit) pour un jour donné —
+ * plusieurs horaires (shifts) possibles, chacun découpé autour de ses
+ * propres pauses (demande utilisateur) : remplace l'ancienne fenêtre
+ * unique + une seule pause. Aucun horaire configuré (schedule null) retombe
+ * sur le créneau par défaut GRID_START_HOUR–GRID_END_HOUR, sans pause.
  */
-function resolveWorkWindow(
-  schedule: { heureDebut: string | null; heureFin: string | null; pauseDebut: string | null; pauseFin: string | null; type: string } | null
-): WorkWindow | null {
-  if (schedule) {
-    if (schedule.type === "ABSENCE") return null;
-    if (!schedule.heureDebut || !schedule.heureFin) return null;
-    return {
-      startMin: parseHourMinutes(schedule.heureDebut),
-      endMin: parseHourMinutes(schedule.heureFin),
-      pauseStartMin: schedule.pauseDebut ? parseHourMinutes(schedule.pauseDebut) : null,
-      pauseEndMin: schedule.pauseFin ? parseHourMinutes(schedule.pauseFin) : null,
-    };
+function resolveWorkWindows(schedule: MultiShiftDaySchedule | null): WorkWindow[] {
+  if (!schedule) return [{ startMin: GRID_START_HOUR * 60, endMin: GRID_END_HOUR * 60 }];
+  if (schedule.type === "ABSENCE") return [];
+  if (schedule.shifts.length === 0) return [{ startMin: GRID_START_HOUR * 60, endMin: GRID_END_HOUR * 60 }];
+
+  const windows: WorkWindow[] = [];
+  for (const shift of schedule.shifts) {
+    const shiftStart = parseHourMinutes(shift.heureDebut);
+    const shiftEnd = parseHourMinutes(shift.heureFin);
+    const sortedBreaks = [...shift.breaks].sort((a, b) => parseHourMinutes(a.heureDebut) - parseHourMinutes(b.heureDebut));
+    let cursor = shiftStart;
+    for (const b of sortedBreaks) {
+      const bStart = parseHourMinutes(b.heureDebut);
+      const bEnd = parseHourMinutes(b.heureFin);
+      if (bStart > cursor) windows.push({ startMin: cursor, endMin: Math.min(bStart, shiftEnd) });
+      cursor = Math.max(cursor, bEnd);
+    }
+    if (cursor < shiftEnd) windows.push({ startMin: cursor, endMin: shiftEnd });
   }
-  return { startMin: GRID_START_HOUR * 60, endMin: GRID_END_HOUR * 60, pauseStartMin: null, pauseEndMin: null };
+  return windows.sort((a, b) => a.startMin - b.startMin);
 }
 
-function overlapsPause(window: WorkWindow, slotStartMin: number, slotEndMin: number): boolean {
-  if (window.pauseStartMin === null || window.pauseEndMin === null) return false;
-  return slotStartMin < window.pauseEndMin && slotEndMin > window.pauseStartMin;
+/** §39 — dérogation ponctuelle : un seul horaire/une seule pause, découpé de la même façon qu'un shift. */
+function resolveExceptionWindows(exception: ExceptionDaySchedule): WorkWindow[] {
+  if (exception.type === "ABSENCE") return [];
+  if (!exception.heureDebut || !exception.heureFin) return [];
+  const startMin = parseHourMinutes(exception.heureDebut);
+  const endMin = parseHourMinutes(exception.heureFin);
+  const pauseStartMin = exception.pauseDebut ? parseHourMinutes(exception.pauseDebut) : null;
+  const pauseEndMin = exception.pauseFin ? parseHourMinutes(exception.pauseFin) : null;
+  return splitAroundBreak(startMin, endMin, pauseStartMin, pauseEndMin);
 }
 
 function roundUpToStep(minutesOfDay: number): number {
@@ -65,7 +85,7 @@ export async function suggestNextAvailableSlot(
   const searchEnd = addDays(searchStart, SEARCH_WINDOW_DAYS);
 
   const [schedules, exceptions, nonWorkingMap, entriesRaw, meetingsRaw] = await Promise.all([
-    prisma.userWorkSchedule.findMany({ where: { userId } }),
+    prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
     prisma.userWorkScheduleException.findMany({
       where: { userId, date: { gte: new Date(searchStart.getFullYear(), searchStart.getMonth(), searchStart.getDate()), lte: searchEnd } },
     }),
@@ -80,7 +100,7 @@ export async function suggestNextAvailableSlot(
     }),
   ]);
 
-  const scheduleByWeekday = new Map(schedules.map((s) => [s.jourSemaine, s]));
+  const scheduleByWeekday = groupSchedulesByWeekday(schedules);
   const exceptionByDate = new Map(exceptions.map((e) => [dateKeyOf(e.date), e]));
   const busyIntervals = [
     ...entriesRaw.map((e) => ({ start: e.dateDebut.getTime(), end: e.dateFin.getTime() })),
@@ -92,21 +112,20 @@ export async function suggestNextAvailableSlot(
   for (let dayOffset = 0; dayOffset <= SEARCH_WINDOW_DAYS; dayOffset++) {
     const dateKey = dateKeyOf(cursorDay);
     if (!nonWorkingMap.has(dateKey)) {
-      const effective = exceptionByDate.get(dateKey) ?? scheduleByWeekday.get(cursorDay.getDay()) ?? null;
-      const window = resolveWorkWindow(effective ?? null);
-      if (window) {
+      const exception = exceptionByDate.get(dateKey);
+      const windows = exception ? resolveExceptionWindows(exception) : resolveWorkWindows(scheduleByWeekday.get(cursorDay.getDay()) ?? null);
+
+      for (const window of windows) {
         let slotStartMin = window.startMin;
         if (dayOffset === 0) {
-          slotStartMin = Math.max(window.startMin, roundUpToStep(searchStart.getHours() * 60 + searchStart.getMinutes()));
+          slotStartMin = Math.max(slotStartMin, roundUpToStep(searchStart.getHours() * 60 + searchStart.getMinutes()));
         }
         while (slotStartMin + durationMinutes <= window.endMin) {
           const slotEndMin = slotStartMin + durationMinutes;
-          if (!overlapsPause(window, slotStartMin, slotEndMin)) {
-            const candidateStart = new Date(cursorDay.getFullYear(), cursorDay.getMonth(), cursorDay.getDate(), 0, slotStartMin, 0, 0);
-            const candidateEnd = new Date(cursorDay.getFullYear(), cursorDay.getMonth(), cursorDay.getDate(), 0, slotEndMin, 0, 0);
-            if (isFree(candidateStart, candidateEnd)) {
-              return { dateDebut: candidateStart, dateFin: candidateEnd };
-            }
+          const candidateStart = new Date(cursorDay.getFullYear(), cursorDay.getMonth(), cursorDay.getDate(), 0, slotStartMin, 0, 0);
+          const candidateEnd = new Date(cursorDay.getFullYear(), cursorDay.getMonth(), cursorDay.getDate(), 0, slotEndMin, 0, 0);
+          if (isFree(candidateStart, candidateEnd)) {
+            return { dateDebut: candidateStart, dateFin: candidateEnd };
           }
           slotStartMin += SLOT_STEP_MINUTES;
         }
