@@ -28,7 +28,7 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
     include: {
       department: { select: { id: true, name: true } },
       leader: { select: { id: true, name: true } },
-      members: { include: { user: { include: { role: true } } } },
+      members: { include: { user: { include: { role: true, site: true } } } },
     },
   });
   if (!team) notFound();
@@ -53,6 +53,7 @@ export default async function TeamPilotagePage({ params }: { params: Promise<{ t
       id: m.user.id,
       name: m.user.name,
       roleLabel: m.user.role.label,
+      siteLabel: m.user.site?.nom ?? null,
       capaciteHebdomadaireHeures: Number(m.user.capaciteHebdomadaireHeures),
     })),
     tasks.map((t) => ({

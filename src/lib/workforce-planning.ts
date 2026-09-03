@@ -13,6 +13,8 @@ const MOIS_PROJECTION = 12;
 
 export type PosteVacant = { id: string; nom: string; departement: string | null; critique: boolean };
 
+export type EffectifSite = { site: string; count: number };
+
 export type WorkforcePlan = {
   effectifActuel: number;
   effectifIlYA12Mois: number;
@@ -25,6 +27,10 @@ export type WorkforcePlan = {
   competencesCritiques: SkillGap[];
   besoinsRecrutement: SkillGap[];
   besoinsFormation: SkillGap[];
+  // Ventilation de l'effectif actuel par site (User.siteId) — permet de voir
+  // où sont concentrés les effectifs, distinct de la ventilation par
+  // département déjà portée par postesVacants.
+  effectifParSite: EffectifSite[];
 };
 
 export async function computeWorkforcePlan(): Promise<WorkforcePlan> {
@@ -35,7 +41,13 @@ export async function computeWorkforcePlan(): Promise<WorkforcePlan> {
   const [users, tasks, leaves, postes, effectifIlYA12Mois, skillGaps] = await Promise.all([
     prisma.user.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, capaciteHebdomadaireHeures: true, role: { select: { label: true } } },
+      select: {
+        id: true,
+        name: true,
+        capaciteHebdomadaireHeures: true,
+        role: { select: { label: true } },
+        site: { select: { nom: true } },
+      },
     }),
     prisma.task.findMany({
       select: {
@@ -89,6 +101,15 @@ export async function computeWorkforcePlan(): Promise<WorkforcePlan> {
     .filter((p) => p.users.length === 0)
     .map((p) => ({ id: p.id, nom: p.nom, departement: p.department?.name ?? null, critique: p.critique }));
 
+  const effectifParSiteMap = new Map<string, number>();
+  for (const u of users) {
+    const site = u.site?.nom ?? "Non renseigné";
+    effectifParSiteMap.set(site, (effectifParSiteMap.get(site) ?? 0) + 1);
+  }
+  const effectifParSite: EffectifSite[] = [...effectifParSiteMap.entries()]
+    .map(([site, count]) => ({ site, count }))
+    .sort((a, b) => b.count - a.count);
+
   return {
     effectifActuel,
     effectifIlYA12Mois,
@@ -101,5 +122,6 @@ export async function computeWorkforcePlan(): Promise<WorkforcePlan> {
     competencesCritiques: skillGaps.filter((g) => g.ecart > 0),
     besoinsRecrutement: skillGaps.filter((g) => g.recommandation === "RECRUTEMENT"),
     besoinsFormation: skillGaps.filter((g) => g.recommandation === "FORMATION"),
+    effectifParSite,
   };
 }

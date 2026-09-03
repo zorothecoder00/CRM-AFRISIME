@@ -16,7 +16,7 @@ export async function computeIndividualPilotage(userId: string) {
   const [user, tasks, evaluations, objectives, leaves, memberships, competences] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      include: { role: true, department: true },
+      include: { role: true, department: true, site: true },
     }),
     prisma.task.findMany({
       where: { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },

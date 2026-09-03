@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,6 +13,7 @@ import { UserFormDialog } from "@/components/administration/user-form-dialog";
 import { EditUserDialog } from "@/components/administration/edit-user-dialog";
 import { ResetPasswordLinkButton } from "@/components/administration/reset-password-link-button";
 import { AdminTabs } from "@/components/administration/admin-tabs";
+import { Button } from "@/components/ui/button";
 
 /** Options de departement indentees par profondeur, meme logique que la page Departements. */
 function buildDepartmentOptions(
@@ -34,9 +36,16 @@ function buildDepartmentOptions(
   return options;
 }
 
-export default async function UtilisateursPage() {
+export default async function UtilisateursPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ siteId?: string }>;
+}) {
+  const { siteId } = await searchParams;
+
   const [users, roles, departments, postes, sites] = await Promise.all([
     prisma.user.findMany({
+      where: siteId ? { siteId } : undefined,
       include: { role: true, department: true, posteRef: true, site: true, manager: true },
       orderBy: { createdAt: "asc" },
     }),
@@ -50,6 +59,7 @@ export default async function UtilisateursPage() {
   const posteOptions = postes.map((p) => ({ id: p.id, label: p.nom }));
   const siteOptions = sites.map((s) => ({ id: s.id, label: s.nom }));
   const managerOptions = users.map((u) => ({ id: u.id, label: u.name }));
+  const selectClass = "h-9 rounded-md border border-input bg-transparent px-2 text-sm";
 
   return (
     <div className="space-y-6">
@@ -67,6 +77,27 @@ export default async function UtilisateursPage() {
           managers={managerOptions}
         />
       </div>
+
+      <form className="flex flex-wrap items-center gap-2" action="/administration/utilisateurs">
+        <select name="siteId" defaultValue={siteId ?? ""} className={selectClass}>
+          <option value="">Tous les sites</option>
+          {sites.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nom}
+            </option>
+          ))}
+        </select>
+        <Button type="submit" variant="outline">
+          Filtrer
+        </Button>
+        {siteId && (
+          <Link href="/administration/utilisateurs">
+            <Button type="button" variant="ghost">
+              Réinitialiser
+            </Button>
+          </Link>
+        )}
+      </form>
 
       <div className="rounded-md border">
         <Table>

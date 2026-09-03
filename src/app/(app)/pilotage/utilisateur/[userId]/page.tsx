@@ -76,7 +76,10 @@ export default async function IndividualPilotagePage({
               <h1 className="text-2xl font-semibold">{p.user.name}</h1>
               <Badge variant="secondary">Niveau — Individu</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{p.user.role.label}</p>
+            <p className="text-sm text-muted-foreground">
+              {p.user.role.label}
+              {p.user.site && ` — ${p.user.site.nom}`}
+            </p>
           </div>
         </div>
         {canViewPlanning && (

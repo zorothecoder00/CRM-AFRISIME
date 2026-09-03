@@ -34,16 +34,17 @@ export default async function OrganigrammePage() {
     redirect("/dashboard");
   }
 
-  const [departments, users] = await Promise.all([
+  const [departments, users, sites] = await Promise.all([
     prisma.department.findMany({
       include: { _count: { select: { users: true } } },
       orderBy: { name: "asc" },
     }),
     prisma.user.findMany({
       where: { isActive: true },
-      include: { role: true },
+      include: { role: true, site: true },
       orderBy: { name: "asc" },
     }),
+    prisma.site.findMany({ orderBy: { nom: "asc" } }),
   ]);
 
   const departmentForest = buildForest(
@@ -61,6 +62,48 @@ export default async function OrganigrammePage() {
       return { id: user.id, label: user.name, sublabel: user.role.label, badge: null };
     }
   );
+
+  /** Répartition par site (§XVIII) — Site n'a pas de hiérarchie propre, donc un
+   * simple groupement à 2 niveaux (site → collaborateurs), pas un arbre. */
+  const usersBySite = new Map<string, typeof users>();
+  for (const u of users) {
+    const key = u.siteId ?? "__sans_site__";
+    const list = usersBySite.get(key) ?? [];
+    list.push(u);
+    usersBySite.set(key, list);
+  }
+  const siteForest: OrgChartNodeData[] = [
+    ...sites.map((s) => ({
+      id: s.id,
+      label: s.nom,
+      sublabel: [s.ville, s.pays].filter(Boolean).join(", ") || null,
+      badge: `${(usersBySite.get(s.id) ?? []).length} collab.`,
+      children: (usersBySite.get(s.id) ?? []).map((u) => ({
+        id: u.id,
+        label: u.name,
+        sublabel: u.role.label,
+        badge: null,
+        children: [] as OrgChartNodeData[],
+      })),
+    })),
+    ...(usersBySite.has("__sans_site__")
+      ? [
+          {
+            id: "__sans_site__",
+            label: "Sans site",
+            sublabel: null,
+            badge: `${usersBySite.get("__sans_site__")!.length} collab.`,
+            children: usersBySite.get("__sans_site__")!.map((u) => ({
+              id: u.id,
+              label: u.name,
+              sublabel: u.role.label,
+              badge: null,
+              children: [] as OrgChartNodeData[],
+            })),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="space-y-6">
@@ -92,6 +135,16 @@ export default async function OrganigrammePage() {
         </CardHeader>
         <CardContent>
           <OrgChart roots={userForest} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Répartition par site</CardTitle>
+          <CardDescription>Implantation géographique des collaborateurs actifs.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrgChart roots={siteForest} />
         </CardContent>
       </Card>
     </div>

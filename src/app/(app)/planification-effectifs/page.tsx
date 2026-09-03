@@ -65,6 +65,20 @@ export default async function PlanificationEffectifsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Effectif par site</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {plan.effectifParSite.map((s) => (
+            <div key={s.site} className="flex items-center justify-between text-sm">
+              <span>{s.site}</span>
+              <span className="text-muted-foreground">{s.count} collaborateur(s)</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Compétences critiques</CardTitle>
         </CardHeader>
         <CardContent>

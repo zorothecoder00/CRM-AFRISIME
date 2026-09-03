@@ -54,12 +54,16 @@ export type WorkloadUserInput = {
   name: string;
   roleLabel: string;
   capaciteHebdomadaireHeures: number;
+  // Optionnel — seuls les appelants "vue manager" (ex. /pilotage/equipe/[teamId])
+  // qui veulent afficher le site dans WorkloadTable le fournissent.
+  siteLabel?: string | null;
 };
 
 export type UserWorkload = {
   userId: string;
   name: string;
   roleLabel: string;
+  siteLabel: string | null;
   capaciteHeures: number;
   tacheCount: number;
   chargeHeures: number;
@@ -156,6 +160,7 @@ export function computeWorkload(
         userId: user.id,
         name: user.name,
         roleLabel: user.roleLabel,
+        siteLabel: user.siteLabel ?? null,
         capaciteHeures,
         tacheCount: tacheCountByUser.get(user.id) ?? 0,
         chargeHeures,

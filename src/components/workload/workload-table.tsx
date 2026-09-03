@@ -62,7 +62,10 @@ export function WorkloadTable({
               <TableRow key={row.userId}>
                 <TableCell>
                   <div className="font-medium">{row.name}</div>
-                  <div className="text-xs text-muted-foreground">{row.roleLabel}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {row.roleLabel}
+                    {row.siteLabel && ` — ${row.siteLabel}`}
+                  </div>
                 </TableCell>
                 <TableCell>{row.tacheCount}</TableCell>
                 <TableCell>
