@@ -26,15 +26,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Option = { id: string; label: string };
 
 export function MeetingFormDialog({
   projects,
   users,
+  triggerClassName,
+  triggerSize,
 }: {
   projects: Option[];
   users: Option[];
+  /** Surcharge de couleur du bouton, scopée à l'appelant (ex. toolbar planning-personnel) — ne touche pas les autres usages (§/réunions, gouvernance, projets). */
+  triggerClassName?: string;
+  /** Idem pour la taille — la toolbar planning-personnel utilise "sm" partout, sinon ce bouton (par défaut) dépassait les autres en hauteur. */
+  triggerSize?: "default" | "sm" | "xs" | "lg";
 }) {
   const [open, setOpen] = useState(false);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
@@ -72,7 +79,7 @@ export function MeetingFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button size={triggerSize} className={cn(triggerClassName)}>
           <Plus className="mr-2 h-4 w-4" />
           Nouvelle réunion
         </Button>

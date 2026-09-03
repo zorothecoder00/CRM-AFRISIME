@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Zap } from "lucide-react";
 import { format } from "date-fns";
 
 /** §30 « Capture rapide » : un champ texte, une proposition (titre/type/date), confirmable/éditable avant création. */
@@ -69,8 +69,8 @@ export function QuickCaptureButton() {
         if (!o) reset();
       }}
     >
-      <Button size="sm" onClick={() => setOpen(true)}>
-        <Plus className="mr-1 h-4 w-4" />
+      <Button size="sm" variant="outline" className="border-border bg-card text-foreground hover:bg-muted" onClick={() => setOpen(true)}>
+        <Zap className="mr-1 h-4 w-4" />
         Capture rapide
       </Button>
       <DialogContent>

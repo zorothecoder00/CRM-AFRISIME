@@ -32,7 +32,7 @@ import { PersonalPlanningMonth } from "@/components/personal-planning/personal-p
 import { PersonalPlanningAgenda } from "@/components/personal-planning/personal-planning-agenda";
 import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
 import { PersonalPlanningList, type PersonalPlanningListRow } from "@/components/personal-planning/personal-planning-list";
-import { PersonalPlanningEndOfDay } from "@/components/personal-planning/end-of-day";
+import { EndOfDayButton } from "@/components/personal-planning/end-of-day-button";
 import { PersonalPlanningViewSwitcher } from "@/components/personal-planning/view-switcher";
 import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
@@ -427,16 +427,26 @@ export default async function PlanningPersonnelPage({
           {/* Les 5 boutons partagés (Demander un créneau, Nouvelle réunion,
               Nouvelle activité, Capture rapide, Générer/optimiser) vivent
               désormais dans la barre d'outils du layout (prototype V2) — ne
-              reste ici que "Nouvelle tâche", spécifique à ce hub. */}
-          {canCreateTask && (
-            <TaskFormDialog
-              projects={projectsForTaskForm}
-              users={colleagueOptions}
-              objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
-              plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
-              competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
+              reste ici que "Nouvelle tâche", spécifique à ce hub, et le
+              bouton "Bilan de ma journée" (demande utilisateur — plus un gros
+              bloc fixe dans la colonne latérale, un simple bouton en haut). */}
+          <div className="flex flex-wrap items-center gap-2">
+            <EndOfDayButton
+              entries={todayEntries}
+              reporteesCount={reporteesCount}
+              todayKey={todayKey}
+              initialNotes={dailyReview?.notes ?? null}
             />
-          )}
+            {canCreateTask && (
+              <TaskFormDialog
+                projects={projectsForTaskForm}
+                users={colleagueOptions}
+                objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
+                plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
+                competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
+              />
+            )}
+          </div>
         </div>
 
         <PersonalPlanningStats
@@ -575,6 +585,48 @@ export default async function PlanningPersonnelPage({
                 nonWorkingByDate={nonWorkingMap}
               />
             )}
+
+            {/* Demandes reçues/envoyées — juste sous la vue active (semaine
+                par défaut), pour que les deux colonnes se terminent à peu
+                près au même niveau (demande utilisateur — la page paraissait
+                éparpillée avec ce bloc séparé, pleine largeur, en bas de page). */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Demandes reçues</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ReceivedRequestsSection requests={receivedRows.slice(0, REQUESTS_PREVIEW_LIMIT)} />
+                  {receivedRows.length > 0 && (
+                    <Link
+                      href="/planning-personnel/demandes?type=recues"
+                      className="flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
+                    >
+                      Voir toutes mes demandes reçues ({receivedRows.length})
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Mes demandes envoyées</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <SentRequestsList requests={sentRows.slice(0, REQUESTS_PREVIEW_LIMIT)} />
+                  {sentRows.length > 0 && (
+                    <Link
+                      href="/planning-personnel/demandes?type=envoyees"
+                      className="flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
+                    >
+                      Voir toutes mes demandes envoyées ({sentRows.length})
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <div id="a-planifier" className="scroll-mt-20">
@@ -582,49 +634,10 @@ export default async function PlanningPersonnelPage({
               <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
               <PersonalPlanningHealthCard score={planningHealth} criteria={planningHealthBreakdown.criteria} />
               <PersonalPlanningDailyLoadCard charge={charge} />
-              <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
             </CollapsiblePlanningSidePanel>
           </div>
         </div>
         </SidePanelProvider>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Demandes reçues</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <ReceivedRequestsSection requests={receivedRows.slice(0, REQUESTS_PREVIEW_LIMIT)} />
-              {receivedRows.length > 0 && (
-                <Link
-                  href="/planning-personnel/demandes?type=recues"
-                  className="flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
-                >
-                  Voir toutes mes demandes reçues ({receivedRows.length})
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Mes demandes envoyées</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <SentRequestsList requests={sentRows.slice(0, REQUESTS_PREVIEW_LIMIT)} />
-              {sentRows.length > 0 && (
-                <Link
-                  href="/planning-personnel/demandes?type=envoyees"
-                  className="flex items-center justify-center gap-1 rounded-md border pt-2 pb-2 text-sm text-primary hover:bg-muted/40 hover:underline"
-                >
-                  Voir toutes mes demandes envoyées ({sentRows.length})
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </PersonalPlanningDndProvider>
   );

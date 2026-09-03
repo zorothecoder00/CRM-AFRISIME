@@ -70,7 +70,7 @@ export function PersonalPlanningEntryFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button size="sm" className="bg-orange-500 text-white hover:bg-orange-600">
           <Plus className="mr-1 h-4 w-4" />
           {triggerLabel}
         </Button>

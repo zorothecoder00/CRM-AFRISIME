@@ -37,7 +37,12 @@ export function PersonalPlanningToolbar({
     <div className="flex flex-wrap gap-2">
       <RequestAvailabilityDialog colleagues={colleagues} />
       {canCreateMeeting && (
-        <MeetingFormDialog projects={meetingProjects} users={colleagues} />
+        <MeetingFormDialog
+          projects={meetingProjects}
+          users={colleagues}
+          triggerSize="sm"
+          triggerClassName="bg-green-600 text-white hover:bg-green-700"
+        />
       )}
       <PersonalPlanningEntryFormDialog refData={refData} />
       <QuickCaptureButton />

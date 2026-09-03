@@ -9,7 +9,7 @@ export function PersonalPlanningDailyLoadCard({ charge }: { charge: DailyCharge 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 border-b">
         <div className="flex items-center gap-2">
           <Clock3 className="size-5 text-primary" />
           <CardTitle className="text-base">Charge du jour</CardTitle>

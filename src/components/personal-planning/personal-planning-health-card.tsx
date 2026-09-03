@@ -12,6 +12,8 @@ function toneFor(score: number) {
 function barToneFor(score: number) {
   return score >= 80 ? "bg-success" : score >= 50 ? "bg-warning" : "bg-destructive";
 }
+/** Seuil au-delà duquel on peut parler d'un planning "équilibré" — repère visuel fixe sur la barre, indépendant du score lui-même. */
+const EQUILIBRE_THRESHOLD = 75;
 
 /**
  * Widget "Planning Health" du hub (§43) — cliquer ouvre le détail des 7
@@ -27,7 +29,7 @@ export function PersonalPlanningHealthCard({ score, criteria }: { score: number;
     <>
       <Card id="planning-health">
         <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
-          <CardHeader className="flex flex-row items-center gap-2">
+          <CardHeader className="flex flex-row items-center gap-2 border-b">
             <Gauge className={`size-5 ${tone}`} />
             <CardTitle className="text-base">Planning Health</CardTitle>
           </CardHeader>
@@ -36,8 +38,16 @@ export function PersonalPlanningHealthCard({ score, criteria }: { score: number;
               {score}
               <span className="text-sm font-normal text-muted-foreground">/100</span>
             </p>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className={`h-full rounded-full ${barTone}`} style={{ width: `${score}%` }} />
+            {/* Repère "équilibre" (demande utilisateur) — pas le score lui-même :
+                un seuil fixe à 75%, au-delà duquel on considère le planning
+                équilibré. Légende au-dessus de la barre (pas en dessous),
+                elle-même sous la note. */}
+            <span className="block text-[10px] text-muted-foreground">Équilibre</span>
+            <div className="relative">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div className={`h-full rounded-full ${barTone}`} style={{ width: `${score}%` }} />
+              </div>
+              <div className="absolute top-0 h-2 w-px bg-foreground/40" style={{ left: `${EQUILIBRE_THRESHOLD}%` }} />
             </div>
             <p className="text-xs text-primary hover:underline">Voir le détail des 7 critères →</p>
           </CardContent>

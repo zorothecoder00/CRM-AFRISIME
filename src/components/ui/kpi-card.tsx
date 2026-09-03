@@ -58,6 +58,11 @@ export function KpiCard({
   trend,
   accent,
   className,
+  size = "default",
+  /** Cartes plus petites (ex. planning-personnel) : textes réduits en plus du `size="sm"` de Card (qui ne touche que le padding). */
+  compact = false,
+  /** Police de la valeur (ex. "font-mono" pour un rendu numérique plus soigné) — n'affecte que l'appelant qui le passe. */
+  valueClassName,
 }: {
   label: string;
   value: number | string;
@@ -67,6 +72,9 @@ export function KpiCard({
   /** Barre d'accent + leger fond teinte (ex: "destructive" si un seuil est depasse). */
   accent?: CardAccent;
   className?: string;
+  size?: "default" | "sm";
+  compact?: boolean;
+  valueClassName?: string;
 }) {
   const displayValue = typeof value === "number" ? formatCompact(value) : value;
 
@@ -81,15 +89,15 @@ export function KpiCard({
   }
 
   return (
-    <Card accent={accent} className={cn(className)}>
+    <Card accent={accent} size={size} className={cn(className)}>
       <CardContent className="space-y-2">
-        <div className="text-sm text-muted-foreground">{label}</div>
+        <div className={cn("text-sm text-muted-foreground", compact && "text-xs")}>{label}</div>
         <div className="flex items-end justify-between gap-2">
-          <div className="text-3xl font-semibold">{displayValue}</div>
+          <div className={cn("text-3xl font-semibold", compact && "text-xl", valueClassName)}>{displayValue}</div>
           {trend && trend.length > 1 && <Sparkline points={trend} />}
         </div>
         {delta && DeltaIcon && (
-          <div className={cn("flex items-center gap-1 text-xs font-medium", deltaColorClass)}>
+          <div className={cn("flex items-center gap-1 text-xs font-medium", compact && "text-[11px]", deltaColorClass)}>
             <DeltaIcon className="h-3 w-3" />
             <span>
               {delta.value > 0 ? "+" : ""}
