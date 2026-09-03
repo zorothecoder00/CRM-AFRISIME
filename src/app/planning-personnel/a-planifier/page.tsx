@@ -48,19 +48,18 @@ export default async function PersonalPlanningAPlanifierPage() {
   return (
     <div className="space-y-6">
 
-      <div className="space-y-4 rounded-md border bg-card p-4">
+      <div className="space-y-3 rounded-md border bg-card p-3">
         <div className="flex items-center gap-2">
-          <Inbox className="size-5 text-primary" />
+          <Inbox className="size-4 text-primary" />
           <div>
-            <h1 className="text-2xl font-semibold">À planifier — Inbox</h1>
-            <p className="text-sm text-muted-foreground">Capture → interprétation → proposition de créneau → validation</p>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-base font-semibold">À planifier — Inbox</h1>
+            <p className="text-xs text-muted-foreground">
               {tasks.length} tâche(s) sans créneau — affectez-les, liez-les à une activité, ou supprimez-les.
             </p>
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1">
           {tasks.map((t) => (
             <APlanifierTaskRow key={t.id} task={t} colleagues={colleagues} />
           ))}

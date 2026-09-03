@@ -50,6 +50,10 @@ export const PERSONAL_PLANNING_NAV_GROUPS: PersonalPlanningNavGroup[] = [
       { href: "/planning-personnel", label: "Ma journée", icon: Home },
       { href: "/planning-personnel/calendrier", label: "Calendrier", icon: CalendarDays },
       { href: "/planning-personnel/a-planifier", label: "À planifier", icon: Inbox, badgeKey: "aPlanifier" },
+      // Anciennes activites/taches deja passees, avec un bouton "Replanifier"
+      // — distinct de /bilans (revues de fin de journee) et /recurrences
+      // (series a venir) — demande utilisateur.
+      { href: "/planning-personnel/historique", label: "Historique de planification", icon: History },
       { href: "/planning-personnel/mes-taches", label: "Mes tâches", icon: ListChecks },
       { href: "/planning-personnel/agenda", label: "Agenda", icon: LayoutList },
       { href: "/planning-personnel/recurrences", label: "Récurrences", icon: Repeat },
