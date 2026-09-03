@@ -228,7 +228,11 @@ export function TaskListView({
 
   return (
     <div className={cn("rounded-md border", className)}>
-      <Table>
+      {/* Table impose text-sm sur elle-meme (pas seulement herite) : un
+          text-xs sur ce wrapper ne suffirait pas a le reduire — passe
+          directement sur <Table>, uniquement pour la variante mes-taches
+          (showCreneau), sans toucher /taches (l'autre appelant). */}
+      <Table className={showCreneau ? "text-xs" : undefined}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>

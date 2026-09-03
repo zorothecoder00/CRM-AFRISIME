@@ -132,11 +132,11 @@ export default async function PersonalPlanningMesTachesPage({
   return (
     <div className="space-y-6">
 
-      <div className="space-y-4 rounded-md border bg-card p-4">
+      <div className="space-y-3 rounded-md border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">Mes tâches</h1>
-            <p className="text-sm text-muted-foreground">{taskRows.length} tâche(s) — assignées à moi</p>
+            <h1 className="text-base font-semibold">Mes tâches</h1>
+            <p className="text-xs text-muted-foreground">{taskRows.length} tâche(s) — assignées à moi</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
