@@ -59,6 +59,10 @@ function formatCreneau(creneau: { debut: string; fin: string }): string {
   return `${dateLabel}${heureDebut}–${heureFin}`;
 }
 
+function formatHeureDebut(creneau: { debut: string; fin: string }): string {
+  return new Date(creneau.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 const STATUS_LABELS: Record<string, string> = {
   A_FAIRE: "À faire",
   EN_COURS: "En cours",
@@ -75,6 +79,48 @@ const PRIORITY_LABELS: Record<string, string> = {
   BASSE: "Basse",
 };
 
+const TITRE_CELL = ({ row }: { row: { original: TaskRow } }) => (
+  <Link href={`/taches/${row.original.id}`} className="font-medium hover:underline">
+    {row.original.titre}
+  </Link>
+);
+
+const ECHEANCE_CELL = ({ row }: { row: { original: TaskRow } }) =>
+  row.original.echeance ? new Date(row.original.echeance).toLocaleDateString("fr-FR") : "—";
+
+function priorityCell(row: { original: TaskRow }) {
+  return (
+    <Badge variant={toneForPriority(row.original.priorite)}>{PRIORITY_LABELS[row.original.priorite]}</Badge>
+  );
+}
+
+function statutCell(row: { original: TaskRow }, canManage: boolean) {
+  return canManage ? (
+    <TaskStatusSelect taskId={row.original.id} statut={row.original.statut} />
+  ) : (
+    <Badge variant={toneForTaskStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
+  );
+}
+
+function actionsColumn(options: {
+  canManage: boolean;
+  canDelete: boolean;
+  onEdit: (id: string) => void;
+  onDelete: (task: TaskRow) => void;
+}): ColumnDef<TaskRow> {
+  return {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => (
+      <RowActionsMenu
+        onEdit={options.canManage ? () => options.onEdit(row.original.id) : undefined}
+        onDelete={options.canDelete ? () => options.onDelete(row.original) : undefined}
+        deleteConfirmLabel={`Supprimer « ${row.original.titre} » ? La tâche sera déplacée dans la corbeille.`}
+      />
+    ),
+  };
+}
+
 function buildColumns(options: {
   canManage: boolean;
   canDelete: boolean;
@@ -82,71 +128,54 @@ function buildColumns(options: {
   onEdit: (id: string) => void;
   onDelete: (task: TaskRow) => void;
 }): ColumnDef<TaskRow>[] {
-  const cols: ColumnDef<TaskRow>[] = [
-    {
-      accessorKey: "titre",
-      header: "Titre",
-      cell: ({ row }) => (
-        <Link href={`/taches/${row.original.id}`} className="font-medium hover:underline">
-          {row.original.titre}
-        </Link>
-      ),
-    },
-    { accessorKey: "projectNom", header: "Projet" },
-    {
-      accessorKey: "statut",
-      header: "Statut",
-      cell: ({ row }) =>
-        options.canManage ? (
-          <TaskStatusSelect taskId={row.original.id} statut={row.original.statut} />
-        ) : (
-          <Badge variant={toneForTaskStatus(row.original.statut)}>{STATUS_LABELS[row.original.statut]}</Badge>
+  // Planning personnel (§4/§10, showCreneau) : disposition dédiée demandée
+  // par l'utilisateur — Heure/Tâche/Échéance/Priorité/Statut/Créneau/% —
+  // distincte de la disposition générale de /taches ci-dessous. Pas de
+  // colonne Projet ici (page déjà scopée à mes tâches), Heure = début du
+  // créneau, extrait à part de la plage complète déjà donnée par "Créneau".
+  if (options.showCreneau) {
+    const cols: ColumnDef<TaskRow>[] = [
+      {
+        accessorKey: "creneau",
+        id: "heure",
+        header: "Heure",
+        cell: ({ row }) => (
+          <span className={row.original.creneau ? undefined : "text-muted-foreground"}>
+            {row.original.creneau ? formatHeureDebut(row.original.creneau) : "—"}
+          </span>
         ),
-    },
-    {
-      accessorKey: "priorite",
-      header: "Priorité",
-      cell: ({ row }) => (
-        <Badge variant={toneForPriority(row.original.priorite)}>
-          {PRIORITY_LABELS[row.original.priorite]}
-        </Badge>
-      ),
-    },
-    options.showCreneau
-      ? {
-          accessorKey: "creneau",
-          header: "Créneau",
-          cell: ({ row }) => (
-            <span className={row.original.creneau ? undefined : "text-muted-foreground"}>
-              {row.original.creneau ? formatCreneau(row.original.creneau) : "Non planifiée"}
-            </span>
-          ),
-        }
-      : { accessorKey: "responsableNom", header: "Responsable" },
-    {
-      accessorKey: "echeance",
-      header: "Échéance",
-      cell: ({ row }) =>
-        row.original.echeance
-          ? new Date(row.original.echeance).toLocaleDateString("fr-FR")
-          : "—",
-    },
+      },
+      { accessorKey: "titre", header: "Tâche", cell: TITRE_CELL },
+      { accessorKey: "echeance", header: "Échéance", cell: ECHEANCE_CELL },
+      { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row) },
+      { accessorKey: "statut", header: "Statut", cell: ({ row }) => statutCell(row, options.canManage) },
+      {
+        accessorKey: "creneau",
+        id: "creneau",
+        header: "Créneau",
+        cell: ({ row }) => (
+          <span className={row.original.creneau ? undefined : "text-muted-foreground"}>
+            {row.original.creneau ? formatCreneau(row.original.creneau) : "Non planifiée"}
+          </span>
+        ),
+      },
+      { accessorKey: "avancement", header: "%", cell: ({ row }) => `${row.original.avancement}%` },
+    ];
+    if (options.canManage || options.canDelete) cols.push(actionsColumn(options));
+    return cols;
+  }
+
+  const cols: ColumnDef<TaskRow>[] = [
+    { accessorKey: "titre", header: "Titre", cell: TITRE_CELL },
+    { accessorKey: "projectNom", header: "Projet" },
+    { accessorKey: "statut", header: "Statut", cell: ({ row }) => statutCell(row, options.canManage) },
+    { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row) },
+    { accessorKey: "responsableNom", header: "Responsable" },
+    { accessorKey: "echeance", header: "Échéance", cell: ECHEANCE_CELL },
     { accessorKey: "avancement", header: "%", cell: ({ row }) => `${row.original.avancement}%` },
   ];
 
-  if (options.canManage || options.canDelete) {
-    cols.push({
-      id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <RowActionsMenu
-          onEdit={options.canManage ? () => options.onEdit(row.original.id) : undefined}
-          onDelete={options.canDelete ? () => options.onDelete(row.original) : undefined}
-          deleteConfirmLabel={`Supprimer « ${row.original.titre} » ? La tâche sera déplacée dans la corbeille.`}
-        />
-      ),
-    });
-  }
+  if (options.canManage || options.canDelete) cols.push(actionsColumn(options));
 
   return cols;
 }

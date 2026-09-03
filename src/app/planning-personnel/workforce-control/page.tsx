@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeWorkload, ACTIVE_TASK_STATUSES } from "@/lib/workload";
 import { computeScopePilotage, getDepartmentScope } from "@/lib/pilotage-levels";
-import { BackLink } from "@/components/ui/back-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { WorkforceControlSimulateButton } from "@/components/personal-planning/workforce-control-simulate-button";
@@ -77,7 +76,6 @@ export default async function WorkforceControlPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
 
       <div className="flex items-center gap-2">
         <Grid3x3 className="size-5 text-primary" />

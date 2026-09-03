@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
 import { Repeat } from "lucide-react";
@@ -51,8 +49,6 @@ export default async function PersonalPlanningReunionsPage({
 
   return (
     <div className="space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="space-y-4 rounded-md border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -1,8 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { APlanifierTaskRow, type APlanifierTask } from "@/components/personal-planning/a-planifier-task-row";
 import { Inbox } from "lucide-react";
 
@@ -49,8 +47,6 @@ export default async function PersonalPlanningAPlanifierPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="space-y-4 rounded-md border bg-card p-4">
         <div className="flex items-center gap-2">

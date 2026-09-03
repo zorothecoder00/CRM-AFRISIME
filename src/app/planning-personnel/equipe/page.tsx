@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
-import { BackLink } from "@/components/ui/back-link";
 import { Users } from "lucide-react";
 
 /**
@@ -34,7 +33,6 @@ export default async function PersonalPlanningEquipePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
 
       <div className="flex items-center gap-2">
         <Users className="size-5 text-primary" />

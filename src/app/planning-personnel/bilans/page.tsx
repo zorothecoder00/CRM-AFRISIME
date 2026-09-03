@@ -8,8 +8,6 @@ import { fr } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { ChevronRight, Moon } from "lucide-react";
 
 /**
@@ -47,8 +45,6 @@ export default async function PersonalPlanningBilansPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel/bilans" />
 
       <div className="flex items-center gap-2">
         <Moon className="size-5 text-primary" />

@@ -3,8 +3,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { MyWorkloadCard } from "@/components/workload/my-workload-card";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 
 /**
  * "Temps / Charge" (prototype V2) — page dédiée au module Planning
@@ -47,8 +45,6 @@ export default async function PersonalPlanningChargeDeTravailPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div>
         <h1 className="text-2xl font-semibold">Temps / Charge</h1>

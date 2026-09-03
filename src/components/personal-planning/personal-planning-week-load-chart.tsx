@@ -10,13 +10,15 @@ export type WeekLoadDay = {
 };
 
 const TONE_BAR_CLASSES = {
-  destructive: "bg-destructive/70",
+  // Bleu (pas rouge) même en surcharge — demande utilisateur, le rouge était
+  // jugé trop alarmiste pour une simple analyse de charge.
+  surcharge: "bg-info/70",
   warning: "bg-warning/70",
   success: "bg-success/70",
 } as const;
 
 function toneFor(tauxOccupation: number): keyof typeof TONE_BAR_CLASSES {
-  if (tauxOccupation > 100) return "destructive";
+  if (tauxOccupation > 100) return "surcharge";
   if (tauxOccupation >= 80) return "warning";
   return "success";
 }

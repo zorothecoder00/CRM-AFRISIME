@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { PersonalPlanningSidebar } from "@/components/personal-planning/layout/personal-planning-sidebar";
 import { PersonalPlanningTopbar } from "@/components/personal-planning/layout/personal-planning-topbar";
 import { PersonalPlanningToolbar } from "@/components/personal-planning/layout/personal-planning-toolbar";
+import { PersonalPlanningBackLink } from "@/components/personal-planning/layout/personal-planning-back-link";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 
 /**
@@ -86,6 +87,7 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="mx-auto w-full max-w-[1600px] space-y-4">
+            <PersonalPlanningBackLink />
             <PersonalPlanningToolbar
               refData={toolbarRefData}
               meetingProjects={projects.map((p) => ({ id: p.id, label: p.nom }))}

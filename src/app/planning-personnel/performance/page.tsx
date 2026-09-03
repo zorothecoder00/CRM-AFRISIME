@@ -2,8 +2,6 @@ import { getServerSession } from "next-auth";
 import { subDays, startOfWeek, subWeeks } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPerformance } from "@/components/personal-planning/personal-performance";
 import { PersonalPerformanceTrend, type PerformanceTrendWeek } from "@/components/personal-planning/personal-performance-trend";
 import { computeWorkload, ACTIVE_TASK_STATUSES } from "@/lib/workload";
@@ -91,8 +89,6 @@ export default async function PersonalPlanningPerformancePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="flex items-center gap-2">
         <BarChart3 className="size-5 text-primary" />

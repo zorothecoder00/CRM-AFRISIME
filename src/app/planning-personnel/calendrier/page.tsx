@@ -6,8 +6,6 @@ import { startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay, format 
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningWeekLoadChart, type WeekLoadDay } from "@/components/personal-planning/personal-planning-week-load-chart";
 import { resolveDailyCapacity, computeDailyCharge, formatHours, groupSchedulesByWeekday } from "@/lib/personal-planning-workload";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
@@ -86,9 +84,7 @@ export default async function PersonalPlanningCalendrierPage({
   const todayHref = "/planning-personnel/calendrier";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
+    <div className="space-y-6">
 
       <div className="flex items-center gap-2">
         <CalendarRange className="size-5 text-primary" />

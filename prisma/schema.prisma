@@ -559,6 +559,8 @@ model User {
   delegationsGiven                    Delegation[]                       @relation("DelegationDelegant")
   delegationsReceived                 Delegation[]                       @relation("DelegationDelegataire")
   delegationsCreated                  Delegation[]                       @relation("DelegationCreatedBy")
+  personalPlanningSharesGiven         PersonalPlanningShare[]            @relation("PersonalPlanningShareOwner")
+  personalPlanningSharesReceived      PersonalPlanningShare[]            @relation("PersonalPlanningShareGrantee")
   organizationProfilesUpdated         OrganizationProfile[]
   exchangeRatesUpdated                ExchangeRate[]
   strategicAxesCreated                StrategicAxis[]
@@ -1201,6 +1203,7 @@ model PlatformOrganization {
   holidays                          Holiday[]                          @relation("PlatformOrganizationHolidays")
   userWorkSchedules                 UserWorkSchedule[]                 @relation("PlatformOrganizationUserWorkSchedules")
   userWorkScheduleExceptions        UserWorkScheduleException[]        @relation("PlatformOrganizationUserWorkScheduleExceptions")
+  personalPlanningShares            PersonalPlanningShare[]             @relation("PlatformOrganizationPersonalPlanningShares")
   tags                              Tag[]                              @relation("PlatformOrganizationTags")
   entityTags                        EntityTag[]                        @relation("PlatformOrganizationEntityTags")
   apiKeys                           ApiKey[]                           @relation("PlatformOrganizationApiKeys")
@@ -5742,6 +5745,28 @@ model UserWorkScheduleException {
 
   @@unique([userId, date])
   @@index([userId])
+}
+
+// Partage du planning personnel (demande utilisateur — "partager son agenda
+// avec une secretaire par exemple") : octroi explicite du proprietaire a un
+// tiers, en LECTURE SEULE (meme vue detaillee que canViewPersonalPlanningOf,
+// voir personal-planning-access.ts). Distinct du controle manager/chef
+// d'equipe deja existant (User.managerId/Team.leaderId) : ici le beneficiaire
+// n'a besoin d'aucun lien hierarchique. Distinct aussi de Delegation
+// (registre de delegation d'autorite, jamais lu par du code metier) — ici
+// c'est un vrai controle d'acces, verifie a la lecture du planning.
+model PersonalPlanningShare {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationPersonalPlanningShares", fields: [organizationId], references: [id])
+  ownerId        String
+  owner          User                  @relation("PersonalPlanningShareOwner", fields: [ownerId], references: [id])
+  granteeId      String
+  grantee        User                  @relation("PersonalPlanningShareGrantee", fields: [granteeId], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@unique([ownerId, granteeId])
+  @@index([granteeId])
 }
 
 // ===================== V2.2 §26-30 — Digital twin, knowledge graph, recherche, command center, briefing =====================

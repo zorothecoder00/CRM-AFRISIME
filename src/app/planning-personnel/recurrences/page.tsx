@@ -7,8 +7,6 @@ import { fr } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { DeleteSeriesButton } from "@/components/personal-planning/delete-series-button";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
@@ -116,8 +114,6 @@ export default async function PersonalPlanningRecurrencesPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">

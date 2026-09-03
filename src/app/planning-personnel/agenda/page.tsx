@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { subYears, addYears } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronRight } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
 import { AgendaExportButton, type AgendaExportRow } from "@/components/personal-planning/agenda-export-button";
+import { AgendaShareCard } from "@/components/personal-planning/agenda-share-card";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { CalendarRange } from "lucide-react";
@@ -23,7 +25,7 @@ export default async function PersonalPlanningAgendaPage() {
   const rangeStart = subYears(now, 2);
   const rangeEnd = addYears(now, 2);
 
-  const [entriesRaw, meetingsRaw] = await Promise.all([
+  const [entriesRaw, meetingsRaw, shares, colleagues, sharedWithMe] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
       where: { userId, dateDebut: { lte: rangeEnd }, dateFin: { gte: rangeStart } },
       include: {
@@ -36,6 +38,21 @@ export default async function PersonalPlanningAgendaPage() {
     prisma.meeting.findMany({
       where: { participants: { some: { userId } }, dateHeure: { gte: rangeStart, lte: rangeEnd } },
       select: { id: true, titre: true, dateHeure: true, lieu: true, statut: true },
+    }),
+    // Partage d'agenda (demande utilisateur — "partager avec une secrétaire").
+    prisma.personalPlanningShare.findMany({
+      where: { ownerId: userId },
+      include: { grantee: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.user.findMany({ where: { isActive: true, id: { not: userId } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    // Agendas que d'autres m'ont partagé — sinon aucun lien nulle part
+    // n'amène à /planning-personnel/equipe/[userId] pour un bénéficiaire
+    // sans lien hiérarchique.
+    prisma.personalPlanningShare.findMany({
+      where: { granteeId: userId },
+      include: { owner: { select: { id: true, name: true } } },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 
@@ -55,8 +72,6 @@ export default async function PersonalPlanningAgendaPage() {
 
   return (
     <div className="space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="space-y-4 rounded-md border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,6 +87,31 @@ export default async function PersonalPlanningAgendaPage() {
 
         <PersonalPlanningTimeline entries={entries} />
       </div>
+
+      <AgendaShareCard
+        shares={shares.map((s) => ({ id: s.id, granteeId: s.granteeId, granteeName: s.grantee.name }))}
+        colleagues={colleagues.map((c) => ({ id: c.id, label: c.name }))}
+      />
+
+      {sharedWithMe.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Agendas partagés avec moi</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {sharedWithMe.map((s) => (
+              <Link
+                key={s.id}
+                href={`/planning-personnel/equipe/${s.owner.id}`}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-muted/40"
+              >
+                {s.owner.name}
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

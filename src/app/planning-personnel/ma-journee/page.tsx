@@ -3,11 +3,9 @@ import { getServerSession } from "next-auth";
 import { startOfDay, endOfDay, subDays } from "date-fns";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { BackLink } from "@/components/ui/back-link";
 import { PersonalPlanningDay } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
 import { PlanningHealthBadge } from "@/components/personal-planning/planning-health-badge";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import { QuickCaptureButton } from "@/components/personal-planning/quick-capture-button";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
@@ -188,8 +186,6 @@ export default async function MaJourneePage() {
   return (
     <PersonalPlanningDndProvider>
       <div className="space-y-4">
-        <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-        <PersonalPlanningCrosslinks current="/planning-personnel/ma-journee" />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

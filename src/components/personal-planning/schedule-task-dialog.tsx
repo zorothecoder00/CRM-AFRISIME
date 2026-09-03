@@ -67,9 +67,9 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={handleOpen}>
+      <Button size="sm" variant="default" onClick={handleOpen}>
         <CalendarPlus className="mr-1 h-3.5 w-3.5" />
-        Lier à une activité
+        Transformer en activité
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-none overflow-y-visible sm:max-w-md">

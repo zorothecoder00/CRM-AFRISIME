@@ -37,6 +37,23 @@ export const createObjectiveSchema = z
 
 export type CreateObjectiveInput = z.infer<typeof createObjectiveSchema>;
 
+/**
+ * Modification/réévaluation d'un objectif existant (demande utilisateur —
+ * aucun bouton d'édition n'existait, seul le statut était modifiable).
+ * Volontairement limité au contenu et au calendrier — pas de portée/scope,
+ * qui reste une décision structurelle prise une fois à la création.
+ */
+export const updateObjectiveSchema = z.object({
+  objectiveId: z.string().min(1),
+  titre: z.string().min(2, "Le titre est requis."),
+  description: z.string().optional(),
+  periode: z.enum(["ANNUEL", "TRIMESTRIEL", "MENSUEL", "HEBDOMADAIRE"]),
+  dateDebut: z.string().min(1, "La date de début est requise."),
+  dateFin: z.string().min(1, "La date de fin est requise."),
+});
+
+export type UpdateObjectiveInput = z.infer<typeof updateObjectiveSchema>;
+
 export const updateObjectiveStatusSchema = z.object({
   objectiveId: z.string().min(1),
   statut: z.enum(["EN_COURS", "ATTEINT", "NON_ATTEINT", "ANNULE"]),

@@ -7,8 +7,6 @@ import type { ObjectivePeriod, ObjectiveScope } from "@/generated/prisma/enums";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
 import { ProgressBar } from "@/components/objectives/progress-bar";
@@ -88,8 +86,6 @@ export default async function PersonalPlanningObjectifsPage({
 
   return (
     <div className="space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="space-y-4 rounded-md border bg-card p-4">
         <div className="flex items-center justify-between">

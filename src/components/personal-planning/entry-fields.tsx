@@ -274,7 +274,10 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
 
           {refData.colleagues.length > 0 && (
             <div className="space-y-2">
-              <Label>Participants</Label>
+              <Label>Collègues à prévenir sur ce créneau</Label>
+              <p className="text-xs text-muted-foreground">
+                Optionnel — n&apos;a pas d&apos;effet sur qui est responsable de la tâche, déjà défini ailleurs.
+              </p>
               <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
                 {refData.colleagues.map((c) => (
                   <label key={c.id} className="flex items-center gap-2 text-sm">

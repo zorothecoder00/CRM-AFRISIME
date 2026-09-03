@@ -14,6 +14,7 @@ import {
   BarChart3,
   Settings,
   Grid3x3,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -58,6 +59,9 @@ export const PERSONAL_PLANNING_NAV_GROUPS: PersonalPlanningNavGroup[] = [
       { href: "/planning-personnel/charge-de-travail", label: "Temps / Charge", icon: Clock3 },
       { href: "/notifications", label: "Alertes", icon: Bell, badgeKey: "alertes" },
       { href: "/planning-personnel/performance", label: "Ma performance", icon: BarChart3 },
+      // Absent auparavant de cette sidebar (seulement accessible via l'ancien
+      // groupe de liens en haut de page, désormais retiré) — demande utilisateur.
+      { href: "/planning-personnel/bilans", label: "Historique des bilans", icon: History },
       { href: "/planning-personnel/parametres", label: "Paramètres", icon: Settings },
     ],
   },

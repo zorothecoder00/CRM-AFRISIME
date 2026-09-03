@@ -8,6 +8,7 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import {
   createObjectiveSchema,
+  updateObjectiveSchema,
   updateObjectiveStatusSchema,
   addIndicatorSchema,
   updateIndicatorValueSchema,
@@ -15,6 +16,7 @@ import {
   linkObjectiveParentSchema,
   updateObjectiveSmartSchema,
   type CreateObjectiveInput,
+  type UpdateObjectiveInput,
   type AddIndicatorInput,
   type UpdateIndicatorValueInput,
   type UpdateIndicatorDetailsInput,
@@ -85,6 +87,37 @@ export async function createObjective(input: CreateObjectiveInput) {
   revalidatePath("/objectifs");
   revalidatePath("/dashboard");
   if (data.scope === "PROGRAMME" && data.programmeId) revalidatePath(`/programmes/${data.programmeId}`);
+  return objective;
+}
+
+/** Modification/réévaluation du contenu et du calendrier d'un objectif existant (demande utilisateur — seul le statut était modifiable jusqu'ici). */
+export async function updateObjective(input: UpdateObjectiveInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.OBJECTIVE_UPDATE);
+
+  const data = updateObjectiveSchema.parse(input);
+
+  const objective = await prisma.objective.update({
+    where: { id: data.objectiveId },
+    data: {
+      titre: data.titre,
+      description: data.description,
+      periode: data.periode,
+      dateDebut: new Date(data.dateDebut),
+      dateFin: new Date(data.dateFin),
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "objective.updated",
+    entityType: "Objective",
+    entityId: objective.id,
+    changes: { titre: data.titre, periode: data.periode, dateDebut: data.dateDebut, dateFin: data.dateFin },
+  });
+
+  revalidatePath(`/objectifs/${data.objectiveId}`);
+  revalidatePath("/objectifs");
   return objective;
 }
 

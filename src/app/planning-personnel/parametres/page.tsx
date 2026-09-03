@@ -5,8 +5,6 @@ import { WorkScheduleForm } from "@/components/parametres/work-schedule-form";
 import { WorkScheduleExceptions } from "@/components/parametres/work-schedule-exceptions";
 import { NotificationPreferencesForm } from "@/components/notifications/notification-preferences-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import type { DayScheduleInput } from "@/lib/validations/user-work-schedule.schema";
 
 const DEFAULT_ACTIVE_DAYS = new Set([1, 2, 3, 4, 5]); // lundi-vendredi
@@ -65,8 +63,6 @@ export default async function PersonalPlanningParametresPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div>
         <h1 className="text-2xl font-semibold">Paramètres</h1>

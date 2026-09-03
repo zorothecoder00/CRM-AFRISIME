@@ -5,7 +5,7 @@ import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval,
 import { fr } from "date-fns/locale";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canViewPersonalPlanningOf } from "@/lib/personal-planning-access";
+import { resolvePersonalPlanningAccess } from "@/lib/personal-planning-access";
 import { PersonalPlanningWeek, type PersonalPlanningDay } from "@/components/personal-planning/personal-planning-week";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
@@ -22,8 +22,8 @@ import { Lock, ChevronLeft } from "lucide-react";
 export default async function SubordinatePersonalPlanningPage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId: targetUserId } = await params;
   const session = await getServerSession(authOptions);
-  const allowed = await canViewPersonalPlanningOf(session!.user.id, targetUserId);
-  if (!allowed) redirect("/dashboard");
+  const accessReason = await resolvePersonalPlanningAccess(session!.user.id, targetUserId);
+  if (!accessReason) redirect("/dashboard");
 
   const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true, name: true } });
   if (!target) notFound();
@@ -79,7 +79,11 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
         <div>
           <h1 className="text-2xl font-semibold">Planning personnel de {target.name}</h1>
           <p className="text-sm text-muted-foreground">
-            Vue en lecture seule — visible car vous êtes son manager ou chef d&apos;équipe (§46).
+            Vue en lecture seule — visible car{" "}
+            {accessReason === "manager" && "vous êtes son manager"}
+            {accessReason === "chef_equipe" && "vous êtes chef de son équipe"}
+            {accessReason === "partage" && "cette personne a partagé son agenda avec vous"}
+            {accessReason === "self" && "il s'agit de votre propre planning"}.
           </p>
         </div>
       </div>

@@ -8,8 +8,6 @@ import { PeriodFilter } from "@/components/ui/period-filter";
 import { ProjectFilter } from "@/components/ui/project-filter";
 import { TaskPriorityFilter } from "@/components/ui/task-priority-filter";
 import { TaskStatusFilter } from "@/components/ui/task-status-filter";
-import { BackLink } from "@/components/ui/back-link";
-import { PersonalPlanningCrosslinks } from "@/components/personal-planning/personal-planning-crosslinks";
 import { buildDateRangeFilter } from "@/lib/date-filter";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -25,16 +23,24 @@ import type { Prisma } from "@/generated/prisma/client";
 export default async function PersonalPlanningMesTachesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ projetId?: string; annee?: string; mois?: string; priorite?: string; statut?: string }>;
+  searchParams: Promise<{
+    projetId?: string;
+    annee?: string;
+    mois?: string;
+    semaine?: string;
+    jour?: string;
+    priorite?: string;
+    statut?: string;
+  }>;
 }) {
-  const { projetId, annee, mois, priorite, statut } = await searchParams;
+  const { projetId, annee, mois, semaine, jour, priorite, statut } = await searchParams;
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
   const canManage = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);
   const canDelete = session!.user.permissions.includes(PERMISSIONS.TASK_DELETE);
 
-  const dateRange = buildDateRangeFilter(annee, mois);
+  const dateRange = buildDateRangeFilter(annee, mois, semaine, jour);
 
   const andClauses: Prisma.TaskWhereInput[] = [
     { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },
@@ -118,8 +124,6 @@ export default async function PersonalPlanningMesTachesPage({
 
   return (
     <div className="space-y-6">
-      <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />
-      <PersonalPlanningCrosslinks current="/planning-personnel" />
 
       <div className="space-y-4 rounded-md border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -131,7 +135,7 @@ export default async function PersonalPlanningMesTachesPage({
             <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
             <TaskPriorityFilter />
             <TaskStatusFilter />
-            <PeriodFilter dateLabel="Échéance" />
+            <PeriodFilter dateLabel="Échéance" showWeekDay />
             {canCreate && (
               <TaskFormDialog
                 projects={projectOptions}

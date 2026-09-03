@@ -9,6 +9,7 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import { IndicatorList } from "@/components/objectives/indicator-list";
 import { AddIndicatorDialog } from "@/components/objectives/add-indicator-dialog";
 import { ObjectiveStatusSelect } from "@/components/objectives/objective-status-select";
+import { ObjectiveEditDialog } from "@/components/objectives/objective-edit-dialog";
 import { LinkParentObjectiveForm } from "@/components/objectives/link-parent-objective-form";
 import { accentForStatus, toneForStatus } from "@/lib/status-tone";
 import { BackLink } from "@/components/ui/back-link";
@@ -102,7 +103,19 @@ export default async function ObjectiveDetailPage({
       <div className="space-y-6 lg:col-span-2">
         <BackLink href="/objectifs" label="Retour aux objectifs" />
         <div>
-          <h1 className="text-2xl font-semibold">{objective.titre}</h1>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h1 className="text-2xl font-semibold">{objective.titre}</h1>
+            <ObjectiveEditDialog
+              objective={{
+                id: objective.id,
+                titre: objective.titre,
+                description: objective.description,
+                periode: objective.periode,
+                dateDebut: objective.dateDebut,
+                dateFin: objective.dateFin,
+              }}
+            />
+          </div>
           {objective.description && (
             <p className="mt-1 text-sm text-muted-foreground">{objective.description}</p>
           )}
