@@ -70,7 +70,7 @@ export function PersonalPlanningDay({
         </div>
       )}
       {allDayEntries.length > 0 && (
-        <div className="space-y-1 rounded-md border bg-muted/10 p-1.5">
+        <div className="space-y-1 rounded-md border bg-card p-1.5">
           {allDayEntries.map((entry) => (
             <EntryBlock key={entry.id} entry={entry} onEdit={() => setEditing(entry)} allDay />
           ))}
@@ -82,7 +82,7 @@ export function PersonalPlanningDay({
           identique d'un jour à l'autre. pt : le libellé "00:00" est centré
           sur sa ligne via -translate-y-1/2 et déborde légèrement au-dessus
           de top:0 — sans cette marge, le conteneur défilant le rognait. */}
-      <div className={cn("h-[min(70vh,900px)] overflow-y-auto rounded-md border pt-2", THIN_SCROLLBAR_CLASS)}>
+      <div className={cn("h-[min(70vh,900px)] overflow-y-auto rounded-md border bg-card pt-2", THIN_SCROLLBAR_CLASS)}>
       <div className="relative" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
       {hours.map((h, i) => (
         <div
@@ -90,7 +90,7 @@ export function PersonalPlanningDay({
           className="absolute inset-x-0 flex items-start border-t text-[10px] text-muted-foreground"
           style={{ top: i * HOUR_HEIGHT_PX, height: HOUR_HEIGHT_PX }}
         >
-          <span className="ml-1 -translate-y-1/2 bg-background px-1">{String(h).padStart(2, "0")}:00</span>
+          <span className="ml-1 -translate-y-1/2 bg-card px-1">{String(h).padStart(2, "0")}:00</span>
         </div>
       ))}
 

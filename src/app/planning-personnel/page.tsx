@@ -32,7 +32,6 @@ import { PersonalPlanningMonth } from "@/components/personal-planning/personal-p
 import { PersonalPlanningAgenda } from "@/components/personal-planning/personal-planning-agenda";
 import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
 import { PersonalPlanningList, type PersonalPlanningListRow } from "@/components/personal-planning/personal-planning-list";
-import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
 import { PersonalPlanningEndOfDay } from "@/components/personal-planning/end-of-day";
 import { PersonalPlanningViewSwitcher } from "@/components/personal-planning/view-switcher";
 import { PersonalPlanningInbox, type InboxTaskRow } from "@/components/personal-planning/personal-planning-inbox";
@@ -54,6 +53,7 @@ import { PersonalPlanningHealthCard } from "@/components/personal-planning/perso
 import { PersonalPlanningDailyLoadCard } from "@/components/personal-planning/personal-planning-daily-load-card";
 import { PersonalPlanningStats } from "@/components/personal-planning/personal-planning-stats";
 import { PersonalPlanningFilters } from "@/components/personal-planning/personal-planning-filters";
+import { CollapsiblePlanningSidePanel } from "@/components/personal-planning/collapsible-side-panel";
 import {
   ENTRY_PRIORITE_ORDER,
   ENTRY_TYPE_OPTIONS,
@@ -467,11 +467,7 @@ export default async function PlanningPersonnelPage({
 
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[260px_minmax(0,1fr)_280px]">
-          <div className="space-y-6">
-            <PersonalPlanningToday entries={todayEntries} charge={charge} todayKey={todayKey} colleagues={colleagueOptions} />
-          </div>
-
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <PersonalPlanningViewSwitcher activeVue={vue} semaine={semaine} />
@@ -499,10 +495,9 @@ export default async function PlanningPersonnelPage({
                 jour directement au-dessus du calendrier. */}
             <PersonalPlanningCapacityBar charge={charge} />
 
-            {/* Filtres avancés (type/statut/projet/raccourcis de période) repliés
-                par défaut — allège l'écran, la priorité reste visible en
-                permanence dans la colonne de gauche. Présentation en vrai
-                bouton (icône + compteur) plutôt qu'un simple lien texte
+            {/* Filtres avancés (priorité/type/statut/projet/raccourcis de
+                période) repliés par défaut — allège l'écran. Présentation en
+                vrai bouton (icône + compteur) plutôt qu'un simple lien texte
                 (cahier de corrections UI/UX §18 : "trop discret"). */}
             <details className="group rounded-md border text-sm">
               <summary className="flex cursor-pointer select-none items-center gap-2 rounded-md p-3 font-medium hover:bg-muted/40 group-open:border-b group-open:rounded-b-none">
@@ -588,11 +583,13 @@ export default async function PlanningPersonnelPage({
             )}
           </div>
 
-          <div id="a-planifier" className="scroll-mt-20 space-y-6">
-            <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
-            <PersonalPlanningHealthCard score={planningHealth} criteria={planningHealthBreakdown.criteria} />
-            <PersonalPlanningDailyLoadCard charge={charge} />
-            <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
+          <div id="a-planifier" className="scroll-mt-20">
+            <CollapsiblePlanningSidePanel>
+              <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
+              <PersonalPlanningHealthCard score={planningHealth} criteria={planningHealthBreakdown.criteria} />
+              <PersonalPlanningDailyLoadCard charge={charge} />
+              <PersonalPlanningEndOfDay entries={todayEntries} reporteesCount={reporteesCount} todayKey={todayKey} initialNotes={dailyReview?.notes ?? null} />
+            </CollapsiblePlanningSidePanel>
           </div>
         </div>
 

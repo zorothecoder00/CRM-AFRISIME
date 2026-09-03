@@ -70,7 +70,7 @@ function AllDayRow({
   if (spans.length === 0) return null;
 
   return (
-    <div className="flex border-b bg-muted/10 py-1">
+    <div className="flex border-b bg-card py-1">
       <div className="w-12 shrink-0" />
       <div className="flex-1 space-y-1">
         {spans.map(({ entry, startCol, endCol }) => (
@@ -95,7 +95,7 @@ function HourSlot({ dateKey, hour, top }: { dateKey: string; hour: number; top: 
 /** Repères d'heure partagés à gauche de la grille — une seule fois pour les 7 colonnes, alignés sur les mêmes `HOUR_HEIGHT_PX`. */
 function HourGutter({ hours }: { hours: number[] }) {
   return (
-    <div className="w-12 shrink-0 border-r bg-muted/30">
+    <div className="w-12 shrink-0 border-r bg-card">
       <div className="relative" style={{ height: hours.length * HOUR_HEIGHT_PX }}>
         {hours.map((h, i) => (
           <span
@@ -163,8 +163,12 @@ function DayColumn({
       {!readOnly && hours.map((h, i) => <HourSlot key={h} dateKey={day.dateKey} hour={h} top={i * HOUR_HEIGHT_PX} />)}
       {sorted.map((entry, i) => {
         const range = clippedEntryRange(entry, dayDate);
-        const top = Math.max(0, offsetPx(range.start, gridStart));
-        const height = Math.max(18, offsetPx(range.end, gridStart) - top);
+        // §46 — bornes de la grille (7h-18h en vue manager) : un créneau qui
+        // déborderait des heures affichées est visuellement rogné au lieu de
+        // dépasser la colonne, plutôt qu'un simple clip côté haut.
+        const gridHeightPx = hours.length * HOUR_HEIGHT_PX;
+        const top = Math.min(gridHeightPx, Math.max(0, offsetPx(range.start, gridStart)));
+        const height = Math.max(18, Math.min(gridHeightPx, offsetPx(range.end, gridStart)) - top);
         const next = sorted[i + 1];
         const tight = next ? detectTightTransition(entry, next) : false;
         return (
@@ -211,7 +215,10 @@ export function PersonalPlanningWeek({
   // la vue Jour, plus de plage 7h-20h qui masquait les activités matinales/
   // nocturnes selon les jours ; le défilement interne plus bas évite qu'un
   // tableau de 24 lignes n'allonge toute la page.
-  const bounds: GridBounds = { startHour: 0, endHour: 24 };
+  // Exception : vue manager (§46, readOnly) sur le planning d'un subordonné
+  // — bornée aux heures ouvrées (7h-18h), un manager n'a pas à voir/assigner
+  // sur les heures 00h-07h/18h-24h qui ne sont pas des heures de travail.
+  const bounds: GridBounds = readOnly ? { startHour: 7, endHour: 18 } : { startHour: 0, endHour: 24 };
 
   return (
     <div>
@@ -221,15 +228,15 @@ export function PersonalPlanningWeek({
           boîte) se retrouvait positionné au bord droit du contenu — hors
           champ, invisible tant qu'on n'avait pas d'abord défilé vers la
           droite. */}
-      <div className="rounded-md border">
-        <div className="border-b bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground">
+      <div className="rounded-md border bg-card">
+        <div className="border-b bg-card px-3 py-1 text-[10px] text-muted-foreground">
           {readOnly
-            ? `Grille ${bounds.startHour}h–${bounds.endHour}h — lecture seule.`
+            ? `Grille ${bounds.startHour}h–${bounds.endHour}h (heures ouvrées) — lecture seule.`
             : `Grille ${bounds.startHour}h–${bounds.endHour}h — glissez un bloc pour le déplacer.`}
         </div>
 
         <div className="flex border-b">
-          <div className="w-12 shrink-0 border-r bg-muted/30" />
+          <div className="w-12 shrink-0 border-r bg-card" />
           <div className="grid flex-1 grid-cols-7">
             {days.map((day) => (
               <DayHeaderCell key={day.key} day={day} />
