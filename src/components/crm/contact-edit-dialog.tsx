@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { updateContact } from "@/actions/crm.actions";
@@ -91,7 +91,7 @@ export function ContactEditDialog({
     handleSubmit,
     setValue,
     setError,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<UpdateContactInput>({
@@ -109,8 +109,8 @@ export function ContactEditDialog({
     if (open) reset(toDefaultValues(contact));
   }, [open, contact, reset]);
 
-  const typeValue = watch("type");
-  const organizationIdValue = watch("organizationId");
+  const typeValue = useWatch({ control, name: "type" });
+  const organizationIdValue = useWatch({ control, name: "organizationId" });
 
   async function onSubmit(data: UpdateContactInput) {
     if (hasPortalAccount && !data.email) {

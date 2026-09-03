@@ -37,14 +37,17 @@ export function RequestAvailabilityDialog({ colleagues }: { colleagues: Option[]
     handleSubmit,
     setValue,
     reset,
-    watch,
+    getValues,
     formState: { errors },
   } = useForm<CreateAvailabilityRequestInput>({ resolver: zodResolver(createAvailabilityRequestSchema) });
   const { run: submit, isPending } = useAction(createAvailabilityRequest, { successMessage: "Demande envoyée." });
 
   async function handleCheckAvailability() {
-    const dateDebut = watch("dateDebut");
-    const dateFin = watch("dateFin");
+    // getValues() (pas watch()) : lecture ponctuelle hors rendu, dans un
+    // handler — pas d'abonnement reactif necessaire ici, et getValues()
+    // n'est pas sur la liste des API jugees incompatibles par React Compiler.
+    const dateDebut = getValues("dateDebut");
+    const dateFin = getValues("dateFin");
     if (!targetUserId || !dateDebut || !dateFin) return;
     const result = await fetchAvailability({ userId: targetUserId, dateDebut, dateFin });
     if (result.ok) setBusy(result.data);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { createDepartment, updateDepartment } from "@/actions/department.actions";
@@ -48,7 +48,7 @@ export function DepartmentFormDialog({
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<CreateDepartmentInput>({
@@ -62,7 +62,10 @@ export function DepartmentFormDialog({
         }
       : { parentId: defaultParentId },
   });
-  const currentParentId = watch("parentId");
+  // useWatch (pas watch()) : la valeur suivie pendant le rendu doit passer
+  // par le hook dedie, sinon React Compiler desactive la memoisation de tout
+  // le composant (watch() reste correct pour une lecture ponctuelle hors rendu).
+  const currentParentId = useWatch({ control, name: "parentId" });
   const { run: createRun, isPending: isCreating } = useAction(createDepartment, {
     successMessage: "Département créé.",
   });

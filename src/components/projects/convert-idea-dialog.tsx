@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { convertProjectIdeaToProject } from "@/actions/project-idea.actions";
@@ -33,7 +33,7 @@ export function ConvertIdeaDialog({
   const {
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ConvertProjectIdeaInput>({
     resolver: zodResolver(convertProjectIdeaSchema),
@@ -43,6 +43,8 @@ export function ConvertIdeaDialog({
       departmentId: defaultDepartmentId ?? undefined,
     },
   });
+  const responsableId = useWatch({ control, name: "responsableId" });
+  const departmentId = useWatch({ control, name: "departmentId" });
   const { run: convert, isPending } = useAction(convertProjectIdeaToProject, {
     successMessage: "Projet créé à partir de l'idée.",
   });
@@ -103,7 +105,7 @@ export function ConvertIdeaDialog({
           <p className="text-xs text-muted-foreground">
             Le nom, la priorité, le budget et la localisation sont repris de l&apos;idée et de sa concept note.
           </p>
-          <Button type="submit" className="w-full" disabled={isPending || !watch("responsableId") || !watch("departmentId")}>
+          <Button type="submit" className="w-full" disabled={isPending || !responsableId || !departmentId}>
             {isPending ? "Création..." : "Créer le projet"}
           </Button>
         </form>

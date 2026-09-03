@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useAction } from "@/hooks/use-action";
@@ -101,7 +101,7 @@ export function PersonalPlanningEntryEditDialog({
       missionRapport: entry.missionRapport ?? "",
     },
   });
-  const { handleSubmit, watch, setValue, formState } = form;
+  const { handleSubmit, control, setValue, formState } = form;
   const { run: submit, isPending } = useAction(updatePersonalPlanningEntry, { successMessage: "Entrée modifiée." });
   const { run: remove, isPending: isDeleting } = useAction(deletePersonalPlanningEntry, { successMessage: "Entrée supprimée." });
   const { run: removeSeries, isPending: isDeletingSeries } = useAction(deletePersonalPlanningEntrySeries, {
@@ -112,7 +112,8 @@ export function PersonalPlanningEntryEditDialog({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [history, setHistory] = useState<PersonalPlanningHistoryEntry[] | null>(null);
-  const statut = watch("statut");
+  const statut = useWatch({ control, name: "statut" });
+  const motifBlocage = useWatch({ control, name: "motifBlocage" });
   const motifBlocageError = (formState.errors as Record<string, { message?: string } | undefined>).motifBlocage;
 
   async function onPromote() {
@@ -179,7 +180,7 @@ export function PersonalPlanningEntryEditDialog({
             <div className="space-y-2">
               <Label>Motif du blocage (§22)</Label>
               <Select
-                defaultValue={watch("motifBlocage")}
+                defaultValue={motifBlocage}
                 onValueChange={(v) => setValue("motifBlocage", v as PersonalPlanningMotifBlocage)}
               >
                 <SelectTrigger>

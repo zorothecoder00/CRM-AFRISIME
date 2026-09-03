@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { createHoliday, deleteHoliday } from "@/actions/entity.actions";
@@ -73,13 +73,14 @@ function HolidayFormDialog({ entities }: { entities: Option[] }) {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<CreateHolidayInput>({
     resolver: zodResolver(createHolidaySchema),
     defaultValues: { entityId: entities[0]?.id, recurrenceAnnuelle: true },
   });
+  const recurrenceAnnuelle = useWatch({ control, name: "recurrenceAnnuelle" });
   const { run: submit, isPending } = useAction(createHoliday, { successMessage: "Jour férié ajouté." });
 
   async function onSubmit(data: CreateHolidayInput) {
@@ -131,7 +132,7 @@ function HolidayFormDialog({ entities }: { entities: Option[] }) {
           <div className="flex items-center gap-2">
             <Checkbox
               id="recurrenceAnnuelle"
-              checked={watch("recurrenceAnnuelle")}
+              checked={recurrenceAnnuelle}
               onCheckedChange={(checked) => setValue("recurrenceAnnuelle", checked === true)}
             />
             <Label htmlFor="recurrenceAnnuelle" className="font-normal">

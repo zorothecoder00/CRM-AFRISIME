@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { useWatch, type UseFormReturn, type Control } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,19 +79,29 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
   defaultShowMore?: boolean;
 }) {
   const register = form.register as unknown as (name: keyof FieldValues) => ReturnType<UseFormReturn<FieldValues>["register"]>;
-  const watch = form.watch as unknown as (name: keyof FieldValues) => unknown;
   const setValue = form.setValue as unknown as (name: keyof FieldValues, value: unknown, opts?: { shouldDirty?: boolean }) => void;
   const errors = form.formState.errors as unknown as Record<string, { message?: string } | undefined>;
+  // useWatch (pas form.watch()) : une valeur suivie pendant le rendu doit
+  // passer par le hook dédié, sinon React Compiler désactive la
+  // mémoïsation de tout le composant qui l'appelle (entry-form-dialog /
+  // entry-edit-dialog). Même cast que register/setValue ci-dessus — ce
+  // composant générique ne connaît que le sous-ensemble FieldValues.
+  const control = form.control as unknown as Control<FieldValues>;
 
   const [showMore, setShowMore] = useState(defaultShowMore);
-  const [tagsText, setTagsText] = useState(((watch("etiquettes") as string[] | undefined) ?? []).join(", "));
 
-  const projetId = watch("projetId") as string | undefined;
-  const participantIds = (watch("participantIds") as string[] | undefined) ?? [];
-  const repetition = watch("repetition") as string;
-  const piecesJointes = (watch("piecesJointes") as string[] | undefined) ?? [];
-  const rappels = (watch("rappels") as string[] | undefined) ?? [];
-  const type = watch("type") as string;
+  const etiquettesValue = useWatch({ control, name: "etiquettes" }) as string[] | undefined;
+  const [tagsText, setTagsText] = useState((etiquettesValue ?? []).join(", "));
+
+  const projetId = useWatch({ control, name: "projetId" }) as string | undefined;
+  const participantIds = (useWatch({ control, name: "participantIds" }) as string[] | undefined) ?? [];
+  const repetition = useWatch({ control, name: "repetition" }) as string;
+  const piecesJointes = (useWatch({ control, name: "piecesJointes" }) as string[] | undefined) ?? [];
+  const rappels = (useWatch({ control, name: "rappels" }) as string[] | undefined) ?? [];
+  const type = useWatch({ control, name: "type" }) as string;
+  const priorite = useWatch({ control, name: "priorite" }) as string;
+  const tacheId = useWatch({ control, name: "tacheId" }) as string | undefined;
+  const objectifId = useWatch({ control, name: "objectifId" }) as string | undefined;
 
   const availableTasks = projetId ? refData.tasks.filter((t) => t.projectId === projetId) : refData.tasks;
 
@@ -122,7 +132,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Type</Label>
-          <Select defaultValue={watch("type") as string} onValueChange={(v) => setValue("type", v)}>
+          <Select defaultValue={type} onValueChange={(v) => setValue("type", v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -137,7 +147,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
         </div>
         <div className="space-y-2">
           <Label>Priorité</Label>
-          <Select defaultValue={watch("priorite") as string} onValueChange={(v) => setValue("priorite", v)}>
+          <Select defaultValue={priorite} onValueChange={(v) => setValue("priorite", v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -199,7 +209,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
         </div>
         <div className="space-y-2">
           <Label>Tâche associée</Label>
-          <Select value={(watch("tacheId") as string | undefined) || "none"} onValueChange={(v) => setValue("tacheId", v === "none" ? "" : v)}>
+          <Select value={tacheId || "none"} onValueChange={(v) => setValue("tacheId", v === "none" ? "" : v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -291,7 +301,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
 
           <div className="space-y-2">
             <Label>Objectif associé</Label>
-            <Select value={(watch("objectifId") as string | undefined) || "none"} onValueChange={(v) => setValue("objectifId", v === "none" ? "" : v)}>
+            <Select value={objectifId || "none"} onValueChange={(v) => setValue("objectifId", v === "none" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -314,7 +324,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Répétition</Label>
-              <Select defaultValue={watch("repetition") as string} onValueChange={(v) => setValue("repetition", v)}>
+              <Select defaultValue={repetition} onValueChange={(v) => setValue("repetition", v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { createWorkScheduleException, deleteWorkScheduleException } from "@/actions/user-work-schedule.actions";
@@ -84,15 +84,15 @@ function ExceptionFormDialog() {
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
+    control,
     reset,
     formState: { errors },
   } = useForm<CreateWorkScheduleExceptionInput>({
     resolver: zodResolver(createWorkScheduleExceptionSchema),
     defaultValues: { type: "ABSENCE" },
   });
-  const type = watch("type");
+  const type = useWatch({ control, name: "type" });
   const { run: submit, isPending } = useAction(createWorkScheduleException, { successMessage: "Dérogation ajoutée." });
 
   async function onSubmit(data: CreateWorkScheduleExceptionInput) {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { convertOpportunityToProject } from "@/actions/crm.actions";
@@ -30,12 +30,14 @@ export function ConvertOpportunityDialog({
   const {
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ConvertOpportunityInput>({
     resolver: zodResolver(convertOpportunitySchema),
     defaultValues: { opportunityId },
   });
+  const responsableId = useWatch({ control, name: "responsableId" });
+  const departmentId = useWatch({ control, name: "departmentId" });
   const { run: convert, isPending } = useAction(convertOpportunityToProject, {
     successMessage: "Projet créé à partir de l'opportunité.",
   });
@@ -96,7 +98,7 @@ export function ConvertOpportunityDialog({
           <p className="text-xs text-muted-foreground">
             Le nom, le montant estimé et la date de clôture sont repris de l&apos;opportunité.
           </p>
-          <Button type="submit" className="w-full" disabled={isPending || !watch("responsableId") || !watch("departmentId")}>
+          <Button type="submit" className="w-full" disabled={isPending || !responsableId || !departmentId}>
             {isPending ? "Création..." : "Créer le projet"}
           </Button>
         </form>

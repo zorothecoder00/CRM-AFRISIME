@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { convertFundingOpportunityToProject } from "@/actions/funding-opportunity.actions";
@@ -33,12 +33,14 @@ export function ConvertFundingOpportunityDialog({
   const {
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ConvertFundingOpportunityInput>({
     resolver: zodResolver(convertFundingOpportunitySchema),
     defaultValues: { fundingOpportunityId },
   });
+  const responsableId = useWatch({ control, name: "responsableId" });
+  const departmentId = useWatch({ control, name: "departmentId" });
   const { run: convert, isPending } = useAction(convertFundingOpportunityToProject, {
     successMessage: "Projet créé à partir de l'appel à projets.",
   });
@@ -98,7 +100,7 @@ export function ConvertFundingOpportunityDialog({
             </Select>
             {errors.departmentId && <p className="text-sm text-destructive">{errors.departmentId.message}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={isPending || !watch("responsableId") || !watch("departmentId")}>
+          <Button type="submit" className="w-full" disabled={isPending || !responsableId || !departmentId}>
             {isPending ? "Création..." : "Créer le projet"}
           </Button>
         </form>

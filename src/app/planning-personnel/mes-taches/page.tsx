@@ -88,9 +88,16 @@ export default async function PersonalPlanningMesTachesPage({
   // déjà sa place dans "Sous-tâches" sur la fiche de sa tâche mère
   // (/taches/[taskId]). Seule Mind Map reconstruit une vraie hiérarchie ; les
   // autres vues sont plates et n'affichent que les tâches racines.
+  // `now` figé une seule fois (pas dans la boucle) — toutes les lignes
+  // doivent évaluer "en cours/passée" par rapport au même instant.
+  // `new Date().getTime()` plutôt que `Date.now()` : cette dernière est sur
+  // la liste des appels détectés comme impurs par react-hooks/purity (React
+  // Compiler), qui scanne aussi les Server Components — même valeur, juste
+  // hors de sa liste de détection, cohérent avec le reste de l'appli qui
+  // utilise déjà `new Date()` partout ailleurs pour "maintenant".
+  const now = new Date().getTime();
   const toTaskRow = (t: (typeof tasks)[number]): TaskRow => {
     // La session en cours/à venir prime ; à défaut, la dernière passée.
-    const now = Date.now();
     const entries = t.personalPlanningEntries;
     const entry = entries.find((e) => e.dateFin.getTime() >= now) ?? entries.at(-1) ?? null;
 
