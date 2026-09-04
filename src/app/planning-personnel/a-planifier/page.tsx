@@ -65,7 +65,9 @@ export default async function PersonalPlanningAPlanifierPage() {
             deux (pas de space-y uniforme sur le conteneur). */}
         <div className="mt-2 mb-5 border-t" />
 
-        <div className="space-y-1">
+        {/* Demande utilisateur — un peu plus de retrait que le p-3 du grand
+            bloc englobant, pour que la liste ne colle pas à ses bords. */}
+        <div className="space-y-1 p-2">
           {tasks.map((t) => (
             <APlanifierTaskRow key={t.id} task={t} colleagues={colleagues} />
           ))}
