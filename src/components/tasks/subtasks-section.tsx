@@ -3,16 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAction } from "@/hooks/use-action";
-import { addSubtask } from "@/actions/task.actions";
-import type { AddSubtaskInput } from "@/lib/validations/task.schema";
 import { deleteTask } from "@/actions/trash.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
+import { MultiAddSubtaskForm } from "@/components/tasks/multi-add-subtask-form";
 import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { Plus } from "lucide-react";
 
@@ -64,6 +61,9 @@ const PRIORITY_LABELS: Record<string, string> = {
  */
 export function SubtasksSection({
   parentTaskId,
+  parentDateDebut,
+  parentEcheance,
+  parentResponsablePrincipalId,
   subtasks,
   members,
   canManage,
@@ -71,6 +71,11 @@ export function SubtasksSection({
   currentUserId,
 }: {
   parentTaskId: string;
+  parentDateDebut: string | null;
+  parentEcheance: string | null;
+  // Demande utilisateur — celui qui fait la tâche mère fait par défaut ses
+  // subdivisions aussi.
+  parentResponsablePrincipalId: string;
   subtasks: SubtaskRow[];
   members: Option[];
   canManage: boolean;
@@ -82,37 +87,8 @@ export function SubtasksSection({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [titre, setTitre] = useState("");
-  const [responsablePrincipalId, setResponsablePrincipalId] = useState("");
-  const [priorite, setPriorite] = useState<NonNullable<AddSubtaskInput["priorite"]>>("MOYENNE");
-  const [dateDebut, setDateDebut] = useState("");
-  const [echeance, setEcheance] = useState("");
-  const [poidsAvancement, setPoidsAvancement] = useState("");
 
-  const { run: create, isPending } = useAction(addSubtask, { successMessage: "Sous-tâche ajoutée." });
   const { run: remove } = useAction(deleteTask, { successMessage: "Sous-tâche supprimée." });
-
-  async function handleAdd() {
-    if (!titre.trim() || !responsablePrincipalId) return;
-    const result = await create({
-      parentTaskId,
-      titre: titre.trim(),
-      responsablePrincipalId,
-      priorite,
-      dateDebut: dateDebut || undefined,
-      echeance: echeance || undefined,
-      poidsAvancement: poidsAvancement || undefined,
-    });
-    if (result.ok) {
-      setTitre("");
-      setResponsablePrincipalId("");
-      setPriorite("MOYENNE");
-      setDateDebut("");
-      setEcheance("");
-      setPoidsAvancement("");
-      setShowForm(false);
-    }
-  }
 
   const editingSubtask = subtasks.find((s) => s.id === editingId) ?? null;
 
@@ -165,70 +141,19 @@ export function SubtasksSection({
       {canManage && (
         <>
           {showForm ? (
-            <div className="space-y-2 rounded-md border p-3">
-              <Input
-                placeholder="Titre de la sous-tâche"
-                value={titre}
-                onChange={(e) => setTitre(e.target.value)}
+            <div className="rounded-md border p-3">
+              <MultiAddSubtaskForm
+                parentTaskId={parentTaskId}
+                parentDateDebut={parentDateDebut}
+                parentEcheance={parentEcheance}
+                parentResponsablePrincipalId={parentResponsablePrincipalId}
+                users={members}
+                currentUserId={currentUserId}
+                onDone={() => setShowForm(false)}
               />
-              <div className="grid grid-cols-2 gap-2">
-                <Select value={responsablePrincipalId} onValueChange={setResponsablePrincipalId}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Responsable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {members.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={priorite}
-                  onValueChange={(v) => setPriorite(v as NonNullable<AddSubtaskInput["priorite"]>)}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TRES_HAUTE">Très haute</SelectItem>
-                    <SelectItem value="HAUTE">Haute</SelectItem>
-                    <SelectItem value="MOYENNE">Moyenne</SelectItem>
-                    <SelectItem value="BASSE">Basse</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <span className="text-[11px] text-muted-foreground">Date de début</span>
-                  <Input type="date" className="h-9 text-xs" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] text-muted-foreground">Échéance</span>
-                  <Input type="date" className="h-9 text-xs" value={echeance} onChange={(e) => setEcheance(e.target.value)} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground">
-                  Poids dans l&apos;avancement de la tâche mère (%) — optionnel
-                </span>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="h-9 text-xs"
-                  placeholder="Laisser vide pour un calcul automatique"
-                  value={poidsAvancement}
-                  onChange={(e) => setPoidsAvancement(e.target.value)}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
+              <div className="mt-2 flex justify-end">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
-                  Annuler
-                </Button>
-                <Button type="button" size="sm" onClick={handleAdd} disabled={isPending || !titre.trim() || !responsablePrincipalId}>
-                  {isPending ? "Ajout..." : "Ajouter"}
+                  Fermer
                 </Button>
               </div>
             </div>

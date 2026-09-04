@@ -311,6 +311,9 @@ export default async function TaskDetailPage({
           <CardContent>
             <SubtasksSection
               parentTaskId={task.id}
+              parentDateDebut={task.dateDebut ? task.dateDebut.toISOString() : null}
+              parentEcheance={task.echeance ? task.echeance.toISOString() : null}
+              parentResponsablePrincipalId={task.responsablePrincipalId}
               subtasks={subtaskRows}
               members={memberOptions}
               canManage={canTag}

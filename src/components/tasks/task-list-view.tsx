@@ -307,7 +307,11 @@ export function TaskListView({
         <AddSubtaskDialog
           parentTaskId={subtaskParentTask.id}
           parentTitre={subtaskParentTask.titre}
+          parentDateDebut={subtaskParentTask.dateDebut ?? null}
+          parentEcheance={subtaskParentTask.echeance}
+          parentResponsablePrincipalId={subtaskParentTask.responsablePrincipalId}
           users={users}
+          currentUserId={currentUserId ?? ""}
           open={!!subtaskParentId}
           onOpenChange={(o) => {
             setSubtaskParentId(o ? subtaskParentId : null);

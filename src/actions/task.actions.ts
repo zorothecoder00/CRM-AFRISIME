@@ -272,12 +272,34 @@ export async function addSubtask(input: AddSubtaskInput) {
 
   const parent = await prisma.task.findUniqueOrThrow({
     where: { id: data.parentTaskId },
-    select: { projectId: true, sectionId: true },
+    select: { projectId: true, sectionId: true, dateDebut: true, echeance: true },
   });
 
   await requireScopedPermission(session.user.permissions, PERMISSIONS.TASK_CREATE, session.user.id, {
     projectId: parent.projectId,
   });
+
+  // Demande utilisateur — une sous-tâche hérite par défaut des dates de sa
+  // tâche mère (mêmes dateDebut/échéance) ; si l'utilisateur les ajuste,
+  // elles doivent rester comprises dans l'intervalle de la mère.
+  const dateDebut = data.dateDebut ? new Date(data.dateDebut) : (parent.dateDebut ?? undefined);
+  const echeance = data.echeance ? new Date(data.echeance) : (parent.echeance ?? undefined);
+
+  if (dateDebut && echeance && dateDebut > echeance) {
+    throw new Error("La date de début de la sous-tâche doit précéder son échéance.");
+  }
+  if (parent.dateDebut && dateDebut && dateDebut < parent.dateDebut) {
+    throw new Error("La date de début de la sous-tâche ne peut pas précéder celle de la tâche mère.");
+  }
+  if (parent.echeance && dateDebut && dateDebut > parent.echeance) {
+    throw new Error("La date de début de la sous-tâche ne peut pas dépasser l'échéance de la tâche mère.");
+  }
+  if (parent.dateDebut && echeance && echeance < parent.dateDebut) {
+    throw new Error("L'échéance de la sous-tâche ne peut pas précéder la date de début de la tâche mère.");
+  }
+  if (parent.echeance && echeance && echeance > parent.echeance) {
+    throw new Error("L'échéance de la sous-tâche ne peut pas dépasser celle de la tâche mère.");
+  }
 
   const subtask = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.task.create({
@@ -288,8 +310,8 @@ export async function addSubtask(input: AddSubtaskInput) {
         titre: data.titre,
         priorite: data.priorite,
         responsablePrincipalId: data.responsablePrincipalId,
-        dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
-        echeance: data.echeance ? new Date(data.echeance) : undefined,
+        dateDebut,
+        echeance,
         poidsAvancement: data.poidsAvancement ? Number(data.poidsAvancement) : undefined,
         createdById: session.user.id,
         organizationId: session.user.organizationId,
