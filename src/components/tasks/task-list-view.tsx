@@ -251,8 +251,9 @@ export function TaskListView({
       {/* Table impose text-sm sur elle-meme (pas seulement herite) : un
           text-xs sur ce wrapper ne suffirait pas a le reduire — passe
           directement sur <Table>, uniquement pour la variante mes-taches
-          (showCreneau), sans toucher /taches (l'autre appelant). */}
-      <Table className={showCreneau ? "text-xs" : undefined}>
+          (showCreneau), sans toucher /taches (l'autre appelant). Demande
+          utilisateur — encore plus reduit que le text-xs d'origine. */}
+      <Table className={showCreneau ? "text-[11px]" : undefined}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
