@@ -175,7 +175,7 @@ export function TaskFormDialog({
             <Textarea id="description" {...register("description")} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Responsable principal</Label>
@@ -289,7 +289,7 @@ export function TaskFormDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="echeance">Échéance</Label>
               <Input id="echeance" type="date" {...register("echeance")} />
@@ -339,7 +339,7 @@ export function TaskFormDialog({
                       {errors.subtasks?.[index]?.titre && (
                         <p className="text-xs text-destructive">{errors.subtasks[index]?.titre?.message}</p>
                       )}
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <Select onValueChange={(v) => setValue(`subtasks.${index}.responsablePrincipalId`, v)}>
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Responsable" />
@@ -367,7 +367,7 @@ export function TaskFormDialog({
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <div className="space-y-1">
                           <Label className="text-[11px] text-muted-foreground">Date de début</Label>
                           <Input type="date" className="h-8 text-xs" {...register(`subtasks.${index}.dateDebut` as const)} />
@@ -390,7 +390,7 @@ export function TaskFormDialog({
           </div>
 
           {(objectives && objectives.length > 0) || (plans && plans.length > 0) ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {objectives && objectives.length > 0 && (
                 <div className="space-y-2">
                   <Label>Objectif lié (optionnel)</Label>

@@ -129,7 +129,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
         {errors.titre && <p className="text-sm text-destructive">{errors.titre.message}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Type</Label>
           <Select defaultValue={type} onValueChange={(v) => setValue("type", v)}>
@@ -162,7 +162,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor={`${idPrefix}-dateDebut`}>Début</Label>
           <Input id={`${idPrefix}-dateDebut`} type="datetime-local" {...register("dateDebut")} />
@@ -184,7 +184,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
           zone toujours visible : c'est ce qui relie l'activité à l'objet
           Tâche unique (§4) plutôt que de dupliquer un travail déjà suivi
           ailleurs — pas quelque chose à enterrer dans "Plus d'options". */}
-      <div className="grid grid-cols-2 gap-4 rounded-md border border-dashed p-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-md border border-dashed p-3">
         <div className="space-y-2">
           <Label>Projet associé</Label>
           <Select
@@ -229,7 +229,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
       {type === "MISSION" && (
         <div className="space-y-4 rounded-md border border-dashed p-3">
           <p className="text-xs font-medium text-muted-foreground">Détails de la mission (§26bis)</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={`${idPrefix}-missionDestination`}>Destination</Label>
               <Input id={`${idPrefix}-missionDestination`} {...register("missionDestination")} />
@@ -239,7 +239,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
               <Input id={`${idPrefix}-missionBudget`} type="number" step="0.01" {...register("missionBudget")} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={`${idPrefix}-missionMoyenTransport`}>Moyen de transport</Label>
               <Input id={`${idPrefix}-missionMoyenTransport`} {...register("missionMoyenTransport")} />
@@ -265,7 +265,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
 
       {showMore && (
         <div className="space-y-4 rounded-md border p-3">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={`${idPrefix}-lieu`}>Lieu</Label>
               <Input id={`${idPrefix}-lieu`} {...register("lieu")} />
@@ -321,7 +321,7 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
             <Input id={`${idPrefix}-etiquettes`} value={tagsText} onChange={(e) => updateTags(e.target.value)} placeholder="Ex. urgent, client-x" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Répétition</Label>
               <Select defaultValue={repetition} onValueChange={(v) => setValue("repetition", v)}>

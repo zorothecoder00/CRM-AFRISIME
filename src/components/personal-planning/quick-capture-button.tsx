@@ -99,7 +99,7 @@ export function QuickCaptureButton() {
               <Label htmlFor="quick-capture-titre">Activité</Label>
               <Input id="quick-capture-titre" value={titre} onChange={(e) => setTitre(e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Type</Label>
                 <Select value={type} onValueChange={(v) => setType(v as typeof type)}>

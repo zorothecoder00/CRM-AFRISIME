@@ -134,7 +134,7 @@ export function MeetingFormDialog({
             {errors.titre && <p className="text-sm text-destructive">{errors.titre.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="dateHeure">Date et heure</Label>
               <Input id="dateHeure" type="datetime-local" {...register("dateHeure")} />
@@ -154,7 +154,7 @@ export function MeetingFormDialog({
             <Textarea id="ordreDuJour" {...register("ordreDuJour")} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Récurrence</Label>
               <Select

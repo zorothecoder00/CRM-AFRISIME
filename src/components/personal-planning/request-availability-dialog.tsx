@@ -99,7 +99,7 @@ export function RequestAvailabilityDialog({ colleagues }: { colleagues: Option[]
             {errors.targetUserId && <p className="text-sm text-destructive">{errors.targetUserId.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="req-dateDebut">Début souhaité</Label>
               <Input id="req-dateDebut" type="datetime-local" {...register("dateDebut")} />

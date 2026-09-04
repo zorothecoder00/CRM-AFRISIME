@@ -98,7 +98,7 @@ export function TaskEditDialog({
             <Textarea id="edit-description" {...register("description")} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Responsable principal</Label>
               <Select defaultValue={task.responsablePrincipalId} onValueChange={(v) => setValue("responsablePrincipalId", v)}>
@@ -136,7 +136,7 @@ export function TaskEditDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-dateDebut">Date de début</Label>
               <Input id="edit-dateDebut" type="date" disabled={isOwner} {...register("dateDebut")} />

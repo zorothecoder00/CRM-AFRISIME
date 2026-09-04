@@ -179,7 +179,7 @@ export function MultiAddSubtaskForm({
             value={d.titre}
             onChange={(e) => updateDraft(d.key, { titre: e.target.value })}
           />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Select value={d.responsablePrincipalId} onValueChange={(v) => updateDraft(d.key, { responsablePrincipalId: v })}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Responsable" />
@@ -204,7 +204,7 @@ export function MultiAddSubtaskForm({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <span className="text-[11px] text-muted-foreground">Date de début</span>
               <Input
