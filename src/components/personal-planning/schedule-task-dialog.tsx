@@ -52,18 +52,36 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
     const result = await suggest({ taskId, after });
     if (!result.ok) return;
     if (!result.data) {
+      // N'arrive que si la tâche n'a même pas de date de début assignée ET
+      // qu'aucun créneau libre n'existe dans les 3 prochaines semaines (cas
+      // très rare) — rien à verrouiller ni à proposer manuellement ici.
       setNoSlotFound(true);
       return;
     }
-    const debut = new Date(result.data.dateDebut);
-    const fin = new Date(result.data.dateFin);
-    setDateKey(dateKeyOf(debut));
-    setHeureDebut(timeOf(debut));
-    setHeureFin(timeOf(fin));
-    setLastSuggestedEnd(result.data.dateFin);
-    // Un nouveau créneau proposé revient toujours en lecture seule d'abord
-    // (demande utilisateur) — pas d'édition qui survivrait à un rafraîchissement.
-    setIsEditingCreneau(false);
+    // Demande utilisateur — même sans créneau libre trouvé ce jour-là (jour
+    // chargé), la date reste verrouillée et connue (anchorDate) : on bascule
+    // alors directement en édition manuelle au lieu de bloquer "Confirmer"
+    // indéfiniment faute de date. La saisie manuelle reste ensuite soumise
+    // au même contrôle de conflit que la suggestion (voir scheduleInboxTask),
+    // qui indique précisément l'activité en cause si ça chevauche.
+    setDateKey(dateKeyOf(new Date(result.data.anchorDate)));
+    if (result.data.dateDebut && result.data.dateFin) {
+      const debut = new Date(result.data.dateDebut);
+      const fin = new Date(result.data.dateFin);
+      setHeureDebut(timeOf(debut));
+      setHeureFin(timeOf(fin));
+      setLastSuggestedEnd(result.data.dateFin);
+      // Un nouveau créneau proposé revient toujours en lecture seule d'abord
+      // (demande utilisateur) — pas d'édition qui survivrait à un rafraîchissement.
+      setIsEditingCreneau(false);
+      setNoSlotFound(false);
+    } else {
+      setHeureDebut("");
+      setHeureFin("");
+      setLastSuggestedEnd(null);
+      setIsEditingCreneau(true);
+      setNoSlotFound(true);
+    }
   }
 
   async function handleOpen() {
@@ -124,10 +142,17 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
               Recherche du premier créneau libre…
             </p>
           )}
-          {noSlotFound && (
+          {noSlotFound && dateKey && (
             <p className="text-sm text-warning">
-              Aucun créneau libre restant ce jour-là — ajustez l&apos;heure manuellement, ou faites une demande de
-              changement de date depuis la fiche tâche si ce jour ne convient pas.
+              Aucun créneau libre restant ce jour-là — choisissez vous-même une heure ci-dessous (un conflit vous
+              sera signalé précisément si besoin), ou faites une demande de changement de date depuis la fiche
+              tâche si ce jour ne convient pas.
+            </p>
+          )}
+          {noSlotFound && !dateKey && (
+            <p className="text-sm text-warning">
+              Aucun créneau libre trouvé dans les 3 prochaines semaines — faites une demande de changement de date
+              depuis la fiche tâche.
             </p>
           )}
           {!isSuggesting && dateKey && !noSlotFound && (

@@ -570,20 +570,35 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
 
   const durationMinutes = task.tempsEstimeHeures ? Math.round(Number(task.tempsEstimeHeures) * 60) : 60;
 
-  // Demande utilisateur — la tâche a déjà une date de début assignée : ne
-  // proposer qu'un créneau HORAIRE ce jour-là (maxDays: 0), jamais un autre
-  // jour. Sans date de début, on garde l'ancien comportement (recherche multi-jours).
+  // Demande utilisateur — quand aucun créneau libre n'est trouvé ce jour-là,
+  // renvoyer quand même la date (anchorDate) au lieu de null : sinon le
+  // dialogue (ScheduleTaskDialog) n'a jamais de date à verrouiller et le
+  // bouton "Confirmer" reste bloqué indéfiniment, même en saisie manuelle —
+  // l'utilisateur ne peut alors jamais lier l'activité un jour chargé.
   if (task.dateDebut) {
-    const from = data.after ? new Date(data.after) : new Date(task.dateDebut.getFullYear(), task.dateDebut.getMonth(), task.dateDebut.getDate());
+    const anchor = new Date(task.dateDebut.getFullYear(), task.dateDebut.getMonth(), task.dateDebut.getDate());
+    const from = data.after ? new Date(data.after) : anchor;
     const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from, 0);
-    if (!slot) return null;
-    return { dateDebut: slot.dateDebut.toISOString(), dateFin: slot.dateFin.toISOString(), dureeMinutes: durationMinutes };
+    return {
+      anchorDate: anchor.toISOString(),
+      dateDebut: slot ? slot.dateDebut.toISOString() : null,
+      dateFin: slot ? slot.dateFin.toISOString() : null,
+      dureeMinutes: durationMinutes,
+    };
   }
 
+  // Sans date de début assignée : comportement d'origine (recherche
+  // multi-jours) — pas d'ancre à proposer si même ça ne trouve rien (cas
+  // rare : aucun créneau libre dans les 3 prochaines semaines).
   const from = data.after ? new Date(data.after) : new Date();
   const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from);
   if (!slot) return null;
-  return { dateDebut: slot.dateDebut.toISOString(), dateFin: slot.dateFin.toISOString(), dureeMinutes: durationMinutes };
+  return {
+    anchorDate: slot.dateDebut.toISOString(),
+    dateDebut: slot.dateDebut.toISOString(),
+    dateFin: slot.dateFin.toISOString(),
+    dureeMinutes: durationMinutes,
+  };
 }
 
 /** §29 : réaffecte une tâche de l'inbox "À planifier" à un autre collaborateur. */
