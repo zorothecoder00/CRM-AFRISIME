@@ -44,7 +44,7 @@ export function APlanifierTaskRow({ task, colleagues }: { task: APlanifierTask; 
   }
 
   return (
-    <div className="space-y-1 rounded-md border p-1.5 text-xs">
+    <div className="space-y-1 rounded-md border py-1.5 pl-3 pr-1.5 text-xs">
       <div className="flex flex-wrap items-start justify-between gap-2">
         {/* Le point de priorite est ici un frere du bloc titre+details (pas
             imbrique dans la ligne du titre) : centre verticalement sur TOUT
