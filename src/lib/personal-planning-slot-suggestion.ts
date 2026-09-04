@@ -139,3 +139,41 @@ export async function suggestNextAvailableSlot(
   }
   return null;
 }
+
+/** Indisponible/Réservé servent justement à marquer une indisponibilité,
+ * parfois volontairement hors des horaires de travail configurés — seuls
+ * les autres types (Tâche, Réunion, Mission, etc.) doivent s'y conformer. */
+const WORK_HOURS_EXEMPT_TYPES = new Set(["INDISPONIBLE", "RESERVE"]);
+
+/**
+ * Demande utilisateur — toute création/modification d'une entrée de
+ * planning personnel (hors Indisponible/Réservé, voir WORK_HOURS_EXEMPT_TYPES)
+ * doit rester dans les horaires de travail réellement configurés
+ * (UserWorkSchedule/exceptions) ce jour-là. Ne s'applique qu'aux entrées sur
+ * une seule journée — une Mission qui s'étale sur plusieurs jours n'a pas de
+ * fenêtre horaire journalière à respecter.
+ */
+export async function assertWithinWorkHours(userId: string, type: string, dateDebut: Date, dateFin: Date): Promise<void> {
+  if (WORK_HOURS_EXEMPT_TYPES.has(type)) return;
+  if (dateKeyOf(dateDebut) !== dateKeyOf(dateFin)) return;
+
+  const dayStart = new Date(dateDebut.getFullYear(), dateDebut.getMonth(), dateDebut.getDate());
+  const dayEnd = addDays(dayStart, 1);
+
+  const [schedules, exception] = await Promise.all([
+    prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
+    prisma.userWorkScheduleException.findFirst({ where: { userId, date: { gte: dayStart, lt: dayEnd } } }),
+  ]);
+
+  const scheduleByWeekday = groupSchedulesByWeekday(schedules);
+  const windows = exception
+    ? resolveExceptionWindows(exception)
+    : resolveWorkWindows(scheduleByWeekday.get(dateDebut.getDay()) ?? null);
+
+  const startMin = dateDebut.getHours() * 60 + dateDebut.getMinutes();
+  const endMin = dateFin.getHours() * 60 + dateFin.getMinutes();
+  const fits = windows.some((w) => startMin >= w.startMin && endMin <= w.endMin);
+  if (!fits) {
+    throw new Error("Ce créneau est en dehors de vos horaires de travail configurés — ajustez-le pour rester dans vos heures de travail.");
+  }
+}

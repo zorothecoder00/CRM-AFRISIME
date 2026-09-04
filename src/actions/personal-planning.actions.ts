@@ -15,7 +15,7 @@ import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } 
 import { hasAgendaEditPermission } from "@/lib/personal-planning-access";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { moveEntryToDate } from "@/lib/personal-planning-move";
-import { suggestNextAvailableSlot } from "@/lib/personal-planning-slot-suggestion";
+import { suggestNextAvailableSlot, assertWithinWorkHours } from "@/lib/personal-planning-slot-suggestion";
 import { dateKeyOf } from "@/lib/personal-planning-grid";
 import {
   createPersonalPlanningEntrySchema,
@@ -217,6 +217,7 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
   // du PROPRIETAIRE (ownerId), pas de qui agit (editeur eventuel).
   for (const o of occurrences) {
     await assertNotOnNonWorkingDay(ownerId, o.dateDebut, data.type);
+    await assertWithinWorkHours(ownerId, data.type, o.dateDebut, o.dateFin);
   }
 
   const commonData = {
@@ -326,6 +327,7 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
   // le calendrier du PROPRIETAIRE (existing.userId), pas de qui agit.
   if (dateDebut.getTime() !== existing.dateDebut.getTime() || data.type !== existing.type) {
     await assertNotOnNonWorkingDay(existing.userId, dateDebut, data.type);
+    await assertWithinWorkHours(existing.userId, data.type, dateDebut, dateFin);
   }
 
   const entry = await prisma.personalPlanningEntry.update({
@@ -508,6 +510,9 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
   }
 
   await assertNotOnNonWorkingDay(session.user.id, dateDebutActivite, "TACHE");
+  // Demande utilisateur — le créneau (même modifié manuellement) doit
+  // rester dans les horaires de travail réellement configurés.
+  await assertWithinWorkHours(session.user.id, "TACHE", dateDebutActivite, dateFin);
 
   // Contrairement à collectPlanningWarnings (jamais bloquant ailleurs dans le
   // module), "Lier à une activité" bloque explicitement sur un chevauchement
@@ -688,9 +693,12 @@ export async function movePersonalPlanningEntry(input: MovePersonalPlanningEntry
     throw new Error("Un créneau réservé via une demande de collègue ne peut pas être déplacé ici.");
   }
 
-  await assertNotOnNonWorkingDay(existing.userId, new Date(data.newDateDebut), existing.type);
+  const newDateDebut = new Date(data.newDateDebut);
+  const newDateFin = new Date(newDateDebut.getTime() + (existing.dateFin.getTime() - existing.dateDebut.getTime()));
+  await assertNotOnNonWorkingDay(existing.userId, newDateDebut, existing.type);
+  await assertWithinWorkHours(existing.userId, existing.type, newDateDebut, newDateFin);
 
-  const entry = await prisma.$transaction((tx) => moveEntryToDate(tx, data.id, new Date(data.newDateDebut)));
+  const entry = await prisma.$transaction((tx) => moveEntryToDate(tx, data.id, newDateDebut));
 
   // §47 — ex. document : « Kossi a déplacé la tâche du 27/08 au 28/08. »
   await logAudit({
