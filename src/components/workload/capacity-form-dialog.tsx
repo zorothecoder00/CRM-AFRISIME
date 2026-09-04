@@ -45,6 +45,8 @@ export function CapacityFormDialog({
           <Input
             type="number"
             step="0.5"
+            min={0}
+            max={168}
             value={value}
             onChange={(e) => setValue(e.target.value)}
           />
