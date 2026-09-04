@@ -44,7 +44,15 @@ export const updateTaskSchema = z.object({
   tempsEstimeHeures: z.string().optional(),
   // Demande utilisateur — uniquement pertinent si cette tâche est elle-même
   // une sous-tâche (parentTaskId non nul) : voir recomputeParentTaskFromSubtasks.
-  poidsAvancement: z.string().optional(),
+  // Borné 0-100 (comme le champ input) — même classe de bug que le P2020 de
+  // capaciteHebdomadaireHeures : Task.poidsAvancement est un Int, une valeur
+  // non bornée peut dépasser la plage int32 et planter prisma.task.update.
+  poidsAvancement: z
+    .string()
+    .optional()
+    .refine((v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 100), {
+      message: "Le poids doit être compris entre 0 et 100.",
+    }),
 });
 
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
@@ -61,8 +69,14 @@ export const addSubtaskSchema = z.object({
   echeance: z.string().optional(),
   // Demande utilisateur — poids (%) de cette sous-tâche dans le calcul de
   // l'avancement de la tâche mère ; vide = calcul automatique (moyenne
-  // simple), voir recomputeParentTaskFromSubtasks.
-  poidsAvancement: z.string().optional(),
+  // simple), voir recomputeParentTaskFromSubtasks. Borné 0-100 (voir
+  // updateTaskSchema ci-dessus pour le pourquoi).
+  poidsAvancement: z
+    .string()
+    .optional()
+    .refine((v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 100), {
+      message: "Le poids doit être compris entre 0 et 100.",
+    }),
 });
 
 export type AddSubtaskInput = z.infer<typeof addSubtaskSchema>;
