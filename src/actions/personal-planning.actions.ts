@@ -579,11 +579,22 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
     const anchor = new Date(task.dateDebut.getFullYear(), task.dateDebut.getMonth(), task.dateDebut.getDate());
     const from = data.after ? new Date(data.after) : anchor;
     const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from, 0);
+    // Demande utilisateur — quand la journée assignée n'a vraiment plus de
+    // place, indiquer directement à quelle date ultérieure un créneau est
+    // réellement libre (recherche multi-jours, sans la restriction du jour),
+    // pour appuyer la demande de changement de date plutôt que de laisser
+    // deviner. Ne coûte une requête supplémentaire que dans ce cas précis.
+    let alternative: { dateDebut: string; dateFin: string } | null = null;
+    if (!slot) {
+      const altSlot = await suggestNextAvailableSlot(session.user.id, durationMinutes, anchor);
+      if (altSlot) alternative = { dateDebut: altSlot.dateDebut.toISOString(), dateFin: altSlot.dateFin.toISOString() };
+    }
     return {
       anchorDate: anchor.toISOString(),
       dateDebut: slot ? slot.dateDebut.toISOString() : null,
       dateFin: slot ? slot.dateFin.toISOString() : null,
       dureeMinutes: durationMinutes,
+      alternative,
     };
   }
 
@@ -598,6 +609,7 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
     dateDebut: slot.dateDebut.toISOString(),
     dateFin: slot.dateFin.toISOString(),
     dureeMinutes: durationMinutes,
+    alternative: null,
   };
 }
 

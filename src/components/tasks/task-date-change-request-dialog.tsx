@@ -27,10 +27,17 @@ export function TaskDateChangeRequestDialog({
   taskId,
   currentDateDebut,
   currentEcheance,
+  // Demande utilisateur — pré-remplit la date suggérée (ex. prochain
+  // créneau réellement libre trouvé par ScheduleTaskDialog) plutôt que la
+  // date actuelle, pour appuyer directement la demande sur cette proposition.
+  suggestedDateDebut,
+  trigger,
 }: {
   taskId: string;
   currentDateDebut?: string | null;
   currentEcheance?: string | null;
+  suggestedDateDebut?: string | null;
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const {
@@ -55,10 +62,12 @@ export function TaskDateChangeRequestDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <CalendarClock className="mr-1 h-3.5 w-3.5" />
-          Demander un report
-        </Button>
+        {trigger ?? (
+          <Button type="button" variant="outline" size="sm">
+            <CalendarClock className="mr-1 h-3.5 w-3.5" />
+            Demander un report
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -75,7 +84,13 @@ export function TaskDateChangeRequestDialog({
               <Input
                 id="dc-dateDebut"
                 type="date"
-                defaultValue={currentDateDebut ? currentDateDebut.slice(0, 10) : ""}
+                defaultValue={
+                  suggestedDateDebut
+                    ? suggestedDateDebut.slice(0, 10)
+                    : currentDateDebut
+                      ? currentDateDebut.slice(0, 10)
+                      : ""
+                }
                 {...register("requestedDateDebut")}
               />
             </div>

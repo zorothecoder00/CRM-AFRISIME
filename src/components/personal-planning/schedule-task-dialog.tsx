@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAction } from "@/hooks/use-action";
 import { scheduleInboxTask, suggestScheduleSlot } from "@/actions/personal-planning.actions";
+import { TaskDateChangeRequestDialog } from "@/components/tasks/task-date-change-request-dialog";
 import { CalendarPlus, Pencil, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +42,11 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
   const [noSlotFound, setNoSlotFound] = useState(false);
   const [lastSuggestedEnd, setLastSuggestedEnd] = useState<string | null>(null);
   const [isEditingCreneau, setIsEditingCreneau] = useState(false);
+  // Demande utilisateur — quand la journée assignée n'a plus de place,
+  // propose directement le prochain créneau réellement libre (autre jour)
+  // en appui d'une demande de changement de date, plutôt que de laisser
+  // deviner quel jour conviendrait.
+  const [alternative, setAlternative] = useState<{ dateDebut: string; dateFin: string } | null>(null);
 
   const { run: suggest, isPending: isSuggesting } = useAction(suggestScheduleSlot);
   const { run: confirm, isPending: isConfirming } = useAction(scheduleInboxTask, {
@@ -49,6 +55,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
 
   async function fetchSuggestion(after?: string) {
     setNoSlotFound(false);
+    setAlternative(null);
     const result = await suggest({ taskId, after });
     if (!result.ok) return;
     if (!result.data) {
@@ -81,6 +88,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
       setLastSuggestedEnd(null);
       setIsEditingCreneau(true);
       setNoSlotFound(true);
+      setAlternative(result.data.alternative ?? null);
     }
   }
 
@@ -90,6 +98,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
     setHeureDebut("");
     setHeureFin("");
     setNoSlotFound(false);
+    setAlternative(null);
     setIsEditingCreneau(false);
     await fetchSuggestion();
   }
@@ -143,11 +152,38 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
             </p>
           )}
           {noSlotFound && dateKey && (
-            <p className="text-sm text-warning">
-              Aucun créneau libre restant ce jour-là — choisissez vous-même une heure ci-dessous (un conflit vous
-              sera signalé précisément si besoin), ou faites une demande de changement de date depuis la fiche
-              tâche si ce jour ne convient pas.
-            </p>
+            <div className="space-y-2 rounded-md border border-warning/40 bg-warning/5 p-2.5">
+              <p className="text-sm text-warning">
+                Aucun créneau libre restant ce jour-là — choisissez vous-même une heure ci-dessous (un conflit vous
+                sera signalé précisément si besoin).
+              </p>
+              {alternative && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Prochain créneau réellement libre :{" "}
+                    <span className="font-medium text-foreground">
+                      {new Date(alternative.dateDebut).toLocaleDateString("fr-FR", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })}{" "}
+                      de {timeOf(new Date(alternative.dateDebut))} à {timeOf(new Date(alternative.dateFin))}
+                    </span>
+                    .
+                  </p>
+                  <TaskDateChangeRequestDialog
+                    taskId={taskId}
+                    currentDateDebut={dateKey}
+                    suggestedDateDebut={alternative.dateDebut}
+                    trigger={
+                      <Button type="button" variant="outline" size="xs">
+                        Demander ce report de date
+                      </Button>
+                    }
+                  />
+                </>
+              )}
+            </div>
           )}
           {noSlotFound && !dateKey && (
             <p className="text-sm text-warning">
