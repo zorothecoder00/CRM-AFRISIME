@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAction } from "@/hooks/use-action";
 import { scheduleInboxTask, suggestScheduleSlot } from "@/actions/personal-planning.actions";
-import { CalendarPlus, RefreshCw, Sparkles } from "lucide-react";
+import { CalendarPlus, Pencil, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 function pad(n: number): string {
@@ -26,10 +26,12 @@ function timeOf(d: Date): string {
  *
  * Demande utilisateur — la date reste celle de l'échéance assignée à la
  * tâche : verrouillée ici, jamais éditable (un changement de date passe par
- * la demande de changement de date sur la fiche tâche). Seul le CRÉNEAU
- * horaire (heure de début/fin, pas une durée à saisir) est ajustable. Rien
- * n'est créé sans un clic explicite sur "Confirmer" (validation humaine,
- * voir suggestNextAvailableSlot).
+ * la demande de changement de date sur la fiche tâche). Le CRÉNEAU horaire
+ * (heure de début/fin, pas une durée à saisir) est ajustable, mais s'affiche
+ * d'abord en lecture seule (le vrai créneau proposé) — il faut cliquer sur
+ * "Modifier" pour faire apparaître les champs éditables. Rien n'est créé
+ * sans un clic explicite sur "Confirmer" (validation humaine, voir
+ * suggestNextAvailableSlot).
  */
 export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: string }) {
   const [open, setOpen] = useState(false);
@@ -38,6 +40,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
   const [heureFin, setHeureFin] = useState("");
   const [noSlotFound, setNoSlotFound] = useState(false);
   const [lastSuggestedEnd, setLastSuggestedEnd] = useState<string | null>(null);
+  const [isEditingCreneau, setIsEditingCreneau] = useState(false);
 
   const { run: suggest, isPending: isSuggesting } = useAction(suggestScheduleSlot);
   const { run: confirm, isPending: isConfirming } = useAction(scheduleInboxTask, {
@@ -58,6 +61,9 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
     setHeureDebut(timeOf(debut));
     setHeureFin(timeOf(fin));
     setLastSuggestedEnd(result.data.dateFin);
+    // Un nouveau créneau proposé revient toujours en lecture seule d'abord
+    // (demande utilisateur) — pas d'édition qui survivrait à un rafraîchissement.
+    setIsEditingCreneau(false);
   }
 
   async function handleOpen() {
@@ -66,6 +72,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
     setHeureDebut("");
     setHeureFin("");
     setNoSlotFound(false);
+    setIsEditingCreneau(false);
     await fetchSuggestion();
   }
 
@@ -140,26 +147,44 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor={`schedule-debut-${taskId}`}>Créneau</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id={`schedule-debut-${taskId}`}
-                  type="time"
-                  value={heureDebut}
-                  onChange={(e) => setHeureDebut(e.target.value)}
-                  required
-                  className="flex-1"
-                />
-                <span className="text-muted-foreground">→</span>
-                <Input
-                  id={`schedule-fin-${taskId}`}
-                  type="time"
-                  value={heureFin}
-                  onChange={(e) => setHeureFin(e.target.value)}
-                  required
-                  className="flex-1"
-                />
+              <div className="flex items-center justify-between">
+                <Label htmlFor={isEditingCreneau ? `schedule-debut-${taskId}` : undefined}>Créneau</Label>
+                {!isEditingCreneau && heureDebut && heureFin && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingCreneau(true)}
+                    className="flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Modifier
+                  </button>
+                )}
               </div>
+              {isEditingCreneau ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    id={`schedule-debut-${taskId}`}
+                    type="time"
+                    value={heureDebut}
+                    onChange={(e) => setHeureDebut(e.target.value)}
+                    required
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground">→</span>
+                  <Input
+                    id={`schedule-fin-${taskId}`}
+                    type="time"
+                    value={heureFin}
+                    onChange={(e) => setHeureFin(e.target.value)}
+                    required
+                    className="flex-1"
+                  />
+                </div>
+              ) : (
+                <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                  {heureDebut && heureFin ? `${heureDebut} → ${heureFin}` : "—"}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button
