@@ -24,7 +24,7 @@ function timeOf(d: Date): string {
  * "Lier à une activité" (prototype V2, "À planifier") — propose
  * automatiquement le premier créneau libre (suggestScheduleSlot).
  *
- * Demande utilisateur — la date reste celle de l'échéance assignée à la
+ * Demande utilisateur — la date reste celle de début assignée à la
  * tâche : verrouillée ici, jamais éditable (un changement de date passe par
  * la demande de changement de date sur la fiche tâche). Le CRÉNEAU horaire
  * (heure de début/fin, pas une durée à saisir) est ajustable, mais s'affiche
@@ -139,10 +139,10 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Date d&apos;échéance</Label>
+              <Label>Date de début</Label>
               <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">{dateLabel ?? "—"}</p>
               <p className="text-[11px] text-muted-foreground">
-                Fixée par l&apos;échéance de la tâche — pour la changer, faites une demande de changement de date
+                Fixée par la date de début de la tâche — pour la changer, faites une demande de changement de date
                 depuis la fiche tâche.
               </p>
             </div>

@@ -487,27 +487,27 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
 
   const task = await prisma.task.findUniqueOrThrow({
     where: { id: data.taskId },
-    select: { id: true, titre: true, echeance: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+    select: { id: true, titre: true, dateDebut: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
   });
   const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
   if (!isOwner) {
     throw new Error("Vous ne pouvez planifier que vos propres tâches.");
   }
 
-  const dateDebut = new Date(data.dateDebut);
-  const dateFin = new Date(dateDebut.getTime() + data.dureeMinutes * 60_000);
+  const dateDebutActivite = new Date(data.dateDebut);
+  const dateFin = new Date(dateDebutActivite.getTime() + data.dureeMinutes * 60_000);
 
-  // Demande utilisateur — la date d'échéance d'une tâche assignée n'est pas
+  // Demande utilisateur — la date de début d'une tâche assignée n'est pas
   // modifiable ici (seul le créneau horaire l'est) : tout changement de date
   // passe par TaskDateChangeRequest. Défense en profondeur : le client verrouille
   // déjà le champ date (voir ScheduleTaskDialog), ceci protège l'action elle-même.
-  if (task.echeance && dateKeyOf(dateDebut) !== dateKeyOf(task.echeance)) {
+  if (task.dateDebut && dateKeyOf(dateDebutActivite) !== dateKeyOf(task.dateDebut)) {
     throw new Error(
-      "La date d'échéance ne peut pas être changée ici — faites une demande de changement de date depuis la fiche tâche."
+      "La date de début ne peut pas être changée ici — faites une demande de changement de date depuis la fiche tâche."
     );
   }
 
-  await assertNotOnNonWorkingDay(session.user.id, dateDebut, "TACHE");
+  await assertNotOnNonWorkingDay(session.user.id, dateDebutActivite, "TACHE");
 
   // Contrairement à collectPlanningWarnings (jamais bloquant ailleurs dans le
   // module), "Lier à une activité" bloque explicitement sur un chevauchement
@@ -516,24 +516,24 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
   // créneau libre, donc un conflit ne peut venir que d'une heure saisie à la
   // main — mieux vaut l'empêcher que de laisser créer un double-booking
   // silencieux qu'un simple toast pourrait faire manquer.
-  const conflict = await findScheduleConflict(session.user.id, dateDebut, dateFin);
+  const conflict = await findScheduleConflict(session.user.id, dateDebutActivite, dateFin);
   if (conflict) {
     throw new Error(`Conflit d'horaire avec « ${conflict.titre} » — choisissez un autre créneau.`);
   }
 
   const entry = await prisma.$transaction(async (tx) => {
     const created = await tx.personalPlanningEntry.create({
-      data: { userId: session.user.id, titre: task.titre, type: "TACHE", tacheId: task.id, dateDebut, dateFin },
+      data: { userId: session.user.id, titre: task.titre, type: "TACHE", tacheId: task.id, dateDebut: dateDebutActivite, dateFin },
     });
-    // Ne fixe l'échéance que si la tâche n'en avait pas encore — sinon elle
-    // reste celle qui a été assignée (voir la vérification de date ci-dessus).
-    if (!task.echeance) {
-      await tx.task.update({ where: { id: task.id }, data: { echeance: dateFin } });
+    // Ne fixe la date de début que si la tâche n'en avait pas encore —
+    // sinon elle reste celle qui a été assignée (voir la vérification ci-dessus).
+    if (!task.dateDebut) {
+      await tx.task.update({ where: { id: task.id }, data: { dateDebut: dateDebutActivite } });
     }
     return created;
   });
 
-  await notifyTaskColleaguesOfSchedule(task.id, session.user.id, session.user.name ?? "Un collègue", dateDebut);
+  await notifyTaskColleaguesOfSchedule(task.id, session.user.id, session.user.name ?? "Un collègue", dateDebutActivite);
 
   // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
   // sous-arbre (recurrences, missions, bilans, demandes...) — sans ça, ces
@@ -556,7 +556,7 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
 
   const task = await prisma.task.findUniqueOrThrow({
     where: { id: data.taskId },
-    select: { id: true, echeance: true, tempsEstimeHeures: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+    select: { id: true, dateDebut: true, tempsEstimeHeures: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
   });
   const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
   if (!isOwner) {
@@ -565,11 +565,11 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
 
   const durationMinutes = task.tempsEstimeHeures ? Math.round(Number(task.tempsEstimeHeures) * 60) : 60;
 
-  // Demande utilisateur — la tâche a déjà une échéance assignée : ne
+  // Demande utilisateur — la tâche a déjà une date de début assignée : ne
   // proposer qu'un créneau HORAIRE ce jour-là (maxDays: 0), jamais un autre
-  // jour. Sans échéance, on garde l'ancien comportement (recherche multi-jours).
-  if (task.echeance) {
-    const from = data.after ? new Date(data.after) : new Date(task.echeance.getFullYear(), task.echeance.getMonth(), task.echeance.getDate());
+  // jour. Sans date de début, on garde l'ancien comportement (recherche multi-jours).
+  if (task.dateDebut) {
+    const from = data.after ? new Date(data.after) : new Date(task.dateDebut.getFullYear(), task.dateDebut.getMonth(), task.dateDebut.getDate());
     const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from, 0);
     if (!slot) return null;
     return { dateDebut: slot.dateDebut.toISOString(), dateFin: slot.dateFin.toISOString(), dureeMinutes: durationMinutes };
