@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PersonalPlanningSidebarNav } from "./personal-planning-sidebar-nav";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { cn } from "@/lib/utils";
+import type { NotificationPreview } from "@/components/notifications/notification-bell";
 
 /**
  * Sidebar dédiée au module Planning personnel — remplace entièrement la
@@ -14,10 +15,12 @@ export function PersonalPlanningSidebar({
   aPlanifierCount,
   alertesCount,
   permissions,
+  notifications,
 }: {
   aPlanifierCount: number;
   alertesCount: number;
   permissions: string[];
+  notifications: NotificationPreview[];
 }) {
   const { collapsed, toggle } = useSidebarCollapsed("personal-planning-sidebar-collapsed");
 
@@ -51,6 +54,7 @@ export function PersonalPlanningSidebar({
         alertesCount={alertesCount}
         permissions={permissions}
         collapsed={collapsed}
+        notifications={notifications}
       />
       {!collapsed && (
         <div className="border-t p-3 text-[10px] leading-relaxed text-sidebar-foreground/40">

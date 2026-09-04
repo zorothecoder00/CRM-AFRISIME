@@ -20,6 +20,11 @@ export type NotificationPreview = {
   lien: string | null;
   isRead: boolean;
   createdAt: string;
+  // Demande utilisateur — necessaire au panneau NotificationsSheet pour la
+  // pastille de couleur (toneForNotificationType) ; NotificationBell (ce
+  // fichier) ne l'utilise pas lui-meme, juste transporte au meme endroit
+  // que les autres champs de l'aperçu.
+  type: string;
 };
 
 export function NotificationBell({

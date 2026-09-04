@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { buildRecurrenceDates } from "@/lib/meeting-recurrence";
 import { runMeetingCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
+import { suggestNextAvailableSlot } from "@/lib/personal-planning-slot-suggestion";
 import {
   createMeetingSchema,
   updateCompteRenduSchema,
@@ -16,12 +17,21 @@ import {
   updateDecisionStatusSchema,
   addParticipantSchema,
   updateParticipantPresenceSchema,
+  suggestMeetingSlotSchema,
+  rescheduleMeetingSchema,
   type CreateMeetingInput,
   type UpdateCompteRenduInput,
   type AddDecisionInput,
   type UpdateDecisionStatusInput,
   type UpdateParticipantPresenceInput,
+  type SuggestMeetingSlotInput,
+  type RescheduleMeetingInput,
 } from "@/lib/validations/meeting.schema";
+
+// Meme duree par defaut que personal-planning-slot-suggestion.ts (traite
+// deja les reunions comme des blocs de 60 min pour le calcul de charge
+// d'autrui) — pas de champ duree stocke sur Meeting.
+const MEETING_DEFAULT_DURATION_MINUTES = 60;
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
@@ -171,6 +181,68 @@ export async function updateCompteRendu(input: UpdateCompteRenduInput) {
   });
 
   revalidatePath(`/reunions/${data.meetingId}`);
+  return meeting;
+}
+
+/**
+ * Demande utilisateur — au lieu d'un formulaire manuel vide, propose
+ * automatiquement le premier créneau libre de l'organisateur (même moteur
+ * que "Transformer en activité"/"Replanifier" pour les tâches/activités,
+ * voir suggestNextAvailableSlot). Ne planifie rien elle-même — la
+ * confirmation reste un choix explicite (rescheduleMeeting).
+ */
+export async function suggestMeetingSlot(input: SuggestMeetingSlotInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.MEETING_UPDATE);
+  const data = suggestMeetingSlotSchema.parse(input);
+
+  const from = data.after ? new Date(data.after) : new Date();
+  const slot = await suggestNextAvailableSlot(session.user.id, MEETING_DEFAULT_DURATION_MINUTES, from);
+  if (!slot) return null;
+  return { dateDebut: slot.dateDebut.toISOString() };
+}
+
+/** Demande utilisateur — replanifier une réunion (aucune fonctionnalité de ce type n'existait avant, contrairement aux tâches/activités). */
+export async function rescheduleMeeting(input: RescheduleMeetingInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.MEETING_UPDATE);
+  const data = rescheduleMeetingSchema.parse(input);
+
+  const existing = await prisma.meeting.findUniqueOrThrow({
+    where: { id: data.meetingId },
+    select: { titre: true, participants: { select: { userId: true } } },
+  });
+
+  const meeting = await prisma.meeting.update({
+    where: { id: data.meetingId },
+    data: { dateHeure: new Date(data.dateHeure) },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "meeting.rescheduled",
+    entityType: "Meeting",
+    entityId: meeting.id,
+    changes: { dateHeure: data.dateHeure },
+  });
+
+  await Promise.all(
+    existing.participants
+      .filter((p) => p.userId !== session.user.id)
+      .map((p) =>
+        createNotification({
+          userId: p.userId,
+          type: "MODIFICATION",
+          titre: `${session.user.name ?? "Un collègue"} a replanifié la réunion « ${existing.titre} »`,
+          lien: `/reunions/${meeting.id}`,
+          entityType: "Meeting",
+          entityId: meeting.id,
+        })
+      )
+  );
+
+  revalidatePath(`/reunions/${data.meetingId}`);
+  revalidatePath("/reunions");
   return meeting;
 }
 

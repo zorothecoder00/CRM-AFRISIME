@@ -23,6 +23,7 @@ export function PersonalPlanningTopbar({
   roleLabel,
   dateLabel,
   notifications,
+  sidebarNotifications,
   unreadCount,
   aPlanifierCount,
   permissions,
@@ -32,7 +33,10 @@ export function PersonalPlanningTopbar({
   roleLabel: string;
   /** Date du jour + rappel disponibilité — affiché à la suite du titre "Planning personnel" plutôt que sous "Bonjour + nom" sur le hub (demande utilisateur). */
   dateLabel: string;
+  /** Aperçu du clochon (court, 5 max). */
   notifications: NotificationPreview[];
+  /** Liste plus longue pour le panneau NotificationsSheet du tiroir mobile (demande utilisateur — "Alertes" n'ouvre plus /notifications directement). */
+  sidebarNotifications: NotificationPreview[];
   unreadCount: number;
   aPlanifierCount: number;
   permissions: string[];
@@ -47,7 +51,12 @@ export function PersonalPlanningTopbar({
   return (
     <header className="flex h-16 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur">
       <div className="flex items-center gap-3">
-        <PersonalPlanningMobileSidebar aPlanifierCount={aPlanifierCount} alertesCount={unreadCount} permissions={permissions} />
+        <PersonalPlanningMobileSidebar
+          aPlanifierCount={aPlanifierCount}
+          alertesCount={unreadCount}
+          permissions={permissions}
+          notifications={sidebarNotifications}
+        />
         <CalendarCheck2 className="hidden size-6 text-primary sm:block" />
         <div>
           <div className="flex items-baseline gap-2">

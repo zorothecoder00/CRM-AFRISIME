@@ -8,6 +8,8 @@ import {
   PERSONAL_PLANNING_HOME_ITEM,
   type PersonalPlanningNavItem,
 } from "./personal-planning-nav";
+import { NotificationsSheet } from "@/components/notifications/notifications-sheet";
+import type { NotificationPreview } from "@/components/notifications/notification-bell";
 
 /** Contenu de navigation partagé entre la sidebar desktop et le tiroir mobile du module Planning personnel. */
 export function PersonalPlanningSidebarNav({
@@ -16,6 +18,7 @@ export function PersonalPlanningSidebarNav({
   permissions,
   onNavigate,
   collapsed = false,
+  notifications,
 }: {
   aPlanifierCount: number;
   alertesCount: number;
@@ -23,6 +26,8 @@ export function PersonalPlanningSidebarNav({
   onNavigate?: () => void;
   /** Mode replie (rail d'icones) — jamais force sur le tiroir mobile, qui reste toujours en toutes lettres. */
   collapsed?: boolean;
+  /** Demande utilisateur — "Alertes" ouvre un panneau (NotificationsSheet) au lieu de naviguer vers /notifications, qui cassait la navigation fluide du module. */
+  notifications: NotificationPreview[];
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -50,24 +55,21 @@ export function PersonalPlanningSidebarNav({
     return 0;
   }
 
-  function renderItem(item: PersonalPlanningNavItem) {
-    const active = isActive(item.href);
+  function itemClassName(active: boolean) {
+    return cn(
+      "group relative flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
+      collapsed && "justify-center px-0",
+      active
+        ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
+        : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
+    );
+  }
+
+  function itemContent(item: PersonalPlanningNavItem, count: number) {
     const Icon = item.icon;
-    const count = badgeFor(item);
+    const active = isActive(item.href);
     return (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={onNavigate}
-        title={collapsed ? item.label : undefined}
-        className={cn(
-          "group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
-          collapsed && "justify-center px-0",
-          active
-            ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
-            : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
-        )}
-      >
+      <>
         <span
           className={cn(
             "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
@@ -89,6 +91,40 @@ export function PersonalPlanningSidebarNav({
             )}
           </>
         )}
+      </>
+    );
+  }
+
+  function renderItem(item: PersonalPlanningNavItem) {
+    const count = badgeFor(item);
+
+    // Demande utilisateur — "Alertes" ouvre un panneau latéral (les
+    // notifications) plutôt que de naviguer vers /notifications, qui
+    // sortait de la coquille dédiée du module (navigation pas fluide).
+    if (item.badgeKey === "alertes") {
+      return (
+        <NotificationsSheet
+          key={item.href}
+          notifications={notifications}
+          unreadCount={alertesCount}
+          trigger={
+            <button type="button" title={collapsed ? item.label : undefined} className={itemClassName(false)}>
+              {itemContent(item, count)}
+            </button>
+          }
+        />
+      );
+    }
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onNavigate}
+        title={collapsed ? item.label : undefined}
+        className={itemClassName(isActive(item.href))}
+      >
+        {itemContent(item, count)}
       </Link>
     );
   }

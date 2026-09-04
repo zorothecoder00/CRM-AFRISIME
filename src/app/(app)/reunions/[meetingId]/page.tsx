@@ -14,6 +14,7 @@ import { DocumentList, type DocumentRow } from "@/components/documents/document-
 import { documentUploaderName } from "@/lib/document-uploader";
 import { MeetingExternalParticipantsSection } from "@/components/meetings/meeting-external-participants-section";
 import { MeetingParticipantsSection } from "@/components/meetings/meeting-participants-section";
+import { RescheduleMeetingDialog } from "@/components/meetings/reschedule-meeting-dialog";
 import { getTagsFor } from "@/lib/tags";
 import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 import { BackLink } from "@/components/ui/back-link";
@@ -91,9 +92,12 @@ export default async function MeetingDetailPage({
       <div className="space-y-6 lg:col-span-2">
         <BackLink href="/reunions" label="Retour aux réunions" />
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold">{meeting.titre}</h1>
             <Badge variant={toneForStatus(meeting.statut)}>{STATUS_LABELS[meeting.statut]}</Badge>
+            {canTag && meeting.statut !== "TERMINEE" && meeting.statut !== "ANNULEE" && (
+              <RescheduleMeetingDialog meetingId={meeting.id} titre={meeting.titre} />
+            )}
           </div>
           {meeting.project ? (
             <Link href={`/projets/${meeting.projectId}`} className="text-sm text-muted-foreground hover:underline">

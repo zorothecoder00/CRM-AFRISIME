@@ -25,6 +25,22 @@ export const updateCompteRenduSchema = z.object({
 
 export type UpdateCompteRenduInput = z.infer<typeof updateCompteRenduSchema>;
 
+// Demande utilisateur — replanifier une reunion (comme une tache/activite),
+// avec suggestion intelligente d'un creneau (voir suggestMeetingSlot).
+export const suggestMeetingSlotSchema = z.object({
+  meetingId: z.string().min(1),
+  after: z.string().optional(),
+});
+
+export type SuggestMeetingSlotInput = z.infer<typeof suggestMeetingSlotSchema>;
+
+export const rescheduleMeetingSchema = z.object({
+  meetingId: z.string().min(1),
+  dateHeure: z.string().min(1, "La date et l'heure sont requises."),
+});
+
+export type RescheduleMeetingInput = z.infer<typeof rescheduleMeetingSchema>;
+
 // responsableId est obligatoire : chaque decision cree automatiquement une
 // tache (cahier des charges §8), qui a toujours besoin d'un responsable.
 // projectId n'est requis QUE si la reunion elle-meme n'a pas de projet

@@ -41,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             lien: n.lien,
             isRead: n.isRead,
             createdAt: n.createdAt.toISOString(),
+            type: n.type,
           }))}
           unreadCount={unreadCount}
         />

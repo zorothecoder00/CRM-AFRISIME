@@ -34,7 +34,9 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
     prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      take: 5,
+      // Demande utilisateur — panneau NotificationsSheet (sidebar "Alertes")
+      // en veut plus que l'aperçu de 5 du clochon du topbar.
+      take: 30,
     }),
     prisma.notification.count({ where: { userId, isRead: false } }),
     // §13 — même critère que l'inbox "À planifier" de la page principale.
@@ -64,23 +66,31 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
 
   const colleagueOptions = colleagues.map((c) => ({ id: c.id, label: c.name }));
   const toolbarRefData: PersonalPlanningReferenceData = { colleagues: colleagueOptions, projects, tasks, objectives };
+  const notificationRows = recentNotifications.map((n) => ({
+    id: n.id,
+    titre: n.titre,
+    lien: n.lien,
+    isRead: n.isRead,
+    createdAt: n.createdAt.toISOString(),
+    type: n.type,
+  }));
 
   return (
     <div className="flex h-screen">
-      <PersonalPlanningSidebar aPlanifierCount={aPlanifierCount} alertesCount={unreadCount} permissions={session.user.permissions} />
+      <PersonalPlanningSidebar
+        aPlanifierCount={aPlanifierCount}
+        alertesCount={unreadCount}
+        permissions={session.user.permissions}
+        notifications={notificationRows}
+      />
       <div className="flex flex-1 flex-col overflow-hidden">
         <PersonalPlanningTopbar
           userName={session.user.name ?? session.user.email ?? ""}
           userImage={session.user.image}
           roleLabel={session.user.roleLabel}
           dateLabel={dateLabel}
-          notifications={recentNotifications.map((n) => ({
-            id: n.id,
-            titre: n.titre,
-            lien: n.lien,
-            isRead: n.isRead,
-            createdAt: n.createdAt.toISOString(),
-          }))}
+          notifications={notificationRows.slice(0, 5)}
+          sidebarNotifications={notificationRows}
           unreadCount={unreadCount}
           aPlanifierCount={aPlanifierCount}
           permissions={session.user.permissions}

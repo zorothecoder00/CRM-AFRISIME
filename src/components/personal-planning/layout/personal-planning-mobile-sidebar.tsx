@@ -6,15 +6,18 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PersonalPlanningSidebarNav } from "./personal-planning-sidebar-nav";
+import type { NotificationPreview } from "@/components/notifications/notification-bell";
 
 export function PersonalPlanningMobileSidebar({
   aPlanifierCount,
   alertesCount,
   permissions,
+  notifications,
 }: {
   aPlanifierCount: number;
   alertesCount: number;
   permissions: string[];
+  notifications: NotificationPreview[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -35,6 +38,7 @@ export function PersonalPlanningMobileSidebar({
           alertesCount={alertesCount}
           permissions={permissions}
           onNavigate={() => setOpen(false)}
+          notifications={notifications}
         />
       </SheetContent>
     </Sheet>
