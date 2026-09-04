@@ -16,6 +16,7 @@ import { hasAgendaEditPermission } from "@/lib/personal-planning-access";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { moveEntryToDate } from "@/lib/personal-planning-move";
 import { suggestNextAvailableSlot } from "@/lib/personal-planning-slot-suggestion";
+import { dateKeyOf } from "@/lib/personal-planning-grid";
 import {
   createPersonalPlanningEntrySchema,
   updatePersonalPlanningEntrySchema,
@@ -486,7 +487,7 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
 
   const task = await prisma.task.findUniqueOrThrow({
     where: { id: data.taskId },
-    select: { id: true, titre: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+    select: { id: true, titre: true, echeance: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
   });
   const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
   if (!isOwner) {
@@ -495,6 +496,16 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
 
   const dateDebut = new Date(data.dateDebut);
   const dateFin = new Date(dateDebut.getTime() + data.dureeMinutes * 60_000);
+
+  // Demande utilisateur — la date d'échéance d'une tâche assignée n'est pas
+  // modifiable ici (seul le créneau horaire l'est) : tout changement de date
+  // passe par TaskDateChangeRequest. Défense en profondeur : le client verrouille
+  // déjà le champ date (voir ScheduleTaskDialog), ceci protège l'action elle-même.
+  if (task.echeance && dateKeyOf(dateDebut) !== dateKeyOf(task.echeance)) {
+    throw new Error(
+      "La date d'échéance ne peut pas être changée ici — faites une demande de changement de date depuis la fiche tâche."
+    );
+  }
 
   await assertNotOnNonWorkingDay(session.user.id, dateDebut, "TACHE");
 
@@ -514,7 +525,11 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
     const created = await tx.personalPlanningEntry.create({
       data: { userId: session.user.id, titre: task.titre, type: "TACHE", tacheId: task.id, dateDebut, dateFin },
     });
-    await tx.task.update({ where: { id: task.id }, data: { echeance: dateFin } });
+    // Ne fixe l'échéance que si la tâche n'en avait pas encore — sinon elle
+    // reste celle qui a été assignée (voir la vérification de date ci-dessus).
+    if (!task.echeance) {
+      await tx.task.update({ where: { id: task.id }, data: { echeance: dateFin } });
+    }
     return created;
   });
 
@@ -541,7 +556,7 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
 
   const task = await prisma.task.findUniqueOrThrow({
     where: { id: data.taskId },
-    select: { id: true, tempsEstimeHeures: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+    select: { id: true, echeance: true, tempsEstimeHeures: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
   });
   const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
   if (!isOwner) {
@@ -549,6 +564,17 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
   }
 
   const durationMinutes = task.tempsEstimeHeures ? Math.round(Number(task.tempsEstimeHeures) * 60) : 60;
+
+  // Demande utilisateur — la tâche a déjà une échéance assignée : ne
+  // proposer qu'un créneau HORAIRE ce jour-là (maxDays: 0), jamais un autre
+  // jour. Sans échéance, on garde l'ancien comportement (recherche multi-jours).
+  if (task.echeance) {
+    const from = data.after ? new Date(data.after) : new Date(task.echeance.getFullYear(), task.echeance.getMonth(), task.echeance.getDate());
+    const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from, 0);
+    if (!slot) return null;
+    return { dateDebut: slot.dateDebut.toISOString(), dateFin: slot.dateFin.toISOString(), dureeMinutes: durationMinutes };
+  }
+
   const from = data.after ? new Date(data.after) : new Date();
   const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from);
   if (!slot) return null;

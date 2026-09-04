@@ -79,10 +79,14 @@ function roundUpToStep(minutesOfDay: number): number {
 export async function suggestNextAvailableSlot(
   userId: string,
   durationMinutes: number,
-  from: Date = new Date()
+  from: Date = new Date(),
+  /** Demande utilisateur — planifier une tâche depuis "À planifier" ne doit
+   * jamais déplacer sa date d'échéance : passer 0 restreint la recherche au
+   * seul jour de `from` (voir suggestScheduleSlot). */
+  maxDays: number = SEARCH_WINDOW_DAYS
 ): Promise<{ dateDebut: Date; dateFin: Date } | null> {
   const searchStart = new Date(from);
-  const searchEnd = addDays(searchStart, SEARCH_WINDOW_DAYS);
+  const searchEnd = addDays(searchStart, maxDays);
 
   const [schedules, exceptions, nonWorkingMap, entriesRaw, meetingsRaw] = await Promise.all([
     prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
@@ -109,7 +113,7 @@ export async function suggestNextAvailableSlot(
   const isFree = (start: Date, end: Date) => !busyIntervals.some((b) => b.start < end.getTime() && b.end > start.getTime());
 
   let cursorDay = new Date(searchStart.getFullYear(), searchStart.getMonth(), searchStart.getDate());
-  for (let dayOffset = 0; dayOffset <= SEARCH_WINDOW_DAYS; dayOffset++) {
+  for (let dayOffset = 0; dayOffset <= maxDays; dayOffset++) {
     const dateKey = dateKeyOf(cursorDay);
     if (!nonWorkingMap.has(dateKey)) {
       const exception = exceptionByDate.get(dateKey);
