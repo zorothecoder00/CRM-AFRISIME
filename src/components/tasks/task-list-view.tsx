@@ -254,14 +254,17 @@ export function TaskListView({
           (showCreneau), sans toucher /taches (l'autre appelant). Demande
           utilisateur — encore plus reduit que le text-xs d'origine. */}
       <Table className={showCreneau ? "text-[11px]" : undefined}>
-        <TableHeader>
+        {/* Demande utilisateur — bords visibles sur le th (mes-taches
+            uniquement) pour bien distinguer l'en-tete du tbody, en plus du
+            simple border-b herite de TableHeader. */}
+        <TableHeader className={showCreneau ? "bg-muted/60" : undefined}>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
                   onClick={header.column.getToggleSortingHandler()}
-                  className="cursor-pointer select-none"
+                  className={cn("cursor-pointer select-none", showCreneau && "border border-border")}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </TableHead>
