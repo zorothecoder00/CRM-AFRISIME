@@ -59,6 +59,11 @@ export default async function PersonalPlanningAPlanifierPage() {
           </div>
         </div>
 
+        {/* Demande utilisateur — separateur visuel entre le bloc "inbox"
+            (icone/titre/compteur) et la liste des taches, en gardant le meme
+            espacement (space-y-3 sur le conteneur) plutot que de les coller. */}
+        <div className="border-t" />
+
         <div className="space-y-1">
           {tasks.map((t) => (
             <APlanifierTaskRow key={t.id} task={t} colleagues={colleagues} />
