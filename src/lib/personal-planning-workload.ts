@@ -123,6 +123,28 @@ export function scheduleBoundsForDay(schedule: MultiShiftDaySchedule | null | un
   return { startHour, endHour };
 }
 
+export type BreakWindow = { startMin: number; endMin: number };
+
+/**
+ * Demande utilisateur — les vues Jour/Semaine doivent afficher les pauses
+ * configurées (UserWorkSchedule.breaks), pas seulement les utiliser en
+ * coulisse pour la recherche de créneau libre (voir resolveWorkWindows dans
+ * personal-planning-slot-suggestion.ts). Toutes les pauses de tous les
+ * shifts du jour, en minutes depuis minuit.
+ */
+export function breakWindowsForDay(schedule: MultiShiftDaySchedule | null | undefined): BreakWindow[] {
+  if (!schedule || schedule.type === "ABSENCE") return [];
+  const windows: BreakWindow[] = [];
+  for (const shift of schedule.shifts) {
+    for (const b of shift.breaks) {
+      const startMin = parseHourMinutes(b.heureDebut);
+      const endMin = parseHourMinutes(b.heureFin);
+      if (endMin > startMin) windows.push({ startMin, endMin });
+    }
+  }
+  return windows;
+}
+
 /**
  * §26bis — une Mission (ou toute activité) peut s'étaler sur plusieurs
  * jours ; sans ce plafonnement, une entrée entière (ex. 7 jours) comptait

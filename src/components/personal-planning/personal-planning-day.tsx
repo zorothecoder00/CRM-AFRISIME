@@ -5,9 +5,10 @@ import { useDroppable } from "@dnd-kit/core";
 import { Badge } from "@/components/ui/badge";
 import { PersonalPlanningEntryEditDialog, type PersonalPlanningEntryEditData } from "@/components/personal-planning/entry-edit-dialog";
 import { EntryBlock } from "@/components/personal-planning/entry-block";
+import { BreakBand } from "@/components/personal-planning/break-band";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
-import { detectTightTransition, scheduleBoundsForDay, type MultiShiftDaySchedule } from "@/lib/personal-planning-workload";
+import { detectTightTransition, scheduleBoundsForDay, breakWindowsForDay, type MultiShiftDaySchedule } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
 import {
   HOUR_HEIGHT_PX,
@@ -80,6 +81,7 @@ export function PersonalPlanningDay({
   const gridStart = gridStartOf(day, bounds.startHour);
 
   const nonWorkingStyle = nonWorkingReason ? NON_WORKING_STYLES[nonWorkingReason.kind] : null;
+  const breaks = breakWindowsForDay(schedule);
 
   return (
     <div className="space-y-2">
@@ -117,6 +119,13 @@ export function PersonalPlanningDay({
         {hours.map((h, i) => (
           <HourSlot key={h} dayKey={dayKey} hour={h} top={i * HOUR_HEIGHT_PX} />
         ))}
+        {breaks.map((b, i) => {
+          const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, b.startMin, 0, 0);
+          const end = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, b.endMin, 0, 0);
+          const top = offsetPx(start, gridStart);
+          const height = offsetPx(end, gridStart) - top;
+          return height > 0 ? <BreakBand key={i} top={top} height={height} /> : null;
+        })}
         {sorted.map((entry, i) => {
           const range = clippedEntryRange(entry, day);
           const top = Math.max(0, offsetPx(range.start, gridStart));
