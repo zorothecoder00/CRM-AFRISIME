@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TaskDateChangeRequestDialog } from "@/components/tasks/task-date-change-request-dialog";
 
 type Option = { id: string; label: string };
 
@@ -32,12 +33,19 @@ export function TaskEditDialog({
   open,
   onOpenChange,
   onSuccess,
+  isOwner = false,
 }: {
   task: TaskEditData;
   users: Option[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (updated: UpdateTaskInput) => void;
+  // Demande utilisateur : le responsable principal/les assignés ne peuvent
+  // pas changer les dates directement (voir updateTask), seulement en
+  // demander une nouvelle (TaskDateChangeRequestDialog) — les champs de
+  // date sont donc désactivés ici quand isOwner, plutôt que de laisser
+  // soumettre un changement que le serveur refusera de toute façon.
+  isOwner?: boolean;
 }) {
   const {
     register,
@@ -126,13 +134,25 @@ export function TaskEditDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-dateDebut">Date de début</Label>
-              <Input id="edit-dateDebut" type="date" {...register("dateDebut")} />
+              <Input id="edit-dateDebut" type="date" disabled={isOwner} {...register("dateDebut")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-echeance">Échéance</Label>
-              <Input id="edit-echeance" type="date" {...register("echeance")} />
+              <Input id="edit-echeance" type="date" disabled={isOwner} {...register("echeance")} />
             </div>
           </div>
+          {isOwner && (
+            <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 p-2">
+              <p className="text-xs text-muted-foreground">
+                Vous ne pouvez pas modifier ces dates directement — faites une demande de report.
+              </p>
+              <TaskDateChangeRequestDialog
+                taskId={task.id}
+                currentDateDebut={task.dateDebut}
+                currentEcheance={task.echeance}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="edit-tempsEstimeHeures">Temps estimé (h)</Label>

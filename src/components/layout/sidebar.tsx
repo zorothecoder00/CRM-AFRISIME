@@ -30,7 +30,7 @@ export function Sidebar({ permissions, roleKey }: { permissions: string[]; roleK
           sidebar ET du fond clair du contenu principal) : le texte du logo
           est en bleu, illisible sur le fond bleu nuit de la sidebar
           (bg-sidebar) ni assez contrasté sur un fond blanc/gris clair. */}
-      <div className="flex flex-col items-center overflow-hidden border-b bg-amber-100 px-4 py-4">
+      <div className="flex flex-col items-center overflow-hidden border-b bg-amber-100 px-4 py-0">
         <Image
           src="/logo.png"
           alt="AfriSime Work Space"

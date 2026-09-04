@@ -69,13 +69,43 @@ export type ConvertChecklistItemToSubtaskInput = z.infer<typeof convertChecklist
 
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
-  statut: z.enum(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE", "TERMINEE", "ANNULEE"]),
+  statut: z.enum(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE", "TERMINEE", "ANNULEE", "REPORTEE"]),
+});
+
+export const updateTaskPrioritySchema = z.object({
+  taskId: z.string().min(1),
+  priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]),
 });
 
 export const addCommentSchema = z.object({
   taskId: z.string().min(1),
   content: z.string().min(1, "Le commentaire ne peut pas être vide."),
 });
+
+// Demande de report de date (dateDebut et/ou echeance) — demande utilisateur
+// : le responsable principal/les assignes ne peuvent pas modifier ces dates
+// directement (voir updateTask), seulement en faire la demande ici.
+export const createTaskDateChangeRequestSchema = z
+  .object({
+    taskId: z.string().min(1),
+    requestedDateDebut: z.string().optional(),
+    requestedEcheance: z.string().optional(),
+    motif: z.string().min(2, "Le motif est requis."),
+  })
+  .refine((data) => data.requestedDateDebut || data.requestedEcheance, {
+    message: "Indiquez au moins une nouvelle date (début ou échéance).",
+    path: ["requestedEcheance"],
+  });
+
+export type CreateTaskDateChangeRequestInput = z.infer<typeof createTaskDateChangeRequestSchema>;
+
+export const decideTaskDateChangeRequestSchema = z.object({
+  requestId: z.string().min(1),
+  statut: z.enum(["ACCEPTEE", "REFUSEE"]),
+  decisionMotif: z.string().optional(),
+});
+
+export type DecideTaskDateChangeRequestInput = z.infer<typeof decideTaskDateChangeRequestSchema>;
 
 export const addChecklistItemSchema = z.object({
   taskId: z.string().min(1),

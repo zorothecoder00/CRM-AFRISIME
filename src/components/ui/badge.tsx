@@ -22,6 +22,8 @@ const badgeVariants = cva(
           "bg-info/10 text-info focus-visible:ring-info/20 dark:bg-info/20 dark:focus-visible:ring-info/40 [a]:hover:bg-info/20",
         outline:
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
+        violet:
+          "bg-violet-500/10 text-violet-600 focus-visible:ring-violet-500/20 dark:bg-violet-500/20 dark:text-violet-400 dark:focus-visible:ring-violet-500/40 [a]:hover:bg-violet-500/20",
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",

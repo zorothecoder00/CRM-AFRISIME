@@ -15,6 +15,7 @@ const ENTRY_TYPES = [
   "TRAVAIL_PERSONNEL",
   "PAUSE",
   "EVENEMENT",
+  "AUTRES",
 ] as const;
 
 const ENTRY_STATUTS = ["A_PLANIFIER", "PLANIFIEE", "EN_COURS", "EN_ATTENTE", "BLOQUEE", "TERMINEE", "ANNULEE"] as const;

@@ -31,7 +31,7 @@ export function toneForPriority(priority: string): BadgeTone {
   const p = priority.toUpperCase();
   if (p.includes("TRES_HAUTE") || p.includes("CRITIQUE")) return "destructive";
   if (p.includes("HAUTE") || p.includes("IMPORTANTE")) return "warning";
-  if (p.includes("MOYENNE") || p.includes("NORMALE")) return "info";
+  if (p.includes("MOYENNE") || p.includes("NORMALE")) return "success";
   return "secondary";
 }
 
@@ -44,7 +44,7 @@ export function dotClassForPriority(priority: string): string {
   const p = priority.toUpperCase();
   if (p.includes("TRES_HAUTE") || p.includes("CRITIQUE")) return "bg-destructive";
   if (p.includes("HAUTE") || p.includes("IMPORTANTE")) return "bg-warning";
-  if (p.includes("MOYENNE") || p.includes("NORMALE")) return "bg-info";
+  if (p.includes("MOYENNE") || p.includes("NORMALE")) return "bg-success";
   return "bg-muted-foreground";
 }
 
@@ -68,15 +68,17 @@ export function accentForPriority(priority: string): CardAccent {
  */
 const TASK_STATUS_TONES: Record<string, BadgeTone> = {
   // "secondary" (fond quasi blanc) est illisible sans bordure sur cette
-  // teinte — "outline" (bordure + texte foncé) reste visible tout en
-  // restant neutre pour un statut aussi frequent. A l'inverse "secondary"
-  // convient a Annulee, qui doit justement s'effacer visuellement.
-  A_FAIRE: "outline",
+  // teinte, d'ou "violet" (fond teinte, pas juste une bordure) pour un
+  // statut aussi frequent — "secondary" reste reserve a Annulee, qui doit
+  // justement s'effacer visuellement.
+  A_FAIRE: "violet",
   EN_COURS: "info",
   EN_REVISION: "warning",
   BLOQUEE: "destructive",
   TERMINEE: "success",
   ANNULEE: "secondary",
+  // "outline" (bordure, fond quasi transparent) libere par A_FAIRE ci-dessus.
+  REPORTEE: "outline",
 };
 
 export function toneForTaskStatus(status: string): BadgeTone {

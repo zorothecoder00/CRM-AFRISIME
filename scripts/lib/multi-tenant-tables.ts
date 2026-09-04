@@ -159,4 +159,8 @@ export const COVERED_TABLES = [
   "ProjectContract",
   "ProjectContractPayment",
   "CommunicationPlanEntry",
+  // Demande de report de date sur une tache (2026-09-04) — meme raison que
+  // Project Studio ci-dessus : passe par withTenantScopedSession, donc sans
+  // l'octroi le role scope n'a aucun droit dessus.
+  "TaskDateChangeRequest",
 ];

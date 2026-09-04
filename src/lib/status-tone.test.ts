@@ -40,9 +40,9 @@ describe("toneForPriority", () => {
     expect(toneForPriority("CRITIQUE")).toBe("destructive");
   });
 
-  it("classe HAUTE en warning, MOYENNE en info, le reste en secondary", () => {
+  it("classe HAUTE en warning, MOYENNE en success, le reste en secondary", () => {
     expect(toneForPriority("HAUTE")).toBe("warning");
-    expect(toneForPriority("MOYENNE")).toBe("info");
+    expect(toneForPriority("MOYENNE")).toBe("success");
     expect(toneForPriority("BASSE")).toBe("secondary");
   });
 });

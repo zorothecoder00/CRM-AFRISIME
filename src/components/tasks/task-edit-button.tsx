@@ -9,7 +9,7 @@ import { Pencil } from "lucide-react";
 type Option = { id: string; label: string };
 
 /** Bouton "Modifier" pour la fiche tâche — la page est un server component, TaskEditDialog a besoin d'un state client. */
-export function TaskEditButton({ task, users }: { task: TaskEditData; users: Option[] }) {
+export function TaskEditButton({ task, users, isOwner }: { task: TaskEditData; users: Option[]; isOwner?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -22,6 +22,7 @@ export function TaskEditButton({ task, users }: { task: TaskEditData; users: Opt
       <TaskEditDialog
         task={task}
         users={users}
+        isOwner={isOwner}
         open={open}
         onOpenChange={(o) => {
           setOpen(o);

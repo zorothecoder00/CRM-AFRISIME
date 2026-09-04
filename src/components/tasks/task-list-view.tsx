@@ -17,7 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
+import { AddSubtaskDialog } from "@/components/tasks/add-subtask-dialog";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
+import { TaskPrioritySelect } from "@/components/tasks/task-priority-select";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -49,18 +51,14 @@ export type TaskRow = {
   creneau?: { debut: string; fin: string } | null;
 };
 
-function formatCreneau(creneau: { debut: string; fin: string }): string {
-  const debut = new Date(creneau.debut);
-  const fin = new Date(creneau.fin);
-  const isToday = debut.toDateString() === new Date().toDateString();
-  const dateLabel = isToday ? "" : `${debut.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })} `;
-  const heureDebut = debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const heureFin = fin.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  return `${dateLabel}${heureDebut}–${heureFin}`;
-}
-
-function formatHeureDebut(creneau: { debut: string; fin: string }): string {
-  return new Date(creneau.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+// Demande utilisateur : la colonne "Créneau" du tableau mes-tâches
+// n'affiche QUE la plage horaire, jamais la date (contrairement à
+// l'ancienne colonne "Créneau" qui préfixait la date si ce n'était pas
+// aujourd'hui) — la date de la tâche est déjà dans la colonne "Échéance".
+function formatCreneauRange(creneau: { debut: string; fin: string }): string {
+  const heureDebut = new Date(creneau.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const heureFin = new Date(creneau.fin).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return `${heureDebut}–${heureFin}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -70,6 +68,7 @@ const STATUS_LABELS: Record<string, string> = {
   BLOQUEE: "Bloquée",
   TERMINEE: "Terminée",
   ANNULEE: "Annulée",
+  REPORTEE: "Reportée",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -88,8 +87,10 @@ const TITRE_CELL = ({ row }: { row: { original: TaskRow } }) => (
 const ECHEANCE_CELL = ({ row }: { row: { original: TaskRow } }) =>
   row.original.echeance ? new Date(row.original.echeance).toLocaleDateString("fr-FR") : "—";
 
-function priorityCell(row: { original: TaskRow }) {
-  return (
+function priorityCell(row: { original: TaskRow }, canManage: boolean) {
+  return canManage ? (
+    <TaskPrioritySelect taskId={row.original.id} priorite={row.original.priorite} />
+  ) : (
     <Badge variant={toneForPriority(row.original.priorite)}>{PRIORITY_LABELS[row.original.priorite]}</Badge>
   );
 }
@@ -106,6 +107,7 @@ function actionsColumn(options: {
   canManage: boolean;
   canDelete: boolean;
   onEdit: (id: string) => void;
+  onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
 }): ColumnDef<TaskRow> {
   return {
@@ -114,6 +116,7 @@ function actionsColumn(options: {
     cell: ({ row }) => (
       <RowActionsMenu
         onEdit={options.canManage ? () => options.onEdit(row.original.id) : undefined}
+        onAddSubtask={options.canManage ? () => options.onAddSubtask(row.original) : undefined}
         onDelete={options.canDelete ? () => options.onDelete(row.original) : undefined}
         deleteConfirmLabel={`Supprimer « ${row.original.titre} » ? La tâche sera déplacée dans la corbeille.`}
       />
@@ -126,40 +129,32 @@ function buildColumns(options: {
   canDelete: boolean;
   showCreneau: boolean;
   onEdit: (id: string) => void;
+  onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
 }): ColumnDef<TaskRow>[] {
   // Planning personnel (§4/§10, showCreneau) : disposition dédiée demandée
-  // par l'utilisateur — Heure/Tâche/Échéance/Priorité/Statut/Créneau/% —
-  // distincte de la disposition générale de /taches ci-dessous. Pas de
-  // colonne Projet ici (page déjà scopée à mes tâches), Heure = début du
-  // créneau, extrait à part de la plage complète déjà donnée par "Créneau".
+  // par l'utilisateur — Créneau/Tâche/Échéance/Priorité/Statut/%/Projet.
+  // Créneau = plage horaire seule (pas de date, voir formatCreneauRange) ;
+  // Projet en dernier (remplace l'ancienne colonne "Créneau" complète,
+  // devenue redondante avec Échéance + ce nouveau Créneau).
   if (options.showCreneau) {
     const cols: ColumnDef<TaskRow>[] = [
-      {
-        accessorKey: "creneau",
-        id: "heure",
-        header: "Heure",
-        cell: ({ row }) => (
-          <span className={row.original.creneau ? undefined : "text-muted-foreground"}>
-            {row.original.creneau ? formatHeureDebut(row.original.creneau) : "—"}
-          </span>
-        ),
-      },
-      { accessorKey: "titre", header: "Tâche", cell: TITRE_CELL },
-      { accessorKey: "echeance", header: "Échéance", cell: ECHEANCE_CELL },
-      { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row) },
-      { accessorKey: "statut", header: "Statut", cell: ({ row }) => statutCell(row, options.canManage) },
       {
         accessorKey: "creneau",
         id: "creneau",
         header: "Créneau",
         cell: ({ row }) => (
           <span className={row.original.creneau ? undefined : "text-muted-foreground"}>
-            {row.original.creneau ? formatCreneau(row.original.creneau) : "Non planifiée"}
+            {row.original.creneau ? formatCreneauRange(row.original.creneau) : "Non planifiée"}
           </span>
         ),
       },
+      { accessorKey: "titre", header: "Tâche", cell: TITRE_CELL },
+      { accessorKey: "echeance", header: "Échéance", cell: ECHEANCE_CELL },
+      { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row, options.canManage) },
+      { accessorKey: "statut", header: "Statut", cell: ({ row }) => statutCell(row, options.canManage) },
       { accessorKey: "avancement", header: "%", cell: ({ row }) => `${row.original.avancement}%` },
+      { accessorKey: "projectNom", header: "Projet" },
     ];
     if (options.canManage || options.canDelete) cols.push(actionsColumn(options));
     return cols;
@@ -169,7 +164,7 @@ function buildColumns(options: {
     { accessorKey: "titre", header: "Titre", cell: TITRE_CELL },
     { accessorKey: "projectNom", header: "Projet" },
     { accessorKey: "statut", header: "Statut", cell: ({ row }) => statutCell(row, options.canManage) },
-    { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row) },
+    { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row, options.canManage) },
     { accessorKey: "responsableNom", header: "Responsable" },
     { accessorKey: "echeance", header: "Échéance", cell: ECHEANCE_CELL },
     { accessorKey: "avancement", header: "%", cell: ({ row }) => `${row.original.avancement}%` },
@@ -187,6 +182,7 @@ export function TaskListView({
   canDelete = false,
   showCreneau = false,
   className,
+  currentUserId,
 }: {
   tasks: TaskRow[];
   users?: Option[];
@@ -197,10 +193,17 @@ export function TaskListView({
   // intérêt) par la plage horaire réelle de la tâche.
   showCreneau?: boolean;
   className?: string;
+  // Demande utilisateur : le responsable principal ne peut pas changer les
+  // dates d'une tâche qui lui est assignée directement depuis ce dialogue
+  // d'édition (voir TaskEditDialog isOwner) — approximation par
+  // responsablePrincipalId uniquement (TaskRow n'a pas les co-assignés) ;
+  // l'autorisation réelle et complète reste vérifiée côté serveur (updateTask).
+  currentUserId?: string;
 }) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [subtaskParentId, setSubtaskParentId] = useState<string | null>(null);
   const { run: remove } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
 
   const columns = useMemo(
@@ -210,6 +213,7 @@ export function TaskListView({
         canDelete,
         showCreneau,
         onEdit: setEditingId,
+        onAddSubtask: (task) => setSubtaskParentId(task.id),
         onDelete: (task) => remove(task.id),
       }),
     [canManage, canDelete, showCreneau, remove]
@@ -225,6 +229,7 @@ export function TaskListView({
   });
 
   const editingTask = tasks.find((t) => t.id === editingId) ?? null;
+  const subtaskParentTask = tasks.find((t) => t.id === subtaskParentId) ?? null;
 
   return (
     <div className={cn("rounded-md border", className)}>
@@ -271,9 +276,22 @@ export function TaskListView({
         <TaskEditDialog
           task={editingTask}
           users={users}
+          isOwner={!!currentUserId && editingTask.responsablePrincipalId === currentUserId}
           open={!!editingId}
           onOpenChange={(o) => {
             setEditingId(o ? editingId : null);
+            if (!o) router.refresh();
+          }}
+        />
+      )}
+      {subtaskParentTask && (
+        <AddSubtaskDialog
+          parentTaskId={subtaskParentTask.id}
+          parentTitre={subtaskParentTask.titre}
+          users={users}
+          open={!!subtaskParentId}
+          onOpenChange={(o) => {
+            setSubtaskParentId(o ? subtaskParentId : null);
             if (!o) router.refresh();
           }}
         />

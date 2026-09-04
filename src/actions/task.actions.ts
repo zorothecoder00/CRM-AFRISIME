@@ -24,6 +24,7 @@ import {
   createTaskSchema,
   updateTaskSchema,
   updateTaskStatusSchema,
+  updateTaskPrioritySchema,
   addCommentSchema,
   addChecklistItemSchema,
   addDependencySchema,
@@ -32,6 +33,10 @@ import {
   convertSectionToTaskSchema,
   addSubtaskSchema,
   convertChecklistItemToSubtaskSchema,
+  createTaskDateChangeRequestSchema,
+  decideTaskDateChangeRequestSchema,
+  type CreateTaskDateChangeRequestInput,
+  type DecideTaskDateChangeRequestInput,
   type CreateTaskInput,
   type UpdateTaskInput,
   type LinkTaskExternalContactInput,
@@ -178,6 +183,30 @@ export async function updateTask(input: UpdateTaskInput) {
   requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
 
   const data = updateTaskSchema.parse(input);
+
+  // Le responsable principal et les assignes d'une tache ne peuvent pas
+  // changer ses dates directement (demande utilisateur) — seulement en
+  // faire la demande, voir requestTaskDateChange/decideTaskDateChange.
+  // Verifie ici (pas seulement cote UI/TaskEditDialog) pour rester correct
+  // quel que soit l'appelant.
+  const existing = await prisma.task.findUniqueOrThrow({
+    where: { id: data.id },
+    select: { responsablePrincipalId: true, assignees: { select: { userId: true } }, dateDebut: true, echeance: true },
+  });
+  const isOwner =
+    existing.responsablePrincipalId === session.user.id ||
+    existing.assignees.some((a) => a.userId === session.user.id);
+  if (isOwner) {
+    const newDateDebut = data.dateDebut ? new Date(data.dateDebut).getTime() : null;
+    const oldDateDebut = existing.dateDebut ? existing.dateDebut.getTime() : null;
+    const newEcheance = data.echeance ? new Date(data.echeance).getTime() : null;
+    const oldEcheance = existing.echeance ? existing.echeance.getTime() : null;
+    if (newDateDebut !== oldDateDebut || newEcheance !== oldEcheance) {
+      throw new Error(
+        "Vous ne pouvez pas modifier directement les dates de cette tâche — faites une demande de report."
+      );
+    }
+  }
 
   const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.task.update({
@@ -394,6 +423,207 @@ export async function updateTaskStatus(taskId: string, statut: string) {
   if (task.parentTaskId) revalidatePath(`/taches/${task.parentTaskId}`);
   revalidatePath(`/projets/${task.projectId}`);
   return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
+}
+
+export async function updateTaskPriority(taskId: string, priorite: string) {
+  const session = await requireSession();
+  const data = updateTaskPrioritySchema.parse({ taskId, priorite });
+
+  // Meme regle d'autorisation que updateTaskStatus : le responsable
+  // principal et les co-responsables peuvent toujours changer LEUR
+  // priorite, sans TASK_UPDATE au niveau du role.
+  const existing = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    select: { responsablePrincipalId: true, assignees: { select: { userId: true } }, projectId: true, parentTaskId: true },
+  });
+  const isOwner =
+    existing.responsablePrincipalId === session.user.id ||
+    existing.assignees.some((a) => a.userId === session.user.id);
+  if (!isOwner) {
+    requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+  }
+
+  const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.task.update({
+      where: { id: data.taskId },
+      data: { priorite: data.priorite },
+    })
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.priority_changed",
+    entityType: "Task",
+    entityId: task.id,
+    changes: { priorite: data.priorite },
+  });
+
+  revalidatePath("/taches");
+  revalidatePath(`/taches/${taskId}`);
+  if (task.parentTaskId) revalidatePath(`/taches/${task.parentTaskId}`);
+  revalidatePath(`/projets/${task.projectId}`);
+  return task;
+}
+
+/**
+ * Demande utilisateur : le responsable principal/les assignes d'une tache ne
+ * peuvent pas changer dateDebut/echeance directement (voir updateTask),
+ * seulement en faire la demande ici, avec un motif. requestedDateDebut et
+ * requestedEcheance sont chacun optionnels (on peut ne demander a changer
+ * que l'un des deux) — createTaskDateChangeRequestSchema exige au moins un
+ * des deux.
+ */
+export async function requestTaskDateChange(input: CreateTaskDateChangeRequestInput) {
+  const session = await requireSession();
+  const data = createTaskDateChangeRequestSchema.parse(input);
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    select: {
+      titre: true,
+      dateDebut: true,
+      echeance: true,
+      responsablePrincipalId: true,
+      createdById: true,
+      assignees: { select: { userId: true } },
+      organizationId: true,
+    },
+  });
+  const isOwner =
+    task.responsablePrincipalId === session.user.id ||
+    task.assignees.some((a) => a.userId === session.user.id);
+  if (!isOwner) {
+    throw new Error("Seuls le responsable principal et les assignés de la tâche peuvent demander un report de date.");
+  }
+
+  const request = await prisma.taskDateChangeRequest.create({
+    data: {
+      taskId: data.taskId,
+      requestedById: session.user.id,
+      currentDateDebut: task.dateDebut,
+      requestedDateDebut: data.requestedDateDebut ? new Date(data.requestedDateDebut) : undefined,
+      currentEcheance: task.echeance,
+      requestedEcheance: data.requestedEcheance ? new Date(data.requestedEcheance) : undefined,
+      motif: data.motif,
+      organizationId: session.user.organizationId,
+    },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.date_change_requested",
+    entityType: "Task",
+    entityId: data.taskId,
+    changes: { requestedDateDebut: data.requestedDateDebut, requestedEcheance: data.requestedEcheance },
+  });
+
+  // Approbateur : le responsable principal decide des demandes des
+  // co-assignes ; quand c'est le responsable principal lui-meme qui demande,
+  // le createur de la tache sert de destinataire raisonnable (l'autorisation
+  // reelle a la decision, elle, reste ouverte a quiconque a TASK_UPDATE — voir
+  // decideTaskDateChange). Pas de notif si la seule cible serait soi-meme
+  // (tache auto-creee et auto-attribuee).
+  const notifyUserId = session.user.id === task.responsablePrincipalId ? task.createdById : task.responsablePrincipalId;
+  if (notifyUserId !== session.user.id) {
+    await createNotification({
+      userId: notifyUserId,
+      type: "DEMANDE_REPORT_ECHEANCE",
+      titre: `${session.user.name ?? "Un collègue"} demande un report de date pour « ${task.titre} »`,
+      lien: `/taches/${data.taskId}`,
+      entityType: "Task",
+      entityId: data.taskId,
+    });
+  }
+
+  revalidatePath(`/taches/${data.taskId}`);
+  revalidatePath("/taches");
+  return {
+    ...request,
+    currentDateDebut: request.currentDateDebut ? request.currentDateDebut.toISOString() : null,
+    requestedDateDebut: request.requestedDateDebut ? request.requestedDateDebut.toISOString() : null,
+    currentEcheance: request.currentEcheance ? request.currentEcheance.toISOString() : null,
+    requestedEcheance: request.requestedEcheance ? request.requestedEcheance.toISOString() : null,
+  };
+}
+
+/**
+ * Decision sur une demande de report de date. Autorisation : le responsable
+ * principal peut decider des demandes des AUTRES (co-assignes) ; sinon il
+ * faut la permission TASK_UPDATE (couvre a la fois "quelqu'un avec la
+ * permission de gerer les taches" ET le cas ou le responsable principal a
+ * lui-meme fait la demande — il ne peut alors pas se l'auto-approuver).
+ */
+export async function decideTaskDateChange(input: DecideTaskDateChangeRequestInput) {
+  const session = await requireSession();
+  const data = decideTaskDateChangeRequestSchema.parse(input);
+
+  const existing = await prisma.taskDateChangeRequest.findUniqueOrThrow({
+    where: { id: data.requestId },
+    include: { task: { select: { id: true, titre: true, responsablePrincipalId: true, organizationId: true } } },
+  });
+  if (existing.statut !== "EN_ATTENTE") {
+    throw new Error("Cette demande a déjà été traitée.");
+  }
+
+  const isPrincipalDecidingOthersRequest =
+    session.user.id === existing.task.responsablePrincipalId && existing.requestedById !== existing.task.responsablePrincipalId;
+  if (!isPrincipalDecidingOthersRequest) {
+    requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+  }
+
+  const request = await withTenantScopedSession(existing.task.organizationId ?? session.user.organizationId, async (tx) => {
+    const updated = await tx.taskDateChangeRequest.update({
+      where: { id: data.requestId },
+      data: {
+        statut: data.statut,
+        decidedById: session.user.id,
+        decisionMotif: data.decisionMotif || null,
+        decidedAt: new Date(),
+      },
+    });
+
+    if (data.statut === "ACCEPTEE") {
+      await tx.task.update({
+        where: { id: existing.taskId },
+        data: {
+          dateDebut: existing.requestedDateDebut ?? undefined,
+          echeance: existing.requestedEcheance ?? undefined,
+        },
+      });
+    }
+
+    return updated;
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "task.date_change_decided",
+    entityType: "Task",
+    entityId: existing.taskId,
+    changes: { statut: data.statut },
+  });
+
+  await createNotification({
+    userId: existing.requestedById,
+    type: "DEMANDE_REPORT_ECHEANCE_DECISION",
+    titre:
+      data.statut === "ACCEPTEE"
+        ? `${session.user.name ?? "Un collègue"} a accepté votre demande de report pour « ${existing.task.titre} »`
+        : `${session.user.name ?? "Un collègue"} a refusé votre demande de report pour « ${existing.task.titre} »`,
+    lien: `/taches/${existing.taskId}`,
+    entityType: "Task",
+    entityId: existing.taskId,
+  });
+
+  revalidatePath(`/taches/${existing.taskId}`);
+  revalidatePath("/taches");
+  return {
+    ...request,
+    currentDateDebut: request.currentDateDebut ? request.currentDateDebut.toISOString() : null,
+    requestedDateDebut: request.requestedDateDebut ? request.requestedDateDebut.toISOString() : null,
+    currentEcheance: request.currentEcheance ? request.currentEcheance.toISOString() : null,
+    requestedEcheance: request.requestedEcheance ? request.requestedEcheance.toISOString() : null,
+  };
 }
 
 /**

@@ -38,6 +38,7 @@ const COLUMN_ACCENT: Record<BadgeTone, string> = {
   warning: "border-t-warning",
   info: "border-t-info",
   outline: "border-t-border",
+  violet: "border-t-violet-500",
   ghost: "border-t-border",
   link: "border-t-border",
 };

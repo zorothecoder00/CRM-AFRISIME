@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
   BLOQUEE: "Bloquée",
   TERMINEE: "Terminée",
   ANNULEE: "Annulée",
+  REPORTEE: "Reportée",
 };
 
 const STATUSES = Object.keys(STATUS_LABELS);
@@ -42,7 +43,7 @@ export function TaskStatusSelect({ taskId, statut }: { taskId: string; statut: s
       <SelectTrigger
         className={cn(
           badgeVariants({ variant: tone }),
-          "h-6 w-auto px-2 py-0 [&_svg]:opacity-70",
+          "h-5 w-auto gap-1 px-1.5 py-0 [&_svg]:size-3 [&_svg]:opacity-70",
           // Le variant "outline" (À faire, tone quasi blanche sans bordure)
           // a besoin de garder sa bordure pour rester visible ; les autres
           // teintes sont pleines, la bordure par défaut du Select ferait

@@ -63,6 +63,7 @@ const TASK_STATUS_LABELS: Record<string, string> = {
   BLOQUEE: "Bloquée",
   TERMINEE: "Terminée",
   ANNULEE: "Annulée",
+  REPORTEE: "Reportée",
 };
 
 export default async function ProjectDetailPage({

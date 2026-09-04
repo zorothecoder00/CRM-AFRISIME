@@ -249,7 +249,8 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold">Tableau de bord</h1>
         <p className="text-sm text-muted-foreground">
-          {now.getHours() >= 15 ? "Bonsoir" : "Bonjour"}, {session!.user.name} — {session!.user.roleLabel}
+          {now.getHours() >= 18 ? "Bonsoir" : now.getHours() >= 12 ? "Bon après-midi" : "Bonjour"}, {session!.user.name} —{" "}
+          {session!.user.roleLabel}
         </p>
       </div>
 

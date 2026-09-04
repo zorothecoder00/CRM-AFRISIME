@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, ListTree } from "lucide-react";
 
 /**
  * Menu d'actions (kebab) réutilisable pour une ligne/carte de liste.
@@ -12,11 +12,14 @@ import { MoreVertical, Pencil, Trash2 } from "lucide-react";
  */
 export function RowActionsMenu({
   onEdit,
+  onAddSubtask,
   onDelete,
   deleteConfirmLabel = "Supprimer cet élément ?",
   deleteDisabled,
 }: {
   onEdit?: () => void;
+  // Subdiviser en sous-tâches (demande utilisateur) — voir AddSubtaskDialog.
+  onAddSubtask?: () => void;
   onDelete?: () => unknown;
   deleteConfirmLabel?: string;
   deleteDisabled?: boolean;
@@ -46,6 +49,17 @@ export function RowActionsMenu({
           >
             <Pencil className="h-3.5 w-3.5" />
             Modifier
+          </DropdownMenuItem>
+        )}
+        {onAddSubtask && (
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              onAddSubtask();
+            }}
+          >
+            <ListTree className="h-3.5 w-3.5" />
+            Subdiviser en sous-tâches
           </DropdownMenuItem>
         )}
         {onDelete && (

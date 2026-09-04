@@ -46,30 +46,37 @@ export function APlanifierTaskRow({ task, colleagues }: { task: APlanifierTask; 
   return (
     <div className="space-y-1 rounded-md border p-1.5 text-xs">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotClassForPriority(task.priorite)}`}
-              title={TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
-            />
+        {/* Le point de priorite est ici un frere du bloc titre+details (pas
+            imbrique dans la ligne du titre) : centre verticalement sur TOUT
+            le bloc (titre + ligne priorite/echeance/projet en dessous), pas
+            seulement sur la premiere ligne (demande utilisateur). */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span
+            className={`h-3.5 w-3.5 shrink-0 rounded-full ${dotClassForPriority(task.priorite)}`}
+            title={TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
+          />
+          <div className="min-w-0">
             <Link href={`/taches/${task.id}?from=planning-personnel`} className="flex items-center gap-1 text-xs font-medium hover:underline">
               {task.titre}
               <ExternalLink className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
             </Link>
-          </div>
-          {/* Badge de priorité fusionné sur la même ligne que projet/échéance
-              (demande utilisateur) — il occupait sa propre ligne avant,
-              gonflant la hauteur verticale de chaque tâche. */}
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            <Badge variant={toneForPriority(task.priorite)} className="text-[10px]">
-              {TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
-            </Badge>
-            <span className="text-xs text-muted-foreground">{task.projetNom}</span>
-            {task.echeance && (
+            {/* Badge de priorité fusionné sur la même ligne que projet/échéance
+                (demande utilisateur) — il occupait sa propre ligne avant,
+                gonflant la hauteur verticale de chaque tâche. */}
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              <Badge variant={toneForPriority(task.priorite)} className="text-[10px]">
+                {TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
+              </Badge>
+              {task.echeance && (
+                <span className="text-xs text-muted-foreground">
+                  Échéance {new Date(task.echeance).toLocaleDateString("fr-FR")}
+                </span>
+              )}
               <span className="text-xs text-muted-foreground">
-                · Échéance {new Date(task.echeance).toLocaleDateString("fr-FR")}
+                {task.echeance ? "· " : ""}
+                {task.projetNom}
               </span>
-            )}
+            </div>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-0.5">

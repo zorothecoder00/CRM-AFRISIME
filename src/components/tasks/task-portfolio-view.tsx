@@ -8,7 +8,7 @@ type ProjectSummary = {
 };
 
 const DONE_STATUS = "TERMINEE";
-const LATE_STATUSES = new Set(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"]);
+const LATE_STATUSES = new Set(["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE", "REPORTEE"]);
 
 /** Vue Portefeuille (cahier des charges §7) : tâches regroupées par projet, avec avancement global. */
 export function TaskPortfolioView({

@@ -162,6 +162,7 @@ export default async function PersonalPlanningMesTachesPage({
           canDelete={canDelete}
           showCreneau
           className="border-0"
+          currentUserId={userId}
         />
       </div>
     </div>

@@ -27,6 +27,8 @@ import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
+import { TaskDateChangeRequestDialog } from "@/components/tasks/task-date-change-request-dialog";
+import { TaskDateChangeRequestsPanel } from "@/components/tasks/task-date-change-requests-panel";
 import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -36,6 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
   BLOQUEE: "Bloquée",
   TERMINEE: "Terminée",
   ANNULEE: "Annulée",
+  REPORTEE: "Reportée",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -113,11 +116,15 @@ export default async function TaskDetailPage({
   // cote serveur).
   const isAssignee = task.assignees.some((a) => a.userId === session!.user.id);
   const canChangeStatus = canTag || isResponsable || isAssignee;
+  // Demande utilisateur : le responsable principal/les assignes ne peuvent
+  // pas changer dateDebut/echeance directement (voir updateTask), seulement
+  // en faire la demande (TaskDateChangeRequestDialog).
+  const isOwner = isResponsable || isAssignee;
   const tags = await getTagsFor("Task", task.id);
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
 
-  const [otherTasks, historyEntries, externalCandidates, projectMembers, activeUsers] = await Promise.all([
+  const [otherTasks, historyEntries, externalCandidates, projectMembers, activeUsers, pendingDateChangeRequests] = await Promise.all([
     prisma.task.findMany({
       where: { projectId: task.projectId, id: { not: task.id } },
       select: { id: true, titre: true },
@@ -140,7 +147,20 @@ export default async function TaskDetailPage({
       include: { user: { select: { id: true, name: true } } },
     }),
     canTag ? prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }) : Promise.resolve([]),
+    prisma.taskDateChangeRequest.findMany({
+      where: { taskId: task.id, statut: "EN_ATTENTE" },
+      include: { requestedBy: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
+
+  // Visible/decidable par : le responsable principal (demandes des
+  // co-assignes uniquement — pas les siennes) et quiconque a TASK_UPDATE
+  // (toutes, y compris celles du responsable principal) — meme regle que
+  // decideTaskDateChange cote serveur.
+  const decidableDateChangeRequests = pendingDateChangeRequests.filter(
+    (r) => canTag || (isResponsable && r.requestedById !== task.responsablePrincipalId)
+  );
 
   // Candidats @mention (src/lib/mentions.ts) : mêmes personnes que celles
   // notifiées côté serveur pour un commentaire — responsable, co-responsables,
@@ -245,6 +265,7 @@ export default async function TaskDetailPage({
                   tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null,
                 }}
                 users={userOptions}
+                isOwner={isOwner}
               />
             )}
             {canDeleteTask && !task.deletedAt && <DeleteToTrashButton entityType="Task" id={task.id} />}
@@ -361,6 +382,19 @@ export default async function TaskDetailPage({
       </div>
 
       <div className="space-y-6">
+        {decidableDateChangeRequests.length > 0 && (
+          <TaskDateChangeRequestsPanel
+            requests={decidableDateChangeRequests.map((r) => ({
+              id: r.id,
+              requestedByName: r.requestedBy.name,
+              motif: r.motif,
+              currentDateDebut: r.currentDateDebut ? r.currentDateDebut.toISOString() : null,
+              requestedDateDebut: r.requestedDateDebut ? r.requestedDateDebut.toISOString() : null,
+              currentEcheance: r.currentEcheance ? r.currentEcheance.toISOString() : null,
+              requestedEcheance: r.requestedEcheance ? r.requestedEcheance.toISOString() : null,
+            }))}
+          />
+        )}
         <Card accent={accentForStatus(task.statut)}>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
@@ -379,6 +413,13 @@ export default async function TaskDetailPage({
               label="Échéance"
               value={task.echeance ? new Date(task.echeance).toLocaleDateString("fr-FR") : "—"}
             />
+            {isOwner && !task.deletedAt && (
+              <TaskDateChangeRequestDialog
+                taskId={task.id}
+                currentDateDebut={task.dateDebut ? task.dateDebut.toISOString() : null}
+                currentEcheance={task.echeance ? task.echeance.toISOString() : null}
+              />
+            )}
             <Info
               label="Temps estimé"
               value={task.tempsEstimeHeures ? `${task.tempsEstimeHeures} h` : "—"}

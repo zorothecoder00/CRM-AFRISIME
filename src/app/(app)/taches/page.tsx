@@ -213,7 +213,7 @@ export default async function TachesPage({
       </div>
 
       {vue === "kanban" && (
-        <TaskKanbanView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} />
+        <TaskKanbanView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} currentUserId={userId} />
       )}
       {vue === "chronologie" && <TaskTimelineView tasks={taskRows} />}
       {vue === "gantt" && <TaskGanttView tasks={ganttRows} />}
@@ -232,7 +232,7 @@ export default async function TachesPage({
           </p>
         ))}
       {vue === "liste" && (
-        <TaskListView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} />
+        <TaskListView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} currentUserId={userId} />
       )}
     </div>
   );

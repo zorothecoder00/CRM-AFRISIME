@@ -76,6 +76,10 @@ enum TaskStatus {
   BLOQUEE
   TERMINEE
   ANNULEE
+  // Demande utilisateur (2026-09-04) — distinct de BLOQUEE : la tache n'est
+  // pas empechee d'avancer, elle a juste ete volontairement repoussee (voir
+  // aussi TaskDateChangeRequest pour le report de l'echeance elle-meme).
+  REPORTEE
 }
 
 enum TaskPriority {
@@ -187,6 +191,10 @@ enum NotificationType {
   // decision prise sur cette demande.
   DEMANDE_DISPONIBILITE
   DEMANDE_DISPONIBILITE_DECISION
+  // Demande de report/avancement de date (debut et/ou echeance) sur une
+  // tache (voir TaskDateChangeRequest) et decision prise sur cette demande.
+  DEMANDE_REPORT_ECHEANCE
+  DEMANDE_REPORT_ECHEANCE_DECISION
   // Planning personnel (cahier des charges "Module Planning personnel"
   // §7/§9) — rappel proactif avant une activite (genere par le cron
   // quotidien, meme pattern que ECHEANCE_PROCHE) et invitation d'un
@@ -632,6 +640,8 @@ model User {
   workScheduleExceptions              UserWorkScheduleException[]
   availabilityRequestsReceived        AvailabilityRequest[]              @relation("AvailabilityRequestTarget")
   availabilityRequestsSent            AvailabilityRequest[]              @relation("AvailabilityRequestRequestedBy")
+  taskDateChangeRequestsSent          TaskDateChangeRequest[]            @relation("TaskDateChangeRequestRequestedBy")
+  taskDateChangeRequestsDecided       TaskDateChangeRequest[]            @relation("TaskDateChangeRequestDecidedBy")
   objectivesOwned                     Objective[]                        @relation("ObjectiveUser")
   objectivesCreated                   Objective[]                        @relation("ObjectiveCreatedBy")
   conversationsCreated                Conversation[]                     @relation("ConversationCreatedBy")
@@ -1094,6 +1104,7 @@ model PlatformOrganization {
   personalPlanningEntryParticipants PersonalPlanningEntryParticipant[] @relation("PlatformOrganizationPersonalPlanningEntryParticipants")
   personalPlanningDailyReviews      PersonalPlanningDailyReview[]      @relation("PlatformOrganizationPersonalPlanningDailyReviews")
   availabilityRequests              AvailabilityRequest[]              @relation("PlatformOrganizationAvailabilityRequests")
+  taskDateChangeRequests            TaskDateChangeRequest[]            @relation("PlatformOrganizationTaskDateChangeRequests")
   objectives                        Objective[]                        @relation("PlatformOrganizationObjectives")
   indicators                        Indicator[]                        @relation("PlatformOrganizationIndicators")
   evaluations                       Evaluation[]                       @relation("PlatformOrganizationEvaluations")
@@ -1203,7 +1214,7 @@ model PlatformOrganization {
   holidays                          Holiday[]                          @relation("PlatformOrganizationHolidays")
   userWorkSchedules                 UserWorkSchedule[]                 @relation("PlatformOrganizationUserWorkSchedules")
   userWorkScheduleExceptions        UserWorkScheduleException[]        @relation("PlatformOrganizationUserWorkScheduleExceptions")
-  personalPlanningShares            PersonalPlanningShare[]             @relation("PlatformOrganizationPersonalPlanningShares")
+  personalPlanningShares            PersonalPlanningShare[]            @relation("PlatformOrganizationPersonalPlanningShares")
   tags                              Tag[]                              @relation("PlatformOrganizationTags")
   entityTags                        EntityTag[]                        @relation("PlatformOrganizationEntityTags")
   apiKeys                           ApiKey[]                           @relation("PlatformOrganizationApiKeys")
@@ -2560,6 +2571,10 @@ model Task {
   // Module "Planning personnel" §4/§10 — activites de planning personnel qui
   // planifient cette tache (time blocking) sans la dupliquer.
   personalPlanningEntries PersonalPlanningEntry[]
+  // Demandes de report de dates (demande utilisateur) — le responsable
+  // principal/les assignes ne peuvent pas changer dateDebut/echeance
+  // directement, seulement en faire la demande (voir TaskDateChangeRequest).
+  dateChangeRequests      TaskDateChangeRequest[]
 
   @@index([projectId])
   @@index([sectionId])
@@ -2570,6 +2585,49 @@ model Task {
   @@index([planId])
   @@index([statut])
   @@index([echeance])
+}
+
+enum TaskDateChangeRequestStatus {
+  EN_ATTENTE
+  ACCEPTEE
+  REFUSEE
+}
+
+// Demande de report/avancement de date (demande utilisateur — dateDebut ET
+// echeance) : le responsable principal et les assignes d'une tache ne
+// peuvent pas modifier ces dates directement (voir updateTask) — seulement
+// demander de nouvelles dates, avec un motif. Approbateur : le responsable
+// principal de la tache si c'est un co-assigne qui demande, sinon (le
+// responsable principal demande lui-meme) quiconque a la permission
+// TASK_UPDATE. requestedDateDebut/requestedEcheance sont optionnels
+// independamment l'un de l'autre (on peut ne demander a changer que l'un des
+// deux) mais au moins un des deux est requis (voir le schema Zod).
+model TaskDateChangeRequest {
+  id                 String                      @id @default(cuid())
+  organizationId     String?
+  organization       PlatformOrganization?       @relation("PlatformOrganizationTaskDateChangeRequests", fields: [organizationId], references: [id])
+  taskId             String
+  task               Task                        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requestedById      String
+  requestedBy        User                        @relation("TaskDateChangeRequestRequestedBy", fields: [requestedById], references: [id])
+  // Cliches au moment de la demande — restent corrects dans l'historique
+  // meme si les dates de la tache changent entre-temps.
+  currentDateDebut   DateTime?
+  requestedDateDebut DateTime?
+  currentEcheance    DateTime?
+  requestedEcheance  DateTime?
+  motif              String
+  statut             TaskDateChangeRequestStatus @default(EN_ATTENTE)
+  decidedById        String?
+  decidedBy          User?                       @relation("TaskDateChangeRequestDecidedBy", fields: [decidedById], references: [id])
+  decisionMotif      String?
+  decidedAt          DateTime?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+
+  @@index([taskId])
+  @@index([requestedById])
+  @@index([statut])
 }
 
 model TaskAssignee {
@@ -6681,6 +6739,9 @@ enum PersonalPlanningEntryType {
   TRAVAIL_PERSONNEL
   PAUSE
   EVENEMENT
+  // Demande utilisateur (2026-09-04) — catch-all pour une activite qui ne
+  // correspond a aucun des types ci-dessus.
+  AUTRES
 }
 
 // Module "Planning personnel" §6/§8 — statut propre a l'activite planifiee,

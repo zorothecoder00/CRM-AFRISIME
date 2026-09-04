@@ -29,6 +29,7 @@ const TASK_STATUS_LABELS: Record<string, string> = {
   BLOQUEE: "Bloquée",
   TERMINEE: "Terminée",
   ANNULEE: "Annulée",
+  REPORTEE: "Reportée",
 };
 
 function formatMontant(montant: number | null) {

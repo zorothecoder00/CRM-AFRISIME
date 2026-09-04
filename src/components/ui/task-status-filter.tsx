@@ -9,6 +9,7 @@ const STATUS_OPTIONS = [
   { value: "BLOQUEE", label: "Bloquée" },
   { value: "TERMINEE", label: "Terminée" },
   { value: "ANNULEE", label: "Annulée" },
+  { value: "REPORTEE", label: "Reportée" },
 ];
 
 /** Filtre par statut réutilisable (paramètre `statut`) — même pattern que ProjectFilter (préserve tous les autres paramètres via searchParams.toString()). */

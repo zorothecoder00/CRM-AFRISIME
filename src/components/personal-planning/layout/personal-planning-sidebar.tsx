@@ -36,7 +36,7 @@ export function PersonalPlanningSidebar({
       >
         {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
       </button>
-      <div className="flex flex-col items-center overflow-hidden border-b bg-amber-100 px-4 py-4">
+      <div className="flex flex-col items-center overflow-hidden border-b bg-amber-100 px-4 py-0">
         <Image
           src="/logo.png"
           alt="AfriSime Work Space"

@@ -28,6 +28,8 @@ const TYPE_LABELS: Record<string, string> = {
   REUNION_INVITATION: "Invitation à une réunion",
   DEMANDE_DISPONIBILITE: "Demande de créneau",
   DEMANDE_DISPONIBILITE_DECISION: "Réponse à une demande de créneau",
+  DEMANDE_REPORT_ECHEANCE: "Demande de report de date",
+  DEMANDE_REPORT_ECHEANCE_DECISION: "Réponse à une demande de report",
   RAPPEL_ACTIVITE: "Rappel d'activité",
   ACTIVITE_INVITATION: "Invitation à une activité",
   DELEGATION_EN_RETARD: "Délégation en retard",

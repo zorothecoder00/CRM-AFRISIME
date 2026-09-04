@@ -25,6 +25,7 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: "EN_COURS", label: "En cours" },
   { key: "EN_REVISION", label: "En révision" },
   { key: "BLOQUEE", label: "Bloquée" },
+  { key: "REPORTEE", label: "Reportée" },
   { key: "TERMINEE", label: "Terminée" },
 ];
 
@@ -39,6 +40,7 @@ const COLUMN_ACCENT: Record<BadgeTone, string> = {
   warning: "border-t-warning",
   info: "border-t-info",
   outline: "border-t-border",
+  violet: "border-t-violet-500",
   ghost: "border-t-border",
   link: "border-t-border",
 };
@@ -57,6 +59,7 @@ function TaskCard({
   canDelete,
   onDeleted,
   onUpdated,
+  currentUserId,
 }: {
   task: TaskRow;
   users: Option[];
@@ -64,6 +67,7 @@ function TaskCard({
   canDelete: boolean;
   onDeleted: (id: string) => void;
   onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
+  currentUserId?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -110,6 +114,7 @@ function TaskCard({
         <TaskEditDialog
           task={task}
           users={users}
+          isOwner={!!currentUserId && task.responsablePrincipalId === currentUserId}
           open={editing}
           onOpenChange={setEditing}
           onSuccess={(updated) => onUpdated(task.id, { titre: updated.titre, priorite: updated.priorite })}
@@ -128,6 +133,7 @@ function KanbanColumn({
   canDelete,
   onDeleted,
   onUpdated,
+  currentUserId,
 }: {
   columnKey: string;
   label: string;
@@ -137,6 +143,7 @@ function KanbanColumn({
   canDelete: boolean;
   onDeleted: (id: string) => void;
   onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
+  currentUserId?: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
   const accent = COLUMN_ACCENT[toneForTaskStatus(columnKey)];
@@ -161,6 +168,7 @@ function KanbanColumn({
           canDelete={canDelete}
           onDeleted={onDeleted}
           onUpdated={onUpdated}
+          currentUserId={currentUserId}
         />
       ))}
     </div>
@@ -172,11 +180,13 @@ export function TaskKanbanView({
   users = [],
   canManage = false,
   canDelete = false,
+  currentUserId,
 }: {
   tasks: TaskRow[];
   users?: Option[];
   canManage?: boolean;
   canDelete?: boolean;
+  currentUserId?: string;
 }) {
   const [tasks, setTasks] = useState(initialTasks);
   const { run } = useAction(updateTaskStatus);
@@ -220,6 +230,7 @@ export function TaskKanbanView({
             canDelete={canDelete}
             onDeleted={handleDeleted}
             onUpdated={handleUpdated}
+            currentUserId={currentUserId}
           />
         ))}
       </div>

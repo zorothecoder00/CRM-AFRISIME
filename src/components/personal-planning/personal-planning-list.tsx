@@ -22,6 +22,17 @@ type NonWorkingReason = { label: string; kind: "ferie" | "conge" | "absence" | "
 
 const NON_WORKING_EMOJI: Record<string, string> = { ferie: "🎉", conge: "🏖️", absence: "🚫", non_ouvrable: "📅" };
 
+// Demande utilisateur — la vue Liste n'avait pas de colonne Créneau (plage
+// horaire dateDebut→dateFin), alors que la vue Semaine/Jour la montre.
+function formatCreneau(dateDebut: string, dateFin: string): string {
+  const debut = new Date(dateDebut);
+  const fin = new Date(dateFin);
+  const dateLabel = debut.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+  const heureDebut = debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const heureFin = fin.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return `${dateLabel} ${heureDebut}–${heureFin}`;
+}
+
 /** Vue Liste (§8) : échéance / priorité / statut / projet / responsable — les activités personnelles, pas les tâches (voir §10). */
 export function PersonalPlanningList({
   entries,
@@ -48,6 +59,7 @@ export function PersonalPlanningList({
         <TableHeader>
           <TableRow>
             <TableHead>Titre</TableHead>
+            <TableHead>Créneau</TableHead>
             <TableHead>Échéance</TableHead>
             <TableHead>Priorité</TableHead>
             <TableHead>Statut</TableHead>
@@ -70,6 +82,9 @@ export function PersonalPlanningList({
                 ) : (
                   entry.titre
                 )}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {formatCreneau(entry.dateDebut, entry.dateFin)}
               </TableCell>
               <TableCell>
                 <span className="flex items-center gap-1">

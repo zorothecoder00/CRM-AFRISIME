@@ -8,11 +8,13 @@ import { Users } from "lucide-react";
 
 /**
  * "Planning de mon équipe" (prototype V2, groupe Management) — point
- * d'entrée "mon équipe" au lieu de rebâtir une table de charge : redirige
- * directement vers la page /pilotage/equipe/[teamId] déjà existante (mêmes
- * colonnes Collaborateur/Charge/En retard/Bloquées/Disponibilité que le
- * prototype, via WorkloadTable showTaskCounts) pour l'équipe que dirige
- * l'utilisateur ; liste de choix s'il en dirige plusieurs.
+ * d'entrée "mon équipe" : redirige vers /planning-personnel/equipe/[teamId]
+ * (même contenu que /pilotage/equipe/[teamId] — mêmes colonnes
+ * Collaborateur/Charge/En retard/Bloquées/Disponibilité via WorkloadTable
+ * showTaskCounts — mais rendu DANS ce module, pas dans /pilotage : sortir de
+ * la coquille dédiée du planning personnel pour y arriver cassait la
+ * navigation, demande utilisateur) pour l'équipe que dirige l'utilisateur ;
+ * liste de choix s'il en dirige plusieurs.
  */
 export default async function PersonalPlanningEquipePage() {
   const session = await getServerSession(authOptions);
@@ -28,7 +30,7 @@ export default async function PersonalPlanningEquipePage() {
   });
 
   if (teams.length === 1) {
-    redirect(`/pilotage/equipe/${teams[0].id}`);
+    redirect(`/planning-personnel/equipe/team/${teams[0].id}`);
   }
 
   return (
@@ -51,7 +53,7 @@ export default async function PersonalPlanningEquipePage() {
           {teams.map((t) => (
             <Link
               key={t.id}
-              href={`/pilotage/equipe/${t.id}`}
+              href={`/planning-personnel/equipe/team/${t.id}`}
               className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted/40"
             >
               <div>

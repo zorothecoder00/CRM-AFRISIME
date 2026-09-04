@@ -12,6 +12,7 @@ import {
   User,
   Coffee,
   PartyPopper,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,7 +29,8 @@ export type PersonalPlanningEntryType =
   | "DEPLACEMENT"
   | "TRAVAIL_PERSONNEL"
   | "PAUSE"
-  | "EVENEMENT";
+  | "EVENEMENT"
+  | "AUTRES";
 
 export type PersonalPlanningEntryStatut =
   | "A_PLANIFIER"
@@ -63,6 +65,7 @@ export const ENTRY_TYPE_META: Record<PersonalPlanningEntryType, { label: string;
   TRAVAIL_PERSONNEL: { label: "Travail personnel", icon: User, selectable: true },
   PAUSE: { label: "Pause", icon: Coffee, selectable: true },
   EVENEMENT: { label: "Événement", icon: PartyPopper, selectable: true },
+  AUTRES: { label: "Autres", icon: MoreHorizontal, selectable: true },
   NOTE: { label: "Note personnelle", icon: NotebookPen, selectable: true },
   INDISPONIBLE: { label: "Indisponible", icon: Ban, selectable: true },
   RESERVE: { label: "Réservé (demande acceptée)", icon: Lock, selectable: false },

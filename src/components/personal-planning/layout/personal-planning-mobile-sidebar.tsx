@@ -26,7 +26,7 @@ export function PersonalPlanningMobileSidebar({
         </Button>
       </SheetTrigger>
       <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
-        <SheetHeader className="flex flex-col items-center border-b bg-amber-100 px-4 py-4">
+        <SheetHeader className="flex flex-col items-center border-b bg-amber-100 px-4 py-0">
           <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
           <SheetTitle className="sr-only">Planning personnel</SheetTitle>
         </SheetHeader>
