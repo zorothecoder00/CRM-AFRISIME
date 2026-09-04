@@ -35,6 +35,11 @@ function toDateInputValue(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "";
 }
 
+function todayInputValue(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 let draftKeySeq = 0;
 function makeDraft(defaultDateDebut: string, defaultEcheance: string, defaultResponsableId: string): Draft {
   draftKeySeq += 1;
@@ -88,8 +93,13 @@ export function MultiAddSubtaskForm({
 }) {
   const defaultDateDebut = toDateInputValue(parentDateDebut);
   const defaultEcheance = toDateInputValue(parentEcheance);
+  // Demande utilisateur — la plupart des tâches n'ont en pratique pas de
+  // dateDebut renseignée (le formulaire de création n'a qu'une échéance) :
+  // sans repli, le champ "Date de début" restait vide au lieu d'être
+  // prérempli. À défaut de date de la mère, on préremplit avec aujourd'hui.
+  const prefillDateDebut = defaultDateDebut || todayInputValue();
   const [drafts, setDrafts] = useState<Draft[]>([
-    makeDraft(defaultDateDebut, defaultEcheance, parentResponsablePrincipalId),
+    makeDraft(prefillDateDebut, defaultEcheance, parentResponsablePrincipalId),
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const { run: create } = useAction(addSubtask);
@@ -100,7 +110,7 @@ export function MultiAddSubtaskForm({
   }
 
   function addDraft() {
-    setDrafts((prev) => [...prev, makeDraft(defaultDateDebut, defaultEcheance, parentResponsablePrincipalId)]);
+    setDrafts((prev) => [...prev, makeDraft(prefillDateDebut, defaultEcheance, parentResponsablePrincipalId)]);
   }
 
   function removeDraft(key: string) {
