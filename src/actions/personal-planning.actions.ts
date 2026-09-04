@@ -20,6 +20,7 @@ import {
   assertWithinWorkHours,
   listFreeWindowsForDay,
   formatMinutesOfDay,
+  suggestReducedSlotForDay,
 } from "@/lib/personal-planning-slot-suggestion";
 import { dateKeyOf } from "@/lib/personal-planning-grid";
 import {
@@ -29,6 +30,7 @@ import {
   deletePersonalPlanningEntrySeriesSchema,
   scheduleInboxTaskSchema,
   suggestScheduleSlotSchema,
+  suggestFreeSlotForDateSchema,
   movePersonalPlanningEntrySchema,
   reorganizeOverloadedDaySchema,
   requestTaskReassignmentSchema,
@@ -46,6 +48,7 @@ import {
   type DeletePersonalPlanningEntrySeriesInput,
   type ScheduleInboxTaskInput,
   type SuggestScheduleSlotInput,
+  type SuggestFreeSlotForDateInput,
   type MovePersonalPlanningEntryInput,
   type ReorganizeOverloadedDayInput,
   type RequestTaskReassignmentInput,
@@ -86,7 +89,19 @@ async function collectPlanningWarnings(userId: string, dateDebut: Date, dateFin:
   const warnings: string[] = [];
   if (holiday) warnings.push(`Jour férié : ${holiday}.`);
   if (leave) warnings.push(`Cette période chevauche un ${leave}.`);
-  if (conflict) warnings.push(`Conflit d'horaire avec : ${conflict.titre}.`);
+  if (conflict) {
+    // Demande utilisateur — même enrichissement que scheduleInboxTask
+    // (heure exacte du conflit + créneaux libres restants ce jour-là) :
+    // "Nouvelle activité"/déplacement laissaient jusqu'ici un simple
+    // "Conflit d'horaire avec : X." sans dire quand ni quoi faire.
+    const conflictRange = `${formatMinutesOfDay(conflict.dateDebut.getHours() * 60 + conflict.dateDebut.getMinutes())}–${formatMinutesOfDay(conflict.dateFin.getHours() * 60 + conflict.dateFin.getMinutes())}`;
+    const freeWindows = await listFreeWindowsForDay(userId, dateDebut);
+    const freeLabel =
+      freeWindows.length > 0
+        ? freeWindows.map((w) => `${formatMinutesOfDay(w.startMin)}–${formatMinutesOfDay(w.endMin)}`).join(", ")
+        : "aucun — journée complète";
+    warnings.push(`Conflit d'horaire : « ${conflict.titre} » occupe déjà ${conflictRange} ce jour-là. Créneaux libres restants : ${freeLabel}.`);
+  }
   return warnings;
 }
 
@@ -596,21 +611,41 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
     const anchor = new Date(task.dateDebut.getFullYear(), task.dateDebut.getMonth(), task.dateDebut.getDate());
     const from = data.after ? new Date(data.after) : anchor;
     const slot = await suggestNextAvailableSlot(session.user.id, durationMinutes, from, 0);
+
+    // Demande utilisateur — quand la durée estimée (ex. 3h) ne tient dans
+    // aucun trou d'un seul tenant ce jour-là, proposer d'abord une session
+    // plus courte sur CE MÊME jour (ex. 2h) avant de suggérer un autre jour
+    // — profitable pour tous : le reste du créneau reste disponible pour
+    // quelqu'un/quelque chose d'autre, sans passer par une demande de
+    // changement de date pour un simple ajustement de durée.
+    let effectiveSlot: { dateDebut: Date; dateFin: Date } | null = slot;
+    let effectiveDuration = durationMinutes;
+    let reduced = false;
+    if (!effectiveSlot) {
+      const reducedSlot = await suggestReducedSlotForDay(session.user.id, durationMinutes, from);
+      if (reducedSlot) {
+        effectiveSlot = { dateDebut: reducedSlot.dateDebut, dateFin: reducedSlot.dateFin };
+        effectiveDuration = reducedSlot.dureeMinutes;
+        reduced = true;
+      }
+    }
+
     // Demande utilisateur — quand la journée assignée n'a vraiment plus de
-    // place, indiquer directement à quelle date ultérieure un créneau est
-    // réellement libre (recherche multi-jours, sans la restriction du jour),
-    // pour appuyer la demande de changement de date plutôt que de laisser
-    // deviner. Ne coûte une requête supplémentaire que dans ce cas précis.
+    // place du tout (même réduite), indiquer directement à quelle date
+    // ultérieure un créneau complet est réellement libre (recherche
+    // multi-jours), pour appuyer la demande de changement de date plutôt
+    // que de laisser deviner.
     let alternative: { dateDebut: string; dateFin: string } | null = null;
-    if (!slot) {
+    if (!effectiveSlot) {
       const altSlot = await suggestNextAvailableSlot(session.user.id, durationMinutes, anchor);
       if (altSlot) alternative = { dateDebut: altSlot.dateDebut.toISOString(), dateFin: altSlot.dateFin.toISOString() };
     }
     return {
       anchorDate: anchor.toISOString(),
-      dateDebut: slot ? slot.dateDebut.toISOString() : null,
-      dateFin: slot ? slot.dateFin.toISOString() : null,
-      dureeMinutes: durationMinutes,
+      dateDebut: effectiveSlot ? effectiveSlot.dateDebut.toISOString() : null,
+      dateFin: effectiveSlot ? effectiveSlot.dateFin.toISOString() : null,
+      dureeMinutes: effectiveDuration,
+      reduced,
       alternative,
     };
   }
@@ -626,7 +661,37 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
     dateDebut: slot.dateDebut.toISOString(),
     dateFin: slot.dateFin.toISOString(),
     dureeMinutes: durationMinutes,
+    reduced: false,
     alternative: null,
+  };
+}
+
+/**
+ * Demande utilisateur — "Nouvelle activité"/"Modifier l'activité" (pas liées
+ * à une tâche de l'inbox, contrairement à suggestScheduleSlot) n'avaient
+ * aucune assistance de créneau : que la saisie manuelle d'une date/heure à
+ * l'aveugle. Propose le premier créneau libre CE jour-là (la date du champ
+ * "Début" reste éditable ici, contrairement à ScheduleTaskDialog — donc pas
+ * de restriction de jour verrouillé, juste une aide sur l'heure).
+ */
+export async function suggestFreeSlotForDate(input: SuggestFreeSlotForDateInput) {
+  const session = await requireSession();
+  const data = suggestFreeSlotForDateSchema.parse(input);
+
+  const [y, m, d] = data.date.split("-").map(Number);
+  const day = new Date(y, m - 1, d);
+
+  const [slot, freeWindows] = await Promise.all([
+    suggestReducedSlotForDay(session.user.id, data.dureeMinutes, day),
+    listFreeWindowsForDay(session.user.id, day),
+  ]);
+
+  return {
+    dateDebut: slot ? slot.dateDebut.toISOString() : null,
+    dateFin: slot ? slot.dateFin.toISOString() : null,
+    dureeMinutes: slot ? slot.dureeMinutes : data.dureeMinutes,
+    reduced: slot?.reduced ?? false,
+    freeWindows: freeWindows.map((w) => ({ startMin: w.startMin, endMin: w.endMin })),
   };
 }
 

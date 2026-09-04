@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UploadButton } from "@/lib/uploadthing";
+import { useAction } from "@/hooks/use-action";
+import { suggestFreeSlotForDate } from "@/actions/personal-planning.actions";
 import {
   ENTRY_TYPE_META,
   ENTRY_TYPE_OPTIONS,
@@ -18,8 +20,14 @@ import {
   ENTRY_RAPPEL_LABELS,
   ENTRY_RAPPEL_ORDER,
 } from "@/lib/personal-planning-types";
-import { ChevronDown, ChevronUp, Paperclip, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Paperclip, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+
+/** "YYYY-MM-DDTHH:mm" en heure locale — format attendu par <input type="datetime-local">. */
+function toDatetimeLocal(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export type PersonalPlanningReferenceData = {
   colleagues: { id: string; label: string }[];
@@ -102,8 +110,55 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
   const priorite = useWatch({ control, name: "priorite" }) as string;
   const tacheId = useWatch({ control, name: "tacheId" }) as string | undefined;
   const objectifId = useWatch({ control, name: "objectifId" }) as string | undefined;
+  const dateDebutValue = useWatch({ control, name: "dateDebut" }) as string | undefined;
+  const dateFinValue = useWatch({ control, name: "dateFin" }) as string | undefined;
 
   const availableTasks = projetId ? refData.tasks.filter((t) => t.projectId === projetId) : refData.tasks;
+
+  // Demande utilisateur — proposer un créneau libre CE jour-là au lieu de
+  // ne laisser qu'une saisie manuelle à l'aveugle (jusqu'ici seul
+  // ScheduleTaskDialog, pour une tâche de l'inbox, avait cette aide). La
+  // date choisie reste éditable ici (pas de tâche à ancrer) — seule l'heure
+  // est proposée/ajustée.
+  const { run: suggestFreeSlot, isPending: isSuggestingFreeSlot } = useAction(suggestFreeSlotForDate);
+  const [freeSlotHint, setFreeSlotHint] = useState<string | null>(null);
+
+  async function handleSuggestFreeSlot() {
+    setFreeSlotHint(null);
+    const base = dateDebutValue ? new Date(dateDebutValue) : new Date();
+    const dateKey = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+    const dureeMinutes =
+      dateDebutValue && dateFinValue
+        ? Math.max(15, Math.round((new Date(dateFinValue).getTime() - new Date(dateDebutValue).getTime()) / 60_000))
+        : 60;
+
+    const result = await suggestFreeSlot({ date: dateKey, dureeMinutes });
+    if (!result.ok) return;
+    if (result.data.dateDebut && result.data.dateFin) {
+      setValue("dateDebut", toDatetimeLocal(new Date(result.data.dateDebut)), { shouldDirty: true });
+      setValue("dateFin", toDatetimeLocal(new Date(result.data.dateFin)), { shouldDirty: true });
+      // Demande utilisateur — "08-10h au lieu de 08-11h, pour laisser
+      // 10-11h à quelqu'un d'autre" : aucun trou assez grand pour la durée
+      // demandée, mais le plus grand trou dispo est proposé quand même.
+      setFreeSlotHint(
+        result.data.reduced
+          ? `Aucun créneau de ${dureeMinutes} min d'un seul tenant ce jour-là — voici le plus grand créneau disponible (${result.data.dureeMinutes} min). Le reste de la journée reste libre pour autre chose.`
+          : null
+      );
+    } else {
+      const freeLabel =
+        result.data.freeWindows.length > 0
+          ? result.data.freeWindows
+              .map((w) => {
+                const h = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+                return `${h(w.startMin)}–${h(w.endMin)}`;
+              })
+              .join(", ")
+          : "aucun";
+      setFreeSlotHint(`Aucun créneau de ${dureeMinutes} min d'un seul tenant ce jour-là. Créneaux libres restants : ${freeLabel}.`);
+      toast.warning("Aucun créneau libre de cette durée ce jour-là — voir les créneaux restants ci-dessous.");
+    }
+  }
 
   function toggleParticipant(id: string, checked: boolean) {
     const next = checked ? [...participantIds, id] : participantIds.filter((p) => p !== id);
@@ -173,6 +228,24 @@ export function PersonalPlanningEntryFields<T extends FieldValues>({
           <Input id={`${idPrefix}-dateFin`} type="datetime-local" {...register("dateFin")} />
           {errors.dateFin && <p className="text-sm text-destructive">{errors.dateFin.message}</p>}
         </div>
+      </div>
+
+      {/* Demande utilisateur — jusqu'ici aucune aide de créneau ici (seule
+          ScheduleTaskDialog, pour une tâche de l'inbox, en proposait un) :
+          saisie manuelle à l'aveugle uniquement, sans savoir quelles heures
+          sont réellement libres ce jour-là. */}
+      <div className="space-y-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={isSuggestingFreeSlot}
+          onClick={handleSuggestFreeSlot}
+        >
+          <Sparkles className="mr-1 h-3.5 w-3.5" />
+          {isSuggestingFreeSlot ? "Recherche..." : "Suggérer un créneau libre ce jour-là"}
+        </Button>
+        {freeSlotHint && <p className="text-xs text-warning">{freeSlotHint}</p>}
       </div>
 
       <div className="space-y-2">

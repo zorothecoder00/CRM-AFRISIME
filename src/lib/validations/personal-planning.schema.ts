@@ -129,6 +129,16 @@ export const suggestScheduleSlotSchema = z.object({
 
 export type SuggestScheduleSlotInput = z.infer<typeof suggestScheduleSlotSchema>;
 
+// Demande utilisateur — "Nouvelle activité"/"Modifier l'activité" (pas liées
+// à une tâche de l'inbox, contrairement à suggestScheduleSlotSchema) n'avait
+// aucune assistance de créneau : saisie manuelle à l'aveugle uniquement.
+export const suggestFreeSlotForDateSchema = z.object({
+  date: z.string().min(1),
+  dureeMinutes: z.number().int().positive().default(60),
+});
+
+export type SuggestFreeSlotForDateInput = z.infer<typeof suggestFreeSlotForDateSchema>;
+
 export const movePersonalPlanningEntrySchema = z.object({
   id: z.string().min(1),
   newDateDebut: z.string().min(1),

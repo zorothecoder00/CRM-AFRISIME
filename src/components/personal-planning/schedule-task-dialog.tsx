@@ -47,6 +47,10 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
   // en appui d'une demande de changement de date, plutôt que de laisser
   // deviner quel jour conviendrait.
   const [alternative, setAlternative] = useState<{ dateDebut: string; dateFin: string } | null>(null);
+  // Demande utilisateur — "08-10h au lieu de 08-11h, pour laisser 10-11h à
+  // quelqu'un d'autre" : le créneau proposé peut être plus court que la
+  // durée estimée de la tâche quand la journée n'a pas de trou assez grand.
+  const [isReducedSlot, setIsReducedSlot] = useState(false);
 
   const { run: suggest, isPending: isSuggesting } = useAction(suggestScheduleSlot);
   const { run: confirm, isPending: isConfirming } = useAction(scheduleInboxTask, {
@@ -82,12 +86,14 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
       // (demande utilisateur) — pas d'édition qui survivrait à un rafraîchissement.
       setIsEditingCreneau(false);
       setNoSlotFound(false);
+      setIsReducedSlot(result.data.reduced ?? false);
     } else {
       setHeureDebut("");
       setHeureFin("");
       setLastSuggestedEnd(null);
       setIsEditingCreneau(true);
       setNoSlotFound(true);
+      setIsReducedSlot(false);
       setAlternative(result.data.alternative ?? null);
     }
   }
@@ -99,6 +105,7 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
     setHeureFin("");
     setNoSlotFound(false);
     setAlternative(null);
+    setIsReducedSlot(false);
     setIsEditingCreneau(false);
     await fetchSuggestion();
   }
@@ -191,10 +198,18 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
               depuis la fiche tâche.
             </p>
           )}
-          {!isSuggesting && dateKey && !noSlotFound && (
+          {!isSuggesting && dateKey && !noSlotFound && !isReducedSlot && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
               Créneau libre proposé automatiquement — ajustez l&apos;heure si besoin.
+            </p>
+          )}
+          {!isSuggesting && dateKey && !noSlotFound && isReducedSlot && (
+            <p className="flex items-start gap-1.5 text-xs text-warning">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Aucun créneau assez grand pour la durée estimée de la tâche — voici le plus grand créneau libre
+              disponible ce jour-là. Vous pouvez faire une session plus courte et laisser le reste de la journée
+              disponible pour autre chose.
             </p>
           )}
 

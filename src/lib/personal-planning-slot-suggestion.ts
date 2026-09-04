@@ -213,6 +213,42 @@ export async function listFreeWindowsForDay(userId: string, day: Date): Promise<
   return free.filter((w) => w.endMin > w.startMin);
 }
 
+const MIN_REDUCED_SLOT_MINUTES = 15;
+
+/**
+ * Demande utilisateur — quand la durée demandée ne tient dans aucun trou
+ * libre d'un seul tenant ce jour-là (ex. tâche estimée à 3h, mais aucun
+ * créneau de 3h dispo), proposer quand même le PLUS GRAND trou réellement
+ * disponible plutôt que rien : la personne peut alors faire une session plus
+ * courte (ex. 2h) et laisser le reste du créneau à quelqu'un/quelque chose
+ * d'autre — "profitable pour tous" plutôt qu'un simple blocage.
+ */
+export async function suggestReducedSlotForDay(
+  userId: string,
+  durationMinutes: number,
+  day: Date
+): Promise<{ dateDebut: Date; dateFin: Date; dureeMinutes: number; reduced: boolean } | null> {
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const slot = await suggestNextAvailableSlot(userId, durationMinutes, dayStart, 0);
+  if (slot) {
+    return { dateDebut: slot.dateDebut, dateFin: slot.dateFin, dureeMinutes: durationMinutes, reduced: false };
+  }
+
+  const freeWindows = await listFreeWindowsForDay(userId, dayStart);
+  const largest = freeWindows.reduce<WorkWindow | null>((best, w) => {
+    if (w.endMin - w.startMin < MIN_REDUCED_SLOT_MINUTES) return best;
+    return !best || w.endMin - w.startMin > best.endMin - best.startMin ? w : best;
+  }, null);
+  if (!largest) return null;
+
+  return {
+    dateDebut: new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), 0, largest.startMin),
+    dateFin: new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), 0, largest.endMin),
+    dureeMinutes: largest.endMin - largest.startMin,
+    reduced: true,
+  };
+}
+
 /** Indisponible/Réservé servent justement à marquer une indisponibilité,
  * parfois volontairement hors des horaires de travail configurés — seuls
  * les autres types (Tâche, Réunion, Mission, etc.) doivent s'y conformer. */
