@@ -8,7 +8,7 @@ const SEARCH_WINDOW_DAYS = 21;
 const SLOT_STEP_MINUTES = 15;
 const MEETING_DEFAULT_DURATION_MINUTES = 60;
 
-type WorkWindow = { startMin: number; endMin: number };
+export type WorkWindow = { startMin: number; endMin: number };
 
 type ExceptionDaySchedule = { heureDebut: string | null; heureFin: string | null; pauseDebut: string | null; pauseFin: string | null; type: string };
 
@@ -138,6 +138,68 @@ export async function suggestNextAvailableSlot(
     cursorDay = addDays(cursorDay, 1);
   }
   return null;
+}
+
+export function formatMinutesOfDay(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/**
+ * Demande utilisateur — quand une confirmation manuelle tombe sur un
+ * conflit d'horaire, dire précisément quels créneaux sont réellement
+ * libres CE jour-là (pas juste "choisissez un autre créneau"), voir
+ * scheduleInboxTask. Soustrait les activités/réunions déjà posées des
+ * fenêtres de travail (mêmes règles que suggestNextAvailableSlot), sans
+ * borner à une durée minimale — les vrais trous, même courts.
+ */
+export async function listFreeWindowsForDay(userId: string, day: Date): Promise<WorkWindow[]> {
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const dayEnd = addDays(dayStart, 1);
+
+  const [schedules, exception, nonWorkingMap, entriesRaw, meetingsRaw] = await Promise.all([
+    prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
+    prisma.userWorkScheduleException.findFirst({ where: { userId, date: { gte: dayStart, lt: dayEnd } } }),
+    findNonWorkingDaysInRange(userId, dayStart, dayStart),
+    prisma.personalPlanningEntry.findMany({
+      where: { userId, statut: { notIn: ["TERMINEE", "ANNULEE"] }, dateDebut: { lt: dayEnd }, dateFin: { gt: dayStart } },
+      select: { dateDebut: true, dateFin: true },
+    }),
+    prisma.meeting.findMany({
+      where: { participants: { some: { userId } }, dateHeure: { gte: dayStart, lt: dayEnd } },
+      select: { dateHeure: true },
+    }),
+  ]);
+
+  if (nonWorkingMap.has(dateKeyOf(dayStart))) return [];
+
+  const scheduleByWeekday = groupSchedulesByWeekday(schedules);
+  const windows = exception
+    ? resolveExceptionWindows(exception)
+    : resolveWorkWindows(scheduleByWeekday.get(dayStart.getDay()) ?? null);
+
+  const toMinOfDay = (d: Date) => Math.max(0, Math.min(24 * 60, (d.getTime() - dayStart.getTime()) / 60_000));
+  const busy = [
+    ...entriesRaw.map((e) => ({ startMin: toMinOfDay(e.dateDebut), endMin: toMinOfDay(e.dateFin) })),
+    ...meetingsRaw.map((m) => ({
+      startMin: toMinOfDay(m.dateHeure),
+      endMin: toMinOfDay(new Date(m.dateHeure.getTime() + MEETING_DEFAULT_DURATION_MINUTES * 60_000)),
+    })),
+  ].sort((a, b) => a.startMin - b.startMin);
+
+  const free: WorkWindow[] = [];
+  for (const window of windows) {
+    let cursor = window.startMin;
+    for (const b of busy) {
+      if (b.endMin <= cursor || b.startMin >= window.endMin) continue;
+      if (b.startMin > cursor) free.push({ startMin: cursor, endMin: Math.min(b.startMin, window.endMin) });
+      cursor = Math.max(cursor, b.endMin);
+      if (cursor >= window.endMin) break;
+    }
+    if (cursor < window.endMin) free.push({ startMin: cursor, endMin: window.endMin });
+  }
+  return free.filter((w) => w.endMin > w.startMin);
 }
 
 /** Indisponible/Réservé servent justement à marquer une indisponibilité,

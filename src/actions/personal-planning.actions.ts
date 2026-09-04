@@ -15,7 +15,12 @@ import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } 
 import { hasAgendaEditPermission } from "@/lib/personal-planning-access";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { moveEntryToDate } from "@/lib/personal-planning-move";
-import { suggestNextAvailableSlot, assertWithinWorkHours } from "@/lib/personal-planning-slot-suggestion";
+import {
+  suggestNextAvailableSlot,
+  assertWithinWorkHours,
+  listFreeWindowsForDay,
+  formatMinutesOfDay,
+} from "@/lib/personal-planning-slot-suggestion";
 import { dateKeyOf } from "@/lib/personal-planning-grid";
 import {
   createPersonalPlanningEntrySchema,
@@ -523,7 +528,19 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
   // silencieux qu'un simple toast pourrait faire manquer.
   const conflict = await findScheduleConflict(session.user.id, dateDebutActivite, dateFin);
   if (conflict) {
-    throw new Error(`Conflit d'horaire avec « ${conflict.titre} » — choisissez un autre créneau.`);
+    // Demande utilisateur — dire exactement CE QUI occupe le créneau (avec
+    // ses horaires, pas juste son titre) ET quels créneaux sont réellement
+    // libres ce jour-là, plutôt qu'un simple "choisissez un autre créneau"
+    // qui laisse deviner.
+    const conflictRange = `${formatMinutesOfDay(conflict.dateDebut.getHours() * 60 + conflict.dateDebut.getMinutes())}–${formatMinutesOfDay(conflict.dateFin.getHours() * 60 + conflict.dateFin.getMinutes())}`;
+    const freeWindows = await listFreeWindowsForDay(session.user.id, dateDebutActivite);
+    const freeLabel =
+      freeWindows.length > 0
+        ? freeWindows.map((w) => `${formatMinutesOfDay(w.startMin)}–${formatMinutesOfDay(w.endMin)}`).join(", ")
+        : "aucun — journée complète";
+    throw new Error(
+      `Conflit d'horaire : « ${conflict.titre} » occupe déjà ${conflictRange} ce jour-là. Créneaux libres restants : ${freeLabel}.`
+    );
   }
 
   const entry = await prisma.$transaction(async (tx) => {
