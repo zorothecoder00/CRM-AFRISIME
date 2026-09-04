@@ -215,7 +215,7 @@ export default async function MaJourneePage() {
 
         <PersonalPlanningConflictsCard conflicts={conflicts} refData={refData} />
 
-        <PersonalPlanningDay day={now} entries={entries} refData={refData} nonWorkingReason={nonWorkingReason} />
+        <PersonalPlanningDay day={now} entries={entries} refData={refData} nonWorkingReason={nonWorkingReason} schedule={todaySchedule} />
 
         <div className="flex flex-wrap items-center gap-3">
           <PlanningHealthBadge score={planningHealth} />

@@ -63,9 +63,16 @@ export function clippedEntryRange(
  * continue au-delà. Étend les bornes pour couvrir la portion de chaque
  * entrée réellement comprise dans ce jour-là (jamais au-delà de 0h-24h).
  */
-export function computeGridBounds(entries: { dateDebut: string; dateFin: string }[], day: Date): GridBounds {
-  let startHour = GRID_START_HOUR;
-  let endHour = GRID_END_HOUR;
+export function computeGridBounds(
+  entries: { dateDebut: string; dateFin: string }[],
+  day: Date,
+  // Demande utilisateur — plage de base personnalisée (horaires de travail
+  // réels de la personne, voir scheduleBoundsForDay) au lieu de la plage
+  // générique 7h-20h, toujours étendue si une entrée dépasse.
+  base: GridBounds = { startHour: GRID_START_HOUR, endHour: GRID_END_HOUR }
+): GridBounds {
+  let startHour = base.startHour;
+  let endHour = base.endHour;
   const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0);
   const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999);
 

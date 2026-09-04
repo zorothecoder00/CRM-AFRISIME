@@ -7,9 +7,19 @@ import { PersonalPlanningEntryEditDialog, type PersonalPlanningEntryEditData } f
 import { EntryBlock } from "@/components/personal-planning/entry-block";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import type { PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
-import { detectTightTransition } from "@/lib/personal-planning-workload";
+import { detectTightTransition, scheduleBoundsForDay, type MultiShiftDaySchedule } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
-import { HOUR_HEIGHT_PX, THIN_SCROLLBAR_CLASS, gridHours, gridStartOf, offsetPx, dateKeyOf, clippedEntryRange, isMultiDayEntry } from "@/lib/personal-planning-grid";
+import {
+  HOUR_HEIGHT_PX,
+  THIN_SCROLLBAR_CLASS,
+  gridHours,
+  gridStartOf,
+  offsetPx,
+  dateKeyOf,
+  clippedEntryRange,
+  isMultiDayEntry,
+  computeGridBounds,
+} from "@/lib/personal-planning-grid";
 
 function HourSlot({ dayKey, hour, top }: { dayKey: string; hour: number; top: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: `hour-${dayKey}-${hour}`, data: { date: dayKey, hour } });
@@ -35,12 +45,18 @@ export function PersonalPlanningDay({
   entries,
   refData,
   nonWorkingReason,
+  schedule,
 }: {
   day: Date;
   entries: PersonalPlanningEntryRow[];
   refData: PersonalPlanningReferenceData;
   /** §39/§41 — jour férié, congé approuvé, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
   nonWorkingReason?: { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" } | null;
+  /** Demande utilisateur — horaire de travail configuré pour ce jour (voir
+   * scheduleBoundsForDay) : la grille se cale dessus au lieu d'afficher
+   * systématiquement 0h-24h. `undefined`/`null` (pas encore configuré) ->
+   * repli sur 0h-24h, comportement inchangé. */
+  schedule?: MultiShiftDaySchedule | null;
 }) {
   const [editing, setEditing] = useState<PersonalPlanningEntryRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
@@ -52,10 +68,13 @@ export function PersonalPlanningDay({
   // l'amplitude de la grille horaire.
   const allDayEntries = entries.filter(isMultiDayEntry);
   const sorted = entries.filter((e) => !isMultiDayEntry(e)).sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
-  // Journée complète (0h-24h) toujours affichée — plus de plage 7h-20h qui
-  // masquait les activités matinales/nocturnes ; le défilement interne
-  // ci-dessous évite qu'un tableau de 24 lignes n'allonge toute la page.
-  const bounds = { startHour: 0, endHour: 24 };
+  // Demande utilisateur — se cale sur l'horaire de travail réel du jour
+  // (scheduleBoundsForDay) quand il est configuré ; toujours étendue si une
+  // activité dépasse (computeGridBounds), donc jamais d'activité masquée.
+  // Repli sur 0h-24h si pas d'horaire configuré ce jour-là (comportement
+  // d'origine, §7 — évite de masquer des activités matinales/nocturnes).
+  const scheduleBase = scheduleBoundsForDay(schedule) ?? { startHour: 0, endHour: 24 };
+  const bounds = computeGridBounds(sorted, day, scheduleBase);
   const hours = gridHours(bounds.startHour, bounds.endHour);
   const dayKey = dateKeyOf(day);
   const gridStart = gridStartOf(day, bounds.startHour);

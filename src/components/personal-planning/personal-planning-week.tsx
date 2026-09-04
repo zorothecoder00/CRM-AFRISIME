@@ -5,10 +5,20 @@ import { useDroppable } from "@dnd-kit/core";
 import { PersonalPlanningEntryEditDialog, type PersonalPlanningEntryEditData } from "@/components/personal-planning/entry-edit-dialog";
 import { EntryBlock } from "@/components/personal-planning/entry-block";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
-import { detectTightTransition } from "@/lib/personal-planning-workload";
+import { detectTightTransition, scheduleBoundsForDay, type MultiShiftDaySchedule } from "@/lib/personal-planning-workload";
 import { cn } from "@/lib/utils";
 import type { PersonalPlanningEntryType } from "@/lib/personal-planning-types";
-import { HOUR_HEIGHT_PX, THIN_SCROLLBAR_CLASS, gridHours, gridStartOf, offsetPx, clippedEntryRange, isMultiDayEntry, type GridBounds } from "@/lib/personal-planning-grid";
+import {
+  HOUR_HEIGHT_PX,
+  THIN_SCROLLBAR_CLASS,
+  gridHours,
+  gridStartOf,
+  offsetPx,
+  clippedEntryRange,
+  isMultiDayEntry,
+  computeGridBounds,
+  type GridBounds,
+} from "@/lib/personal-planning-grid";
 
 export type PersonalPlanningEntryRow = Omit<PersonalPlanningEntryEditData, "type"> & {
   type: PersonalPlanningEntryType;
@@ -27,6 +37,8 @@ export type PersonalPlanningDay = {
   entries: PersonalPlanningEntryRow[];
   /** §39/§41 — jour férié, congé approuvé, absence exceptionnelle ou jour non ouvrable, s'il y a lieu. */
   nonWorkingReason?: { label: string; kind: "ferie" | "conge" | "absence" | "non_ouvrable" } | null;
+  /** Demande utilisateur — horaire de travail configuré pour ce jour (voir scheduleBoundsForDay). */
+  schedule?: MultiShiftDaySchedule | null;
 };
 
 const NON_WORKING_STYLES: Record<string, { emoji: string; badge: string; bg: string }> = {
@@ -211,14 +223,31 @@ export function PersonalPlanningWeek({
   const editData: PersonalPlanningEntryEditData | null =
     !readOnly && editing && editing.type !== "RESERVE" && !editing.meetingHref ? { ...editing, type: editing.type } : null;
 
-  // Journée complète (0h-24h) toujours affichée, sur les 7 colonnes — comme
-  // la vue Jour, plus de plage 7h-20h qui masquait les activités matinales/
-  // nocturnes selon les jours ; le défilement interne plus bas évite qu'un
-  // tableau de 24 lignes n'allonge toute la page.
-  // Exception : vue manager (§46, readOnly) sur le planning d'un subordonné
-  // — bornée aux heures ouvrées (7h-18h), un manager n'a pas à voir/assigner
-  // sur les heures 00h-07h/18h-24h qui ne sont pas des heures de travail.
-  const bounds: GridBounds = readOnly ? { startHour: 7, endHour: 18 } : { startHour: 0, endHour: 24 };
+  // Demande utilisateur — se cale sur les horaires de travail réellement
+  // configurés (voir scheduleBoundsForDay), union des 7 jours de la semaine
+  // (la grille partage les mêmes lignes d'heure sur toutes les colonnes,
+  // donc une seule plage pour l'ensemble). Repli sur l'ancien défaut (0h-24h,
+  // ou 7h-18h en vue manager readOnly) si aucun jour de la semaine n'a
+  // d'horaire configuré. Toujours étendue si une activité dépasse
+  // (computeGridBounds), jamais d'activité masquée.
+  const defaultBase: GridBounds = readOnly ? { startHour: 7, endHour: 18 } : { startHour: 0, endHour: 24 };
+  const scheduledBounds = days.reduce<GridBounds | null>((acc, day) => {
+    const dayBase = scheduleBoundsForDay(day.schedule);
+    if (!dayBase) return acc;
+    return acc ? { startHour: Math.min(acc.startHour, dayBase.startHour), endHour: Math.max(acc.endHour, dayBase.endHour) } : dayBase;
+  }, null);
+  const bounds: GridBounds = days.reduce(
+    (acc, day) => {
+      // Les entrees multi-jours (Mission, §26bis) sont rendues a part
+      // (AllDayRow) — les inclure ici les clipperait a 00h-23h59 pour CE
+      // jour et forcerait la grille a 0h-24h a chaque fois, dictant
+      // l'amplitude a leur place (meme exclusion que DayColumn plus bas).
+      const dayEntries = day.entries.filter((e) => !isMultiDayEntry(e));
+      const extended = computeGridBounds(dayEntries, new Date(day.dateKey), acc);
+      return { startHour: Math.min(acc.startHour, extended.startHour), endHour: Math.max(acc.endHour, extended.endHour) };
+    },
+    scheduledBounds ?? defaultBase
+  );
 
   return (
     <div>

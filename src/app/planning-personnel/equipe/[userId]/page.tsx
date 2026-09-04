@@ -10,6 +10,7 @@ import { PersonalPlanningWeek, type PersonalPlanningDay } from "@/components/per
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
+import { groupSchedulesByWeekday } from "@/lib/personal-planning-workload";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import { Lock, Pencil, ChevronLeft } from "lucide-react";
@@ -88,6 +89,15 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
   // §39 — jours fériés/non ouvrables du SUBORDONNÉ (pas du manager qui consulte).
   const nonWorkingMap = await findNonWorkingDaysInRange(targetUserId, weekStart, weekEnd);
 
+  // Demande utilisateur — horaires de travail du SUBORDONNÉ, pour que la
+  // grille se cale dessus (voir scheduleBoundsForDay côté PersonalPlanningWeek).
+  const scheduleRows = await prisma.userWorkSchedule.findMany({
+    where: { userId: targetUserId },
+    include: { breaks: { orderBy: { ordre: "asc" } } },
+    orderBy: { ordre: "asc" },
+  });
+  const schedulesByWeekday = groupSchedulesByWeekday(scheduleRows);
+
   const days: PersonalPlanningDay[] = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => ({
     key: day.toISOString(),
     dateKey: format(day, "yyyy-MM-dd"),
@@ -97,6 +107,7 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
       .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
       .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
     nonWorkingReason: nonWorkingMap.get(format(day, "yyyy-MM-dd")) ?? null,
+    schedule: schedulesByWeekday.get(day.getDay()) ?? null,
   }));
 
   return (

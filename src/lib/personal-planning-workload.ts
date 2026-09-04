@@ -104,6 +104,26 @@ export function resolveDailyCapacity(
 }
 
 /**
+ * Demande utilisateur — les vues Jour/Semaine du planning personnel
+ * doivent se caler sur les horaires de travail réellement configurés
+ * (UserWorkSchedule), pas sur une plage statique qui n'a aucun rapport
+ * avec l'emploi du temps de la personne. `null` si le jour n'a pas
+ * d'horaire actif configuré (absence/inactif/aucune ligne) — l'appelant
+ * retombe alors sur la plage par défaut (voir personal-planning-grid.ts).
+ */
+export function scheduleBoundsForDay(schedule: MultiShiftDaySchedule | null | undefined): { startHour: number; endHour: number } | null {
+  if (!schedule || schedule.type === "ABSENCE" || schedule.shifts.length === 0) return null;
+  let startHour = 24;
+  let endHour = 0;
+  for (const shift of schedule.shifts) {
+    startHour = Math.min(startHour, Math.floor(parseHourMinutes(shift.heureDebut) / 60));
+    endHour = Math.max(endHour, Math.ceil(parseHourMinutes(shift.heureFin) / 60));
+  }
+  if (startHour >= endHour) return null;
+  return { startHour, endHour };
+}
+
+/**
  * §26bis — une Mission (ou toute activité) peut s'étaler sur plusieurs
  * jours ; sans ce plafonnement, une entrée entière (ex. 7 jours) comptait
  * pour sa durée totale dès qu'elle chevauchait le jour évalué, gonflant

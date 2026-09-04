@@ -220,11 +220,13 @@ export default async function PlanningPersonnelPage({
     canCreateTask ? prisma.competence.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }) : Promise.resolve([]),
   ]);
 
-  // §40 — horaire configuré par l'utilisateur pour aujourd'hui, s'il existe.
+  // §40 — horaire configuré par l'utilisateur, tous les jours de la semaine
+  // (pas seulement aujourd'hui — demande utilisateur : les vues Jour/Semaine
+  // s'y calent aussi, voir scheduleBoundsForDay/personal-planning-grid.ts).
   // §39 — dérogation ponctuelle pour la date du jour, si elle existe (prime sur le gabarit hebdomadaire).
-  const [todayScheduleRows, todayException] = await Promise.all([
+  const [scheduleRows, todayException] = await Promise.all([
     prisma.userWorkSchedule.findMany({
-      where: { userId, jourSemaine: now.getDay() },
+      where: { userId },
       include: { breaks: { orderBy: { ordre: "asc" } } },
       orderBy: { ordre: "asc" },
     }),
@@ -232,7 +234,8 @@ export default async function PlanningPersonnelPage({
       where: { userId_date: { userId, date: startOfDay(now) } },
     }),
   ]);
-  const todaySchedule = groupSchedulesByWeekday(todayScheduleRows).get(now.getDay()) ?? null;
+  const schedulesByWeekday = groupSchedulesByWeekday(scheduleRows);
+  const todaySchedule = schedulesByWeekday.get(now.getDay()) ?? null;
 
   // §5 — tableau de bord "Mon Planning" : "En retard"/"À venir" portent sur
   // l'ensemble du planning (pas seulement la période affichée par la vue
@@ -539,6 +542,7 @@ export default async function PlanningPersonnelPage({
                     .filter((e) => isWithinInterval(day, { start: startOfDay(new Date(e.dateDebut)), end: endOfDay(new Date(e.dateFin)) }))
                     .sort((a, b) => a.dateDebut.localeCompare(b.dateDebut)),
                   nonWorkingReason: nonWorkingMap.get(format(day, "yyyy-MM-dd")) ?? null,
+                  schedule: schedulesByWeekday.get(day.getDay()) ?? null,
                 }))}
                 refData={refData}
               />
@@ -550,6 +554,7 @@ export default async function PlanningPersonnelPage({
                 entries={entries}
                 refData={refData}
                 nonWorkingReason={nonWorkingMap.get(format(refDate, "yyyy-MM-dd")) ?? null}
+                schedule={schedulesByWeekday.get(refDate.getDay()) ?? null}
               />
             )}
 

@@ -60,7 +60,11 @@ export async function saveWorkSchedule(input: SaveWorkScheduleInput) {
   });
 
   revalidatePath("/parametres/horaires");
-  revalidatePath("/planning-personnel/parametres");
+  // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
+  // sous-arbre (hub, ma-journee, equipe/[userId]...) — sans ça, les vues
+  // Jour/Semaine restaient périmées après un changement d'horaires (demande
+  // utilisateur — la grille doit refléter les nouvelles heures aussitôt).
+  revalidatePath("/planning-personnel", "layout");
   return { ok: true };
 }
 
