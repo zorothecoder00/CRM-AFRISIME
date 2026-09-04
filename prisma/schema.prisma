@@ -2510,6 +2510,13 @@ model Task {
   priorite               TaskPriority          @default(MOYENNE)
   statut                 TaskStatus            @default(A_FAIRE)
   avancement             Int                   @default(0)
+  // Demande utilisateur — poids (%) de CETTE sous-tâche dans le calcul de
+  // l'avancement de sa tâche mère (voir recomputeParentTaskFromSubtasks) :
+  // null = calcul automatique (moyenne simple, comportement historique) ;
+  // renseigné sur toutes les sous-tâches d'une même mère = moyenne pondérée
+  // normalisée sur la somme des poids (pas forcément 100). Sans effet sur
+  // une tâche qui n'est pas elle-même une sous-tâche (parentTaskId null).
+  poidsAvancement        Int?
   // Utilise par la vue Gantt (cahier des charges §7) ; distinct de createdAt
   // qui est la date de creation de l'enregistrement, pas la date de debut
   // prevue du travail.

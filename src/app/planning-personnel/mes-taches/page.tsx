@@ -160,6 +160,11 @@ export default async function PersonalPlanningMesTachesPage({
           users={userOptions}
           canManage={canManage}
           canDelete={canDelete}
+          // Demande utilisateur — "Subdiviser" doit rester disponible sur MES
+          // tâches même sans TASK_UPDATE global : l'action serveur (addSubtask)
+          // est de toute façon autorisée par TASK_CREATE (scopé au projet),
+          // pas TASK_UPDATE (voir task-list-view.tsx).
+          canAddSubtask={canCreate}
           showCreneau
           className="border-0"
           currentUserId={userId}

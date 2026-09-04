@@ -44,19 +44,30 @@ export async function recomputeProjectProgress(projectId: string) {
  * "À faire", ce qui serait plus déroutant qu'une réouverture automatique.
  * Ne modifie en revanche jamais un statut manuel intermédiaire (Bloquée, En
  * révision...) tant que les sous-tâches ne sont pas toutes terminées.
+ *
+ * Demande utilisateur — pondération manuelle optionnelle par sous-tâche
+ * (Task.poidsAvancement) : si TOUTES les sous-tâches d'une même mère ont un
+ * poids renseigné, l'avancement devient la moyenne pondérée (normalisée sur
+ * la somme des poids, pas forcément 100 — pas besoin de forcer une saisie
+ * exacte). Sinon (comportement historique, et cas par défaut), simple
+ * moyenne des sous-tâches.
  */
 export async function recomputeParentTaskFromSubtasks(parentTaskId: string) {
   const [parent, subtasks] = await Promise.all([
     prisma.task.findUnique({ where: { id: parentTaskId }, select: { statut: true } }),
     prisma.task.findMany({
       where: { parentTaskId, deletedAt: null },
-      select: { statut: true, avancement: true },
+      select: { statut: true, avancement: true, poidsAvancement: true },
     }),
   ]);
 
   if (!parent || parent.statut === "ANNULEE" || subtasks.length === 0) return;
 
-  const avancement = Math.round(subtasks.reduce((sum, s) => sum + s.avancement, 0) / subtasks.length);
+  const totalPoids = subtasks.reduce((sum, s) => sum + (s.poidsAvancement ?? 0), 0);
+  const allWeighted = totalPoids > 0 && subtasks.every((s) => s.poidsAvancement !== null);
+  const avancement = allWeighted
+    ? Math.round(subtasks.reduce((sum, s) => sum + s.avancement * (s.poidsAvancement ?? 0), 0) / totalPoids)
+    : Math.round(subtasks.reduce((sum, s) => sum + s.avancement, 0) / subtasks.length);
   const allDone = subtasks.every((s) => s.statut === "TERMINEE");
 
   let statut = parent.statut;

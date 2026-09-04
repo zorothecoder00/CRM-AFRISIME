@@ -191,7 +191,7 @@ export async function updateTask(input: UpdateTaskInput) {
   // quel que soit l'appelant.
   const existing = await prisma.task.findUniqueOrThrow({
     where: { id: data.id },
-    select: { responsablePrincipalId: true, assignees: { select: { userId: true } }, dateDebut: true, echeance: true },
+    select: { responsablePrincipalId: true, assignees: { select: { userId: true } }, dateDebut: true, echeance: true, parentTaskId: true },
   });
   const isOwner =
     existing.responsablePrincipalId === session.user.id ||
@@ -219,6 +219,7 @@ export async function updateTask(input: UpdateTaskInput) {
         dateDebut: data.dateDebut ? new Date(data.dateDebut) : null,
         echeance: data.echeance ? new Date(data.echeance) : null,
         tempsEstimeHeures: data.tempsEstimeHeures ? Number(data.tempsEstimeHeures) : null,
+        poidsAvancement: data.poidsAvancement ? Number(data.poidsAvancement) : null,
       },
     })
   );
@@ -230,6 +231,13 @@ export async function updateTask(input: UpdateTaskInput) {
     entityId: task.id,
     changes: { titre: task.titre },
   });
+
+  // Demande utilisateur — un poids d'avancement modifié sur une sous-tâche
+  // change immédiatement le % calculé de sa tâche mère (voir
+  // recomputeParentTaskFromSubtasks) ; no-op si `task` n'est pas une sous-tâche.
+  if (existing.parentTaskId) {
+    await recomputeParentTaskFromSubtasks(existing.parentTaskId);
+  }
 
   revalidatePath("/taches");
   revalidatePath(`/taches/${task.id}`);
@@ -282,6 +290,7 @@ export async function addSubtask(input: AddSubtaskInput) {
         responsablePrincipalId: data.responsablePrincipalId,
         dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
         echeance: data.echeance ? new Date(data.echeance) : undefined,
+        poidsAvancement: data.poidsAvancement ? Number(data.poidsAvancement) : undefined,
         createdById: session.user.id,
         organizationId: session.user.organizationId,
       },

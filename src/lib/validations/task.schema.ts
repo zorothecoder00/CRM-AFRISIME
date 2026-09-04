@@ -42,6 +42,9 @@ export const updateTaskSchema = z.object({
   dateDebut: z.string().optional(),
   echeance: z.string().optional(),
   tempsEstimeHeures: z.string().optional(),
+  // Demande utilisateur — uniquement pertinent si cette tâche est elle-même
+  // une sous-tâche (parentTaskId non nul) : voir recomputeParentTaskFromSubtasks.
+  poidsAvancement: z.string().optional(),
 });
 
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
@@ -56,6 +59,10 @@ export const addSubtaskSchema = z.object({
   priorite: z.enum(["TRES_HAUTE", "HAUTE", "MOYENNE", "BASSE"]).optional().default("MOYENNE"),
   dateDebut: z.string().optional(),
   echeance: z.string().optional(),
+  // Demande utilisateur — poids (%) de cette sous-tâche dans le calcul de
+  // l'avancement de la tâche mère ; vide = calcul automatique (moyenne
+  // simple), voir recomputeParentTaskFromSubtasks.
+  poidsAvancement: z.string().optional(),
 });
 
 export type AddSubtaskInput = z.infer<typeof addSubtaskSchema>;

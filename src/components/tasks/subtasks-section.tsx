@@ -28,6 +28,10 @@ export type SubtaskRow = {
   dateDebut: string | null;
   echeance: string | null;
   tempsEstimeHeures: number | null;
+  // Demande utilisateur — poids (%) de cette sous-tâche dans le calcul de
+  // l'avancement de la mère ; null = calcul automatique (voir
+  // recomputeParentTaskFromSubtasks).
+  poidsAvancement: number | null;
 };
 
 type Option = { id: string; label: string };
@@ -83,6 +87,7 @@ export function SubtasksSection({
   const [priorite, setPriorite] = useState<NonNullable<AddSubtaskInput["priorite"]>>("MOYENNE");
   const [dateDebut, setDateDebut] = useState("");
   const [echeance, setEcheance] = useState("");
+  const [poidsAvancement, setPoidsAvancement] = useState("");
 
   const { run: create, isPending } = useAction(addSubtask, { successMessage: "Sous-tâche ajoutée." });
   const { run: remove } = useAction(deleteTask, { successMessage: "Sous-tâche supprimée." });
@@ -96,6 +101,7 @@ export function SubtasksSection({
       priorite,
       dateDebut: dateDebut || undefined,
       echeance: echeance || undefined,
+      poidsAvancement: poidsAvancement || undefined,
     });
     if (result.ok) {
       setTitre("");
@@ -103,6 +109,7 @@ export function SubtasksSection({
       setPriorite("MOYENNE");
       setDateDebut("");
       setEcheance("");
+      setPoidsAvancement("");
       setShowForm(false);
     }
   }
@@ -134,6 +141,11 @@ export function SubtasksSection({
               <Badge variant={toneForPriority(s.priorite)} className="text-[10px]">
                 {PRIORITY_LABELS[s.priorite]}
               </Badge>
+              {s.poidsAvancement !== null && (
+                <Badge variant="outline" className="text-[10px]">
+                  Poids : {s.poidsAvancement}%
+                </Badge>
+              )}
               <span>{s.responsableNom}</span>
               {s.dateDebut && <span>Début : {new Date(s.dateDebut).toLocaleDateString("fr-FR")}</span>}
               {s.echeance && <span>Échéance : {new Date(s.echeance).toLocaleDateString("fr-FR")}</span>}
@@ -197,6 +209,20 @@ export function SubtasksSection({
                   <Input type="date" className="h-9 text-xs" value={echeance} onChange={(e) => setEcheance(e.target.value)} />
                 </div>
               </div>
+              <div className="space-y-1">
+                <span className="text-[11px] text-muted-foreground">
+                  Poids dans l&apos;avancement de la tâche mère (%) — optionnel
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="h-9 text-xs"
+                  placeholder="Laisser vide pour un calcul automatique"
+                  value={poidsAvancement}
+                  onChange={(e) => setPoidsAvancement(e.target.value)}
+                />
+              </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
                   Annuler
@@ -217,7 +243,7 @@ export function SubtasksSection({
 
       {editingSubtask && (
         <TaskEditDialog
-          task={editingSubtask}
+          task={{ ...editingSubtask, parentTaskId }}
           users={members}
           open={!!editingId}
           onOpenChange={(o) => setEditingId(o ? editingId : null)}

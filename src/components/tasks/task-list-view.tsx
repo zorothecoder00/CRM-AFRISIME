@@ -106,6 +106,7 @@ function statutCell(row: { original: TaskRow }, canManage: boolean) {
 function actionsColumn(options: {
   canManage: boolean;
   canDelete: boolean;
+  canAddSubtask: boolean;
   onEdit: (id: string) => void;
   onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
@@ -116,7 +117,7 @@ function actionsColumn(options: {
     cell: ({ row }) => (
       <RowActionsMenu
         onEdit={options.canManage ? () => options.onEdit(row.original.id) : undefined}
-        onAddSubtask={options.canManage ? () => options.onAddSubtask(row.original) : undefined}
+        onAddSubtask={options.canAddSubtask ? () => options.onAddSubtask(row.original) : undefined}
         onDelete={options.canDelete ? () => options.onDelete(row.original) : undefined}
         deleteConfirmLabel={`Supprimer « ${row.original.titre} » ? La tâche sera déplacée dans la corbeille.`}
       />
@@ -127,6 +128,12 @@ function actionsColumn(options: {
 function buildColumns(options: {
   canManage: boolean;
   canDelete: boolean;
+  // Demande utilisateur — "Subdiviser en sous-tâches" est autorisé côté
+  // serveur par TASK_CREATE (scopé), pas TASK_UPDATE (voir addSubtask) :
+  // séparé de canManage pour ne pas cacher l'action à qui a la main sur la
+  // création de tâches de son projet sans avoir TASK_UPDATE globalement.
+  // Par défaut = canManage (comportement historique inchangé sur /taches).
+  canAddSubtask: boolean;
   showCreneau: boolean;
   onEdit: (id: string) => void;
   onAddSubtask: (task: TaskRow) => void;
@@ -156,7 +163,7 @@ function buildColumns(options: {
       { accessorKey: "avancement", header: "%", cell: ({ row }) => `${row.original.avancement}%` },
       { accessorKey: "projectNom", header: "Projet" },
     ];
-    if (options.canManage || options.canDelete) cols.push(actionsColumn(options));
+    if (options.canManage || options.canDelete || options.canAddSubtask) cols.push(actionsColumn(options));
     return cols;
   }
 
@@ -180,6 +187,7 @@ export function TaskListView({
   users = [],
   canManage = false,
   canDelete = false,
+  canAddSubtask,
   showCreneau = false,
   className,
   currentUserId,
@@ -188,6 +196,10 @@ export function TaskListView({
   users?: Option[];
   canManage?: boolean;
   canDelete?: boolean;
+  // Demande utilisateur — par défaut égal à canManage (comportement
+  // inchangé), à passer explicitement quand l'autorisation réelle de
+  // subdiviser (TASK_CREATE scopé) diffère de TASK_UPDATE, ex. mes-tâches.
+  canAddSubtask?: boolean;
   // Planning personnel (§4/§10) : remplace la colonne "Responsable" (toujours
   // l'utilisateur courant sur /planning-personnel/mes-taches, donc sans
   // intérêt) par la plage horaire réelle de la tâche.
@@ -206,17 +218,20 @@ export function TaskListView({
   const [subtaskParentId, setSubtaskParentId] = useState<string | null>(null);
   const { run: remove } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
 
+  const resolvedCanAddSubtask = canAddSubtask ?? canManage;
+
   const columns = useMemo(
     () =>
       buildColumns({
         canManage,
         canDelete,
+        canAddSubtask: resolvedCanAddSubtask,
         showCreneau,
         onEdit: setEditingId,
         onAddSubtask: (task) => setSubtaskParentId(task.id),
         onDelete: (task) => remove(task.id),
       }),
-    [canManage, canDelete, showCreneau, remove]
+    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, remove]
   );
 
   const table = useReactTable({

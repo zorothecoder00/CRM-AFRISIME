@@ -197,6 +197,7 @@ export default async function TaskDetailPage({
     dateDebut: s.dateDebut ? s.dateDebut.toISOString() : null,
     echeance: s.echeance ? s.echeance.toISOString() : null,
     tempsEstimeHeures: s.tempsEstimeHeures ? Number(s.tempsEstimeHeures) : null,
+    poidsAvancement: s.poidsAvancement,
   }));
 
   const checklistRows = task.checklistItems.map((item) => ({

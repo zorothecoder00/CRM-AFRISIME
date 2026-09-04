@@ -24,6 +24,10 @@ export type TaskEditData = {
   dateDebut?: string | null;
   echeance: string | null;
   tempsEstimeHeures: number | null;
+  // Présent uniquement quand cette tâche est elle-même une sous-tâche —
+  // conditionne l'affichage du champ "Poids dans l'avancement de la mère".
+  parentTaskId?: string | null;
+  poidsAvancement?: number | null;
 };
 
 /** Édition d'une tâche depuis une vue liste (liste/kanban) — dialogue contrôlé, pas de trigger propre. */
@@ -63,6 +67,7 @@ export function TaskEditDialog({
       dateDebut: task.dateDebut ? task.dateDebut.slice(0, 10) : "",
       echeance: task.echeance ? task.echeance.slice(0, 10) : "",
       tempsEstimeHeures: task.tempsEstimeHeures !== null ? String(task.tempsEstimeHeures) : "",
+      poidsAvancement: task.poidsAvancement !== null && task.poidsAvancement !== undefined ? String(task.poidsAvancement) : "",
     },
   });
   const { run: submit, isPending } = useAction(updateTask, { successMessage: "Tâche modifiée." });
@@ -158,6 +163,24 @@ export function TaskEditDialog({
             <Label htmlFor="edit-tempsEstimeHeures">Temps estimé (h)</Label>
             <Input id="edit-tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
           </div>
+
+          {task.parentTaskId && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-poidsAvancement">Poids dans l&apos;avancement de la tâche mère (%)</Label>
+              <Input
+                id="edit-poidsAvancement"
+                type="number"
+                min={0}
+                max={100}
+                placeholder="Laisser vide pour un calcul automatique"
+                {...register("poidsAvancement")}
+              />
+              <p className="text-xs text-muted-foreground">
+                Renseigné sur toutes les sous-tâches d&apos;une même mère, ce poids remplace la simple moyenne par
+                une moyenne pondérée.
+              </p>
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Enregistrement..." : "Enregistrer"}

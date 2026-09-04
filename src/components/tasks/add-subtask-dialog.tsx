@@ -37,6 +37,7 @@ export function AddSubtaskDialog({
   const [priorite, setPriorite] = useState<NonNullable<AddSubtaskInput["priorite"]>>("MOYENNE");
   const [dateDebut, setDateDebut] = useState("");
   const [echeance, setEcheance] = useState("");
+  const [poidsAvancement, setPoidsAvancement] = useState("");
   const { run: create, isPending } = useAction(addSubtask, { successMessage: "Sous-tâche ajoutée." });
 
   function reset() {
@@ -45,6 +46,7 @@ export function AddSubtaskDialog({
     setPriorite("MOYENNE");
     setDateDebut("");
     setEcheance("");
+    setPoidsAvancement("");
   }
 
   async function handleAdd() {
@@ -56,6 +58,7 @@ export function AddSubtaskDialog({
       priorite,
       dateDebut: dateDebut || undefined,
       echeance: echeance || undefined,
+      poidsAvancement: poidsAvancement || undefined,
     });
     if (result.ok) {
       reset();
@@ -114,6 +117,22 @@ export function AddSubtaskDialog({
               <Label htmlFor="subtask-echeance">Échéance</Label>
               <Input id="subtask-echeance" type="date" value={echeance} onChange={(e) => setEcheance(e.target.value)} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="subtask-poids">Poids dans l&apos;avancement de la tâche mère (%)</Label>
+            <Input
+              id="subtask-poids"
+              type="number"
+              min={0}
+              max={100}
+              placeholder="Laisser vide pour un calcul automatique"
+              value={poidsAvancement}
+              onChange={(e) => setPoidsAvancement(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Renseigné sur toutes les sous-tâches d&apos;une même mère, ce poids remplace la simple moyenne par une
+              moyenne pondérée.
+            </p>
           </div>
           <Button type="button" className="w-full" disabled={isPending || !titre.trim() || !responsablePrincipalId} onClick={handleAdd}>
             {isPending ? "Ajout..." : "Ajouter la sous-tâche"}
