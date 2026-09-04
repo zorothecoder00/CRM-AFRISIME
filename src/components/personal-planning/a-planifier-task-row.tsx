@@ -50,7 +50,7 @@ export function APlanifierTaskRow({ task, colleagues }: { task: APlanifierTask; 
             imbrique dans la ligne du titre) : centre verticalement sur TOUT
             le bloc (titre + ligne priorite/echeance/projet en dessous), pas
             seulement sur la premiere ligne (demande utilisateur). */}
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-3">
           <span
             className={`h-3.5 w-3.5 shrink-0 rounded-full ${dotClassForPriority(task.priorite)}`}
             title={TASK_PRIORITY_LABELS[task.priorite] ?? task.priorite}
