@@ -48,7 +48,7 @@ export default async function PersonalPlanningAPlanifierPage() {
   return (
     <div className="space-y-6">
 
-      <div className="space-y-3 rounded-md border bg-card p-3">
+      <div className="rounded-md border bg-card p-3">
         <div className="flex items-center gap-2">
           <Inbox className="size-4 text-primary" />
           <div>
@@ -60,9 +60,10 @@ export default async function PersonalPlanningAPlanifierPage() {
         </div>
 
         {/* Demande utilisateur — separateur visuel entre le bloc "inbox"
-            (icone/titre/compteur) et la liste des taches, en gardant le meme
-            espacement (space-y-3 sur le conteneur) plutot que de les coller. */}
-        <div className="border-t" />
+            (icone/titre/compteur) et la liste des taches : plus proche du
+            bloc inbox (mt-2) que de la liste (mb-5), pas centre entre les
+            deux (pas de space-y uniforme sur le conteneur). */}
+        <div className="mt-2 mb-5 border-t" />
 
         <div className="space-y-1">
           {tasks.map((t) => (
