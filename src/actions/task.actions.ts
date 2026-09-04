@@ -11,6 +11,7 @@ import { createNotification, notifyMany } from "@/lib/notify";
 import { parseMentions } from "@/lib/mentions";
 import { logAudit } from "@/lib/audit";
 import { recomputeProjectProgress, recomputeParentTaskFromSubtasks } from "@/lib/project-progress";
+import type { SubtaskRow } from "@/components/tasks/subtasks-section";
 import {
   runTaskCompletedRules,
   runValidationRejectedRules,
@@ -245,23 +246,31 @@ export async function updateTask(input: UpdateTaskInput) {
   return { ...task, tempsEstimeHeures: task.tempsEstimeHeures ? Number(task.tempsEstimeHeures) : null, tempsReelHeures: task.tempsReelHeures ? Number(task.tempsReelHeures) : null };
 }
 
-/** Sous-tâches d'une tâche existante — alimente la section "Sous-tâches" de la fiche tâche. */
-export async function getSubtasksForTask(parentTaskId: string) {
+/**
+ * Sous-tâches d'une tâche existante — alimente la section "Sous-tâches" de
+ * la fiche tâche, et le panneau dépliable de /planning-personnel/mes-taches
+ * (demande utilisateur : voir/gérer les sous-tâches sans quitter le tableau).
+ */
+export async function getSubtasksForTask(parentTaskId: string): Promise<SubtaskRow[]> {
   await requireSession();
   const subtasks = await prisma.task.findMany({
     where: { parentTaskId, deletedAt: null },
-    include: { responsablePrincipal: { select: { name: true } } },
+    include: { responsablePrincipal: { select: { name: true } }, assignees: { select: { userId: true } } },
     orderBy: { createdAt: "asc" },
   });
   return subtasks.map((s) => ({
     id: s.id,
     titre: s.titre,
+    description: s.description,
     statut: s.statut,
     priorite: s.priorite,
     responsablePrincipalId: s.responsablePrincipalId,
     responsableNom: s.responsablePrincipal.name,
+    assigneeIds: s.assignees.map((a) => a.userId),
     dateDebut: s.dateDebut ? s.dateDebut.toISOString() : null,
     echeance: s.echeance ? s.echeance.toISOString() : null,
+    tempsEstimeHeures: s.tempsEstimeHeures ? Number(s.tempsEstimeHeures) : null,
+    poidsAvancement: s.poidsAvancement,
   }));
 }
 

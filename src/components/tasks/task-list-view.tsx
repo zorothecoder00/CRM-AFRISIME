@@ -10,17 +10,20 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import { useAction } from "@/hooks/use-action";
 import { deleteTask } from "@/actions/trash.actions";
+import { getSubtasksForTask } from "@/actions/task.actions";
 import { Badge } from "@/components/ui/badge";
 import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
 import { AddSubtaskDialog } from "@/components/tasks/add-subtask-dialog";
+import { SubtasksSection, type SubtaskRow } from "@/components/tasks/subtasks-section";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
 import { TaskPrioritySelect } from "@/components/tasks/task-priority-select";
 import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -103,6 +106,29 @@ function statutCell(row: { original: TaskRow }, canManage: boolean) {
   );
 }
 
+/** Demande utilisateur — voir/gérer les sous-tâches sans quitter le tableau (mes-tâches). */
+function expandColumn(options: { expandedIds: Set<string>; onToggle: (id: string) => void }): ColumnDef<TaskRow> {
+  return {
+    id: "expand",
+    header: "",
+    cell: ({ row }) => (
+      <button
+        type="button"
+        onClick={() => options.onToggle(row.original.id)}
+        className="text-muted-foreground hover:text-foreground"
+        aria-label="Voir les sous-tâches"
+        title="Voir les sous-tâches"
+      >
+        {options.expandedIds.has(row.original.id) ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </button>
+    ),
+  };
+}
+
 function actionsColumn(options: {
   canManage: boolean;
   canDelete: boolean;
@@ -138,6 +164,8 @@ function buildColumns(options: {
   onEdit: (id: string) => void;
   onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
+  expandedIds: Set<string>;
+  onToggleExpand: (id: string) => void;
 }): ColumnDef<TaskRow>[] {
   // Planning personnel (§4/§10, showCreneau) : disposition dédiée demandée
   // par l'utilisateur — Créneau/Tâche/Échéance/Priorité/Statut/%/Projet.
@@ -146,6 +174,7 @@ function buildColumns(options: {
   // devenue redondante avec Échéance + ce nouveau Créneau).
   if (options.showCreneau) {
     const cols: ColumnDef<TaskRow>[] = [
+      expandColumn({ expandedIds: options.expandedIds, onToggle: options.onToggleExpand }),
       {
         accessorKey: "creneau",
         id: "creneau",
@@ -218,6 +247,47 @@ export function TaskListView({
   const [subtaskParentId, setSubtaskParentId] = useState<string | null>(null);
   const { run: remove } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
 
+  // Demande utilisateur — dépliable pour voir/gérer les sous-tâches sans
+  // quitter le tableau. Chargées à la demande (pas au chargement de la page)
+  // et mises en cache par tâche pour ne pas refaire l'appel à chaque repli/dépli.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [subtasksByTaskId, setSubtasksByTaskId] = useState<Map<string, SubtaskRow[]>>(new Map());
+  const [loadingSubtasksId, setLoadingSubtasksId] = useState<string | null>(null);
+  // Ref (pas le state subtasksByTaskId) pour eviter une closure perimee dans
+  // toggleExpand : un ref reste stable d'un rendu a l'autre, contrairement a
+  // une fonction qui capturerait la valeur du state au moment de sa creation.
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
+
+  const toggleExpand = useCallback((taskId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+    if (!fetchedIdsRef.current.has(taskId)) {
+      fetchedIdsRef.current.add(taskId);
+      setLoadingSubtasksId(taskId);
+      getSubtasksForTask(taskId).then((rows) => {
+        setSubtasksByTaskId((prev) => new Map(prev).set(taskId, rows));
+        setLoadingSubtasksId((current) => (current === taskId ? null : current));
+      });
+    }
+  }, []);
+
+  const refreshSubtasksFor = useCallback(
+    (taskId: string) => {
+      getSubtasksForTask(taskId).then((rows) => {
+        setSubtasksByTaskId((prev) => new Map(prev).set(taskId, rows));
+      });
+      // L'avancement (%) affiché sur la ligne parente est recalculé côté
+      // serveur (recomputeParentTaskFromSubtasks) — router.refresh() le
+      // ramène à jour sans perdre l'état local (lignes dépliées, etc.).
+      router.refresh();
+    },
+    [router]
+  );
+
   const resolvedCanAddSubtask = canAddSubtask ?? canManage;
 
   const columns = useMemo(
@@ -230,8 +300,10 @@ export function TaskListView({
         onEdit: setEditingId,
         onAddSubtask: (task) => setSubtaskParentId(task.id),
         onDelete: (task) => remove(task.id),
+        expandedIds,
+        onToggleExpand: toggleExpand,
       }),
-    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, remove]
+    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, remove, expandedIds, toggleExpand]
   );
 
   const table = useReactTable({
@@ -273,15 +345,47 @@ export function TaskListView({
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
+          {table.getRowModel().rows.map((row) => {
+            const isExpanded = showCreneau && expandedIds.has(row.original.id);
+            return (
+              <Fragment key={row.id}>
+                <TableRow>
+                  {row.getVisibleCells().map((cell) => (
+                    // Demande utilisateur — les textes longs (titre, projet...)
+                    // passent à la ligne au lieu d'être coupés (mes-taches uniquement).
+                    <TableCell key={cell.id} className={showCreneau ? "whitespace-normal break-words align-top" : undefined}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+                {isExpanded && (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={columns.length} className="bg-muted/20 p-3">
+                      {loadingSubtasksId === row.original.id && !subtasksByTaskId.has(row.original.id) ? (
+                        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Chargement des sous-tâches...
+                        </p>
+                      ) : (
+                        <SubtasksSection
+                          parentTaskId={row.original.id}
+                          parentDateDebut={row.original.dateDebut ?? null}
+                          parentEcheance={row.original.echeance}
+                          parentResponsablePrincipalId={row.original.responsablePrincipalId}
+                          subtasks={subtasksByTaskId.get(row.original.id) ?? []}
+                          members={users}
+                          canManage={canManage}
+                          canDelete={canDelete}
+                          currentUserId={currentUserId ?? ""}
+                          onChanged={() => refreshSubtasksFor(row.original.id)}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </Fragment>
+            );
+          })}
           {tasks.length === 0 && (
             <TableRow>
               <TableCell colSpan={columns.length} className="text-center text-muted-foreground">

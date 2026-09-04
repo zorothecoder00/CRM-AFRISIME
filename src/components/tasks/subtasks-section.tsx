@@ -69,6 +69,7 @@ export function SubtasksSection({
   canManage,
   canDelete,
   currentUserId,
+  onChanged,
 }: {
   parentTaskId: string;
   parentDateDebut: string | null;
@@ -84,11 +85,20 @@ export function SubtasksSection({
    * SON statut même sans TASK_UPDATE (voir updateTaskStatus), comme sur la
    * fiche de la sous-tâche elle-même. */
   currentUserId: string;
+  /** Demande utilisateur — panneau dépliable de mes-tâches : la liste de
+   * sous-tâches y est un état local (pas rechargée par simple navigation),
+   * ce callback permet au parent de la rafraîchir après ajout/suppression. */
+  onChanged?: () => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   const { run: remove } = useAction(deleteTask, { successMessage: "Sous-tâche supprimée." });
+
+  async function handleRemove(id: string) {
+    const result = await remove(id);
+    if (result.ok) onChanged?.();
+  }
 
   const editingSubtask = subtasks.find((s) => s.id === editingId) ?? null;
 
@@ -130,7 +140,7 @@ export function SubtasksSection({
           {(canManage || canDelete) && (
             <RowActionsMenu
               onEdit={canManage ? () => setEditingId(s.id) : undefined}
-              onDelete={canDelete ? () => remove(s.id) : undefined}
+              onDelete={canDelete ? () => handleRemove(s.id) : undefined}
               deleteConfirmLabel={`Supprimer « ${s.titre} » ? La sous-tâche sera déplacée dans la corbeille.`}
             />
           )}
@@ -149,7 +159,10 @@ export function SubtasksSection({
                 parentResponsablePrincipalId={parentResponsablePrincipalId}
                 users={members}
                 currentUserId={currentUserId}
-                onDone={() => setShowForm(false)}
+                onDone={() => {
+                  setShowForm(false);
+                  onChanged?.();
+                }}
               />
               <div className="mt-2 flex justify-end">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
@@ -172,6 +185,7 @@ export function SubtasksSection({
           users={members}
           open={!!editingId}
           onOpenChange={(o) => setEditingId(o ? editingId : null)}
+          onSuccess={() => onChanged?.()}
         />
       )}
     </div>
