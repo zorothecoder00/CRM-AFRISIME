@@ -86,12 +86,23 @@ export async function suggestNextAvailableSlot(
   maxDays: number = SEARCH_WINDOW_DAYS
 ): Promise<{ dateDebut: Date; dateFin: Date } | null> {
   const searchStart = new Date(from);
-  const searchEnd = addDays(searchStart, maxDays);
+  // Bug reel de production — bornait la recherche des entrees/reunions deja
+  // posees sur [searchStart, searchStart + maxDays[ EN HEURE EXACTE, pas en
+  // jours pleins : avec maxDays=0 (recherche restreinte au jour de la tache,
+  // voir suggestScheduleSlot) et searchStart a minuit, cette borne devenait
+  // un intervalle de largeur ZERO — aucune activite de la journee n'etait
+  // alors jamais vue comme occupee, donc TOUJOURS le tout premier creneau de
+  // la fenetre de travail etait "suggere", meme deja pris. La confirmation
+  // (scheduleInboxTask, qui refait une vraie requete) rejetait alors
+  // systematiquement ce mauvais creneau. searchEnd doit couvrir le jour
+  // entier du dernier jour cherche, quelle que soit l'heure de `from`.
+  const searchStartDay = new Date(searchStart.getFullYear(), searchStart.getMonth(), searchStart.getDate());
+  const searchEnd = addDays(searchStartDay, maxDays + 1);
 
   const [schedules, exceptions, nonWorkingMap, entriesRaw, meetingsRaw] = await Promise.all([
     prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
     prisma.userWorkScheduleException.findMany({
-      where: { userId, date: { gte: new Date(searchStart.getFullYear(), searchStart.getMonth(), searchStart.getDate()), lte: searchEnd } },
+      where: { userId, date: { gte: searchStartDay, lte: searchEnd } },
     }),
     findNonWorkingDaysInRange(userId, searchStart, searchEnd),
     prisma.personalPlanningEntry.findMany({
