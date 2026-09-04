@@ -133,30 +133,32 @@ export default async function PersonalPlanningMesTachesPage({
     <div className="space-y-6">
 
       <div className="space-y-3 rounded-md border bg-card p-3">
+        <div>
+          <h1 className="text-sm font-semibold">Mes tâches</h1>
+          <p className="text-[11px] text-muted-foreground">{taskRows.length} tâche(s) — assignées à moi</p>
+        </div>
+
+        {/* Demande utilisateur — trait entre le bloc titre et le bloc des
+            filtres. Un trait vertical accolé à un flex "justify-between"
+            pouvait se retrouver orphelin dès que les filtres passaient à la
+            ligne (flex-wrap) ; un trait horizontal pleine largeur reste
+            fiable quelle que soit la largeur d'écran. */}
+        <div className="border-t" />
+
         <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <h1 className="text-sm font-semibold">Mes tâches</h1>
-            <p className="text-[11px] text-muted-foreground">{taskRows.length} tâche(s) — assignées à moi</p>
-          </div>
-          {/* Demande utilisateur — trait vertical entre le titre et le bloc
-              des filtres ; ml-auto (plus justify-between sur le parent) pour
-              garder le trait collé au titre au lieu de flotter au milieu. */}
-          <div className="hidden h-10 w-px self-stretch bg-border sm:block" />
-          <div className="ml-auto flex flex-wrap items-center gap-4">
-            <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
-            <TaskPriorityFilter />
-            <TaskStatusFilter />
-            <PeriodFilter dateLabel="Échéance" showWeekDay />
-            {canCreate && (
-              <TaskFormDialog
-                projects={projectOptions}
-                users={userOptions}
-                objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
-                plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
-                competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
-              />
-            )}
-          </div>
+          <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
+          <TaskPriorityFilter />
+          <TaskStatusFilter />
+          <PeriodFilter dateLabel="Échéance" showWeekDay />
+          {canCreate && (
+            <TaskFormDialog
+              projects={projectOptions}
+              users={userOptions}
+              objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
+              plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
+              competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
+            />
+          )}
         </div>
 
         {/* Demande utilisateur — trait horizontal entre le bloc des filtres
