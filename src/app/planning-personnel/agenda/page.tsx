@@ -89,7 +89,7 @@ export default async function PersonalPlanningAgendaPage() {
       </div>
 
       <AgendaShareCard
-        shares={shares.map((s) => ({ id: s.id, granteeId: s.granteeId, granteeName: s.grantee.name }))}
+        shares={shares.map((s) => ({ id: s.id, granteeId: s.granteeId, granteeName: s.grantee.name, role: s.role }))}
         colleagues={colleagues.map((c) => ({ id: c.id, label: c.name }))}
       />
 

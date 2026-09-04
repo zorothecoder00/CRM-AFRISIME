@@ -5,12 +5,14 @@ import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval,
 import { fr } from "date-fns/locale";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { resolvePersonalPlanningAccess } from "@/lib/personal-planning-access";
+import { resolvePersonalPlanningAccess, hasAgendaEditPermission } from "@/lib/personal-planning-access";
 import { PersonalPlanningWeek, type PersonalPlanningDay } from "@/components/personal-planning/personal-planning-week";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
 import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
-import { Lock, ChevronLeft } from "lucide-react";
+import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
+import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
+import { Lock, Pencil, ChevronLeft } from "lucide-react";
 
 /**
  * §46 — vue manager sur le planning personnel détaillé d'un subordonné
@@ -27,6 +29,12 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
 
   const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true, name: true } });
   if (!target) notFound();
+
+  // Demande utilisateur — un partage d'agenda peut être en édition
+  // (EDITEUR) : donne alors la main pour ajouter/modifier des activités
+  // sur CET agenda, contrairement à manager/chef d'équipe qui restent en
+  // lecture seule (voir hasAgendaEditPermission).
+  const canEdit = await hasAgendaEditPermission(targetUserId, session!.user.id);
 
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -47,6 +55,30 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
       select: { id: true, titre: true, dateHeure: true, lieu: true, statut: true },
     }),
   ]);
+
+  // Donnees de reference pour "Nouvelle activite" — scopees au PROPRIETAIRE
+  // (targetUserId), pas a l'editeur qui consulte : ses propres projets/
+  // taches/collegues n'ont pas de sens ici. Inutile si lecture seule.
+  const refData: PersonalPlanningReferenceData = canEdit
+    ? await (async () => {
+        const [colleagues, projects, tasks, objectives] = await Promise.all([
+          prisma.user.findMany({ where: { isActive: true, id: { not: targetUserId } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+          prisma.project.findMany({ where: { members: { some: { userId: targetUserId } } }, orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+          prisma.task.findMany({
+            where: { OR: [{ responsablePrincipalId: targetUserId }, { assignees: { some: { userId: targetUserId } } }] },
+            orderBy: { titre: "asc" },
+            select: { id: true, titre: true, projectId: true },
+          }),
+          prisma.objective.findMany({ where: { userId: targetUserId }, orderBy: { titre: "asc" }, select: { id: true, titre: true } }),
+        ]);
+        return {
+          colleagues: colleagues.map((c) => ({ id: c.id, label: c.name })),
+          projects,
+          tasks,
+          objectives,
+        };
+      })()
+    : { colleagues: [], projects: [], tasks: [], objectives: [] };
 
   const entries = [
     ...entriesRaw.map((e) => toPersonalPlanningEntryRow(e, new Map())),
@@ -74,21 +106,31 @@ export default async function SubordinatePersonalPlanningPage({ params }: { para
         Retour
       </Link>
 
-      <div className="flex items-center gap-3">
-        <Lock className="size-6 text-muted-foreground" />
-        <div>
-          <h1 className="text-2xl font-semibold">Planning personnel de {target.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            Vue en lecture seule — visible car{" "}
-            {accessReason === "manager" && "vous êtes son manager"}
-            {accessReason === "chef_equipe" && "vous êtes chef de son équipe"}
-            {accessReason === "partage" && "cette personne a partagé son agenda avec vous"}
-            {accessReason === "self" && "il s'agit de votre propre planning"}.
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {canEdit ? <Pencil className="size-6 text-muted-foreground" /> : <Lock className="size-6 text-muted-foreground" />}
+          <div>
+            <h1 className="text-2xl font-semibold">Planning personnel de {target.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              {canEdit ? "Vue en édition" : "Vue en lecture seule"} — visible car{" "}
+              {accessReason === "manager" && "vous êtes son manager"}
+              {accessReason === "chef_equipe" && "vous êtes chef de son équipe"}
+              {accessReason === "partage" && "cette personne a partagé son agenda avec vous"}
+              {accessReason === "self" && "il s'agit de votre propre planning"}.
+            </p>
+          </div>
         </div>
+        {canEdit && (
+          <PersonalPlanningEntryFormDialog
+            refData={refData}
+            defaultValues={{ onBehalfOfUserId: targetUserId }}
+            triggerLabel="Nouvelle activité"
+            dialogTitle={`Nouvelle activité pour ${target.name}`}
+          />
+        )}
       </div>
 
-      <PersonalPlanningWeek days={days} readOnly />
+      <PersonalPlanningWeek days={days} readOnly={!canEdit} />
     </div>
   );
 }

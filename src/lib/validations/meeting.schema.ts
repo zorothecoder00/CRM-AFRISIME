@@ -8,6 +8,9 @@ export const createMeetingSchema = z.object({
   lieu: z.string().min(1, "Indiquez un lieu ou un lien visio."),
   ordreDuJour: z.string().optional(),
   participantIds: z.array(z.string()).default([]),
+  // Demande utilisateur — noms libres (pas forcement des utilisateurs de la
+  // base, ex. un client externe pour une reunion personnelle).
+  participantsLibres: z.array(z.string()).default([]),
   recurrence: z.enum(["AUCUNE", "HEBDOMADAIRE", "MENSUELLE"]).default("AUCUNE"),
   recurrenceFin: z.string().optional(),
 });

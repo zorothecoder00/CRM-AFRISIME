@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Option = { id: string; label: string };
@@ -45,6 +45,8 @@ export function MeetingFormDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [participantsLibres, setParticipantsLibres] = useState<string[]>([]);
+  const [nomLibre, setNomLibre] = useState("");
   const [recurrence, setRecurrence] = useState<CreateMeetingInput["recurrence"]>("AUCUNE");
   const {
     register,
@@ -54,8 +56,23 @@ export function MeetingFormDialog({
     formState: { errors },
   } = useForm<CreateMeetingInput>({
     resolver: zodResolver(createMeetingSchema),
-    defaultValues: { participantIds: [], recurrence: "AUCUNE" },
+    defaultValues: { participantIds: [], participantsLibres: [], recurrence: "AUCUNE" },
   });
+
+  function addNomLibre() {
+    const nom = nomLibre.trim();
+    if (!nom || participantsLibres.includes(nom)) return;
+    const next = [...participantsLibres, nom];
+    setParticipantsLibres(next);
+    setValue("participantsLibres", next);
+    setNomLibre("");
+  }
+
+  function removeNomLibre(nom: string) {
+    const next = participantsLibres.filter((n) => n !== nom);
+    setParticipantsLibres(next);
+    setValue("participantsLibres", next);
+  }
   const { run: submit, isPending } = useAction(createMeeting, { successMessage: "Réunion créée." });
 
   function toggleParticipant(userId: string, checked: boolean) {
@@ -67,10 +84,12 @@ export function MeetingFormDialog({
   }
 
   async function onSubmit(data: CreateMeetingInput) {
-    const result = await submit({ ...data, participantIds });
+    const result = await submit({ ...data, participantIds, participantsLibres });
     if (result.ok) {
       reset();
       setParticipantIds([]);
+      setParticipantsLibres([]);
+      setNomLibre("");
       setRecurrence("AUCUNE");
       setOpen(false);
     }
@@ -177,6 +196,39 @@ export function MeetingFormDialog({
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nomLibre">Autres participants (noms libres, pas forcément dans l&apos;annuaire)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="nomLibre"
+                placeholder="Ex. Jean Dupont (client)"
+                value={nomLibre}
+                onChange={(e) => setNomLibre(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addNomLibre();
+                  }
+                }}
+              />
+              <Button type="button" variant="outline" onClick={addNomLibre} disabled={!nomLibre.trim()}>
+                Ajouter
+              </Button>
+            </div>
+            {participantsLibres.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {participantsLibres.map((nom) => (
+                  <span key={nom} className="flex items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-xs">
+                    {nom}
+                    <button type="button" onClick={() => removeNomLibre(nom)} aria-label={`Retirer ${nom}`}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={isPending}>

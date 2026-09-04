@@ -40,3 +40,19 @@ export async function resolvePersonalPlanningAccess(
 export async function canViewPersonalPlanningOf(sessionUserId: string, targetUserId: string): Promise<boolean> {
   return (await resolvePersonalPlanningAccess(sessionUserId, targetUserId)) !== null;
 }
+
+/**
+ * Demande utilisateur — un partage d'agenda (PersonalPlanningShare) peut
+ * être en lecture seule (LECTEUR, défaut) ou donner la main pour
+ * ajouter/modifier des activités sur l'agenda du propriétaire (EDITEUR).
+ * Manager/chef d'équipe restent toujours en lecture seule (page dédiée,
+ * volontairement minimale — voir /planning-personnel/equipe/[userId]) :
+ * seul un partage explicite peut donner un droit d'édition.
+ */
+export async function hasAgendaEditPermission(ownerId: string, granteeId: string): Promise<boolean> {
+  if (ownerId === granteeId) return true;
+  const share = await prisma.personalPlanningShare.findUnique({
+    where: { ownerId_granteeId: { ownerId, granteeId } },
+  });
+  return share?.role === "EDITEUR";
+}

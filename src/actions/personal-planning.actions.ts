@@ -12,6 +12,7 @@ import { logAudit } from "@/lib/audit";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { runTaskBlockedRules } from "@/lib/automation";
 import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } from "@/lib/personal-planning-holidays";
+import { hasAgendaEditPermission } from "@/lib/personal-planning-access";
 import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { moveEntryToDate } from "@/lib/personal-planning-move";
 import { suggestNextAvailableSlot } from "@/lib/personal-planning-slot-suggestion";
@@ -188,6 +189,14 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
   const session = await requireSession();
   const data = createPersonalPlanningEntrySchema.parse(input);
 
+  // Demande utilisateur — un editeur d'agenda partage peut creer une
+  // activite POUR le proprietaire (voir hasAgendaEditPermission) ;
+  // ownerId === session.user.id dans le cas normal (pas de partage).
+  const ownerId = data.onBehalfOfUserId || session.user.id;
+  if (ownerId !== session.user.id && !(await hasAgendaEditPermission(ownerId, session.user.id))) {
+    throw new Error("Vous n'avez pas la main pour ajouter une activité sur cet agenda.");
+  }
+
   const dateDebut = new Date(data.dateDebut);
   const dateFin = new Date(data.dateFin);
   if (dateFin < dateDebut) {
@@ -203,13 +212,14 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
 
   // §39 — bloque réellement (contrairement aux avertissements ci-dessous)
   // les types "travail" un jour férié/non ouvré ; vérifie chaque occurrence
-  // d'une série récurrente, pas seulement la première.
+  // d'une série récurrente, pas seulement la première — sur le calendrier
+  // du PROPRIETAIRE (ownerId), pas de qui agit (editeur eventuel).
   for (const o of occurrences) {
-    await assertNotOnNonWorkingDay(session.user.id, o.dateDebut, data.type);
+    await assertNotOnNonWorkingDay(ownerId, o.dateDebut, data.type);
   }
 
   const commonData = {
-    userId: session.user.id,
+    userId: ownerId,
     titre: data.titre,
     notes: data.notes,
     type: data.type,
@@ -248,7 +258,7 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
     const dureeMs = data.dureeTrajetMinutes * 60_000;
     await prisma.personalPlanningEntry.createMany({
       data: occurrences.map((o) => ({
-        userId: session.user.id,
+        userId: ownerId,
         titre: `🚗 Déplacement vers ${data.lieu}`,
         type: "DEPLACEMENT" as const,
         priorite: data.priorite,
@@ -280,7 +290,7 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
   // (ex. créer une activité depuis /planning-personnel/recurrences).
   revalidatePath(PLANNING_PATH, "layout");
   const first = created[0];
-  const warnings = await collectPlanningWarnings(session.user.id, first.dateDebut, first.dateFin, first.id);
+  const warnings = await collectPlanningWarnings(ownerId, first.dateDebut, first.dateFin, first.id);
   return {
     ...first,
     dateDebut: first.dateDebut.toISOString(),
@@ -298,7 +308,9 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
   const data = updatePersonalPlanningEntrySchema.parse(input);
 
   const existing = await prisma.personalPlanningEntry.findUniqueOrThrow({ where: { id: data.id } });
-  if (existing.userId !== session.user.id) {
+  // Demande utilisateur — un editeur d'agenda partage (voir
+  // hasAgendaEditPermission) peut aussi modifier les entrees du proprietaire.
+  if (existing.userId !== session.user.id && !(await hasAgendaEditPermission(existing.userId, session.user.id))) {
     throw new Error("Vous ne pouvez modifier que vos propres entrées de planning.");
   }
   const dateDebut = new Date(data.dateDebut);
@@ -309,9 +321,10 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
 
   // §39 — ne re-vérifie que si la date ou le type a réellement changé (une
   // activité déjà planifiée un jour férié reste modifiable sur d'autres
-  // champs sans se faire bloquer rétroactivement par sa propre date).
+  // champs sans se faire bloquer rétroactivement par sa propre date) — sur
+  // le calendrier du PROPRIETAIRE (existing.userId), pas de qui agit.
   if (dateDebut.getTime() !== existing.dateDebut.getTime() || data.type !== existing.type) {
-    await assertNotOnNonWorkingDay(session.user.id, dateDebut, data.type);
+    await assertNotOnNonWorkingDay(existing.userId, dateDebut, data.type);
   }
 
   const entry = await prisma.personalPlanningEntry.update({
@@ -435,7 +448,7 @@ export async function deletePersonalPlanningEntry(input: DeletePersonalPlanningE
   const data = deletePersonalPlanningEntrySchema.parse(input);
 
   const existing = await prisma.personalPlanningEntry.findUniqueOrThrow({ where: { id: data.id } });
-  if (existing.userId !== session.user.id) {
+  if (existing.userId !== session.user.id && !(await hasAgendaEditPermission(existing.userId, session.user.id))) {
     throw new Error("Vous ne pouvez supprimer que vos propres entrées de planning.");
   }
 
@@ -642,14 +655,14 @@ export async function movePersonalPlanningEntry(input: MovePersonalPlanningEntry
   const data = movePersonalPlanningEntrySchema.parse(input);
 
   const existing = await prisma.personalPlanningEntry.findUniqueOrThrow({ where: { id: data.id } });
-  if (existing.userId !== session.user.id) {
+  if (existing.userId !== session.user.id && !(await hasAgendaEditPermission(existing.userId, session.user.id))) {
     throw new Error("Vous ne pouvez déplacer que vos propres entrées de planning.");
   }
   if (existing.type === "RESERVE") {
     throw new Error("Un créneau réservé via une demande de collègue ne peut pas être déplacé ici.");
   }
 
-  await assertNotOnNonWorkingDay(session.user.id, new Date(data.newDateDebut), existing.type);
+  await assertNotOnNonWorkingDay(existing.userId, new Date(data.newDateDebut), existing.type);
 
   const entry = await prisma.$transaction((tx) => moveEntryToDate(tx, data.id, new Date(data.newDateDebut)));
 

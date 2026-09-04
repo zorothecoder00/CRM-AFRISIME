@@ -197,6 +197,18 @@ export default async function MeetingDetailPage({
               }))}
               canManage={canTag}
             />
+            {meeting.participantsLibres.length > 0 && (
+              <div className="mt-3 space-y-1">
+                <p className="text-xs text-muted-foreground">Autres participants (noms libres)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {meeting.participantsLibres.map((nom) => (
+                    <Badge key={nom} variant="secondary" className="text-xs">
+                      {nom}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

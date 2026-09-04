@@ -66,6 +66,7 @@ export async function createMeeting(input: CreateMeetingInput) {
       dateHeure: new Date(data.dateHeure),
       lieu: data.lieu,
       ordreDuJour: data.ordreDuJour,
+      participantsLibres: data.participantsLibres,
       recurrence: data.recurrence,
       createdById: session.user.id,
       participants: {
@@ -90,6 +91,7 @@ export async function createMeeting(input: CreateMeetingInput) {
           dateHeure,
           lieu: data.lieu,
           ordreDuJour: data.ordreDuJour,
+          participantsLibres: data.participantsLibres,
           recurrence: data.recurrence,
           recurrenceParentId: meeting.id,
           createdById: session.user.id,

@@ -2983,6 +2983,10 @@ model Meeting {
   lieu                  String?
   ordreDuJour           String?
   compteRendu           String?
+  // Demande utilisateur (2026-09-04) — noms libres (pas forcement des
+  // utilisateurs de la base, ex. un client externe pour une reunion
+  // personnelle) en plus des vrais participants (MeetingParticipant).
+  participantsLibres    String[]              @default([])
   statut                MeetingStatus         @default(PLANIFIEE)
   // Reunions recurrentes (cahier des charges §XI) — recurrence renseignee
   // seulement sur la reunion "mere" ; les occurrences generees pointent
@@ -5813,15 +5817,24 @@ model UserWorkScheduleException {
 // n'a besoin d'aucun lien hierarchique. Distinct aussi de Delegation
 // (registre de delegation d'autorite, jamais lu par du code metier) — ici
 // c'est un vrai controle d'acces, verifie a la lecture du planning.
+enum PersonalPlanningShareRole {
+  LECTEUR
+  EDITEUR
+}
+
 model PersonalPlanningShare {
-  id             String                @id @default(cuid())
+  id             String                    @id @default(cuid())
   organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationPersonalPlanningShares", fields: [organizationId], references: [id])
+  organization   PlatformOrganization?     @relation("PlatformOrganizationPersonalPlanningShares", fields: [organizationId], references: [id])
   ownerId        String
-  owner          User                  @relation("PersonalPlanningShareOwner", fields: [ownerId], references: [id])
+  owner          User                      @relation("PersonalPlanningShareOwner", fields: [ownerId], references: [id])
   granteeId      String
-  grantee        User                  @relation("PersonalPlanningShareGrantee", fields: [granteeId], references: [id])
-  createdAt      DateTime              @default(now())
+  grantee        User                      @relation("PersonalPlanningShareGrantee", fields: [granteeId], references: [id])
+  // Demande utilisateur (2026-09-04) — lecteur (defaut, comportement
+  // d'origine) ou editeur (peut ajouter/modifier des activites sur l'agenda
+  // du proprietaire, voir hasAgendaEditPermission).
+  role           PersonalPlanningShareRole @default(LECTEUR)
+  createdAt      DateTime                  @default(now())
 
   @@unique([ownerId, granteeId])
   @@index([granteeId])

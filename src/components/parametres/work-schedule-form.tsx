@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, X, CopyPlus } from "lucide-react";
 
 const DAY_LABELS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
@@ -24,6 +25,16 @@ const TYPE_LABELS: Record<DayScheduleInput["type"], string> = {
 const EMPTY_SHIFT: ShiftScheduleInput = { heureDebut: "08:00", heureFin: "17:00", breaks: [] };
 const MAX_SHIFTS_PER_DAY = 4;
 const MAX_BREAKS_PER_SHIFT = 5;
+
+// jourSemaine : 0 = Dimanche ... 6 = Samedi (voir DAY_LABELS ci-dessus).
+const WEEKDAYS = [1, 2, 3, 4, 5];
+const WEEKEND = [0, 6];
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+
+/** Copie profonde : shifts/breaks ne doivent jamais être partagés entre deux jours (édition de l'un n'affecterait pas l'autre). */
+function cloneShifts(shifts: ShiftScheduleInput[]): ShiftScheduleInput[] {
+  return shifts.map((s) => ({ ...s, breaks: s.breaks.map((b) => ({ ...b })) }));
+}
 
 /**
  * §40 : une carte par jour de semaine. Demande utilisateur — un jour peut
@@ -90,6 +101,23 @@ export function WorkScheduleForm({ initialDays }: { initialDays: DayScheduleInpu
     );
   }
 
+  /**
+   * Demande utilisateur — appliquer l'horaire d'un jour à plusieurs autres
+   * d'un coup (semaine, jours ouvrés, weekend) plutôt que de tout ressaisir
+   * jour par jour. Copie type + shifts (avec pauses) ; jourSemaine et actif
+   * de la cible ne changent pas côté identité (actif passe à true).
+   */
+  function applySchedule(sourceDayIndex: number, targetJoursSemaine: number[]) {
+    const source = days[sourceDayIndex];
+    setDays((prev) =>
+      prev.map((d) =>
+        targetJoursSemaine.includes(d.jourSemaine) && d.jourSemaine !== source.jourSemaine
+          ? { ...d, actif: true, type: source.type, shifts: cloneShifts(source.shifts) }
+          : d
+      )
+    );
+  }
+
   function updateBreak(dayIndex: number, shiftIndex: number, breakIndex: number, patch: Partial<ShiftScheduleInput["breaks"][number]>) {
     setDays((prev) =>
       prev.map((d, i) =>
@@ -130,6 +158,21 @@ export function WorkScheduleForm({ initialDays }: { initialDays: DayScheduleInpu
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+              {day.actif && day.type !== "ABSENCE" && day.shifts.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground">
+                      <CopyPlus className="h-3.5 w-3.5" />
+                      Dupliquer vers...
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onSelect={() => applySchedule(dayIndex, ALL_DAYS)}>Toute la semaine</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => applySchedule(dayIndex, WEEKDAYS)}>Jours ouvrés (Lun-Ven)</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => applySchedule(dayIndex, WEEKEND)}>Weekend (Sam-Dim)</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
 

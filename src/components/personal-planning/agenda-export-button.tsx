@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportToXlsx } from "@/lib/xlsx-export";
 import { ENTRY_TYPE_META, ENTRY_STATUT_LABELS, type PersonalPlanningEntryType, type PersonalPlanningEntryStatut } from "@/lib/personal-planning-types";
-import { Download } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, File } from "lucide-react";
 
 export type AgendaExportRow = {
   titre: string;
@@ -14,9 +15,14 @@ export type AgendaExportRow = {
   lieu: string | null;
 };
 
-/** "Agenda consolidé" (prototype V2) — export .xlsx de l'ensemble des activités personnelles affichées, même utilitaire que le reste de l'appli (voir xlsx-export.ts). */
+/**
+ * "Agenda consolidé" (prototype V2) — export xlsx (client, voir
+ * xlsx-export.ts), PDF et Word (demande utilisateur — générés côté serveur
+ * via /api/planning-personnel/agenda-export, mêmes renderers que les
+ * rapports organisationnels, voir report-renderers.ts).
+ */
 export function AgendaExportButton({ rows }: { rows: AgendaExportRow[] }) {
-  function handleExport() {
+  function handleExportXlsx() {
     exportToXlsx(
       rows,
       [
@@ -33,10 +39,32 @@ export function AgendaExportButton({ rows }: { rows: AgendaExportRow[] }) {
     );
   }
 
+  function handleExportServer(format: "pdf" | "word") {
+    window.location.href = `/api/planning-personnel/agenda-export?format=${format}`;
+  }
+
   return (
-    <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
-      <Download className="mr-1 h-4 w-4" />
-      Exporter
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" disabled={rows.length === 0}>
+          <Download className="mr-1 h-4 w-4" />
+          Exporter
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={handleExportXlsx}>
+          <FileSpreadsheet className="h-3.5 w-3.5" />
+          Excel (.xlsx)
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleExportServer("pdf")}>
+          <FileText className="h-3.5 w-3.5" />
+          PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleExportServer("word")}>
+          <File className="h-3.5 w-3.5" />
+          Word (.docx)
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

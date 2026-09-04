@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
-import { shareAgenda, revokeAgendaShare } from "@/actions/personal-planning-share.actions";
+import { shareAgenda, revokeAgendaShare, updateAgendaShareRole } from "@/actions/personal-planning-share.actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Share2, X } from "lucide-react";
 
 type Option = { id: string; label: string };
-type Share = { id: string; granteeId: string; granteeName: string };
+type ShareRole = "LECTEUR" | "EDITEUR";
+type Share = { id: string; granteeId: string; granteeName: string; role: ShareRole };
 
 /**
  * Partage du planning personnel (demande utilisateur — "partager son agenda
@@ -19,17 +21,30 @@ type Share = { id: string; granteeId: string; granteeName: string };
  * ensuite via /planning-personnel/equipe/[userId], comme un manager.
  */
 export function AgendaShareCard({ shares, colleagues }: { shares: Share[]; colleagues: Option[] }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<string>("");
+  const [role, setRole] = useState<ShareRole>("LECTEUR");
   const { run: share, isPending: isSharing } = useAction(shareAgenda, { successMessage: "Agenda partagé." });
   const { run: revoke, isPending: isRevoking } = useAction(revokeAgendaShare, { successMessage: "Partage révoqué." });
+  const { run: changeRole, isPending: isChangingRole } = useAction(updateAgendaShareRole, {
+    successMessage: "Rôle mis à jour.",
+  });
 
   const alreadySharedIds = new Set(shares.map((s) => s.granteeId));
   const availableColleagues = colleagues.filter((c) => !alreadySharedIds.has(c.id));
 
   async function handleShare() {
     if (!selected) return;
-    const result = await share(selected);
-    if (result.ok) setSelected("");
+    const result = await share(selected, role);
+    if (result.ok) {
+      setSelected("");
+      setRole("LECTEUR");
+    }
+  }
+
+  async function handleRoleChange(shareId: string, newRole: ShareRole) {
+    const result = await changeRole(shareId, newRole);
+    if (result.ok) router.refresh();
   }
 
   return (
@@ -40,8 +55,8 @@ export function AgendaShareCard({ shares, colleagues }: { shares: Share[]; colle
           Partager mon agenda
         </CardTitle>
         <CardDescription>
-          Donne à quelqu&apos;un (ex. une secrétaire) un accès en lecture à votre planning détaillé, sans lien
-          hiérarchique — comme un manager le verrait.
+          Donne à quelqu&apos;un (ex. une secrétaire) un accès à votre planning détaillé, sans lien hiérarchique —
+          en lecture seule (Lecteur) ou avec la main pour ajouter/modifier des activités (Éditeur).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -50,6 +65,19 @@ export function AgendaShareCard({ shares, colleagues }: { shares: Share[]; colle
             {shares.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-sm">
                 <Badge variant="secondary">{s.granteeName}</Badge>
+                <Select
+                  value={s.role}
+                  onValueChange={(v) => handleRoleChange(s.id, v as ShareRole)}
+                  disabled={isChangingRole}
+                >
+                  <SelectTrigger className="h-7 w-28 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LECTEUR">Lecteur</SelectItem>
+                    <SelectItem value="EDITEUR">Éditeur</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -77,6 +105,15 @@ export function AgendaShareCard({ shares, colleagues }: { shares: Share[]; colle
                     {c.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={role} onValueChange={(v) => setRole(v as ShareRole)}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LECTEUR">Lecteur</SelectItem>
+                <SelectItem value="EDITEUR">Éditeur</SelectItem>
               </SelectContent>
             </Select>
             <Button size="sm" disabled={!selected || isSharing} onClick={handleShare}>

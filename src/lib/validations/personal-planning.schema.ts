@@ -55,6 +55,10 @@ const baseEntryFields = {
   missionMoyenTransport: z.string().optional(),
   missionHebergement: z.string().optional(),
   missionRapport: z.string().optional(),
+  // Demande utilisateur — un editeur d'agenda partage (voir
+  // hasAgendaEditPermission) cree l'activite pour le proprietaire, pas pour
+  // lui-meme. Absent/egal a soi-meme pour une creation normale.
+  onBehalfOfUserId: z.string().optional(),
 };
 
 function refineRappelPersonnalise<T extends { rappels: readonly string[]; rappelPersonnaliseDate?: string }>(data: T) {
