@@ -36,6 +36,37 @@ function cloneShifts(shifts: ShiftScheduleInput[]): ShiftScheduleInput[] {
   return shifts.map((s) => ({ ...s, breaks: s.breaks.map((b) => ({ ...b })) }));
 }
 
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToHHMM(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/**
+ * Bug de production — raccourcir un horaire sans toucher aux pauses déjà
+ * posées dedans pouvait laisser une pause déborder des nouvelles bornes, ce
+ * qui faisait échouer l'enregistrement de TOUT le planning (voir
+ * user-work-schedule.schema.ts, désormais tolérant en dernier recours).
+ * Recadre ici les pauses existantes dès que l'horaire change, pour un retour
+ * visuel immédiat plutôt qu'une correction silencieuse seulement au save.
+ */
+function clampBreaksToShift(shift: ShiftScheduleInput): ShiftScheduleInput["breaks"] {
+  const start = toMinutes(shift.heureDebut);
+  const end = toMinutes(shift.heureFin);
+  if (end <= start) return shift.breaks;
+  return shift.breaks
+    .map((b) => ({
+      heureDebut: minutesToHHMM(Math.max(start, toMinutes(b.heureDebut))),
+      heureFin: minutesToHHMM(Math.min(end, toMinutes(b.heureFin))),
+    }))
+    .filter((b) => toMinutes(b.heureFin) > toMinutes(b.heureDebut));
+}
+
 /**
  * §40 : une carte par jour de semaine. Demande utilisateur — un jour peut
  * porter plusieurs horaires (ex. matin + soir), chacun avec ses propres
@@ -66,7 +97,19 @@ export function WorkScheduleForm({ initialDays }: { initialDays: DayScheduleInpu
   function updateShift(dayIndex: number, shiftIndex: number, patch: Partial<ShiftScheduleInput>) {
     setDays((prev) =>
       prev.map((d, i) =>
-        i === dayIndex ? { ...d, shifts: d.shifts.map((s, si) => (si === shiftIndex ? { ...s, ...patch } : s)) } : d
+        i === dayIndex
+          ? {
+              ...d,
+              shifts: d.shifts.map((s, si) => {
+                if (si !== shiftIndex) return s;
+                const merged = { ...s, ...patch };
+                // Ne recadre que si l'horaire lui-même vient de changer —
+                // sans effet sur un simple changement d'un autre champ.
+                if (patch.heureDebut === undefined && patch.heureFin === undefined) return merged;
+                return { ...merged, breaks: clampBreaksToShift(merged) };
+              }),
+            }
+          : d
       )
     );
   }

@@ -8,6 +8,12 @@ function toMinutes(hhmm: string): number {
   return h * 60 + m;
 }
 
+function minutesToHHMM(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 const breakScheduleSchema = z
   .object({
     heureDebut: z.string().regex(HOUR_PATTERN, "Format HH:mm attendu."),
@@ -30,14 +36,30 @@ const shiftScheduleSchema = z
     const end = toMinutes(shift.heureFin);
     if (end <= start) {
       ctx.addIssue({ code: "custom", message: "L'heure de fin doit être après l'heure de début.", path: ["heureFin"] });
-      return;
     }
-    for (const b of shift.breaks) {
-      if (toMinutes(b.heureDebut) < start || toMinutes(b.heureFin) > end) {
-        ctx.addIssue({ code: "custom", message: "Une pause doit rester à l'intérieur de l'horaire.", path: ["breaks"] });
-        return;
-      }
-    }
+  })
+  // Bug de production (ZodError en boucle sur tous les jours/horaires) —
+  // raccourcir un horaire APRÈS avoir déjà posé une pause dedans (voir
+  // updateShift côté client, qui ne touchait pas aux pauses existantes)
+  // laissait une pause déborder des nouvelles bornes ; l'ancien
+  // superRefine rejetait alors TOUT l'enregistrement du planning, y
+  // compris pour les jours qu'on ne modifiait pas. Recadre désormais
+  // silencieusement chaque pause dans les bornes de son horaire (et
+  // supprime celles devenues vides) au lieu de faire échouer la sauvegarde
+  // — corrige aussi les données déjà invalides en base dès le prochain
+  // enregistrement. Le client (work-schedule-form.tsx) fait la même chose
+  // en amont pour un retour visuel immédiat.
+  .transform((shift) => {
+    const start = toMinutes(shift.heureDebut);
+    const end = toMinutes(shift.heureFin);
+    if (end <= start) return shift;
+    const breaks = shift.breaks
+      .map((b) => ({
+        heureDebut: minutesToHHMM(Math.max(start, toMinutes(b.heureDebut))),
+        heureFin: minutesToHHMM(Math.min(end, toMinutes(b.heureFin))),
+      }))
+      .filter((b) => toMinutes(b.heureFin) > toMinutes(b.heureDebut));
+    return { ...shift, breaks };
   });
 
 const dayScheduleSchema = z.object({
