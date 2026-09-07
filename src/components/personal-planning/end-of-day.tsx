@@ -45,10 +45,12 @@ export function PersonalPlanningEndOfDay({
 
   /**
    * Continue automatiquement une liste à tirets : Entrée sur une ligne qui
-   * commence par "-" (avec ou sans espace/texte après — "-", "- " et
-   * "- texte" comptent tous) ouvre une nouvelle ligne "- ". Un tiret laissé
-   * vide s'efface au Retour arrière comme n'importe quel caractère, pas
-   * besoin d'un geste spécial pour "sortir" de la liste.
+   * commence par "-" (peu importe ce qui suit — espace, texte collé sans
+   * espace comme "-réunion", ou rien) ouvre une nouvelle ligne "- ". Ne pas
+   * exiger d'espace après le tiret : c'est l'oubli le plus courant en usage
+   * réel et il ne doit pas empêcher la reconnaissance de la puce. Un tiret
+   * laissé vide s'efface au Retour arrière comme n'importe quel caractère,
+   * pas besoin d'un geste spécial pour "sortir" de la liste.
    */
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key !== "Enter") return;
@@ -64,7 +66,7 @@ export function PersonalPlanningEndOfDay({
     const after = value.slice(cursor);
     const lineStart = before.lastIndexOf("\n") + 1;
     const currentLine = before.slice(lineStart);
-    const match = currentLine.match(/^(\s*)-(?:\s|$)/);
+    const match = currentLine.match(/^(\s*)-/);
     if (!match) return;
 
     e.preventDefault();
