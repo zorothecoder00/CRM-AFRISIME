@@ -637,8 +637,10 @@ export default async function PlanningPersonnelPage({
           <div id="a-planifier" className="scroll-mt-20">
             <CollapsiblePlanningSidePanel>
               <PersonalPlanningInbox tasks={inboxTasks} colleagues={colleagueOptions} />
-              <PersonalPlanningHealthCard score={planningHealth} criteria={planningHealthBreakdown.criteria} />
-              <PersonalPlanningDailyLoadCard charge={charge} />
+              <div className="space-y-4 xl:contents xl:space-y-0">
+                <PersonalPlanningHealthCard score={planningHealth} criteria={planningHealthBreakdown.criteria} />
+                <PersonalPlanningDailyLoadCard charge={charge} />
+              </div>
             </CollapsiblePlanningSidePanel>
           </div>
         </div>

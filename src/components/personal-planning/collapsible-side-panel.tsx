@@ -35,9 +35,22 @@ export function SidePanelToggleButton() {
   );
 }
 
-/** Colonne parente en `auto` (voir planning-personnel/page.tsx) : sa largeur suit simplement ce composant, vide (et donc de largeur nulle) une fois replié. */
+/**
+ * Colonne parente en `auto` (voir planning-personnel/page.tsx) : sa largeur
+ * suit simplement ce composant, vide (et donc de largeur nulle) une fois
+ * replié.
+ *
+ * Sous `xl`, ce panneau n'est plus à côté du calendrier mais empilé en bas
+ * de page (grille racine repassée en une colonne) — y garder ses propres
+ * enfants strictement empilés (comme à xl, en 280px fixes) les faisait
+ * continuer vers le bas et créait un pavé étroit mal aligné dans la pleine
+ * largeur disponible (demande utilisateur). En dessous de `xl` seulement,
+ * on passe donc en grille 2 colonnes pleine largeur — "À planifier" occupe
+ * la première colonne, le reste (Health + Charge, groupés par l'appelant)
+ * la seconde — avant de revenir à l'empilement 280px habituel à `xl`.
+ */
 export function CollapsiblePlanningSidePanel({ children }: { children: React.ReactNode }) {
   const ctx = useContext(SidePanelContext);
   if (ctx?.collapsed) return null;
-  return <div className="w-[280px] space-y-6">{children}</div>;
+  return <div className="grid grid-cols-2 items-start gap-4 xl:flex xl:w-[280px] xl:flex-col xl:gap-6">{children}</div>;
 }
