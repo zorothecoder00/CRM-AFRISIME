@@ -129,6 +129,31 @@ export const suggestScheduleSlotSchema = z.object({
 
 export type SuggestScheduleSlotInput = z.infer<typeof suggestScheduleSlotSchema>;
 
+// Demande utilisateur — vérifier la disponibilité pendant la SAISIE du
+// créneau (heure début/fin), au lieu d'attendre le clic sur "Confirmer" pour
+// découvrir un conflit. Ne crée/modifie rien (voir scheduleInboxTask/
+// rescheduleTaskSlot pour la validation humaine finale) — un simple calcul.
+export const checkScheduleSlotSchema = z.object({
+  dateDebut: z.string().min(1),
+  dureeMinutes: z.number().int().positive(),
+  /** Exclut l'entrée elle-même du contrôle de conflit (cas d'un reschedule — voir rescheduleTaskSlot). */
+  excludeEntryId: z.string().min(1).optional(),
+});
+
+export type CheckScheduleSlotInput = z.infer<typeof checkScheduleSlotSchema>;
+
+// Demande utilisateur — une fois la tâche planifiée (créneau posé via
+// scheduleInboxTask), "à planifier" ne la liste plus donc plus aucun moyen
+// d'ajuster son créneau pour libérer l'heure à une autre activité. Même
+// verrou de date que scheduleInboxTask (seule l'heure est ajustable ici).
+export const rescheduleTaskSlotSchema = z.object({
+  taskId: z.string().min(1),
+  dateDebut: z.string().min(1),
+  dureeMinutes: z.number().int().positive(),
+});
+
+export type RescheduleTaskSlotInput = z.infer<typeof rescheduleTaskSlotSchema>;
+
 // Demande utilisateur — "Nouvelle activité"/"Modifier l'activité" (pas liées
 // à une tâche de l'inbox, contrairement à suggestScheduleSlotSchema) n'avait
 // aucune assistance de créneau : saisie manuelle à l'aveugle uniquement.

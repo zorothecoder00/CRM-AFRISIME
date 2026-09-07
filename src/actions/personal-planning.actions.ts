@@ -13,13 +13,12 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { runTaskBlockedRules } from "@/lib/automation";
 import { findHolidayOnDate, findApprovedLeaveOnDate, assertNotOnNonWorkingDay } from "@/lib/personal-planning-holidays";
 import { hasAgendaEditPermission } from "@/lib/personal-planning-access";
-import { findScheduleConflict } from "@/lib/personal-planning-conflicts";
+import { findScheduleConflict, describeScheduleConflict } from "@/lib/personal-planning-conflicts";
 import { moveEntryToDate } from "@/lib/personal-planning-move";
 import {
   suggestNextAvailableSlot,
   assertWithinWorkHours,
   listFreeWindowsForDay,
-  formatMinutesOfDay,
   suggestReducedSlotForDay,
 } from "@/lib/personal-planning-slot-suggestion";
 import { dateKeyOf } from "@/lib/personal-planning-grid";
@@ -30,6 +29,8 @@ import {
   deletePersonalPlanningEntrySeriesSchema,
   scheduleInboxTaskSchema,
   suggestScheduleSlotSchema,
+  checkScheduleSlotSchema,
+  rescheduleTaskSlotSchema,
   suggestFreeSlotForDateSchema,
   movePersonalPlanningEntrySchema,
   reorganizeOverloadedDaySchema,
@@ -48,6 +49,8 @@ import {
   type DeletePersonalPlanningEntrySeriesInput,
   type ScheduleInboxTaskInput,
   type SuggestScheduleSlotInput,
+  type CheckScheduleSlotInput,
+  type RescheduleTaskSlotInput,
   type SuggestFreeSlotForDateInput,
   type MovePersonalPlanningEntryInput,
   type ReorganizeOverloadedDayInput,
@@ -94,13 +97,7 @@ async function collectPlanningWarnings(userId: string, dateDebut: Date, dateFin:
     // (heure exacte du conflit + créneaux libres restants ce jour-là) :
     // "Nouvelle activité"/déplacement laissaient jusqu'ici un simple
     // "Conflit d'horaire avec : X." sans dire quand ni quoi faire.
-    const conflictRange = `${formatMinutesOfDay(conflict.dateDebut.getHours() * 60 + conflict.dateDebut.getMinutes())}–${formatMinutesOfDay(conflict.dateFin.getHours() * 60 + conflict.dateFin.getMinutes())}`;
-    const freeWindows = await listFreeWindowsForDay(userId, dateDebut);
-    const freeLabel =
-      freeWindows.length > 0
-        ? freeWindows.map((w) => `${formatMinutesOfDay(w.startMin)}–${formatMinutesOfDay(w.endMin)}`).join(", ")
-        : "aucun — journée complète";
-    warnings.push(`Conflit d'horaire : « ${conflict.titre} » occupe déjà ${conflictRange} ce jour-là. Créneaux libres restants : ${freeLabel}.`);
+    warnings.push(await describeScheduleConflict(userId, conflict, dateDebut));
   }
   return warnings;
 }
@@ -547,15 +544,7 @@ export async function scheduleInboxTask(input: ScheduleInboxTaskInput) {
     // ses horaires, pas juste son titre) ET quels créneaux sont réellement
     // libres ce jour-là, plutôt qu'un simple "choisissez un autre créneau"
     // qui laisse deviner.
-    const conflictRange = `${formatMinutesOfDay(conflict.dateDebut.getHours() * 60 + conflict.dateDebut.getMinutes())}–${formatMinutesOfDay(conflict.dateFin.getHours() * 60 + conflict.dateFin.getMinutes())}`;
-    const freeWindows = await listFreeWindowsForDay(session.user.id, dateDebutActivite);
-    const freeLabel =
-      freeWindows.length > 0
-        ? freeWindows.map((w) => `${formatMinutesOfDay(w.startMin)}–${formatMinutesOfDay(w.endMin)}`).join(", ")
-        : "aucun — journée complète";
-    throw new Error(
-      `Conflit d'horaire : « ${conflict.titre} » occupe déjà ${conflictRange} ce jour-là. Créneaux libres restants : ${freeLabel}.`
-    );
+    throw new Error(await describeScheduleConflict(session.user.id, conflict, dateDebutActivite));
   }
 
   const entry = await prisma.$transaction(async (tx) => {
@@ -664,6 +653,98 @@ export async function suggestScheduleSlot(input: SuggestScheduleSlotInput) {
     reduced: false,
     alternative: null,
   };
+}
+
+/**
+ * Demande utilisateur — calcule la disponibilité d'un créneau PENDANT la
+ * saisie (heure début/fin), au lieu de laisser l'utilisateur cliquer sur
+ * "Confirmer" pour découvrir un conflit après coup. Purement informatif —
+ * aucune écriture ; la validation humaine finale reste scheduleInboxTask/
+ * rescheduleTaskSlot (voir leurs propres contrôles, redondants mais
+ * nécessaires en défense en profondeur).
+ */
+export async function checkScheduleSlot(input: CheckScheduleSlotInput) {
+  const session = await requireSession();
+  const data = checkScheduleSlotSchema.parse(input);
+
+  const dateDebut = new Date(data.dateDebut);
+  const dateFin = new Date(dateDebut.getTime() + data.dureeMinutes * 60_000);
+
+  try {
+    await assertNotOnNonWorkingDay(session.user.id, dateDebut, "TACHE");
+    await assertWithinWorkHours(session.user.id, "TACHE", dateDebut, dateFin);
+  } catch (error) {
+    return { available: false, message: error instanceof Error ? error.message : "Créneau invalide." };
+  }
+
+  const conflict = await findScheduleConflict(session.user.id, dateDebut, dateFin, data.excludeEntryId);
+  if (conflict) {
+    return { available: false, message: await describeScheduleConflict(session.user.id, conflict, dateDebut) };
+  }
+  return { available: true, message: null };
+}
+
+/**
+ * Demande utilisateur — une fois une tâche de l'inbox planifiée (créneau
+ * posé via scheduleInboxTask), elle disparaît de "à planifier" et son
+ * créneau devenait alors impossible à ajuster depuis la fiche tâche : aucun
+ * moyen de libérer cette heure pour une autre activité sans aller chercher
+ * le bon bloc dans la grille hebdomadaire. Même verrou de date que
+ * scheduleInboxTask — seule l'heure est ajustable ici, le jour reste celui
+ * de la tâche (un changement de jour passe par TaskDateChangeRequest).
+ */
+export async function rescheduleTaskSlot(input: RescheduleTaskSlotInput) {
+  const session = await requireSession();
+  const data = rescheduleTaskSlotSchema.parse(input);
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    select: { id: true, titre: true, dateDebut: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+  });
+  const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
+  if (!isOwner) {
+    throw new Error("Vous ne pouvez modifier que le créneau de vos propres tâches.");
+  }
+
+  const existingEntry = await prisma.personalPlanningEntry.findFirst({
+    where: { tacheId: task.id },
+    orderBy: { dateDebut: "asc" },
+  });
+  if (!existingEntry) {
+    throw new Error("Cette tâche n'a pas encore de créneau planifié.");
+  }
+  if (existingEntry.userId !== session.user.id && !(await hasAgendaEditPermission(existingEntry.userId, session.user.id))) {
+    throw new Error("Vous ne pouvez modifier que vos propres entrées de planning.");
+  }
+
+  const dateDebutActivite = new Date(data.dateDebut);
+  const dateFin = new Date(dateDebutActivite.getTime() + data.dureeMinutes * 60_000);
+
+  if (task.dateDebut && dateKeyOf(dateDebutActivite) !== dateKeyOf(task.dateDebut)) {
+    throw new Error(
+      "La date ne peut pas être changée ici — faites une demande de changement de date depuis la fiche tâche."
+    );
+  }
+
+  await assertNotOnNonWorkingDay(existingEntry.userId, dateDebutActivite, "TACHE");
+  await assertWithinWorkHours(existingEntry.userId, "TACHE", dateDebutActivite, dateFin);
+
+  const conflict = await findScheduleConflict(existingEntry.userId, dateDebutActivite, dateFin, existingEntry.id);
+  if (conflict) {
+    throw new Error(await describeScheduleConflict(existingEntry.userId, conflict, dateDebutActivite));
+  }
+
+  const entry = await prisma.personalPlanningEntry.update({
+    where: { id: existingEntry.id },
+    data: { dateDebut: dateDebutActivite, dateFin },
+  });
+
+  await notifyTaskColleaguesOfSchedule(task.id, session.user.id, session.user.name ?? "Un collègue", dateDebutActivite);
+
+  revalidatePath(PLANNING_PATH, "layout");
+  revalidatePath(`/taches/${task.id}`);
+  const warnings = await collectPlanningWarnings(existingEntry.userId, entry.dateDebut, entry.dateFin, entry.id);
+  return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString(), warnings };
 }
 
 /**

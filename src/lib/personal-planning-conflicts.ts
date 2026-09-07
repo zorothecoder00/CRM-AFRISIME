@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatMinutesOfDay, listFreeWindowsForDay } from "@/lib/personal-planning-slot-suggestion";
 
 // Meme duree par defaut que personal-planning-slot-suggestion.ts et
 // meeting.actions.ts — Meeting n'a pas de champ duree stocke.
@@ -64,4 +65,20 @@ export async function findScheduleConflict(
     };
   }
   return null;
+}
+
+/**
+ * Message d'un conflit d'horaire — heure exacte de ce qui occupe déjà le
+ * créneau + créneaux libres restants ce jour-là. Factorisé ici (au lieu
+ * d'être dupliqué dans scheduleInboxTask/collectPlanningWarnings/
+ * checkScheduleSlot) pour ne maintenir qu'une seule formulation.
+ */
+export async function describeScheduleConflict(userId: string, conflict: ScheduleConflict, dateDebut: Date): Promise<string> {
+  const conflictRange = `${formatMinutesOfDay(conflict.dateDebut.getHours() * 60 + conflict.dateDebut.getMinutes())}–${formatMinutesOfDay(conflict.dateFin.getHours() * 60 + conflict.dateFin.getMinutes())}`;
+  const freeWindows = await listFreeWindowsForDay(userId, dateDebut);
+  const freeLabel =
+    freeWindows.length > 0
+      ? freeWindows.map((w) => `${formatMinutesOfDay(w.startMin)}–${formatMinutesOfDay(w.endMin)}`).join(", ")
+      : "aucun — journée complète";
+  return `Conflit d'horaire : « ${conflict.titre} » occupe déjà ${conflictRange} ce jour-là. Créneaux libres restants : ${freeLabel}.`;
 }

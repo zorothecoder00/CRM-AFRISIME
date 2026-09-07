@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAction } from "@/hooks/use-action";
-import { scheduleInboxTask, suggestScheduleSlot } from "@/actions/personal-planning.actions";
+import { scheduleInboxTask, suggestScheduleSlot, checkScheduleSlot } from "@/actions/personal-planning.actions";
 import { TaskDateChangeRequestDialog } from "@/components/tasks/task-date-change-request-dialog";
-import { CalendarPlus, Pencil, RefreshCw, Sparkles } from "lucide-react";
+import { CalendarPlus, Pencil, RefreshCw, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 function pad(n: number): string {
@@ -56,6 +56,41 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
   const { run: confirm, isPending: isConfirming } = useAction(scheduleInboxTask, {
     successMessage: () => `« ${titre} » planifiée.`,
   });
+
+  // Demande utilisateur — calculer la disponibilité PENDANT la saisie du
+  // créneau (heure début/fin), au lieu d'attendre le clic sur "Confirmer"
+  // pour découvrir un conflit. Ne s'applique qu'en édition manuelle : le
+  // créneau suggéré automatiquement est déjà garanti libre au moment où il
+  // arrive (voir fetchSuggestion).
+  const [slotCheck, setSlotCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
+  // Le créneau saisi est-il complet et cohérent — sert à la fois de garde
+  // pour lancer la vérification ET de condition d'affichage (un résultat
+  // périmé d'un ancien créneau ne s'affiche jamais si la saisie actuelle
+  // n'est plus valide, sans avoir à le remettre à zéro synchronement).
+  const canCheckSlot = isEditingCreneau && !!dateKey && !!heureDebut && !!heureFin && heureFin > heureDebut;
+
+  useEffect(() => {
+    if (!canCheckSlot) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setSlotCheck({ checking: true, message: null });
+      const [y, m, d] = dateKey!.split("-").map(Number);
+      const [hDebut, mDebut] = heureDebut.split(":").map(Number);
+      const [hFin, mFin] = heureFin.split(":").map(Number);
+      const dateDebut = new Date(y, m - 1, d, hDebut, mDebut);
+      const dureeMinutes = Math.round((new Date(y, m - 1, d, hFin, mFin).getTime() - dateDebut.getTime()) / 60_000);
+      try {
+        const result = await checkScheduleSlot({ dateDebut: dateDebut.toISOString(), dureeMinutes });
+        if (!cancelled) setSlotCheck({ checking: false, message: result.available ? null : result.message });
+      } catch {
+        if (!cancelled) setSlotCheck({ checking: false, message: null });
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [canCheckSlot, dateKey, heureDebut, heureFin]);
 
   async function fetchSuggestion(after?: string) {
     setNoSlotFound(false);
@@ -256,7 +291,20 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
                     className="flex-1"
                   />
                 </div>
-              ) : (
+              ) : null}
+              {canCheckSlot && slotCheck.checking && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+                  Vérification de la disponibilité…
+                </p>
+              )}
+              {canCheckSlot && !slotCheck.checking && slotCheck.message && (
+                <p className="flex items-start gap-1.5 text-xs text-destructive">
+                  <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {slotCheck.message}
+                </p>
+              )}
+              {!isEditingCreneau && (
                 <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
                   {heureDebut && heureFin ? `${heureDebut} → ${heureFin}` : "—"}
                 </p>
@@ -273,7 +321,11 @@ export function ScheduleTaskDialog({ taskId, titre }: { taskId: string; titre: s
                 <RefreshCw className="mr-1 h-3.5 w-3.5" />
                 Autre créneau
               </Button>
-              <Button type="submit" className="flex-1" disabled={isConfirming || !dateKey || !heureDebut || !heureFin}>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isConfirming || !dateKey || !heureDebut || !heureFin || (canCheckSlot && (slotCheck.checking || !!slotCheck.message))}
+              >
                 {isConfirming ? "Planification..." : "Confirmer"}
               </Button>
             </div>

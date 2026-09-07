@@ -28,6 +28,7 @@ import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
 import { TaskStatusSelect } from "@/components/tasks/task-status-select";
 import { TaskDateChangeRequestDialog } from "@/components/tasks/task-date-change-request-dialog";
+import { TaskRescheduleSlotDialog } from "@/components/tasks/task-reschedule-slot-dialog";
 import { TaskDateChangeRequestsPanel } from "@/components/tasks/task-date-change-requests-panel";
 import { BackLink } from "@/components/ui/back-link";
 
@@ -87,6 +88,11 @@ export default async function TaskDetailPage({
       meetingDecision: { include: { meeting: true } },
       adminRequest: true,
       indicators: { orderBy: { createdAt: "asc" } },
+      // Demande utilisateur — une fois planifiée (voir ScheduleTaskDialog),
+      // la tâche disparaît de "à planifier" et son créneau (heure, pas
+      // seulement la date) n'était visible/ajustable nulle part depuis la
+      // fiche tâche (voir TaskCreneauSection).
+      personalPlanningEntries: { orderBy: { dateDebut: "asc" }, take: 1, select: { id: true, dateDebut: true, dateFin: true } },
       validationRun: {
         include: {
           workflow: { include: { steps: { orderBy: { ordre: "asc" } } } },
@@ -413,16 +419,32 @@ export default async function TaskDetailPage({
               label="Date de début"
               value={task.dateDebut ? new Date(task.dateDebut).toLocaleDateString("fr-FR") : "—"}
             />
+            {task.personalPlanningEntries[0] && (
+              <Info
+                label="Créneau"
+                value={`${new Date(task.personalPlanningEntries[0].dateDebut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} → ${new Date(task.personalPlanningEntries[0].dateFin).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
+              />
+            )}
             <Info
               label="Échéance"
               value={task.echeance ? new Date(task.echeance).toLocaleDateString("fr-FR") : "—"}
             />
             {isOwner && !task.deletedAt && (
-              <TaskDateChangeRequestDialog
-                taskId={task.id}
-                currentDateDebut={task.dateDebut ? task.dateDebut.toISOString() : null}
-                currentEcheance={task.echeance ? task.echeance.toISOString() : null}
-              />
+              <div className="flex flex-wrap gap-2">
+                <TaskDateChangeRequestDialog
+                  taskId={task.id}
+                  currentDateDebut={task.dateDebut ? task.dateDebut.toISOString() : null}
+                  currentEcheance={task.echeance ? task.echeance.toISOString() : null}
+                />
+                {task.personalPlanningEntries[0] && (
+                  <TaskRescheduleSlotDialog
+                    taskId={task.id}
+                    entryId={task.personalPlanningEntries[0].id}
+                    currentDateDebut={task.personalPlanningEntries[0].dateDebut.toISOString()}
+                    currentDateFin={task.personalPlanningEntries[0].dateFin.toISOString()}
+                  />
+                )}
+              </div>
             )}
             <Info
               label="Temps estimé"
