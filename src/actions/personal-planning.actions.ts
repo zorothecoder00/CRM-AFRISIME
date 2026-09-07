@@ -336,9 +336,23 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
     throw new Error("Vous ne pouvez modifier que vos propres entrées de planning.");
   }
   const dateDebut = new Date(data.dateDebut);
-  const dateFin = new Date(data.dateFin);
+  let dateFin = new Date(data.dateFin);
   if (dateFin < dateDebut) {
     throw new Error("La date de fin doit être postérieure à la date de début.");
+  }
+
+  // Demande utilisateur — terminer une activité/tâche AVANT la fin de son
+  // créneau doit libérer automatiquement le temps non utilisé, plutôt que
+  // laisser le créneau occupé jusqu'à l'heure de fin initialement prévue
+  // (les calculs de disponibilité — findScheduleConflict, computeDailyCharge,
+  // etc. — se basent uniquement sur dateDebut/dateFin, jamais sur un "temps
+  // réel" séparé). Ne s'applique qu'à la TRANSITION vers TERMINEE (pas à
+  // chaque ré-enregistrement d'une entrée déjà terminée, qui recalculerait
+  // sans arrêt sur l'heure courante).
+  const isFinishingNow = data.statut === "TERMINEE" && existing.statut !== "TERMINEE";
+  if (isFinishingNow) {
+    const now = new Date();
+    if (dateFin > now) dateFin = now;
   }
 
   // §39 — ne re-vérifie que si la date ou le type a réellement changé (une
@@ -426,6 +440,17 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
     if (task.priorite === "TRES_HAUTE") {
       await runTaskBlockedRules(task);
     }
+  }
+
+  // Demande utilisateur — le "temps réel" d'une tâche doit être calculé
+  // automatiquement à partir du créneau réellement occupé (dateDebut → la
+  // fin, éventuellement avancée ci-dessus si terminée en avance), plutôt que
+  // saisi à la main (voir ActualTimeForm, qui reste un repli manuel pour les
+  // tâches jamais liées à un créneau).
+  if (isFinishingNow && entry.tacheId) {
+    const tempsReelHeures = Math.round(((entry.dateFin.getTime() - entry.dateDebut.getTime()) / 3_600_000) * 100) / 100;
+    await prisma.task.update({ where: { id: entry.tacheId }, data: { tempsReelHeures } });
+    revalidatePath(`/taches/${entry.tacheId}`);
   }
 
   // Notification directe et systématique au changement de statut, pour les

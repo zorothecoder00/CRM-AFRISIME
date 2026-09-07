@@ -382,13 +382,36 @@ export async function updateTaskStatus(taskId: string, statut: string) {
   // sous-tache.
   const existing = await prisma.task.findUniqueOrThrow({
     where: { id: data.taskId },
-    select: { responsablePrincipalId: true, assignees: { select: { userId: true } } },
+    select: { statut: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
   });
   const isOwner =
     existing.responsablePrincipalId === session.user.id ||
     existing.assignees.some((a) => a.userId === session.user.id);
   if (!isOwner) {
     requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
+  }
+
+  // Demande utilisateur — terminer une tâche directement (statut, sans
+  // passer par le dialogue d'édition de l'activité qui gère déjà ce cas —
+  // voir updatePersonalPlanningEntry) doit aussi libérer le temps non
+  // utilisé de son créneau lié et calculer le "temps réel" automatiquement,
+  // plutôt que laisser le créneau occupé jusqu'à l'heure de fin prévue.
+  // Uniquement à la TRANSITION vers TERMINEE (pas à chaque appel avec ce
+  // statut déjà en place).
+  let linkedEntryUpdate: { id: string; dateFin: Date } | undefined;
+  let autoTempsReelHeures: number | undefined;
+  if (data.statut === "TERMINEE" && existing.statut !== "TERMINEE") {
+    const linkedEntry = await prisma.personalPlanningEntry.findFirst({
+      where: { tacheId: data.taskId, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+      orderBy: { dateDebut: "asc" },
+      select: { id: true, dateDebut: true, dateFin: true },
+    });
+    if (linkedEntry) {
+      const now = new Date();
+      const effectiveDateFin = linkedEntry.dateFin > now ? now : linkedEntry.dateFin;
+      autoTempsReelHeures = Math.round(((effectiveDateFin.getTime() - linkedEntry.dateDebut.getTime()) / 3_600_000) * 100) / 100;
+      linkedEntryUpdate = { id: linkedEntry.id, dateFin: effectiveDateFin };
+    }
   }
 
   const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
@@ -402,9 +425,18 @@ export async function updateTaskStatus(taskId: string, statut: string) {
         // reset, rouvrir une tache Terminee la laissait bloquee a 100 %.
         avancement: data.statut === "TERMINEE" ? 100 : 0,
         completedAt: data.statut === "TERMINEE" ? new Date() : null,
+        ...(autoTempsReelHeures !== undefined ? { tempsReelHeures: autoTempsReelHeures } : {}),
       },
     })
   );
+
+  if (linkedEntryUpdate) {
+    await prisma.personalPlanningEntry.update({
+      where: { id: linkedEntryUpdate.id },
+      data: { dateFin: linkedEntryUpdate.dateFin, statut: "TERMINEE" },
+    });
+    revalidatePath("/planning-personnel", "layout");
+  }
 
   await logAudit({
     userId: session.user.id,
