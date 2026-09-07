@@ -54,8 +54,14 @@ export function PersonalPlanningEndOfDay({
     if (e.key !== "Enter") return;
     const el = e.currentTarget;
     const cursor = el.selectionStart;
-    const before = notes.slice(0, cursor);
-    const after = notes.slice(cursor);
+    // Lit el.value (le DOM, toujours à jour) plutôt que le state `notes` :
+    // sur un texte long, le rendu React (+ redimensionnement du textarea)
+    // peut ne pas avoir rattrapé la dernière frappe quand Entrée arrive,
+    // et `notes` se retrouve alors en retard sur ce que l'utilisateur voit
+    // réellement à l'écran — d'où le tiret qui "ne prend pas" par moments.
+    const value = el.value;
+    const before = value.slice(0, cursor);
+    const after = value.slice(cursor);
     const lineStart = before.lastIndexOf("\n") + 1;
     const currentLine = before.slice(lineStart);
     const match = currentLine.match(/^(\s*)-(?:\s|$)/);
