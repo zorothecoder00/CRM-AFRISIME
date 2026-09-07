@@ -52,5 +52,5 @@ export function SidePanelToggleButton() {
 export function CollapsiblePlanningSidePanel({ children }: { children: React.ReactNode }) {
   const ctx = useContext(SidePanelContext);
   if (ctx?.collapsed) return null;
-  return <div className="grid grid-cols-2 items-start gap-4 xl:flex xl:w-[280px] xl:flex-col xl:gap-6">{children}</div>;
+  return <div className="grid grid-cols-2 items-start gap-4 xl:flex xl:w-[280px] xl:flex-col xl:items-stretch xl:gap-6">{children}</div>;
 }
