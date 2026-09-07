@@ -154,6 +154,17 @@ export const rescheduleTaskSlotSchema = z.object({
 
 export type RescheduleTaskSlotInput = z.infer<typeof rescheduleTaskSlotSchema>;
 
+// Demande utilisateur — replanifier une tâche vers un AUTRE jour (via une
+// demande de changement de date, voir TaskDateChangeRequestDialog) doit
+// pouvoir s'appuyer sur une date suggérée qui tient compte de la charge de
+// travail, pas juste une saisie manuelle à l'aveugle (voir
+// suggestRescheduleSlot).
+export const suggestTaskRescheduleSlotSchema = z.object({
+  taskId: z.string().min(1),
+});
+
+export type SuggestTaskRescheduleSlotInput = z.infer<typeof suggestTaskRescheduleSlotSchema>;
+
 // Demande utilisateur — "Nouvelle activité"/"Modifier l'activité" (pas liées
 // à une tâche de l'inbox, contrairement à suggestScheduleSlotSchema) n'avait
 // aucune assistance de créneau : saisie manuelle à l'aveugle uniquement.

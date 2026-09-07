@@ -17,6 +17,7 @@ import { findScheduleConflict, describeScheduleConflict } from "@/lib/personal-p
 import { moveEntryToDate } from "@/lib/personal-planning-move";
 import {
   suggestNextAvailableSlot,
+  suggestRescheduleSlot,
   assertWithinWorkHours,
   listFreeWindowsForDay,
   suggestReducedSlotForDay,
@@ -31,6 +32,7 @@ import {
   suggestScheduleSlotSchema,
   checkScheduleSlotSchema,
   rescheduleTaskSlotSchema,
+  suggestTaskRescheduleSlotSchema,
   suggestFreeSlotForDateSchema,
   movePersonalPlanningEntrySchema,
   reorganizeOverloadedDaySchema,
@@ -51,6 +53,7 @@ import {
   type SuggestScheduleSlotInput,
   type CheckScheduleSlotInput,
   type RescheduleTaskSlotInput,
+  type SuggestTaskRescheduleSlotInput,
   type SuggestFreeSlotForDateInput,
   type MovePersonalPlanningEntryInput,
   type ReorganizeOverloadedDayInput,
@@ -745,6 +748,36 @@ export async function rescheduleTaskSlot(input: RescheduleTaskSlotInput) {
   revalidatePath(`/taches/${task.id}`);
   const warnings = await collectPlanningWarnings(existingEntry.userId, entry.dateDebut, entry.dateFin, entry.id);
   return { ...entry, dateDebut: entry.dateDebut.toISOString(), dateFin: entry.dateFin.toISOString(), warnings };
+}
+
+/**
+ * Demande utilisateur — "replanifier une tâche" (vers un autre JOUR, via une
+ * demande de changement de date — voir TaskDateChangeRequestDialog) doit
+ * s'appuyer sur une date qui tient compte de la charge de travail existante,
+ * pas seulement le tout premier créneau libre trouvé (voir
+ * suggestRescheduleSlot, même moteur que suggestMeetingSlot pour les
+ * réunions). Purement une suggestion — la demande elle-même reste soumise à
+ * validation du responsable (requestTaskDateChange).
+ */
+export async function suggestTaskRescheduleSlot(input: SuggestTaskRescheduleSlotInput) {
+  const session = await requireSession();
+  const data = suggestTaskRescheduleSlotSchema.parse(input);
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: { id: data.taskId },
+    select: { id: true, tempsEstimeHeures: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+  });
+  const isOwner = task.responsablePrincipalId === session.user.id || task.assignees.some((a) => a.userId === session.user.id);
+  if (!isOwner) {
+    throw new Error("Vous ne pouvez replanifier que vos propres tâches.");
+  }
+
+  const existingEntry = await prisma.personalPlanningEntry.findFirst({ where: { tacheId: task.id }, select: { id: true } });
+  const durationMinutes = task.tempsEstimeHeures ? Math.round(Number(task.tempsEstimeHeures) * 60) : 60;
+
+  const slot = await suggestRescheduleSlot(session.user.id, durationMinutes, new Date(), undefined, existingEntry?.id);
+  if (!slot) return null;
+  return { dateDebut: slot.dateDebut.toISOString(), dateFin: slot.dateFin.toISOString(), enSurcharge: slot.enSurcharge };
 }
 
 /**

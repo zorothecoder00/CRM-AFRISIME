@@ -9,7 +9,7 @@ import { createNotification } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import { buildRecurrenceDates } from "@/lib/meeting-recurrence";
 import { runMeetingCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
-import { suggestNextAvailableSlot } from "@/lib/personal-planning-slot-suggestion";
+import { suggestRescheduleSlot } from "@/lib/personal-planning-slot-suggestion";
 import {
   createMeetingSchema,
   updateCompteRenduSchema,
@@ -186,9 +186,10 @@ export async function updateCompteRendu(input: UpdateCompteRenduInput) {
 
 /**
  * Demande utilisateur — au lieu d'un formulaire manuel vide, propose
- * automatiquement le premier créneau libre de l'organisateur (même moteur
- * que "Transformer en activité"/"Replanifier" pour les tâches/activités,
- * voir suggestNextAvailableSlot). Ne planifie rien elle-même — la
+ * automatiquement un créneau libre de l'organisateur qui tient compte de sa
+ * charge de travail du jour (pas seulement le tout premier trou trouvé), via
+ * suggestRescheduleSlot — même moteur que "Replanifier" pour les tâches
+ * (voir suggestTaskRescheduleSlot). Ne planifie rien elle-même — la
  * confirmation reste un choix explicite (rescheduleMeeting).
  */
 export async function suggestMeetingSlot(input: SuggestMeetingSlotInput) {
@@ -197,9 +198,16 @@ export async function suggestMeetingSlot(input: SuggestMeetingSlotInput) {
   const data = suggestMeetingSlotSchema.parse(input);
 
   const from = data.after ? new Date(data.after) : new Date();
-  const slot = await suggestNextAvailableSlot(session.user.id, MEETING_DEFAULT_DURATION_MINUTES, from);
+  const slot = await suggestRescheduleSlot(
+    session.user.id,
+    MEETING_DEFAULT_DURATION_MINUTES,
+    from,
+    undefined,
+    undefined,
+    data.meetingId
+  );
   if (!slot) return null;
-  return { dateDebut: slot.dateDebut.toISOString() };
+  return { dateDebut: slot.dateDebut.toISOString(), enSurcharge: slot.enSurcharge };
 }
 
 /** Demande utilisateur — replanifier une réunion (aucune fonctionnalité de ce type n'existait avant, contrairement aux tâches/activités). */

@@ -27,6 +27,11 @@ export function RescheduleMeetingDialog({ meetingId, titre }: { meetingId: strin
   const [dateHeure, setDateHeure] = useState("");
   const [noSlotFound, setNoSlotFound] = useState(false);
   const [lastSuggested, setLastSuggested] = useState<string | null>(null);
+  // Demande utilisateur — replanifier doit tenir compte de la charge de
+  // travail du jour proposé, pas seulement du premier créneau libre trouvé
+  // (voir suggestRescheduleSlot) : signale quand le jour suggéré est déjà
+  // chargé, faute de jour plus dégagé dans la fenêtre de recherche.
+  const [enSurcharge, setEnSurcharge] = useState(false);
 
   const { run: suggest, isPending: isSuggesting } = useAction(suggestMeetingSlot);
   const { run: confirm, isPending: isConfirming } = useAction(rescheduleMeeting, {
@@ -43,12 +48,14 @@ export function RescheduleMeetingDialog({ meetingId, titre }: { meetingId: strin
     }
     setDateHeure(toDatetimeLocalValue(new Date(result.data.dateDebut)));
     setLastSuggested(result.data.dateDebut);
+    setEnSurcharge(result.data.enSurcharge);
   }
 
   async function handleOpen() {
     setOpen(true);
     setDateHeure("");
     setNoSlotFound(false);
+    setEnSurcharge(false);
     await fetchSuggestion();
   }
 
@@ -82,10 +89,17 @@ export function RescheduleMeetingDialog({ meetingId, titre }: { meetingId: strin
               Aucun créneau libre trouvé dans les 3 prochaines semaines — choisissez une date manuellement.
             </p>
           )}
-          {!isSuggesting && dateHeure && !noSlotFound && (
+          {!isSuggesting && dateHeure && !noSlotFound && !enSurcharge && (
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
               Créneau libre proposé automatiquement (selon votre charge et vos horaires) — ajustez-le si besoin.
+            </p>
+          )}
+          {!isSuggesting && dateHeure && !noSlotFound && enSurcharge && (
+            <p className="flex items-start gap-1.5 text-xs text-warning">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Créneau libre, mais ce jour-là est déjà chargé — aucun jour plus dégagé n&apos;a été trouvé dans les 3
+              prochaines semaines. Ajustez-le si besoin.
             </p>
           )}
 

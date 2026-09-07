@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { requestTaskDateChange } from "@/actions/task.actions";
+import { suggestTaskRescheduleSlot } from "@/actions/personal-planning.actions";
 import {
   createTaskDateChangeRequestSchema,
   type CreateTaskDateChangeRequestInput,
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Sparkles } from "lucide-react";
 
 /**
  * Demande utilisateur : le responsable principal/les assignés d'une tâche
@@ -44,17 +45,36 @@ export function TaskDateChangeRequestDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CreateTaskDateChangeRequestInput>({
     resolver: zodResolver(createTaskDateChangeRequestSchema),
     defaultValues: { taskId },
   });
   const { run: submit, isPending } = useAction(requestTaskDateChange, { successMessage: "Demande envoyée." });
+  // Demande utilisateur — replanifier une tâche doit pouvoir s'appuyer sur
+  // une date qui tient compte de la charge de travail existante, pas
+  // seulement une saisie manuelle à l'aveugle (voir suggestTaskRescheduleSlot,
+  // même moteur que "Replanifier" pour les réunions).
+  const { run: suggest, isPending: isSuggesting } = useAction(suggestTaskRescheduleSlot);
+  const [suggestion, setSuggestion] = useState<{ dateDebut: string; enSurcharge: boolean } | "none" | null>(null);
+
+  async function handleSuggest() {
+    const result = await suggest({ taskId });
+    if (!result.ok) return;
+    if (!result.data) {
+      setSuggestion("none");
+      return;
+    }
+    setValue("requestedDateDebut", result.data.dateDebut.slice(0, 10), { shouldDirty: true });
+    setSuggestion({ dateDebut: result.data.dateDebut, enSurcharge: result.data.enSurcharge });
+  }
 
   async function onSubmit(data: CreateTaskDateChangeRequestInput) {
     const result = await submit({ ...data, taskId });
     if (result.ok) {
       reset({ taskId });
+      setSuggestion(null);
       setOpen(false);
     }
   }
@@ -78,6 +98,29 @@ export function TaskDateChangeRequestDialog({
             Indiquez la (ou les) date(s) que vous souhaiteriez, en fonction de votre emploi du temps — votre
             responsable devra valider avant que la tâche soit réellement déplacée.
           </p>
+
+          <div className="space-y-1.5">
+            <Button type="button" variant="outline" size="sm" disabled={isSuggesting} onClick={handleSuggest}>
+              <Sparkles className="mr-1 h-3.5 w-3.5" />
+              {isSuggesting ? "Recherche..." : "Suggérer une date"}
+            </Button>
+            {suggestion === "none" && (
+              <p className="text-xs text-warning">Aucun créneau libre trouvé dans les 3 prochaines semaines.</p>
+            )}
+            {suggestion && suggestion !== "none" && !suggestion.enSurcharge && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+                Date proposée selon votre charge de travail et vos horaires — ajustez-la si besoin.
+              </p>
+            )}
+            {suggestion && suggestion !== "none" && suggestion.enSurcharge && (
+              <p className="text-xs text-warning">
+                Date proposée, mais ce jour-là est déjà chargé — aucun jour plus dégagé n&apos;a été trouvé dans les 3
+                prochaines semaines.
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dc-dateDebut">Nouvelle date de début</Label>

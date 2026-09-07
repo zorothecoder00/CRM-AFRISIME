@@ -2,7 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { addDays } from "date-fns";
 import { findNonWorkingDaysInRange } from "@/lib/personal-planning-holidays";
 import { dateKeyOf, GRID_START_HOUR, GRID_END_HOUR } from "@/lib/personal-planning-grid";
-import { groupSchedulesByWeekday, parseHourMinutes, type MultiShiftDaySchedule } from "@/lib/personal-planning-workload";
+import {
+  groupSchedulesByWeekday,
+  parseHourMinutes,
+  resolveDailyCapacity,
+  computeDailyCharge,
+  type MultiShiftDaySchedule,
+} from "@/lib/personal-planning-workload";
 
 const SEARCH_WINDOW_DAYS = 21;
 const SLOT_STEP_MINUTES = 15;
@@ -149,6 +155,122 @@ export async function suggestNextAvailableSlot(
     cursorDay = addDays(cursorDay, 1);
   }
   return null;
+}
+
+export type RescheduleSlotSuggestion = {
+  dateDebut: Date;
+  dateFin: Date;
+  /** Charge déjà posée ce jour-là (hors le créneau proposé lui-même). */
+  chargeHeuresAvant: number;
+  capaciteHeures: number;
+  /** true si ajouter ce créneau dépasserait la capacité journalière — le jour proposé est alors le premier créneau libre trouvé (comportement historique), faute de jour plus dégagé dans la fenêtre de recherche. */
+  enSurcharge: boolean;
+};
+
+const RESCHEDULE_MEETING_DURATION_MINUTES = 60;
+
+/**
+ * Demande utilisateur — replanifier une tâche ou une réunion doit tenir
+ * compte de la charge de travail du jour candidat, pas seulement s'arrêter
+ * au tout premier créneau libre trouvé (voir suggestNextAvailableSlot,
+ * réutilisé ici jour par jour) : entre deux jours ayant chacun un créneau
+ * libre, préfère le premier jour dont la charge existante + ce créneau reste
+ * sous la capacité journalière, plutôt que d'empiler sur un jour déjà plein
+ * quand un jour plus dégagé suit de peu. Si aucun jour de la fenêtre de
+ * recherche n'est sous cette capacité, retombe sur le tout premier créneau
+ * libre trouvé (mieux vaut proposer un jour chargé que rien), avec
+ * `enSurcharge: true` pour que l'appelant puisse le signaler.
+ */
+export async function suggestRescheduleSlot(
+  userId: string,
+  durationMinutes: number,
+  from: Date = new Date(),
+  maxDays: number = SEARCH_WINDOW_DAYS,
+  /** Exclut l'entrée elle-même du calcul de charge (on la déplace, on ne l'ajoute pas en double). */
+  excludeEntryId?: string,
+  /** Idem pour une réunion qu'on replanifie — sans ça, si le jour candidat est encore son jour ACTUEL (avant déplacement), elle se compterait deux fois dans sa propre charge. */
+  excludeMeetingId?: string
+): Promise<RescheduleSlotSuggestion | null> {
+  const me = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { capaciteHebdomadaireHeures: true } });
+  const capaciteHebdomadaireHeures = Number(me.capaciteHebdomadaireHeures);
+
+  const searchStartDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const searchEndDay = addDays(searchStartDay, maxDays);
+
+  const [schedules, exceptions] = await Promise.all([
+    prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
+    prisma.userWorkScheduleException.findMany({ where: { userId, date: { gte: searchStartDay, lte: searchEndDay } } }),
+  ]);
+  const scheduleByWeekday = groupSchedulesByWeekday(schedules);
+  const exceptionByDate = new Map(exceptions.map((e) => [dateKeyOf(e.date), e]));
+
+  let fallback: RescheduleSlotSuggestion | null = null;
+  let cursorDay = searchStartDay;
+
+  for (let dayOffset = 0; dayOffset <= maxDays; dayOffset++) {
+    // Réutilise la recherche déjà éprouvée (fériés/congés/horaires/
+    // chevauchements), restreinte à ce seul jour — même composition que
+    // suggestReducedSlotForDay. Le tout premier jour garde l'heure exacte de
+    // `from` (pas minuit) : sans ça, un "Autre créneau" cliqué plusieurs fois
+    // le même jour re-proposerait un créneau plus tôt dans la journée au lieu
+    // d'avancer, `from` portant justement l'heure de la suggestion précédente.
+    const slot = await suggestNextAvailableSlot(userId, durationMinutes, dayOffset === 0 ? from : cursorDay, 0);
+    if (slot) {
+      const dayStart = new Date(cursorDay.getFullYear(), cursorDay.getMonth(), cursorDay.getDate());
+      const dayEnd = addDays(dayStart, 1);
+      const [entriesRaw, meetingsRaw] = await Promise.all([
+        prisma.personalPlanningEntry.findMany({
+          where: {
+            userId,
+            statut: { notIn: ["TERMINEE", "ANNULEE"] },
+            id: excludeEntryId ? { not: excludeEntryId } : undefined,
+            dateDebut: { lt: dayEnd },
+            dateFin: { gt: dayStart },
+          },
+          select: { dateDebut: true, dateFin: true },
+        }),
+        prisma.meeting.findMany({
+          where: {
+            participants: { some: { userId } },
+            id: excludeMeetingId ? { not: excludeMeetingId } : undefined,
+            dateHeure: { gte: dayStart, lt: dayEnd },
+          },
+          select: { dateHeure: true },
+        }),
+      ]);
+
+      const capaciteHeures = resolveDailyCapacity(
+        scheduleByWeekday.get(dayStart.getDay()) ?? null,
+        capaciteHebdomadaireHeures,
+        exceptionByDate.get(dateKeyOf(dayStart)) ?? null
+      );
+      const charge = computeDailyCharge(
+        [
+          ...entriesRaw.map((e) => ({ dateDebut: e.dateDebut.toISOString(), dateFin: e.dateFin.toISOString() })),
+          ...meetingsRaw.map((m) => ({
+            dateDebut: m.dateHeure.toISOString(),
+            dateFin: new Date(m.dateHeure.getTime() + RESCHEDULE_MEETING_DURATION_MINUTES * 60_000).toISOString(),
+          })),
+        ],
+        capaciteHeures,
+        dayStart
+      );
+      const enSurcharge = capaciteHeures > 0 && charge.chargeHeures + durationMinutes / 60 > capaciteHeures;
+
+      const candidate: RescheduleSlotSuggestion = {
+        dateDebut: slot.dateDebut,
+        dateFin: slot.dateFin,
+        chargeHeuresAvant: charge.chargeHeures,
+        capaciteHeures,
+        enSurcharge,
+      };
+      if (!fallback) fallback = candidate;
+      if (!enSurcharge) return candidate;
+    }
+    cursorDay = addDays(cursorDay, 1);
+  }
+
+  return fallback;
 }
 
 export function formatMinutesOfDay(minutes: number): string {

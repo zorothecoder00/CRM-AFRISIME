@@ -16,15 +16,20 @@ import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import { Briefcase, ChevronRight, MapPin, Wallet, Car, BedDouble } from "lucide-react";
 
-const MISSION_TYPES = ["MISSION", "DEPLACEMENT"] as const;
+// Demande utilisateur — AUTRES ajouté à côté de MISSION/DEPLACEMENT : le
+// type était déjà sélectionnable dans le formulaire (générique, voir
+// entry-fields.tsx) mais une entrée ainsi créée disparaissait de cette page
+// (filtrée dessus), sans qu'aucun message n'explique pourquoi.
+const MISSION_TYPES = ["MISSION", "DEPLACEMENT", "AUTRES"] as const;
 
 /**
  * §26/§26bis — historique des missions ET déplacements professionnels, qui
  * n'existait pas : ces entrées du planning personnel n'étaient consultables
- * que jour par jour. Les deux types sont déjà distincts dans le modèle
- * (DEPLACEMENT plus court, sans les champs budget/hébergement/rapport — voir
- * entry-fields.tsx) mais cette page ne montrait que MISSION ; un filtre par
- * type les affiche désormais tous les deux (demande utilisateur).
+ * que jour par jour. Les types sont déjà distincts dans le modèle
+ * (DEPLACEMENT plus court, sans les champs budget/hébergement/rapport ;
+ * AUTRES pour ce qui ne rentre dans aucun des deux — voir entry-fields.tsx)
+ * mais cette page ne montrait que MISSION ; un filtre par type les affiche
+ * désormais tous (demande utilisateur).
  */
 export default async function PersonalPlanningMissionsPage({
   searchParams,
@@ -134,9 +139,10 @@ export default async function PersonalPlanningMissionsPage({
             defaultValue={type ?? ""}
             className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
           >
-            <option value="">Missions et déplacements</option>
+            <option value="">Missions, déplacements et autres</option>
             <option value="MISSION">Missions seulement</option>
             <option value="DEPLACEMENT">Déplacements seulement</option>
+            <option value="AUTRES">Autres seulement</option>
           </select>
           <Input name="du" type="date" defaultValue={du} className="w-auto" />
           <Input name="au" type="date" defaultValue={au} className="w-auto" />
