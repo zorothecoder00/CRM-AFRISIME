@@ -249,8 +249,8 @@ export default async function TaskDetailPage({
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
         <BackLink
-          href={from === "planning-personnel" ? "/planning-personnel" : "/taches"}
-          label={from === "planning-personnel" ? "Retour au planning personnel" : "Retour aux tâches"}
+          href={from === "planning-personnel" ? "/planning-personnel/a-planifier" : "/taches"}
+          label={from === "planning-personnel" ? "Retour à « À planifier »" : "Retour aux tâches"}
         />
         {task.deletedAt && (
           <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
