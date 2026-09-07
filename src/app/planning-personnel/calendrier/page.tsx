@@ -120,7 +120,7 @@ export default async function PersonalPlanningCalendrierPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-md border p-3 text-center">
               <div className="text-2xl font-semibold">{formatHours(planifieTotal)}</div>
               <div className="text-xs text-muted-foreground">Planifié</div>

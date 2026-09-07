@@ -128,7 +128,7 @@ export function ProjectExecutionView({
           <CardHeader>
             <CardTitle className="text-base">Budget</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-2 text-sm">
+          <CardContent className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
             <div>
               <div className="text-xs text-muted-foreground">Prévu</div>
               <div className="font-medium">{budgetPrevu.toLocaleString("fr-FR")} {devise}</div>

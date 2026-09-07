@@ -172,7 +172,7 @@ export default async function ObjectiveDetailPage({
               <CardTitle className="text-base">Prévision de performance</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
                 <div>
                   <div className="text-lg font-semibold">{prediction.progressionActuelle}%</div>
                   <div className="text-xs text-muted-foreground">Progression actuelle</div>

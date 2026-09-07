@@ -126,7 +126,7 @@ export function GovernanceDecisionsSection({
         <Input placeholder="Objet de la décision" value={objet} onChange={(e) => setObjet(e.target.value)} />
         <Textarea placeholder="Contexte (optionnel)" value={contexte} onChange={(e) => setContexte(e.target.value)} rows={2} />
         <Textarea placeholder="Décision prise" value={decision} onChange={(e) => setDecision(e.target.value)} rows={2} />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Select value={responsableId} onValueChange={setResponsableId}>
             <SelectTrigger>
               <SelectValue placeholder="Responsable (requis)" />

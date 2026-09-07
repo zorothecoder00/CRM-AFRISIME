@@ -160,7 +160,7 @@ export function ContactFormDialog({
             <Input id="source" placeholder="Ex : salon, recommandation, site web..." {...register("source")} />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="score">Score (0-100)</Label>
               <Input id="score" type="number" min={0} max={100} {...register("score", { valueAsNumber: true })} />
