@@ -134,10 +134,14 @@ export function EntryBlock({
     </div>
   ) : (
     <>
-      <span className="flex items-center gap-1 font-medium">
-        {draggable && <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/50" />}
-        <Icon className="h-3 w-3 shrink-0" />
-        <span className="truncate">{entry.titre}</span>
+      {/* Demande utilisateur — le titre tenait sur une seule ligne tronquée
+          ("…") en vue Semaine/Jour ; il s'étale désormais sur plusieurs
+          lignes (break-words + min-w-0 pour que la ligne icône/titre
+          accepte de rétrécir au lieu de déborder) plutôt que d'être coupé. */}
+      <span className="flex items-start gap-1 font-medium">
+        {draggable && <GripVertical className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground/50" />}
+        <Icon className="mt-0.5 h-3 w-3 shrink-0" />
+        <span className="min-w-0 break-words">{entry.titre}</span>
       </span>
       <span className="text-[10px] text-muted-foreground">{timeRangeLabel}</span>
       {entry.blockedByTitre && (
