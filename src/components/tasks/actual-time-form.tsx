@@ -29,9 +29,8 @@ export function ActualTimeForm({
         placeholder="Non renseigné"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="h-8 w-24"
+        className="h-8 w-32"
       />
-      <span className="text-xs text-muted-foreground">h</span>
       <Button size="sm" variant="outline" onClick={handleSave} disabled={isPending}>
         Enregistrer
       </Button>

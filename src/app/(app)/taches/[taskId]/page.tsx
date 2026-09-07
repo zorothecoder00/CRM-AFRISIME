@@ -51,10 +51,16 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 export default async function TaskDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ taskId: string }>;
+  /** `from=planning-personnel` — voir a-planifier-task-row.tsx : sans ça, le
+   * lien de retour renvoyait toujours vers /taches (liste générale) même en
+   * arrivant depuis "à planifier", une navigation déroutante (retour utilisateur). */
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { taskId } = await params;
+  const { from } = await searchParams;
   const session = await getServerSession(authOptions);
 
   const task = await prisma.task.findUnique({
@@ -242,7 +248,10 @@ export default async function TaskDetailPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
-        <BackLink href="/taches" label="Retour aux tâches" />
+        <BackLink
+          href={from === "planning-personnel" ? "/planning-personnel" : "/taches"}
+          label={from === "planning-personnel" ? "Retour au planning personnel" : "Retour aux tâches"}
+        />
         {task.deletedAt && (
           <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
             <p className="text-sm text-destructive">Cette tâche a été supprimée et se trouve dans la corbeille.</p>
@@ -451,7 +460,7 @@ export default async function TaskDetailPage({
               value={task.tempsEstimeHeures ? `${task.tempsEstimeHeures} h` : "—"}
             />
             <div>
-              <div className="mb-1 text-xs text-muted-foreground">Temps réel</div>
+              <div className="mb-1 text-xs text-muted-foreground">Temps réel (h)</div>
               <ActualTimeForm
                 taskId={task.id}
                 initialValue={task.tempsReelHeures !== null ? Number(task.tempsReelHeures) : null}
