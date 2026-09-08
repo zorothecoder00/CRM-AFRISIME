@@ -18,12 +18,12 @@ export function MobileSidebar({ permissions, roleKey }: { permissions: string[];
         </Button>
       </SheetTrigger>
       <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
-        <SheetHeader className="flex flex-col items-center border-b bg-amber-100 px-4 py-0">
+        <SheetHeader className="flex flex-col items-center border-b bg-white px-4 py-0">
           {/* Le logo integre deja le nom "AfriSime Work Space" — le libelle
               texte visible a ete retire (redondant), SheetTitle garde pour
               l'accessibilite (lecteur d'ecran) mais visuellement masque. Fond
-              dedie (slate, distinct du bleu nuit de la sidebar ET du fond
-              clair du contenu principal). */}
+              blanc — demande utilisateur : alignement sur Planning personnel
+              (personal-planning-mobile-sidebar.tsx). */}
           <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
           <SheetTitle className="sr-only">AfriSime Work Space</SheetTitle>
         </SheetHeader>
