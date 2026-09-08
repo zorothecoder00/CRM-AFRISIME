@@ -7,6 +7,7 @@ import { buildSwotBoard, buildPriorities, buildRoadmap, buildTrackingAndGaps } f
 import { SwotBoard } from "@/components/strategy/swot-board";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableList } from "@/components/ui/expandable-list";
 import { toneForPriority } from "@/lib/status-tone";
 
 const PRIORITY_LABELS: Record<string, string> = { BASSE: "Basse", MOYENNE: "Moyenne", HAUTE: "Haute", CRITIQUE: "Critique" };
@@ -61,22 +62,29 @@ export default async function StrategyCopilotPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Priorités</CardTitle>
+            {priorities.length > 5 && (
+              <Link href="/strategie" className="text-xs text-primary hover:underline">
+                Voir tout ({priorities.length})
+              </Link>
+            )}
           </CardHeader>
           <CardContent className="space-y-2">
             {priorities.length === 0 && <p className="text-sm text-muted-foreground">Aucun axe stratégique défini.</p>}
-            {priorities.map((a) => (
-              <div key={a.id} className="flex items-center justify-between text-sm">
-                <span>{a.nom}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {a.objectifsCount} objectif(s) · {a.plansCount} plan(s)
-                  </span>
-                  <Badge variant={toneForPriority(a.priorite)}>{PRIORITY_LABELS[a.priorite]}</Badge>
+            <ExpandableList
+              items={priorities.map((a) => (
+                <div key={a.id} className="flex items-center justify-between text-sm">
+                  <span>{a.nom}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {a.objectifsCount} objectif(s) · {a.plansCount} plan(s)
+                    </span>
+                    <Badge variant={toneForPriority(a.priorite)}>{PRIORITY_LABELS[a.priorite]}</Badge>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            />
           </CardContent>
         </Card>
 
@@ -125,14 +133,16 @@ export default async function StrategyCopilotPage() {
         </CardHeader>
         <CardContent className="space-y-1.5">
           {ecarts.length === 0 && <p className="text-sm text-muted-foreground">Aucun écart significatif détecté.</p>}
-          {ecarts.map((e, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
-              <span>
-                {e.titre} {e.axeNom ? <span className="text-xs text-muted-foreground">— {e.axeNom}</span> : null}
-              </span>
-              <Badge variant="destructive">{e.ecartPoints} pts de retard</Badge>
-            </div>
-          ))}
+          <ExpandableList
+            items={ecarts.map((e, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span>
+                  {e.titre} {e.axeNom ? <span className="text-xs text-muted-foreground">— {e.axeNom}</span> : null}
+                </span>
+                <Badge variant="destructive">{e.ecartPoints} pts de retard</Badge>
+              </div>
+            ))}
+          />
         </CardContent>
       </Card>
 
@@ -144,15 +154,17 @@ export default async function StrategyCopilotPage() {
           {roadmap.length === 0 && (
             <p className="text-sm text-muted-foreground">Aucun objectif rattaché à un axe stratégique pour le moment.</p>
           )}
-          {roadmap.map((r, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-xs text-muted-foreground">
-                {r.dateDebut.toLocaleDateString("fr-FR")} → {r.dateFin.toLocaleDateString("fr-FR")}
-              </span>
-              <Badge variant="outline">{r.axeNom}</Badge>
-              <span>{r.titre}</span>
-            </div>
-          ))}
+          <ExpandableList
+            items={roadmap.map((r, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-xs text-muted-foreground">
+                  {r.dateDebut.toLocaleDateString("fr-FR")} → {r.dateFin.toLocaleDateString("fr-FR")}
+                </span>
+                <Badge variant="outline">{r.axeNom}</Badge>
+                <span>{r.titre}</span>
+              </div>
+            ))}
+          />
         </CardContent>
       </Card>
     </div>

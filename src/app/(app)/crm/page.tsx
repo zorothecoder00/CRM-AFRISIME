@@ -6,7 +6,10 @@ import { StatCard } from "@/components/ui/stat-card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { toneForOpportunityStatus } from "@/lib/status-tone";
 import { getOrganizationDevise } from "@/lib/currency";
+import { ExpandableList } from "@/components/ui/expandable-list";
 import { Users, Building2, TrendingUp, Percent, UserPlus, Activity, Repeat, Wallet, BellRing } from "lucide-react";
+
+const MAX_VISIBLE = 5;
 
 const OPPORTUNITY_STATUS_LABELS: Record<string, string> = {
   NOUVEAU: "Nouveau",
@@ -148,13 +151,18 @@ export default async function CrmHomePage() {
 
       {dueRelances.length > 0 && (
         <Card accent="warning">
-          <CardHeader className="flex flex-row items-center gap-2">
-            <BellRing className="h-4 w-4 text-warning" />
-            <CardTitle className="text-base">Relances à faire ({dueRelances.length})</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <BellRing className="h-4 w-4 text-warning" />
+              <CardTitle className="text-base">Relances à faire ({dueRelances.length})</CardTitle>
+            </div>
+            <Link href="/crm/contacts" className="text-xs text-primary hover:underline">
+              Voir tout
+            </Link>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {dueRelances.map((c) => (
+              {dueRelances.slice(0, MAX_VISIBLE).map((c) => (
                 <li key={c.id}>
                   <Link
                     href={`/crm/contacts/${c.id}`}
@@ -198,8 +206,8 @@ export default async function CrmHomePage() {
           {recentInteractions.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune interaction enregistrée.</p>
           ) : (
-            <ul className="space-y-2">
-              {recentInteractions.map((i) => {
+            (() => {
+              const interactionRow = (i: (typeof recentInteractions)[number]) => {
                 const target = i.contact
                   ? { label: `${i.contact.prenom} ${i.contact.nom}`, href: `/crm/contacts/${i.contact.id}` }
                   : i.organization
@@ -208,24 +216,28 @@ export default async function CrmHomePage() {
                       ? { label: i.opportunity.nom, href: `/crm/opportunites/${i.opportunity.id}` }
                       : null;
                 return (
-                  <li key={i.id}>
-                    <Link
-                      href={target?.href ?? "/crm"}
-                      className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm hover:bg-muted"
-                    >
-                      <span className="min-w-0 truncate">
-                        <span className="font-medium">{target?.label ?? "—"}</span>
-                        {" · "}
-                        <span className="text-muted-foreground">{i.contenu}</span>
-                      </span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {i.author.name} · {i.dateInteraction.toLocaleDateString("fr-FR")}
-                      </span>
-                    </Link>
-                  </li>
+                  <Link
+                    key={i.id}
+                    href={target?.href ?? "/crm"}
+                    className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm hover:bg-muted"
+                  >
+                    <span className="min-w-0 truncate">
+                      <span className="font-medium">{target?.label ?? "—"}</span>
+                      {" · "}
+                      <span className="text-muted-foreground">{i.contenu}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {i.author.name} · {i.dateInteraction.toLocaleDateString("fr-FR")}
+                    </span>
+                  </Link>
                 );
-              })}
-            </ul>
+              };
+              return (
+                <div className="space-y-2">
+                  <ExpandableList items={recentInteractions.map(interactionRow)} max={MAX_VISIBLE} />
+                </div>
+              );
+            })()
           )}
         </CardContent>
       </Card>

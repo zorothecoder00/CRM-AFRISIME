@@ -17,6 +17,7 @@ import { generateDailyBriefing } from "@/lib/daily-briefing";
 import { DailyBriefingCard } from "@/components/dashboard/daily-briefing-card";
 import { computeTop5Actions } from "@/lib/task-priority";
 import { TopPriorityActionsCard } from "@/components/dashboard/top-priority-actions-card";
+import { TeamActivityList } from "@/components/dashboard/team-activity-list";
 
 // Ligne cliquable des widgets du dashboard : fond legerement teinte (au lieu
 // de blanc sur blanc) + effet de survol anime (leger soulevement, halo
@@ -349,6 +350,9 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               )}
+              <Link href="/notifications" className="mt-2 block text-xs text-primary hover:underline">
+                Voir toutes mes notifications
+              </Link>
             </CardContent>
           </Card>
 
@@ -404,6 +408,9 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               )}
+              <Link href="/reunions" className="mt-2 block text-xs text-primary hover:underline">
+                Voir toutes mes réunions
+              </Link>
             </CardContent>
           </Card>
 
@@ -467,6 +474,9 @@ export default async function DashboardPage() {
                   })}
                 </ul>
               )}
+              <Link href="/messages" className="mt-2 block text-xs text-primary hover:underline">
+                Voir tous mes messages
+              </Link>
             </CardContent>
           </Card>
 
@@ -488,6 +498,9 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               )}
+              <Link href="/documents" className="mt-2 block text-xs text-primary hover:underline">
+                Voir tous mes documents
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -517,6 +530,9 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               )}
+              <Link href="/projets" className="mt-2 block text-xs text-primary hover:underline">
+                Voir tous mes projets
+              </Link>
             </CardContent>
           </Card>
 
@@ -550,6 +566,9 @@ export default async function DashboardPage() {
                   })}
                 </ul>
               )}
+              <Link href="/objectifs" className="mt-2 block text-xs text-primary hover:underline">
+                Voir tous mes objectifs
+              </Link>
             </CardContent>
           </Card>
 
@@ -561,19 +580,14 @@ export default async function DashboardPage() {
               {teamActivity.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucune activité récente sur vos projets.</p>
               ) : (
-                <ul className="space-y-2">
-                  {teamActivity.map((entry) => (
-                    <li key={entry.id} className="flex items-baseline justify-between text-sm">
-                      <span>
-                        <span className="font-medium">{entry.user?.name ?? "Quelqu'un"}</span>{" "}
-                        {ACTION_LABELS[entry.action] ?? entry.action}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {entry.createdAt.toLocaleDateString("fr-FR")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <TeamActivityList
+                  entries={teamActivity.map((entry) => ({
+                    id: entry.id,
+                    userName: entry.user?.name ?? "Quelqu'un",
+                    label: ACTION_LABELS[entry.action] ?? entry.action,
+                    createdAt: entry.createdAt.toISOString(),
+                  }))}
+                />
               )}
             </CardContent>
           </Card>

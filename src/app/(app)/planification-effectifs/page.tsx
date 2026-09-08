@@ -2,6 +2,9 @@ import Link from "next/link";
 import { computeWorkforcePlan } from "@/lib/workforce-planning";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableList } from "@/components/ui/expandable-list";
+
+const MAX_VISIBLE = 5;
 
 // Workforce Planning 3.0 (cahier des charges V3.0 §22) — besoins futurs,
 // compétences critiques, postes à créer, capacités disponibles, projections,
@@ -50,14 +53,17 @@ export default async function PlanificationEffectifsPage() {
             {plan.postesVacants.length === 0 ? (
               <p className="text-sm text-muted-foreground">Aucun poste vacant.</p>
             ) : (
-              plan.postesVacants.map((p) => (
-                <div key={p.id} className="flex items-center justify-between text-sm">
-                  <span>
-                    {p.nom} {p.departement && <span className="text-muted-foreground">— {p.departement}</span>}
-                  </span>
-                  {p.critique && <Badge variant="destructive">Critique</Badge>}
-                </div>
-              ))
+              (() => {
+                const row = (p: (typeof plan.postesVacants)[number]) => (
+                  <div key={p.id} className="flex items-center justify-between text-sm">
+                    <span>
+                      {p.nom} {p.departement && <span className="text-muted-foreground">— {p.departement}</span>}
+                    </span>
+                    {p.critique && <Badge variant="destructive">Critique</Badge>}
+                  </div>
+                );
+                return <ExpandableList items={plan.postesVacants.map(row)} max={MAX_VISIBLE} />;
+              })()
             )}
           </CardContent>
         </Card>

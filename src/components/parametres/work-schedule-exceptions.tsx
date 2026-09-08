@@ -35,8 +35,33 @@ export type WorkScheduleExceptionRow = {
 };
 
 /** §39 — dérogations ponctuelles à une date précise, en plus du gabarit hebdomadaire récurrent (WorkScheduleForm). */
+const MAX_VISIBLE = 5;
+
 export function WorkScheduleExceptions({ exceptions }: { exceptions: WorkScheduleExceptionRow[] }) {
   const { run: remove } = useAction(deleteWorkScheduleException, { successMessage: "Dérogation supprimée." });
+  const [open, setOpen] = useState(false);
+  const visible = exceptions.slice(0, MAX_VISIBLE);
+  const rest = exceptions.slice(MAX_VISIBLE);
+
+  function ExceptionRow({ e }: { e: WorkScheduleExceptionRow }) {
+    return (
+      <li className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">{new Date(e.date).toLocaleDateString("fr-FR")}</span>
+          <Badge variant="outline">{TYPE_LABELS[e.type]}</Badge>
+          {e.type !== "ABSENCE" && e.heureDebut && e.heureFin && (
+            <span className="text-muted-foreground">
+              {e.heureDebut}–{e.heureFin}
+            </span>
+          )}
+          {e.motif && <span className="text-muted-foreground">— {e.motif}</span>}
+        </span>
+        <Button variant="ghost" size="icon-sm" onClick={() => remove(e.id)} aria-label="Supprimer">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </li>
+    );
+  }
 
   return (
     <Card>
@@ -54,25 +79,19 @@ export function WorkScheduleExceptions({ exceptions }: { exceptions: WorkSchedul
         {exceptions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune dérogation enregistrée.</p>
         ) : (
-          <ul className="space-y-2">
-            {exceptions.map((e) => (
-              <li key={e.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{new Date(e.date).toLocaleDateString("fr-FR")}</span>
-                  <Badge variant="outline">{TYPE_LABELS[e.type]}</Badge>
-                  {e.type !== "ABSENCE" && e.heureDebut && e.heureFin && (
-                    <span className="text-muted-foreground">
-                      {e.heureDebut}–{e.heureFin}
-                    </span>
-                  )}
-                  {e.motif && <span className="text-muted-foreground">— {e.motif}</span>}
-                </span>
-                <Button variant="ghost" size="icon-sm" onClick={() => remove(e.id)} aria-label="Supprimer">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2">
+              {visible.map((e) => (
+                <ExceptionRow key={e.id} e={e} />
+              ))}
+              {open && rest.map((e) => <ExceptionRow key={e.id} e={e} />)}
+            </ul>
+            {rest.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setOpen((v) => !v)}>
+                {open ? "Voir moins" : `Voir ${rest.length} de plus`}
+              </Button>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

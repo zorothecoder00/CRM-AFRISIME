@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DocumentClassifyRow } from "@/components/data-governance/document-classify-row";
+import { DocumentClassifyList } from "@/components/data-governance/document-classify-list";
 
 // Data Governance (cahier des charges V3.0 §46) — propriétaires,
 // classification, sensibilité, qualité, accès, conservation, archivage,
@@ -97,27 +97,24 @@ export default async function GouvernanceDonneesPage() {
         <CardHeader>
           <CardTitle className="text-base">Classification des documents (50 plus récents)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent>
           {documents.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun document.</p>
           ) : (
-            documents.map((doc) => {
-              const c = classificationByDocId.get(doc.id);
-              return (
-                <DocumentClassifyRow
-                  key={doc.id}
-                  data={{
-                    documentId: doc.id,
-                    documentNom: doc.nom,
-                    niveau: c?.niveau ?? "INTERNE",
-                    sensibilite: c?.sensibilite ?? "NORMALE",
-                    qualite: c?.qualite ?? "NON_EVALUEE",
-                    proprietaireId: c?.proprietaireId ?? "",
-                  }}
-                  users={users.map((u) => ({ id: u.id, label: u.name }))}
-                />
-              );
-            })
+            <DocumentClassifyList
+              rows={documents.map((doc) => {
+                const c = classificationByDocId.get(doc.id);
+                return {
+                  documentId: doc.id,
+                  documentNom: doc.nom,
+                  niveau: c?.niveau ?? "INTERNE",
+                  sensibilite: c?.sensibilite ?? "NORMALE",
+                  qualite: c?.qualite ?? "NON_EVALUEE",
+                  proprietaireId: c?.proprietaireId ?? "",
+                };
+              })}
+              users={users.map((u) => ({ id: u.id, label: u.name }))}
+            />
           )}
         </CardContent>
       </Card>

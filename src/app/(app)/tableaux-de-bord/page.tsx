@@ -14,6 +14,7 @@ import { DeadlineComplianceWidget } from "@/components/dashboard/widgets/deadlin
 import { TeamProductivityWidget } from "@/components/dashboard/widgets/team-productivity-widget";
 import { DepartmentPerformanceWidget } from "@/components/dashboard/widgets/department-performance-widget";
 import { HRIndicatorsWidget } from "@/components/dashboard/widgets/hr-indicators-widget";
+import { Search } from "lucide-react";
 
 export default async function TableauxDeBordPage() {
   const session = await getServerSession(authOptions);
@@ -52,7 +53,21 @@ export default async function TableauxDeBordPage() {
         <WidgetConfigDialog initialOrder={order} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Demande utilisateur — barre de recherche ramenee sur cette page. */}
+      <form action="/recherche" className="relative w-full max-w-sm">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          name="q"
+          type="search"
+          placeholder="Rechercher tâche, projet, document…"
+          className="h-9 w-full rounded-md border bg-background pl-8 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </form>
+
+      {/* items-start — sans ca, une carte courte s'etirait a la hauteur de sa
+          voisine sur la meme ligne (grille "stretch" par defaut), laissant un
+          grand vide visuel (retour utilisateur : "blocs mal agences"). */}
+      <div className="grid items-start gap-4 md:grid-cols-2">
         {order.map((key) => (
           <div key={key} className={key === "HR_INDICATORS" ? "md:col-span-2" : ""}>
             {widgetComponents[key]}

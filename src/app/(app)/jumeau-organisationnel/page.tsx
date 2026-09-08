@@ -142,7 +142,7 @@ export default async function DigitalTwinPage() {
           {snapshot.liensInterDomaines.length === 0 && (
             <p className="text-sm text-muted-foreground">Aucun lien inter-domaines enregistré pour le moment.</p>
           )}
-          {snapshot.liensInterDomaines.map((l, i) => (
+          {snapshot.liensInterDomaines.slice(0, 5).map((l, i) => (
             <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
               <Badge variant="outline">{l.sourceType}</Badge>
               <span>{labels.get(`${l.sourceType}:${l.sourceId}`) ?? l.sourceId}</span>

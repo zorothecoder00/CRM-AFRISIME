@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { DashboardData } from "@/lib/dashboard-data";
 
+const MAX_VISIBLE = 5;
+
 export function OverdueTasksWidget({
   tasks,
   total,
@@ -10,6 +12,8 @@ export function OverdueTasksWidget({
   tasks: DashboardData["overdueTasks"];
   total: number;
 }) {
+  const visible = tasks.slice(0, MAX_VISIBLE);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -20,7 +24,7 @@ export function OverdueTasksWidget({
         {tasks.length === 0 && (
           <p className="text-sm text-muted-foreground">Aucune tâche en retard.</p>
         )}
-        {tasks.map((t) => (
+        {visible.map((t) => (
           <Link
             key={t.id}
             href={`/taches/${t.id}`}
@@ -37,6 +41,11 @@ export function OverdueTasksWidget({
             </span>
           </Link>
         ))}
+        {total > MAX_VISIBLE && (
+          <Link href="/taches" className="block text-xs text-primary hover:underline">
+            Voir tout ({total})
+          </Link>
+        )}
       </CardContent>
     </Card>
   );

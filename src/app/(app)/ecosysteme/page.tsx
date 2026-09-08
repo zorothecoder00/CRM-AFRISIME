@@ -6,7 +6,10 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableList } from "@/components/ui/expandable-list";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
+
+const MAX_VISIBLE = 5;
 
 const TYPE_LABELS: Record<string, string> = {
   CLIENT: "Clients",
@@ -96,37 +99,40 @@ export default async function EcosystemePage() {
         </Card>
       </div>
 
-      {Array.from(groups.entries()).map(([type, list]) => (
-        <Card key={type}>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {TYPE_LABELS[type] ?? type} ({list.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {list.map((c) => (
-              <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2 text-sm">
-                <Link href={`/crm/contacts/${c.id}`} className="font-medium underline">
-                  {c.prenom} {c.nom}
-                </Link>
-                <span className="text-xs text-muted-foreground">
-                  {portalLabelForContactType(c.type, c.organization?.type)}
-                  {c.organization && ` — ${c.organization.nom}`}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant={c.portalAccount?.isActive ? "success" : "destructive"}>
-                    {c.portalAccount?.isActive ? "Actif" : "Révoqué"}
-                  </Badge>
-                  {c.portalAccount?.droitProjets && <Badge variant="outline">Projets</Badge>}
-                  {c.portalAccount?.droitDocuments && <Badge variant="outline">Documents</Badge>}
-                  {c.portalAccount?.droitTeleversement && <Badge variant="outline">Téléversement</Badge>}
-                  {c.portalAccount?.droitMessages && <Badge variant="outline">Messagerie</Badge>}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+      {Array.from(groups.entries()).map(([type, list]) => {
+        const row = (c: (typeof list)[number]) => (
+          <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2 text-sm">
+            <Link href={`/crm/contacts/${c.id}`} className="font-medium underline">
+              {c.prenom} {c.nom}
+            </Link>
+            <span className="text-xs text-muted-foreground">
+              {portalLabelForContactType(c.type, c.organization?.type)}
+              {c.organization && ` — ${c.organization.nom}`}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Badge variant={c.portalAccount?.isActive ? "success" : "destructive"}>
+                {c.portalAccount?.isActive ? "Actif" : "Révoqué"}
+              </Badge>
+              {c.portalAccount?.droitProjets && <Badge variant="outline">Projets</Badge>}
+              {c.portalAccount?.droitDocuments && <Badge variant="outline">Documents</Badge>}
+              {c.portalAccount?.droitTeleversement && <Badge variant="outline">Téléversement</Badge>}
+              {c.portalAccount?.droitMessages && <Badge variant="outline">Messagerie</Badge>}
+            </div>
+          </div>
+        );
+        return (
+          <Card key={type}>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {TYPE_LABELS[type] ?? type} ({list.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <ExpandableList items={list.map(row)} max={MAX_VISIBLE} />
+            </CardContent>
+          </Card>
+        );
+      })}
 
       {contacts.length === 0 && (
         <p className="text-sm text-muted-foreground">
