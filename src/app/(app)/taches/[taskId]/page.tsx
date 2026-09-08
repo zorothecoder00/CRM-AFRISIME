@@ -56,7 +56,10 @@ export default async function TaskDetailPage({
   params: Promise<{ taskId: string }>;
   /** `from=planning-personnel` — voir a-planifier-task-row.tsx : sans ça, le
    * lien de retour renvoyait toujours vers /taches (liste générale) même en
-   * arrivant depuis "à planifier", une navigation déroutante (retour utilisateur). */
+   * arrivant depuis "à planifier", une navigation déroutante (retour utilisateur).
+   * `from=ma-journee` — même problème signalé depuis Ma journée (voir
+   * personal-planning-today.tsx) : changer le statut d'une tâche liée à une
+   * activité du jour doit ramener sur Ma journée, pas sur /taches. */
   searchParams: Promise<{ from?: string }>;
 }) {
   const { taskId } = await params;
@@ -249,8 +252,20 @@ export default async function TaskDetailPage({
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
         <BackLink
-          href={from === "planning-personnel" ? "/planning-personnel/a-planifier" : "/taches"}
-          label={from === "planning-personnel" ? "Retour à « À planifier »" : "Retour aux tâches"}
+          href={
+            from === "ma-journee"
+              ? "/planning-personnel/ma-journee"
+              : from === "planning-personnel"
+                ? "/planning-personnel/a-planifier"
+                : "/taches"
+          }
+          label={
+            from === "ma-journee"
+              ? "Retour à Ma journée"
+              : from === "planning-personnel"
+                ? "Retour à « À planifier »"
+                : "Retour aux tâches"
+          }
         />
         {task.deletedAt && (
           <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">

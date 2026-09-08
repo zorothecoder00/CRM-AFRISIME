@@ -221,7 +221,10 @@ export function PersonalPlanningToday({
                         </span>
                         <span className="flex-1 truncate">{entry.titre}</span>
                         {entry.tacheId && (
-                          <Link href={`/taches/${entry.tacheId}`} title="Voir la tâche liée">
+                          // from=ma-journee — retour utilisateur : changer le statut sur la
+                          // fiche tâche renvoyait vers /taches (défaut) au lieu de Ma journée
+                          // (voir ContextualBackLink/BackLink dans taches/[taskId]/page.tsx).
+                          <Link href={`/taches/${entry.tacheId}?from=ma-journee`} title="Voir la tâche liée">
                             <ListChecks className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
                           </Link>
                         )}
