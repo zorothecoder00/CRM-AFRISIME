@@ -54,7 +54,7 @@ export default async function TachesPage({
   // Depuis Planning personnel, la vue est strictement personnelle — pas
   // d'echappatoire vers "toutes les taches" via le parametre mine=.
   const onlyMine = mine === "1" || from === "planning-personnel";
-  // Filtre annuel/mensuel — sur l'échéance, déjà affichée en colonne.
+  // Filtre annuel/mensuel — sur début OU échéance (voir andClauses plus bas).
   const dateRange = buildDateRangeFilter(annee, mois);
 
   let vue = vueParam;
@@ -76,7 +76,9 @@ export default async function TachesPage({
   if (allowedDepartmentIds) {
     andClauses.push({ project: { departmentId: { in: allowedDepartmentIds } } });
   }
-  if (dateRange) andClauses.push({ echeance: dateRange });
+  // Voir mes-taches/page.tsx — meme correctif : une tache doit remonter des
+  // que sa date de debut OU son echeance tombe dans la periode choisie.
+  if (dateRange) andClauses.push({ OR: [{ echeance: dateRange }, { dateDebut: dateRange }] });
   if (priorite) andClauses.push({ priorite: priorite as never });
   if (statut) andClauses.push({ statut: statut as never });
 
@@ -173,7 +175,7 @@ export default async function TachesPage({
           <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
           <TaskPriorityFilter />
           <TaskStatusFilter />
-          <PeriodFilter dateLabel="Échéance" />
+          <PeriodFilter dateLabel="Début/Échéance" />
           {from !== "planning-personnel" && (
             <Link href={mineHref}>
               <Button variant={onlyMine ? "default" : "outline"} size="sm">

@@ -45,7 +45,11 @@ export default async function PersonalPlanningMesTachesPage({
   const andClauses: Prisma.TaskWhereInput[] = [
     { OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }] },
   ];
-  if (dateRange) andClauses.push({ echeance: dateRange });
+  // Le filtre periode doit remonter une tache des qu'une de ses deux dates
+  // (debut ou echeance) tombe dans la periode choisie — une tache qui
+  // demarre aujourd'hui mais dont l'echeance est plus tardive (ou absente)
+  // disparaissait sinon completement du filtre "Jour" (retour utilisateur).
+  if (dateRange) andClauses.push({ OR: [{ echeance: dateRange }, { dateDebut: dateRange }] });
   if (priorite) andClauses.push({ priorite: priorite as never });
   if (statut) andClauses.push({ statut: statut as never });
 
@@ -149,7 +153,7 @@ export default async function PersonalPlanningMesTachesPage({
           <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
           <TaskPriorityFilter />
           <TaskStatusFilter />
-          <PeriodFilter dateLabel="Échéance" showWeekDay />
+          <PeriodFilter dateLabel="Début/Échéance" showWeekDay />
           {canCreate && (
             <TaskFormDialog
               projects={projectOptions}

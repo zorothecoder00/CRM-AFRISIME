@@ -66,9 +66,9 @@ export default async function ProjetsPage({
   // Corbeille (V2.2 §37) : un projet supprime n'apparait plus dans la liste
   // (reste consultable via /corbeille et sa page de detail directe).
   andClauses.push({ deletedAt: null });
-  // Filtre annuel/mensuel — sur l'échéance (dateFin), déjà affichée en colonne.
+  // Filtre annuel/mensuel — sur début OU échéance (dateFin), voir mes-taches/page.tsx.
   const dateRange = buildDateRangeFilter(annee, mois);
-  if (dateRange) andClauses.push({ dateFin: dateRange });
+  if (dateRange) andClauses.push({ OR: [{ dateFin: dateRange }, { dateDebut: dateRange }] });
   const where: Prisma.ProjectWhereInput = { AND: andClauses };
 
   const [projects, departments, users, templates] = await Promise.all([
@@ -128,7 +128,7 @@ export default async function ProjetsPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <PeriodFilter dateLabel="Échéance" />
+          <PeriodFilter dateLabel="Début/Échéance" />
           <Link href={mineHref}>
             <Button variant={onlyMine ? "default" : "outline"} size="sm">
               <User className="mr-1 h-4 w-4" />
