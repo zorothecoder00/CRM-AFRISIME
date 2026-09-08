@@ -75,6 +75,7 @@ export default async function DashboardPage() {
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
+  const todayKey = now.toISOString().slice(0, 10);
   const weekEnd = endOfDay(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000));
 
   const mineFilter: Prisma.TaskWhereInput = {
@@ -261,14 +262,26 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Aujourd'hui">
         <div className="grid gap-4 md:grid-cols-3">
-          <TaskWidget title="Mes tâches du jour" tasks={todayTasks} emptyLabel="Aucune tâche aujourd'hui." />
+          <TaskWidget
+            title="Mes tâches du jour"
+            tasks={todayTasks}
+            emptyLabel="Aucune tâche aujourd'hui."
+            accent="success"
+            voirToutHref={`/planning-personnel/mes-taches?jour=${todayKey}`}
+          />
           <TaskWidget
             title="Mes tâches en retard"
             tasks={overdueTasks}
             emptyLabel="Aucune tâche en retard."
-            highlight
+            accent="destructive"
+            voirToutHref="/planning-personnel/mes-taches"
           />
-          <TaskWidget title="Mes tâches de la semaine" tasks={weekTasks} emptyLabel="Aucune tâche cette semaine." />
+          <TaskWidget
+            title="Mes tâches de la semaine"
+            tasks={weekTasks}
+            emptyLabel="Aucune tâche cette semaine."
+            voirToutHref={`/planning-personnel/mes-taches?semaine=${todayKey}`}
+          />
         </div>
       </DashboardSection>
 
@@ -586,38 +599,50 @@ type TaskWithProject = {
   project: { nom: string };
 };
 
+const TASK_WIDGET_MAX = 5;
+
 function TaskWidget({
   title,
   tasks,
   emptyLabel,
-  highlight,
+  accent,
+  voirToutHref,
 }: {
   title: string;
   tasks: TaskWithProject[];
   emptyLabel: string;
-  highlight?: boolean;
+  /** "destructive" (en retard) / "success" (aujourd'hui) — sinon accent "info" par defaut. */
+  accent?: "destructive" | "success";
+  /** Demande utilisateur — liste limitee a 5, lien "Voir tout" vers la liste complete filtree si plus. */
+  voirToutHref: string;
 }) {
+  const visible = tasks.slice(0, TASK_WIDGET_MAX);
+  const titleColor = accent === "destructive" ? "text-destructive" : accent === "success" ? "text-success" : undefined;
+
   return (
-    <Card accent={highlight ? "destructive" : "info"}>
+    <Card accent={accent ?? "info"}>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
         {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyLabel}</p>
         ) : (
           <ul className="space-y-2">
-            {tasks.map((task) => (
+            {visible.map((task) => (
               <li key={task.id}>
                 <Link href={`/taches/${task.id}`} className={cn(ROW_LINK, "flex flex-col")}>
-                  <span className={highlight ? "font-medium text-destructive" : "font-medium"}>
-                    {task.titre}
-                  </span>
+                  <span className={cn("font-medium", titleColor)}>{task.titre}</span>
                   <span className="text-xs text-muted-foreground">{task.project.nom}</span>
                 </Link>
               </li>
             ))}
           </ul>
+        )}
+        {tasks.length > TASK_WIDGET_MAX && (
+          <Link href={voirToutHref} className="block text-xs text-primary hover:underline">
+            Voir tout ({tasks.length})
+          </Link>
         )}
       </CardContent>
     </Card>
