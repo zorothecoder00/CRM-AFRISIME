@@ -49,11 +49,16 @@ export function ProjectIdeaKanban({
   const { run: setStatus } = useAction(updateProjectIdeaStatus, { successMessage: "Statut mis à jour." });
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    // Empiler les 8 colonnes de statut verticalement (pleine largeur) sur
+    // mobile evite tout scroll horizontal ; a partir de md, le board Kanban
+    // classique reprend avec defilement horizontal contenu (retour
+    // utilisateur — les en-tetes tournes n'auraient pas reduit la largeur
+    // reelle des cartes, seulement celle du texte).
+    <div className="flex flex-col gap-4 md:flex-row md:overflow-x-auto md:pb-2">
       {COLUMNS.map((col) => {
         const columnIdeas = ideas.filter((i) => i.statut === col.key);
         return (
-          <div key={col.key} className="w-56 flex-none space-y-2">
+          <div key={col.key} className="space-y-2 border-b pb-4 last:border-0 last:pb-0 md:w-56 md:flex-none md:border-0 md:pb-0">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-medium">{col.label}</h3>
               <span className="text-xs text-muted-foreground">{columnIdeas.length}</span>
