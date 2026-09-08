@@ -1,10 +1,58 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NAV_GROUPS, getContextualNavItems, type NavItem } from "./nav-config";
+
+const SIDEBAR_OPEN_GROUPS_KEY = "sidebar-open-groups";
+const SIDEBAR_OPEN_GROUPS_EVENT = "sidebar-open-groups-change";
+
+// "Administration" fusionne desormais ~47 items (ex-groupes Gouvernance & Risques,
+// Pilotage, etc. — voir nav-config.ts) : replie par defaut pour ne pas allonger
+// la sidebar, les autres groupes (courts) restent ouverts par defaut.
+function defaultOpenGroups(): Record<string, boolean> {
+  return Object.fromEntries(NAV_GROUPS.map((g) => [g.labelKey, g.labelKey !== "administration"]));
+}
+
+// Snapshot memoise (cle brute -> objet parse) : useSyncExternalStore exige une
+// reference stable tant que la donnee source n'a pas change, sinon re-render
+// en boucle. localStorage.setItem ne declenche pas l'evenement "storage" dans
+// le meme onglet, d'ou l'evenement custom dispatch par toggleGroup ci-dessous.
+const SERVER_SNAPSHOT = defaultOpenGroups();
+let cachedRaw: string | null | undefined;
+let cachedSnapshot: Record<string, boolean> = SERVER_SNAPSHOT;
+
+function readStoredOpenGroups(): Record<string, boolean> {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(SIDEBAR_OPEN_GROUPS_KEY);
+  } catch {
+    raw = null;
+  }
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
+    try {
+      cachedSnapshot = raw ? { ...defaultOpenGroups(), ...JSON.parse(raw) } : defaultOpenGroups();
+    } catch {
+      cachedSnapshot = defaultOpenGroups();
+    }
+  }
+  return cachedSnapshot;
+}
+
+function subscribeOpenGroups(callback: () => void) {
+  window.addEventListener(SIDEBAR_OPEN_GROUPS_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(SIDEBAR_OPEN_GROUPS_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+}
 
 /** Contenu de navigation partagé entre la sidebar desktop et le tiroir mobile. */
 export function SidebarNav({
@@ -24,6 +72,18 @@ export function SidebarNav({
   const pathname = usePathname();
   const t = useTranslations("nav");
   const contextualItems = getContextualNavItems(roleKey, permissions);
+  const openGroups = useSyncExternalStore(subscribeOpenGroups, readStoredOpenGroups, () => SERVER_SNAPSHOT);
+
+  function toggleGroup(labelKey: string) {
+    const current = readStoredOpenGroups();
+    const next = { ...current, [labelKey]: !(current[labelKey] ?? true) };
+    try {
+      localStorage.setItem(SIDEBAR_OPEN_GROUPS_KEY, JSON.stringify(next));
+    } catch {
+      // localStorage indisponible (navigation privee...) : le repli reste local a ce rendu.
+    }
+    window.dispatchEvent(new Event(SIDEBAR_OPEN_GROUPS_EVENT));
+  }
 
   function renderItem(item: NavItem) {
     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -91,15 +151,25 @@ export function SidebarNav({
         const items = group.items.filter((item) => !item.permission || permissions.includes(item.permission));
         if (items.length === 0) return null;
 
+        // Rail d'icones (sidebar repliee) : pas d'en-tete cliquable possible, on affiche tout a plat.
+        if (collapsed) {
+          return (
+            <div key={group.labelKey} className="space-y-1">
+              {items.map(renderItem)}
+            </div>
+          );
+        }
+
+        const isOpen = openGroups[group.labelKey] ?? true;
+
         return (
-          <div key={group.labelKey} className="space-y-1">
-            {!collapsed && (
-              <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-foreground/50 uppercase">
-                {t(`groups.${group.labelKey}`)}
-              </div>
-            )}
-            {items.map(renderItem)}
-          </div>
+          <Collapsible key={group.labelKey} open={isOpen} onOpenChange={() => toggleGroup(group.labelKey)} className="space-y-1">
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-3 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/50 uppercase transition-colors hover:text-sidebar-foreground/80">
+              <span>{t(`groups.${group.labelKey}`)}</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-200", !isOpen && "-rotate-90")} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-1">{items.map(renderItem)}</CollapsibleContent>
+          </Collapsible>
         );
       })}
     </nav>
