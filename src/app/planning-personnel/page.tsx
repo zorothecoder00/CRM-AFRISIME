@@ -61,7 +61,7 @@ import {
   type PersonalPlanningEntryStatut,
   type PersonalPlanningEntryType,
 } from "@/lib/personal-planning-types";
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, SlidersHorizontal, Sunrise } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PersonalPlanningCapacityBar } from "@/components/personal-planning/personal-planning-capacity-bar";
 
@@ -432,8 +432,18 @@ export default async function PlanningPersonnelPage({
               désormais dans la barre d'outils du layout (prototype V2) — ne
               reste ici que "Nouvelle tâche", spécifique à ce hub, et le
               bouton "Bilan de ma journée" (demande utilisateur — plus un gros
-              bloc fixe dans la colonne latérale, un simple bouton en haut). */}
+              bloc fixe dans la colonne latérale, un simple bouton en haut).
+              "Ma journée" (retiré de la sidebar, demande utilisateur — un
+              lien direct de /dashboard vers /planning-personnel/ma-journee
+              faisait doublon avec /planning-personnel déjà présent) vit
+              désormais ici, à l'entrée du hub. */}
           <div className="flex flex-wrap items-center gap-2">
+            <Link href="/planning-personnel/ma-journee">
+              <Button variant="outline" size="sm">
+                <Sunrise className="mr-1.5 h-4 w-4" />
+                Ma journée
+              </Button>
+            </Link>
             <EndOfDayButton
               entries={todayEntries}
               reporteesCount={reporteesCount}

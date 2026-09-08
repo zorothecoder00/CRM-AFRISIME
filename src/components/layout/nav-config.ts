@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Sunrise,
   ListChecks,
   CalendarClock,
   CalendarDays,
@@ -90,7 +89,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
       { titleKey: "horairesTravail", href: "/parametres/horaires", icon: Clock },
-      { titleKey: "maJournee", href: "/planning-personnel/ma-journee", icon: Sunrise },
     ],
   },
   {
