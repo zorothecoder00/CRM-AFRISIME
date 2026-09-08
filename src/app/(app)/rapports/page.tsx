@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -9,6 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReportTargetLinks } from "@/components/rapports/report-target-links";
+
+// Demande utilisateur — 3 sections plutot qu'une grille plate de 17 cartes.
+const AUTOMATIC_TYPES: ReportType[] = ["MENSUEL", "TRIMESTRIEL", "ANNUEL", "REVUE_HEBDOMADAIRE", "ACTIVITE", "AUDIT"];
+const GOUVERNANCE_PV_TYPES: ReportType[] = ["GOUVERNANCE"];
+const OTHER_TYPES: ReportType[] = REPORT_TYPES.filter(
+  (t) => t !== "CHARTE_PROJET" && !AUTOMATIC_TYPES.includes(t) && !GOUVERNANCE_PV_TYPES.includes(t)
+);
 
 const FORMATS: { format: string; label: string }[] = [
   { format: "pdf", label: "PDF" },
@@ -49,9 +58,53 @@ export default async function RapportsPage() {
 
   const departments = await prisma.department.findMany({ select: { id: true, name: true, parentId: true } });
   const directions = departments.filter((d) => computeDepartmentDepth(d.id, new Map(departments.map((x) => [x.id, x]))) === 0);
+  const depthMap = new Map(departments.map((x) => [x.id, x]));
+
+  function renderCard(type: ReportType) {
+    return (
+      <Card key={type}>
+        <CardHeader>
+          <CardTitle className="text-base">{REPORT_LABELS[type]}</CardTitle>
+          <CardDescription>{DESCRIPTIONS[type]}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {type === "DEPARTEMENT" && (
+            <ReportTargetLinks
+              type={type}
+              options={departments.map((d) => ({
+                id: d.id,
+                label: `${d.name} (${departmentLevelLabel(computeDepartmentDepth(d.id, depthMap))})`,
+              }))}
+              formats={FORMATS}
+              placeholder="Département"
+            />
+          )}
+          {type === "DIRECTION" && (
+            <ReportTargetLinks
+              type={type}
+              options={directions.map((d) => ({ id: d.id, label: d.name }))}
+              formats={FORMATS}
+              placeholder="Direction"
+            />
+          )}
+          {type !== "DEPARTEMENT" &&
+            type !== "DIRECTION" &&
+            FORMATS.map(({ format, label }) => (
+              <a
+                key={format}
+                href={`/api/rapports/${type}?format=${format}`}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                {label}
+              </a>
+            ))}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Rapports</h1>
         <p className="text-sm text-muted-foreground">
@@ -59,48 +112,42 @@ export default async function RapportsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {REPORT_TYPES.filter((type) => type !== "CHARTE_PROJET").map((type) => (
-          <Card key={type}>
+      <ReportSection title="Rapports automatiques">
+        <div className="grid gap-4 md:grid-cols-2">{AUTOMATIC_TYPES.map(renderCard)}</div>
+      </ReportSection>
+
+      <ReportSection title="Rapports et PV">
+        <div className="grid gap-4 md:grid-cols-2">
+          {GOUVERNANCE_PV_TYPES.map(renderCard)}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-base">{REPORT_LABELS[type]}</CardTitle>
-              <CardDescription>{DESCRIPTIONS[type]}</CardDescription>
+              <CardTitle className="text-base">Comptes rendus de réunion</CardTitle>
+              <CardDescription>Procès-verbaux rédigés depuis la fiche de chaque réunion.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {type === "DEPARTEMENT" && (
-                <ReportTargetLinks
-                  type={type}
-                  options={departments.map((d) => ({
-                    id: d.id,
-                    label: `${d.name} (${departmentLevelLabel(computeDepartmentDepth(d.id, new Map(departments.map((x) => [x.id, x]))))})`,
-                  }))}
-                  formats={FORMATS}
-                  placeholder="Département"
-                />
-              )}
-              {type === "DIRECTION" && (
-                <ReportTargetLinks
-                  type={type}
-                  options={directions.map((d) => ({ id: d.id, label: d.name }))}
-                  formats={FORMATS}
-                  placeholder="Direction"
-                />
-              )}
-              {type !== "DEPARTEMENT" &&
-                type !== "DIRECTION" &&
-                FORMATS.map(({ format, label }) => (
-                  <a
-                    key={format}
-                    href={`/api/rapports/${type}?format=${format}`}
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  >
-                    {label}
-                  </a>
-                ))}
+            <CardContent>
+              <Link href="/reunions" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                Voir les réunions
+              </Link>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </div>
+      </ReportSection>
+
+      <ReportSection title="Autres rapports" description="Documents à exporter manuellement, à la demande.">
+        <div className="grid gap-4 md:grid-cols-2">{OTHER_TYPES.map(renderCard)}</div>
+      </ReportSection>
     </div>
+  );
+}
+
+function ReportSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-xs font-semibold tracking-wide text-muted-foreground/70 uppercase">{title}</h2>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </section>
   );
 }
