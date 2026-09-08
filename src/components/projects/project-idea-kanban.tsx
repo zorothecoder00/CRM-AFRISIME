@@ -53,7 +53,7 @@ export function ProjectIdeaKanban({
       {COLUMNS.map((col) => {
         const columnIdeas = ideas.filter((i) => i.statut === col.key);
         return (
-          <div key={col.key} className="w-72 flex-none space-y-2">
+          <div key={col.key} className="w-56 flex-none space-y-2">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-medium">{col.label}</h3>
               <span className="text-xs text-muted-foreground">{columnIdeas.length}</span>
