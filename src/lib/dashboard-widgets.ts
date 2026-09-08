@@ -1,11 +1,17 @@
+// Ordre par defaut (retour utilisateur — agencement des blocs) : les deux
+// premieres lignes rapprochent des cartes de taille comparable
+// (Taches en retard/Performance par departement, Taux d'avancement/Respect
+// des delais) ; Temps passe + Productivite par equipe (plus courtes que
+// Charge de travail) sont empilees dans la meme cellule pour equilibrer la
+// ligne — voir la logique de regroupement dans tableaux-de-bord/page.tsx.
 export const WIDGET_DEFS = [
-  { key: "PROJECT_PROGRESS", label: "Taux d'avancement des projets" },
   { key: "OVERDUE_TASKS", label: "Tâches en retard" },
+  { key: "DEPARTMENT_PERFORMANCE", label: "Performance par département" },
   { key: "WORKLOAD", label: "Charge de travail" },
   { key: "TIME_SPENT", label: "Temps passé" },
-  { key: "DEADLINE_COMPLIANCE", label: "Respect des délais" },
   { key: "TEAM_PRODUCTIVITY", label: "Productivité par équipe" },
-  { key: "DEPARTMENT_PERFORMANCE", label: "Performance par département" },
+  { key: "PROJECT_PROGRESS", label: "Taux d'avancement des projets" },
+  { key: "DEADLINE_COMPLIANCE", label: "Respect des délais" },
   { key: "HR_INDICATORS", label: "Indicateurs RH" },
 ] as const;
 

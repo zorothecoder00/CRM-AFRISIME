@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { sanitizeWidgetOrder, type WidgetKey } from "@/lib/dashboard-widgets";
+import { cn } from "@/lib/utils";
 import { WidgetConfigDialog } from "@/components/dashboard/widget-config-dialog";
 import { ProjectProgressWidget } from "@/components/dashboard/widgets/project-progress-widget";
 import { OverdueTasksWidget } from "@/components/dashboard/widgets/overdue-tasks-widget";
@@ -15,6 +16,32 @@ import { TeamProductivityWidget } from "@/components/dashboard/widgets/team-prod
 import { DepartmentPerformanceWidget } from "@/components/dashboard/widgets/department-performance-widget";
 import { HRIndicatorsWidget } from "@/components/dashboard/widgets/hr-indicators-widget";
 import { Search } from "lucide-react";
+
+// Demande utilisateur — Temps passé et Productivité par équipe sont plus
+// courtes que Charge de travail : empilées dans la même cellule de grille
+// pour équilibrer visuellement la ligne, plutôt que chacune dans sa propre
+// cellule (qui laissait un grand vide sous les deux courtes). Ne s'applique
+// que si les deux widgets sont adjacents et actifs dans l'ordre (sinon
+// repli normal sur des cellules individuelles).
+const STACK_PAIR: [WidgetKey, WidgetKey] = ["TIME_SPENT", "TEAM_PRODUCTIVITY"];
+
+function buildSlots(order: WidgetKey[]): WidgetKey[][] {
+  const slots: WidgetKey[][] = [];
+  for (let i = 0; i < order.length; i++) {
+    const key = order[i];
+    const next = order[i + 1];
+    const isPair =
+      next !== undefined &&
+      ((key === STACK_PAIR[0] && next === STACK_PAIR[1]) || (key === STACK_PAIR[1] && next === STACK_PAIR[0]));
+    if (isPair) {
+      slots.push([key, next]);
+      i++;
+    } else {
+      slots.push([key]);
+    }
+  }
+  return slots;
+}
 
 export default async function TableauxDeBordPage() {
   const session = await getServerSession(authOptions);
@@ -68,9 +95,14 @@ export default async function TableauxDeBordPage() {
           voisine sur la meme ligne (grille "stretch" par defaut), laissant un
           grand vide visuel (retour utilisateur : "blocs mal agences"). */}
       <div className="grid items-start gap-4 md:grid-cols-2">
-        {order.map((key) => (
-          <div key={key} className={key === "HR_INDICATORS" ? "md:col-span-2" : ""}>
-            {widgetComponents[key]}
+        {buildSlots(order).map((slot) => (
+          <div
+            key={slot.join("-")}
+            className={cn("space-y-4", slot.includes("HR_INDICATORS") && "md:col-span-2")}
+          >
+            {slot.map((key) => (
+              <div key={key}>{widgetComponents[key]}</div>
+            ))}
           </div>
         ))}
       </div>
