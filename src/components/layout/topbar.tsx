@@ -11,10 +11,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell, Mail, ClipboardList, MessageSquare, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
+import { PERMISSIONS } from "@/lib/permissions";
+
+/** Raccourci icône topbar — demande utilisateur : Demandes/Messagerie/Courrier
+ * au niveau du profil (à côté de la cloche) plutôt que dans la sidebar. */
+function TopbarShortcut({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={href} aria-label={label}>
+            <Icon className="h-5 w-5" />
+          </Link>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function Topbar({
   userName,
@@ -48,7 +67,16 @@ export function Topbar({
           Planifier · Collaborer · Exécuter · Contrôler
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
+        {permissions.includes(PERMISSIONS.ADMIN_REQUEST_READ) && (
+          <TopbarShortcut href="/demandes" label="Demandes" icon={ClipboardList} />
+        )}
+        {permissions.includes(PERMISSIONS.MESSAGE_READ) && (
+          <TopbarShortcut href="/messages" label="Messagerie" icon={MessageSquare} />
+        )}
+        {permissions.includes(PERMISSIONS.COURRIER_READ) && (
+          <TopbarShortcut href="/courrier" label="Courrier" icon={Mail} />
+        )}
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
