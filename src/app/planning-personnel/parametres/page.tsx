@@ -13,11 +13,12 @@ const DEFAULT_ACTIVE_DAYS = new Set([1, 2, 3, 4, 5]); // lundi-vendredi
  * "Paramètres" (prototype V2) — la version générale pointait par erreur vers
  * /parametres/profil (nom/e-mail/photo, sans rapport). Le prototype demande
  * Fuseau horaire / Premier jour de la semaine / Horaires flexibles /
- * Notifications : les deux derniers existent déjà, en mieux, sur des pages
- * dédiées (/parametres/horaires, /parametres/notifications) — regroupées
- * ici en une seule page plutôt que dupliquées. Fuseau horaire/premier jour
- * n'existent nulle part dans l'appli (nécessiteraient un champ User + une
- * migration) — hors périmètre de cette correction, laissés de côté.
+ * Notifications : Horaires de travail est desormais fusionne ici (l'ancienne
+ * page /parametres/horaires, dupliquee, a ete supprimee — demande
+ * utilisateur), Notifications reste repris de /parametres/notifications.
+ * Fuseau horaire/premier jour n'existent nulle part dans l'appli
+ * (nécessiteraient un champ User + une migration) — hors périmètre de cette
+ * correction, laissés de côté.
  */
 export default async function PersonalPlanningParametresPage() {
   const session = await getServerSession(authOptions);

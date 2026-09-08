@@ -59,11 +59,12 @@ export async function saveWorkSchedule(input: SaveWorkScheduleInput) {
     }
   });
 
-  revalidatePath("/parametres/horaires");
   // "layout" (pas "page") : /planning-personnel/layout.tsx enveloppe tout le
-  // sous-arbre (hub, ma-journee, equipe/[userId]...) — sans ça, les vues
-  // Jour/Semaine restaient périmées après un changement d'horaires (demande
-  // utilisateur — la grille doit refléter les nouvelles heures aussitôt).
+  // sous-arbre (hub, ma-journee, parametres, equipe/[userId]...) — sans ça,
+  // les vues Jour/Semaine restaient périmées après un changement d'horaires
+  // (demande utilisateur — la grille doit refléter les nouvelles heures
+  // aussitôt). /parametres/horaires (page separee) a ete fusionnee dans
+  // /planning-personnel/parametres, deja couverte ici.
   revalidatePath("/planning-personnel", "layout");
   return { ok: true };
 }
@@ -102,7 +103,7 @@ export async function createWorkScheduleException(input: CreateWorkScheduleExcep
     },
   });
 
-  revalidatePath("/parametres/horaires");
+  revalidatePath("/planning-personnel", "layout");
   return { id: exception.id };
 }
 
@@ -115,5 +116,5 @@ export async function deleteWorkScheduleException(exceptionId: string) {
   }
 
   await prisma.userWorkScheduleException.delete({ where: { id: exceptionId } });
-  revalidatePath("/parametres/horaires");
+  revalidatePath("/planning-personnel", "layout");
 }

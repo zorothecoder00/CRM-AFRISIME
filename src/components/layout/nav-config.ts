@@ -88,7 +88,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "dashboard", href: "/dashboard", icon: LayoutDashboard },
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
-      { titleKey: "horairesTravail", href: "/parametres/horaires", icon: Clock },
+      { titleKey: "horairesTravail", href: "/planning-personnel/parametres", icon: Clock },
     ],
   },
   {
