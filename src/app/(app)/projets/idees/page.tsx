@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ProjectIdeaFormDialog } from "@/components/projects/project-idea-form-dialog";
-import { ProjectIdeaKanban, type ProjectIdeaRow } from "@/components/projects/project-idea-kanban";
+import { ProjectIdeaTable, type ProjectIdeaRow } from "@/components/projects/project-idea-table";
 
 export default async function ProjectIdeasPage() {
   const session = await getServerSession(authOptions);
@@ -42,10 +42,17 @@ export default async function ProjectIdeasPage() {
             {ideas.length} idée(s) — de l&apos;intuition à la conception d&apos;un projet.
           </p>
         </div>
-        {canCreate && <ProjectIdeaFormDialog users={userOptions} departments={departmentOptions} />}
+        {/* Sous ce seuil, le bouton du tableau vide (ProjectIdeaTable) suffit — inutile de le dupliquer ici. */}
+        {canCreate && ideas.length > 0 && <ProjectIdeaFormDialog users={userOptions} departments={departmentOptions} />}
       </div>
 
-      <ProjectIdeaKanban ideas={ideaRows} users={userOptions} departments={departmentOptions} canManage={canManage} />
+      <ProjectIdeaTable
+        ideas={ideaRows}
+        users={userOptions}
+        departments={departmentOptions}
+        canManage={canManage}
+        canCreate={canCreate}
+      />
     </div>
   );
 }
