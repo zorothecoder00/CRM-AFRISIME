@@ -51,7 +51,7 @@ export default async function ProjectIdeaDetailPage({
     <div className="space-y-6">
       <div>
         <Link href="/projets/idees" className="text-sm text-primary hover:underline">
-          ← Idées & opportunités
+          ← Laboratoire d&apos;idées
         </Link>
         <div className="mt-1 flex items-center gap-2">
           <h1 className="text-2xl font-semibold">{idea.titreProvisoire}</h1>

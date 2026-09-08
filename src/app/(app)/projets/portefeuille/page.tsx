@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import type { Prisma } from "@/generated/prisma/client";
+import { FolderKanban, Sparkles, Lightbulb, HandCoins, type LucideIcon } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -133,13 +134,37 @@ export default async function PortfolioPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Portefeuille de projets</h1>
-        <p className="text-sm text-muted-foreground">
-          Vue d&apos;ensemble de {filtered.length} projet(s) — voir aussi{" "}
-          <Link href="/projets" className="text-primary hover:underline">
-            la liste détaillée
-          </Link>
-          .
-        </p>
+        <p className="text-sm text-muted-foreground">Vue d&apos;ensemble de {filtered.length} projet(s).</p>
+      </div>
+
+      {/* Demande utilisateur — point d'entree unique regroupant Projets,
+          Project Studio, Laboratoire d'idees et Appel a projets (retires de
+          la sidebar). */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <PortfolioBlockLink
+          href="/projets"
+          icon={FolderKanban}
+          title="Projets"
+          description="Liste détaillée, filtres et vues (kanban, gantt...)."
+        />
+        <PortfolioBlockLink
+          href="/projets/studio"
+          icon={Sparkles}
+          title="Project Studio"
+          description="Cadrage assisté d'un nouveau projet."
+        />
+        <PortfolioBlockLink
+          href="/projets/idees"
+          icon={Lightbulb}
+          title="Laboratoire d'idées"
+          description="Idées et opportunités à instruire."
+        />
+        <PortfolioBlockLink
+          href="/projets/appels-a-projets"
+          icon={HandCoins}
+          title="Appel à projets"
+          description="Candidatures et opportunités de financement."
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
@@ -264,6 +289,34 @@ export default async function PortfolioPage({
         {filtered.length === 0 && <p className="text-sm text-muted-foreground">Aucun projet ne correspond à ces filtres.</p>}
       </div>
     </div>
+  );
+}
+
+function PortfolioBlockLink({
+  href,
+  icon: Icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link href={href}>
+      <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+        <CardContent className="flex items-start gap-3 px-(--card-spacing)">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Icon className="size-4.5" />
+          </span>
+          <div className="space-y-0.5">
+            <div className="text-sm font-semibold">{title}</div>
+            <p className="text-xs text-muted-foreground">{description}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 

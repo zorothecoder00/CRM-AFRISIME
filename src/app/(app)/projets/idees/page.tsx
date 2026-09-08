@@ -37,7 +37,7 @@ export default async function ProjectIdeasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Idées & opportunités</h1>
+          <h1 className="text-2xl font-semibold">Laboratoire d&apos;idées</h1>
           <p className="text-sm text-muted-foreground">
             {ideas.length} idée(s) — de l&apos;intuition à la conception d&apos;un projet.
           </p>

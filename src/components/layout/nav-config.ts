@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Sunrise,
-  FolderKanban,
   ListChecks,
   CalendarClock,
   CalendarDays,
@@ -59,7 +58,6 @@ import {
   History,
   TriangleAlert,
   Briefcase,
-  HandCoins,
   Lock,
   Clock,
   type LucideIcon,
@@ -107,12 +105,11 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { titleKey: "planification", href: "/planification", icon: Milestone, permission: PERMISSIONS.PLAN_READ },
       { titleKey: "programmes", href: "/programmes", icon: Layers, permission: PERMISSIONS.PROGRAM_READ },
-      { titleKey: "projets", href: "/projets", icon: FolderKanban, permission: PERMISSIONS.PROJECT_READ },
       { titleKey: "taches", href: "/taches", icon: ListChecks, permission: PERMISSIONS.TASK_READ },
-      { titleKey: "projectStudio", href: "/projets/studio", icon: Sparkles, permission: PERMISSIONS.PROJECT_READ },
+      // Regroupes desormais en blocs dans /projets/portefeuille (demande
+      // utilisateur) : Projets, Project Studio, Laboratoire d'idees, Appel a
+      // projets. Portefeuille de projets reste le point d'entree unique.
       { titleKey: "portefeuilleProjets", href: "/projets/portefeuille", icon: Briefcase, permission: PERMISSIONS.PROJECT_READ },
-      { titleKey: "ideesProjets", href: "/projets/idees", icon: Lightbulb, permission: PERMISSIONS.PROJECT_READ },
-      { titleKey: "appelsAProjets", href: "/projets/appels-a-projets", icon: HandCoins, permission: PERMISSIONS.PROJECT_READ },
       { titleKey: "equipes", href: "/administration/equipes", icon: Users2, permission: PERMISSIONS.TEAM_CREATE },
     ],
   },
