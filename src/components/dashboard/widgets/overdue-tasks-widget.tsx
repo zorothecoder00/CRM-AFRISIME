@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { DashboardData } from "@/lib/dashboard-data";
 
 const MAX_VISIBLE = 5;
+// Demande utilisateur — a partir de md, seules 4 lignes restent visibles
+// (la 5e est masquee en CSS plus bas) pour que la carte fasse la meme
+// hauteur que Performance par departement. "Voir tout" doit donc apparaitre
+// des que le total depasse ce plus petit seuil, pas seulement au-dela de 5
+// (sinon la 5e tache resterait inaccessible sur ecran moyen/grand).
 
 export function OverdueTasksWidget({
   tasks,
@@ -24,11 +30,18 @@ export function OverdueTasksWidget({
         {tasks.length === 0 && (
           <p className="text-sm text-muted-foreground">Aucune tâche en retard.</p>
         )}
-        {visible.map((t) => (
+        {visible.map((t, i) => (
           <Link
             key={t.id}
             href={`/taches/${t.id}`}
-            className="flex items-center justify-between rounded-md border p-2 text-sm hover:bg-muted"
+            // Demande utilisateur — a partir de md, une 5e ligne desequilibrait
+            // la hauteur par rapport a la carte Performance par departement ;
+            // sur mobile/petit ecran, ou les cartes ne s'alignent plus cote a
+            // cote, les 5 restent visibles.
+            className={cn(
+              "flex items-center justify-between rounded-md border p-2 text-sm hover:bg-muted",
+              i === 4 && "md:hidden"
+            )}
           >
             <div>
               <div className="font-medium text-destructive">{t.titre}</div>
@@ -41,7 +54,7 @@ export function OverdueTasksWidget({
             </span>
           </Link>
         ))}
-        {total > MAX_VISIBLE && (
+        {total > MAX_VISIBLE - 1 && (
           <Link href="/taches" className="block text-xs text-primary hover:underline">
             Voir tout ({total})
           </Link>

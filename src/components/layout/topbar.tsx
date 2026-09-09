@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,12 @@ export function Topbar({
   unreadCount: number;
   permissions: string[];
 }) {
+  const pathname = usePathname();
+  // Demande utilisateur — la barre de recherche de /tableaux-de-bord
+  // deplacee du corps de page vers la topbar, juste a cote du bandeau
+  // "Planifier · Collaborer · Exécuter · Contrôler" (uniquement sur cette
+  // page : pas de recherche globale dans la topbar ailleurs).
+  const showDashboardSearch = pathname === "/tableaux-de-bord";
   const initials = userName
     .split(" ")
     .map((part) => part[0])
@@ -63,8 +70,21 @@ export function Topbar({
     <header className="flex h-16 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
       <div className="flex items-center gap-2">
         <MobileSidebar permissions={permissions} roleKey={roleKey} />
-        <div className="show-from-lg text-sm text-muted-foreground">
-          Planifier · Collaborer · Exécuter · Contrôler
+        <div className="hidden items-center gap-3 lg:flex">
+          <span className="whitespace-nowrap text-sm text-muted-foreground">
+            Planifier · Collaborer · Exécuter · Contrôler
+          </span>
+          {showDashboardSearch && (
+            <form action="/recherche" className="relative w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                name="q"
+                type="search"
+                placeholder="Rechercher tâche, projet, document…"
+                className="h-9 w-full rounded-md border bg-background pl-8 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </form>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1">
