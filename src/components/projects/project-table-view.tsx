@@ -29,6 +29,8 @@ export type ProjectRow = {
   avancement: number;
   budget: number | null;
   coutReel: number | null;
+  /** Devise de l'entité du projet (via son département) — voir getDeviseForDepartment, pas forcément celle de l'organisation. */
+  devise: string;
   dateDebut: string | null;
   dateFin: string | null;
   localisation: string | null;
@@ -54,6 +56,10 @@ function formatMontant(montant: number | null, devise: string) {
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant)} ${devise}`;
 }
 
+// Demande utilisateur — chaque projet peut etre rattache a une entite
+// operant dans une devise differente (voir ProjectRow.devise, resolue via
+// getDeviseForDepartment) : les colonnes Budget/Coût réel affichent donc la
+// devise PROPRE a chaque ligne (currencyKey), pas une seule devise globale.
 const EXPORT_COLUMNS: XlsxColumn<ProjectRow>[] = [
   { label: "Nom", key: "nom" },
   { label: "Statut", key: "statut", format: (v) => STATUS_LABELS[v as string] ?? String(v) },
@@ -61,22 +67,23 @@ const EXPORT_COLUMNS: XlsxColumn<ProjectRow>[] = [
   { label: "Département", key: "departmentNom" },
   { label: "Responsable", key: "responsableNom" },
   { label: "Avancement (%)", key: "avancement", type: "number" },
-  { label: "Budget", key: "budget", type: "currency" },
-  { label: "Coût réel", key: "coutReel", type: "currency" },
+  { label: "Budget", key: "budget", type: "currency", currencyKey: "devise" },
+  { label: "Coût réel", key: "coutReel", type: "currency", currencyKey: "devise" },
   { label: "Échéance", key: "dateFin", type: "date", format: (v) => (v ? new Date(v as string) : null) },
 ];
 
 /** Vue Table (cahier des charges §VI) — tri lisible en un coup d'oeil, complementaire a la vue Liste en cartes. */
 export function ProjectTableView({
   projects,
-  devise,
+  fallbackDevise = "XOF",
   departments = [],
   users = [],
   canManage = false,
   canDelete = false,
 }: {
   projects: ProjectRow[];
-  devise: string;
+  /** Repli pour l'export si jamais une ligne n'a pas sa propre devise (ne devrait pas arriver, voir ProjectRow.devise). */
+  fallbackDevise?: string;
   departments?: Option[];
   users?: Option[];
   canManage?: boolean;
@@ -101,7 +108,7 @@ export function ProjectTableView({
           filename="projets.xlsx"
           sheetName="Projets"
           title="Projets"
-          currency={devise}
+          currency={fallbackDevise}
         />
       </div>
       <div className="rounded-md border">
@@ -139,7 +146,7 @@ export function ProjectTableView({
                 <TableCell className="text-muted-foreground">{p.responsableNom}</TableCell>
                 <TableCell>{p.avancement}%</TableCell>
                 <TableCell>
-                  {formatMontant(p.budget, devise)}
+                  {formatMontant(p.budget, p.devise)}
                   {depasse && (
                     <Badge variant="destructive" className="ml-1.5">
                       Dépassé

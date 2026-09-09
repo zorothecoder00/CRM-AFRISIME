@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { computeScopePilotage } from "@/lib/pilotage-levels";
 import { collectDescendantIds } from "@/lib/department-tree";
+import { getDeviseForDepartment } from "@/lib/currency";
 
 export const REPORT_TYPES = [
   "PROJETS",
@@ -107,6 +108,10 @@ async function getProjectCharterReport(generatedAt: Date, projectId: string): Pr
     return { title: REPORT_LABELS.CHARTE_PROJET, generatedAt, sections: [{ heading: "Projet introuvable", columns: [], rows: [] }] };
   }
 
+  // Revue applicative — devise de l'entite du projet (via son departement),
+  // pas la devise globale de l'organisation en dur.
+  const devise = await getDeviseForDepartment(project.departmentId);
+
   return {
     title: `${REPORT_LABELS.CHARTE_PROJET} — ${project.nom}`,
     generatedAt,
@@ -120,7 +125,7 @@ async function getProjectCharterReport(generatedAt: Date, projectId: string): Pr
           `Chef de projet : ${project.responsable.name}`,
           `Département : ${project.department.name}`,
           `Objectif : ${project.objectif ?? "—"}`,
-          `Budget : ${project.budget ? Number(project.budget).toLocaleString("fr-FR") : "—"}`,
+          `Budget : ${project.budget ? `${Number(project.budget).toLocaleString("fr-FR")} ${devise}` : "—"}`,
           `Calendrier : ${project.dateDebut?.toLocaleDateString("fr-FR") ?? "—"} → ${project.dateFin?.toLocaleDateString("fr-FR") ?? "—"}`,
         ].join("\n"),
       },
@@ -189,6 +194,11 @@ async function getDepartmentScopedReport(title: string, generatedAt: Date, depar
     include: { department: true, responsable: true },
     orderBy: { nom: "asc" },
   });
+  // Revue applicative — devise par projet (via son departement -> son
+  // entite), pas une devise globale partagee entre projets potentiellement
+  // d'entites differentes.
+  const devises = await Promise.all(projects.map((p) => getDeviseForDepartment(p.departmentId)));
+
   return singleSection(
     title,
     generatedAt,
@@ -200,13 +210,13 @@ async function getDepartmentScopedReport(title: string, generatedAt: Date, depar
       { key: "avancement", label: "Avancement" },
       { key: "budget", label: "Budget" },
     ],
-    projects.map((p) => ({
+    projects.map((p, i) => ({
       nom: p.nom,
       departement: p.department.name,
       responsable: p.responsable.name,
       statut: p.statut,
       avancement: `${p.avancement}%`,
-      budget: p.budget ? Number(p.budget).toLocaleString("fr-FR") : "—",
+      budget: p.budget ? `${Number(p.budget).toLocaleString("fr-FR")} ${devises[i]}` : "—",
     }))
   );
 }
@@ -277,6 +287,8 @@ export async function getReportData(type: ReportType, params: { targetId?: strin
       include: { department: true, responsable: true },
       orderBy: { nom: "asc" },
     });
+    // Revue applicative — devise par projet, meme raison que getDepartmentScopedReport.
+    const devises = await Promise.all(projects.map((p) => getDeviseForDepartment(p.departmentId)));
     return singleSection(
       REPORT_LABELS.PROJETS,
       generatedAt,
@@ -288,13 +300,13 @@ export async function getReportData(type: ReportType, params: { targetId?: strin
         { key: "avancement", label: "Avancement" },
         { key: "budget", label: "Budget" },
       ],
-      projects.map((p) => ({
+      projects.map((p, i) => ({
         nom: p.nom,
         departement: p.department.name,
         responsable: p.responsable.name,
         statut: p.statut,
         avancement: `${p.avancement}%`,
-        budget: p.budget ? Number(p.budget).toLocaleString("fr-FR") : "—",
+        budget: p.budget ? `${Number(p.budget).toLocaleString("fr-FR")} ${devises[i]}` : "—",
       }))
     );
   }

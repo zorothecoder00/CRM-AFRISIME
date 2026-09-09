@@ -26,6 +26,14 @@ export interface XlsxColumn<T extends Record<string, unknown>> {
   format?: (v: T[keyof T], row: T) => string | number | Date | null;
   /** Type de cellule pour l'alignement et le format Excel natif. Défaut: "text". */
   type?: XlsxColumnType;
+  /**
+   * Pour une colonne "currency" : clé de la ligne portant SA propre devise
+   * (ex. un projet rattaché à une entité qui opère dans une devise
+   * différente de celle de l'organisation), plutôt qu'une seule devise
+   * globale pour toute la colonne (options.currency, toujours utilisée en
+   * repli si absente sur une ligne donnée).
+   */
+  currencyKey?: keyof T;
   /** Largeur de colonne (en caractères). Auto-calculée si absente. */
   width?: number;
 }
@@ -55,6 +63,10 @@ function writeObjectSheet<T extends Record<string, any>>(
   const { title, currency = "XOF" } = options;
   const currencyFmt = `#,##0 "${currency}"`;
   const numberFmt = "#,##0";
+  const currencyFmtFor = (row: T, col: XlsxColumn<T>) => {
+    const rowCurrency = col.currencyKey ? row[col.currencyKey] : undefined;
+    return rowCurrency ? `#,##0 "${String(rowCurrency)}"` : currencyFmt;
+  };
   const dateFmt = "dd/mm/yyyy";
   const dateTimeFmt = "dd/mm/yyyy hh:mm";
 
@@ -92,7 +104,7 @@ function writeObjectSheet<T extends Record<string, any>>(
       cell.value = value as ExcelJS.CellValue;
       switch (col.type) {
         case "currency":
-          cell.numFmt = currencyFmt;
+          cell.numFmt = currencyFmtFor(row, col);
           cell.alignment = { horizontal: "right" };
           break;
         case "number":

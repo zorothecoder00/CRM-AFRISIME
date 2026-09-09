@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
-import { getOrganizationDevise } from "@/lib/currency";
+import { getOrganizationDevise, getDeviseForDepartment } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
@@ -88,7 +88,13 @@ export default async function ProjetsPage({
       : Promise.resolve([]),
   ]);
 
-  const projectRows: ProjectRow[] = projects.map((p) => ({
+  // Revue applicative — chaque projet affiche desormais son budget sous la
+  // devise de SON entite (via son departement), pas la devise globale de
+  // l'organisation en dur — meme correctif que la fiche projet individuelle
+  // (voir getDeviseForDepartment).
+  const projectDevises = await Promise.all(projects.map((p) => getDeviseForDepartment(p.departmentId)));
+
+  const projectRows: ProjectRow[] = projects.map((p, i) => ({
     id: p.id,
     nom: p.nom,
     description: p.description,
@@ -102,6 +108,7 @@ export default async function ProjetsPage({
     avancement: p.avancement,
     budget: p.budget ? Number(p.budget) : null,
     coutReel: p.coutReel ? Number(p.coutReel) : null,
+    devise: projectDevises[i]!,
     dateDebut: p.dateDebut ? p.dateDebut.toISOString() : null,
     dateFin: p.dateFin ? p.dateFin.toISOString() : null,
     localisation: p.localisation,
@@ -192,7 +199,7 @@ export default async function ProjetsPage({
       {vue === "table" && (
         <ProjectTableView
           projects={projectRows}
-          devise={devise}
+          fallbackDevise={devise}
           departments={departmentOptions}
           users={userOptions}
           canManage={canManage}
