@@ -71,11 +71,22 @@ export default async function PilotagePage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {directionsPilotage.map(({ direction, pilotage }) => {
               const accent = accentForPilotage(pilotage);
+              // Demande utilisateur — le "pas de projet actif" doit se voir
+              // pareil que le perimetre ait 0 projet au total (RH, Direction
+              // Generale) OU seulement des projets pas encore actifs
+              // (Commercial : 1 projet PLANIFIE) ; accentForPilotage traite
+              // deja les deux cas comme "none", le badge/bordure pointillee
+              // doit suivre la meme condition (projectsActifs), pas
+              // projectsTotal — sinon Commercial ressort sans aucun habillage.
+              const noActiveProjects = pilotage.projectsActifs === 0;
               return (
                 <Link key={direction.id} href={`/pilotage/departement/${direction.id}`}>
                   <Card
                     accent={accent}
-                    className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                    className={cn(
+                      "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg",
+                      noActiveProjects && "border-dashed border-t-muted-foreground/40"
+                    )}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">
                       <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", iconToneForAccent(accent))}>
@@ -88,9 +99,15 @@ export default async function PilotagePage() {
                         <Badge variant="outline">{pilotage.headcount} personne(s)</Badge>
                         <Badge variant="outline">{pilotage.projectsActifs} projet(s) actif(s)</Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Avancement moyen : {pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—"}
-                      </div>
+                      {noActiveProjects ? (
+                        <Badge variant="outline" className="border-dashed text-muted-foreground">
+                          {pilotage.projectsTotal === 0 ? "Aucun projet rattaché" : "Aucun projet actif"}
+                        </Badge>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Avancement moyen : {pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—"}
+                        </div>
+                      )}
                       {pilotage.tachesEnRetard > 0 && (
                         <Badge variant="destructive">{pilotage.tachesEnRetard} tâche(s) en retard</Badge>
                       )}

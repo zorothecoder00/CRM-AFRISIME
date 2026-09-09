@@ -162,7 +162,7 @@ export default async function IndividualPilotagePage({
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {p.projects.map((project) => (
-              <Link key={project.id} href={`/projets/${project.id}`}>
+              <Link key={project.id} href={`/projets/${project.id}?from=pilotage-utilisateur&userId=${userId}`}>
                 <Card
                   accent={accentForStatus(project.statut)}
                   className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"

@@ -34,9 +34,19 @@ export type ScopePilotage = {
  * "designer les blocs de /pilotage ... accents de differentes couleurs") :
  * derive de la sante reelle du perimetre (retard > avancement) plutot
  * qu'arbitraire, meme logique que accentForStatus pour les projets.
+ *
+ * Retour utilisateur — un departement avec "0 projet actif" (un seul projet
+ * PLANIFIE a 0%, pas encore demarre) ressortait quand meme colore (warning),
+ * car avancementMoyen moyenne TOUS les projets du perimetre (actifs ou non —
+ * c'est l'indicateur affiche dans ScopePilotagePanel, volontairement pas
+ * limite aux actifs). Ici, pour l'accent uniquement, rien a signaler tant
+ * qu'aucun projet n'est reellement en cours.
  */
-export function accentForPilotage(p: Pick<ScopePilotage, "tachesEnRetard" | "avancementMoyen">): CardAccent {
+export function accentForPilotage(
+  p: Pick<ScopePilotage, "tachesEnRetard" | "avancementMoyen" | "projectsActifs">
+): CardAccent {
   if (p.tachesEnRetard > 0) return "destructive";
+  if (p.projectsActifs === 0) return "none";
   if (p.avancementMoyen === null) return "none";
   if (p.avancementMoyen >= 70) return "success";
   if (p.avancementMoyen >= 40) return "info";

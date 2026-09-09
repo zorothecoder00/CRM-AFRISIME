@@ -131,11 +131,20 @@ export default async function DepartmentPilotagePage({
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {childrenPilotage.map(({ child, pilotage: cp }) => {
               const accent = accentForPilotage(cp);
+              // Demande utilisateur — meme condition que accentForPilotage
+              // (projectsActifs, pas projectsTotal) : un departement avec un
+              // seul projet PLANIFIE (pas encore actif) doit avoir le meme
+              // habillage "rien a signaler" qu'un departement sans aucun
+              // projet, pas rester sans aucun traitement visuel.
+              const noActiveProjects = cp.projectsActifs === 0;
               return (
                 <Link key={child.id} href={`/pilotage/departement/${child.id}`}>
                   <Card
                     accent={accent}
-                    className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                    className={cn(
+                      "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg",
+                      noActiveProjects && "border-dashed border-t-muted-foreground/40"
+                    )}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">
                       <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", iconToneForAccent(accent))}>
@@ -148,9 +157,15 @@ export default async function DepartmentPilotagePage({
                         <Badge variant="outline">{cp.headcount} personne(s)</Badge>
                         <Badge variant="outline">{cp.projectsActifs} projet(s) actif(s)</Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Avancement moyen : {cp.avancementMoyen !== null ? `${cp.avancementMoyen}%` : "—"}
-                      </div>
+                      {noActiveProjects ? (
+                        <Badge variant="outline" className="border-dashed text-muted-foreground">
+                          {cp.projectsTotal === 0 ? "Aucun projet rattaché" : "Aucun projet actif"}
+                        </Badge>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Avancement moyen : {cp.avancementMoyen !== null ? `${cp.avancementMoyen}%` : "—"}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
@@ -220,7 +235,7 @@ export default async function DepartmentPilotagePage({
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((p) => (
-              <Link key={p.id} href={`/projets/${p.id}`}>
+              <Link key={p.id} href={`/projets/${p.id}?from=pilotage-departement&deptId=${departmentId}`}>
                 <Card
                   accent={accentForStatus(p.statut)}
                   className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"

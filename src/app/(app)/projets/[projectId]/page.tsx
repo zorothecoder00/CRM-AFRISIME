@@ -35,6 +35,7 @@ import { EntityTagsEditor } from "@/components/tags/entity-tags-editor";
 import { DeleteToTrashButton } from "@/components/trash/delete-to-trash-button";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
 import { GenerateStandardFoldersButton } from "@/components/documents/generate-standard-folders-button";
+import { ProjectStatusSelect } from "@/components/projects/project-status-select";
 import { Sparkles } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
 
@@ -68,10 +69,26 @@ const TASK_STATUS_LABELS: Record<string, string> = {
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ from?: string; deptId?: string; userId?: string }>;
 }) {
   const { projectId } = await params;
+  const { from, deptId, userId } = await searchParams;
+
+  // Retour utilisateur — venir de /pilotage (departement ou fiche
+  // individuelle) puis ouvrir un projet ramenait vers /projets au lieu du
+  // point de depart. Meme convention `?from=` que ContextualBackLink.
+  let backHref = "/projets";
+  let backLabel = "Retour aux projets";
+  if (from === "pilotage-departement" && deptId) {
+    backHref = `/pilotage/departement/${deptId}`;
+    backLabel = "Retour au pilotage";
+  } else if (from === "pilotage-utilisateur" && userId) {
+    backHref = `/pilotage/utilisateur/${userId}`;
+    backLabel = "Retour au pilotage";
+  }
   const {
     session,
     canManageAutomation,
@@ -120,7 +137,7 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="space-y-6">
-      <BackLink href="/projets" label="Retour aux projets" />
+      <BackLink href={backHref} label={backLabel} />
       {project.deletedAt && (
         <div className="flex items-center justify-between rounded-md border border-destructive/40 bg-destructive/5 p-3">
           <p className="text-sm text-destructive">Ce projet a été supprimé et se trouve dans la corbeille.</p>
@@ -131,7 +148,11 @@ export default async function ProjectDetailPage({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">{project.nom}</h1>
-            <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
+            {canUpdateProject ? (
+              <ProjectStatusSelect projectId={project.id} statut={project.statut} />
+            ) : (
+              <Badge variant={toneForStatus(project.statut)}>{STATUS_LABELS[project.statut]}</Badge>
+            )}
             {canDeleteProject && !project.deletedAt && <DeleteToTrashButton entityType="Project" id={project.id} />}
           </div>
           <Link href={`/projets/studio/${project.id}`}>
