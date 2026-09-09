@@ -733,6 +733,7 @@ model User {
   successionPlansCreated              SuccessionPlan[]                   @relation("SuccessionPlanCreatedBy")
   successionPlanTitulaireFor          SuccessionPlan[]                   @relation("SuccessionPlanTitulaire")
   successionCandidacies               SuccessionCandidate[]              @relation("SuccessionCandidateUser")
+  appCatalogInterests                 AppCatalogInterest[]
 
   @@index([departmentId])
   @@index([roleId])
@@ -5945,9 +5946,31 @@ model AppCatalogEntry {
   nom         String           @unique
   categorie   AppCategory
   description String?
+  // Texte plus riche qu'une simple description courte — "pour qui / pour
+  // quel usage" — affiche sur la fiche detaillee du catalogue.
+  casUsage    String?
   statut      AppCatalogStatut @default(PLANIFIE)
+  interests   AppCatalogInterest[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+}
+
+// "Me prevenir quand disponible" (extension marketplace) — un utilisateur
+// peut s'inscrire une seule fois par app (contrainte unique), retire son
+// inscription en supprimant la ligne. Comptee sur la fiche pour indiquer
+// l'interet reel sans notifier automatiquement (aucun canal push/email
+// fiable disponible pour ce declencheur — voir memoire projet).
+model AppCatalogInterest {
+  id                String           @id @default(cuid())
+  appCatalogEntryId String
+  appCatalogEntry   AppCatalogEntry  @relation(fields: [appCatalogEntryId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now())
+
+  @@unique([appCatalogEntryId, userId])
+  @@index([appCatalogEntryId])
+  @@index([userId])
 }
 
 // ===================== V2.2 §36-40 — Securite, gestion des donnees, dashboards, notifications 2.0, priorisation IA =====================
