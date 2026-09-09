@@ -198,9 +198,18 @@ export function ProjectKanbanView({
     setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, statut: newStatus } : p)));
 
     const result = await run(projectId, newStatus);
-    if (!result.ok) {
-      setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, statut: project.statut } : p)));
+    if (result.ok) return;
+
+    // Demande utilisateur — un projet avec des taches encore ouvertes est
+    // bloque par defaut (voir updateProjectStatus) ; meme confirmation de
+    // forcage qu'un changement de statut depuis la fiche projet.
+    const message = result.error instanceof Error ? result.error.message : "";
+    if (message.includes("non terminée(s)") && window.confirm(`${message} Terminer quand même ?`)) {
+      const forced = await run(projectId, newStatus, true);
+      if (forced.ok) return;
     }
+
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, statut: project.statut } : p)));
   }
 
   return (

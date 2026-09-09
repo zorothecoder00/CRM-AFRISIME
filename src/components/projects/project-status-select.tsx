@@ -31,7 +31,19 @@ export function ProjectStatusSelect({ projectId, statut }: { projectId: string; 
   async function handleChange(value: string) {
     if (value === statut) return;
     const result = await run(projectId, value);
-    if (result.ok) router.refresh();
+    if (result.ok) {
+      router.refresh();
+      return;
+    }
+    // Demande utilisateur — un projet avec des taches encore ouvertes est
+    // bloque par defaut (voir updateProjectStatus) ; propose de forcer la
+    // cloture plutot que de s'arreter la, meme principe que les autres
+    // confirmations de ce type dans l'app (window.confirm).
+    const message = result.error instanceof Error ? result.error.message : "";
+    if (message.includes("non terminée(s)") && window.confirm(`${message} Terminer quand même ?`)) {
+      const forced = await run(projectId, value, true);
+      if (forced.ok) router.refresh();
+    }
   }
 
   const tone = toneForStatus(statut);

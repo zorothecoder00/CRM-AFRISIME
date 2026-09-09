@@ -101,6 +101,10 @@ export type UpdateProjectDateFinReelleInput = z.infer<typeof updateProjectDateFi
 export const updateProjectStatusSchema = z.object({
   projectId: z.string().min(1),
   statut: z.enum(["PLANIFIE", "EN_COURS", "EN_PAUSE", "TERMINE", "ANNULE"]),
+  // Demande utilisateur — passer un projet a Termine alors qu'il a encore
+  // des taches non terminees est bloque par defaut (voir updateProjectStatus) ;
+  // `force` permet de cloturer quand meme, en connaissance de cause.
+  force: z.boolean().optional().default(false),
 });
 
 export type UpdateProjectStatusInput = z.infer<typeof updateProjectStatusSchema>;

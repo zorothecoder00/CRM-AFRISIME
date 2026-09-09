@@ -541,12 +541,27 @@ export async function deleteProjectLessonLearned(input: DeleteProjectLessonLearn
 }
 
 /** Changement de statut depuis la vue Kanban (cahier des charges §VI) — meme principe que updateTaskStatus. */
-export async function updateProjectStatus(projectId: string, statut: string) {
+export async function updateProjectStatus(projectId: string, statut: string, force = false) {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
   requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
 
-  const data = updateProjectStatusSchema.parse({ projectId, statut });
+  const data = updateProjectStatusSchema.parse({ projectId, statut, force });
+
+  // Demande utilisateur — "logique qu'un projet passe Termine alors que ses
+  // taches/sous-taches ne le sont pas encore ?" : bloque par defaut, avec
+  // possibilite de forcer explicitement. Sous-taches incluses d'office : elles
+  // partagent le meme projectId que leur tache mere (voir schema.prisma).
+  if (data.statut === "TERMINE" && !data.force) {
+    const openTasksCount = await prisma.task.count({
+      where: { projectId: data.projectId, deletedAt: null, statut: { notIn: ["TERMINEE", "ANNULEE"] } },
+    });
+    if (openTasksCount > 0) {
+      throw new Error(
+        `Ce projet a encore ${openTasksCount} tâche(s) non terminée(s) (sous-tâches incluses).`
+      );
+    }
+  }
 
   // Demande utilisateur — passer un projet en "En cours" (ou directement
   // "Terminé") doit renseigner automatiquement dateDebut/dateFin quand elles
