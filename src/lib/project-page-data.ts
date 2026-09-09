@@ -8,7 +8,7 @@ import { type FolderNode } from "@/components/documents/folder-tree";
 import { type DocumentRow } from "@/components/documents/document-list";
 import { type RuleData } from "@/components/automation/rule-list";
 import { computeWorkload } from "@/lib/workload";
-import { getOrganizationDevise } from "@/lib/currency";
+import { getDeviseForDepartment } from "@/lib/currency";
 import { type RiskRow } from "@/components/projects/project-risks-section";
 import { type StakeholderRow } from "@/components/projects/project-stakeholders-section";
 import { type MilestoneRow } from "@/components/projects/project-milestones-section";
@@ -70,7 +70,6 @@ export async function loadProjectPageData(projectId: string) {
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
   const canUpdateProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
   const canDeleteProject = session!.user.permissions.includes(PERMISSIONS.PROJECT_DELETE);
-  const devise = await getOrganizationDevise();
 
   const [
     project,
@@ -265,6 +264,13 @@ export async function loadProjectPageData(projectId: string) {
   if (!project) {
     notFound();
   }
+
+  // Revue applicative — un projet est rattache a la devise de l'entite de
+  // son departement (pas de champ devise direct sur Project), pas
+  // uniformement a la devise globale de l'organisation : sinon un projet
+  // d'une entite operant dans une autre devise affichait son budget sous
+  // la mauvaise etiquette. Voir getDeviseForDepartment (src/lib/currency.ts).
+  const devise = await getDeviseForDepartment(project.departmentId);
 
   // Isolation multi-entites (cahier des charges V2.2 §22) — voir entity-scope.ts.
   const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);

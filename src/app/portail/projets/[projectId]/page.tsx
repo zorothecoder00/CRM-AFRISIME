@@ -8,7 +8,7 @@ import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
 import { isProjectAuthorized } from "@/lib/portal-authorization";
-import { getOrganizationDevise } from "@/lib/currency";
+import { getDeviseForDepartment } from "@/lib/currency";
 import { FileText, CalendarClock } from "lucide-react";
 
 const DELIVERABLE_LABELS: Record<string, string> = {
@@ -40,7 +40,6 @@ export default async function PortalProjectDetailPage({
   const { projectId } = await params;
   const session = await getPortalSession();
   if (!session) redirect("/portail/connexion");
-  const devise = await getOrganizationDevise();
 
   const contact = await prisma.crmContact.findUnique({
     where: { id: session.contactId },
@@ -61,6 +60,11 @@ export default async function PortalProjectDetailPage({
     },
   });
   if (!project) notFound();
+
+  // Revue applicative — devise resolue via l'entite du departement du
+  // projet (voir getDeviseForDepartment), pas la devise globale de
+  // l'organisation en dur — meme correctif que la fiche projet interne.
+  const devise = await getDeviseForDepartment(project.departmentId);
 
   const visibility = await computePortalNavVisibility(contact.id);
 

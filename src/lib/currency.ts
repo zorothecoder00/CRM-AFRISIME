@@ -31,6 +31,20 @@ export const getDeviseForEntity = cache(async (entityId: string): Promise<string
   return entity?.devise || (await getOrganizationDevise());
 });
 
+// Revue applicative — le "chantier séparé" annoncé ci-dessus : propage la
+// devise par entité aux pages projet/programme individuelles (fiche projet,
+// comparaison de projets), qui affichaient jusque-là toutes le même montant
+// brut sous l'étiquette de la devise globale, même pour un projet rattaché
+// à une entité opérant dans une autre devise. Project n'a pas d'entityId
+// direct (seulement via departmentId) — d'où la résolution en deux temps.
+export const getDeviseForDepartment = cache(async (departmentId: string): Promise<string> => {
+  const department = await prisma.department.findUnique({
+    where: { id: departmentId },
+    select: { entityId: true },
+  });
+  return department?.entityId ? getDeviseForEntity(department.entityId) : getOrganizationDevise();
+});
+
 /** Formate un montant avec la devise fournie (à récupérer via getOrganizationDevise côté serveur, ou passée en prop côté client). */
 export function formatMontant(value: number, devise: string): string {
   return `${value.toLocaleString("fr-FR")} ${devise}`;

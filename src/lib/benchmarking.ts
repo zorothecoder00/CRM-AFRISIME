@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { computeEntityScopePilotage, computeEntityBudgetRollup } from "@/lib/consolidation";
-import { getOrganizationDevise } from "@/lib/currency";
+import { getDeviseForDepartment } from "@/lib/currency";
 
 const ACTIVE_TASK_STATUSES = ["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"];
 
@@ -19,21 +19,28 @@ export type BenchmarkColumn = { label: string; rows: { label: string; value: str
 // cle de cache — pas besoin de keyParts explicites, aucune fermeture externe.
 const BENCHMARK_REVALIDATE_SECONDS = 180;
 
-/** Comparaison entre projets (cahier des charges V2.2 §25). */
+/**
+ * Comparaison entre projets (cahier des charges V2.2 §25). Devise résolue
+ * PAR projet (via l'entité de son département — voir getDeviseForDepartment)
+ * plutôt qu'une seule devise globale partagée par toutes les colonnes :
+ * comparer deux projets d'entités opérant dans des devises différentes sous
+ * une étiquette unique serait trompeur, même principe que
+ * benchmarkEntitiesUncached ci-dessous.
+ */
 async function benchmarkProjectsUncached(projectIds: string[]): Promise<BenchmarkColumn[]> {
-  const [projects, devise] = await Promise.all([
-    prisma.project.findMany({
-      where: { id: { in: projectIds } },
-      include: { tasks: { select: { statut: true, echeance: true } } },
-    }),
-    getOrganizationDevise(),
-  ]);
+  const projects = await prisma.project.findMany({
+    where: { id: { in: projectIds } },
+    include: { tasks: { select: { statut: true, echeance: true } } },
+  });
   const now = new Date();
 
-  return projectIds
+  const ordered = projectIds
     .map((id) => projects.find((p) => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p))
-    .map((p) => {
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+  return Promise.all(
+    ordered.map(async (p) => {
+      const devise = await getDeviseForDepartment(p.departmentId);
       const enCours = p.tasks.filter((t) => ACTIVE_TASK_STATUSES.includes(t.statut)).length;
       const enRetard = p.tasks.filter(
         (t) => ACTIVE_TASK_STATUSES.includes(t.statut) && t.echeance !== null && t.echeance < now
@@ -49,7 +56,8 @@ async function benchmarkProjectsUncached(projectIds: string[]): Promise<Benchmar
           { label: "Tâches en retard", value: `${enRetard}` },
         ],
       };
-    });
+    })
+  );
 }
 
 /** Comparaison entre équipes (cahier des charges V2.2 §25) — charge agrégée via computeWorkload (module 10). */
