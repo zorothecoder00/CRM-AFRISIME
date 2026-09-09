@@ -11,6 +11,22 @@ function toCardAccent(tone: StatusTone): CardAccent {
   return tone === "secondary" ? "none" : tone;
 }
 
+const ACCENT_ICON_TONES: Record<CardAccent, string> = {
+  none: "bg-muted text-muted-foreground",
+  primary: "bg-primary/10 text-primary",
+  info: "bg-info/10 text-info",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  destructive: "bg-destructive/10 text-destructive",
+};
+
+/** Classes de badge icone (cercle teinte) assorties a un CardAccent — pour
+ * qu'un pastille d'icone en tete de carte reprenne la meme couleur que
+ * l'accent de la carte plutot qu'un gris neutre partout. */
+export function iconToneForAccent(accent: CardAccent): string {
+  return ACCENT_ICON_TONES[accent];
+}
+
 /**
  * Deduit une teinte de Badge a partir d'une cle de statut FR (ex: TERMINEE,
  * EN_COURS, BLOQUEE...). Les libelles varient legerement d'un module a

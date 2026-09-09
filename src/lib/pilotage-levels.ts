@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { TaskStatus } from "@/generated/prisma/enums";
 import { collectDescendantIds, type DepartmentNode } from "@/lib/department-tree";
+import type { CardAccent } from "@/components/ui/card";
 
 const ACTIVE_TASK_STATUSES: TaskStatus[] = [
   TaskStatus.A_FAIRE,
@@ -27,6 +28,20 @@ export type ScopePilotage = {
   risquesCritiques: number;
   scoreEvaluationMoyen: number | null;
 };
+
+/**
+ * Accent visuel d'une carte Direction/Departement (demande utilisateur —
+ * "designer les blocs de /pilotage ... accents de differentes couleurs") :
+ * derive de la sante reelle du perimetre (retard > avancement) plutot
+ * qu'arbitraire, meme logique que accentForStatus pour les projets.
+ */
+export function accentForPilotage(p: Pick<ScopePilotage, "tachesEnRetard" | "avancementMoyen">): CardAccent {
+  if (p.tachesEnRetard > 0) return "destructive";
+  if (p.avancementMoyen === null) return "none";
+  if (p.avancementMoyen >= 70) return "success";
+  if (p.avancementMoyen >= 40) return "info";
+  return "warning";
+}
 
 /**
  * Indicateurs agrégés pour un périmètre donné (cahier des charges §XXIII —

@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
-import { computeScopePilotage, getDepartmentScope } from "@/lib/pilotage-levels";
+import { computeScopePilotage, getDepartmentScope, accentForPilotage } from "@/lib/pilotage-levels";
 import { ScopePilotagePanel } from "@/components/pilotage/scope-pilotage-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOrganizationDevise } from "@/lib/currency";
+import { iconToneForAccent } from "@/lib/status-tone";
+import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 
 /**
@@ -62,29 +64,41 @@ export default async function PilotagePage() {
         {directions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune direction créée pour le moment.</p>
         ) : (
+          // Demande utilisateur — accent de couleur derive de la sante du
+          // perimetre (retard/avancement, voir accentForPilotage) + pastille
+          // d'icone assortie + effet de survol 2D plus marque (elevation +
+          // leger agrandissement), au lieu de cartes toutes identiques.
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {directionsPilotage.map(({ direction, pilotage }) => (
-              <Link key={direction.id} href={`/pilotage/departement/${direction.id}`}>
-                <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
-                  <CardHeader className="flex flex-row items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <CardTitle className="text-base">{direction.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Badge variant="outline">{pilotage.headcount} personne(s)</Badge>
-                      <Badge variant="outline">{pilotage.projectsActifs} projet(s) actif(s)</Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Avancement moyen : {pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—"}
-                    </div>
-                    {pilotage.tachesEnRetard > 0 && (
-                      <Badge variant="destructive">{pilotage.tachesEnRetard} tâche(s) en retard</Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {directionsPilotage.map(({ direction, pilotage }) => {
+              const accent = accentForPilotage(pilotage);
+              return (
+                <Link key={direction.id} href={`/pilotage/departement/${direction.id}`}>
+                  <Card
+                    accent={accent}
+                    className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                  >
+                    <CardHeader className="flex flex-row items-center gap-2.5">
+                      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", iconToneForAccent(accent))}>
+                        <Building2 className="h-4 w-4" />
+                      </span>
+                      <CardTitle className="text-base">{direction.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <Badge variant="outline">{pilotage.headcount} personne(s)</Badge>
+                        <Badge variant="outline">{pilotage.projectsActifs} projet(s) actif(s)</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Avancement moyen : {pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—"}
+                      </div>
+                      {pilotage.tachesEnRetard > 0 && (
+                        <Badge variant="destructive">{pilotage.tachesEnRetard} tâche(s) en retard</Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

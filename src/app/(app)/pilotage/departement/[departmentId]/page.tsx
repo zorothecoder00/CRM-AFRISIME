@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
-import { computeScopePilotage, getDepartmentScope, getDirectTeamScope } from "@/lib/pilotage-levels";
+import { computeScopePilotage, getDepartmentScope, getDirectTeamScope, accentForPilotage } from "@/lib/pilotage-levels";
 import {
   departmentLevelLabel,
   computeDepartmentDepth,
@@ -14,10 +14,11 @@ import {
 import { ScopePilotagePanel } from "@/components/pilotage/scope-pilotage-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus, accentForStatus, iconToneForAccent } from "@/lib/status-tone";
 import { UserAvatar } from "@/components/messages/user-avatar";
 import { getOrganizationDevise } from "@/lib/currency";
-import { ChevronRight, Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ChevronRight, Building2, Users2 } from "lucide-react";
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -124,26 +125,37 @@ export default async function DepartmentPilotagePage({
           <h2 className="text-lg font-medium">
             {departmentLevelLabel(depth + 1)}s ({children.length})
           </h2>
+          {/* Demande utilisateur — meme traitement que /pilotage : accent
+              colore selon la sante du perimetre + pastille d'icone assortie +
+              survol 2D plus marque. */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {childrenPilotage.map(({ child, pilotage: cp }) => (
-              <Link key={child.id} href={`/pilotage/departement/${child.id}`}>
-                <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
-                  <CardHeader className="flex flex-row items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <CardTitle className="text-base">{child.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Badge variant="outline">{cp.headcount} personne(s)</Badge>
-                      <Badge variant="outline">{cp.projectsActifs} projet(s) actif(s)</Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Avancement moyen : {cp.avancementMoyen !== null ? `${cp.avancementMoyen}%` : "—"}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {childrenPilotage.map(({ child, pilotage: cp }) => {
+              const accent = accentForPilotage(cp);
+              return (
+                <Link key={child.id} href={`/pilotage/departement/${child.id}`}>
+                  <Card
+                    accent={accent}
+                    className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                  >
+                    <CardHeader className="flex flex-row items-center gap-2.5">
+                      <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", iconToneForAccent(accent))}>
+                        <Building2 className="h-4 w-4" />
+                      </span>
+                      <CardTitle className="text-base">{child.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <Badge variant="outline">{cp.headcount} personne(s)</Badge>
+                        <Badge variant="outline">{cp.projectsActifs} projet(s) actif(s)</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Avancement moyen : {cp.avancementMoyen !== null ? `${cp.avancementMoyen}%` : "—"}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
@@ -156,7 +168,7 @@ export default async function DepartmentPilotagePage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {members.map((m) => (
               <Link key={m.id} href={`/pilotage/utilisateur/${m.id}`}>
-                <Card className="transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+                <Card accent="info" className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg">
                   <CardContent className="flex items-center gap-3 py-3">
                     <UserAvatar name={m.name} image={m.image} />
                     <div className="min-w-0">
@@ -177,12 +189,21 @@ export default async function DepartmentPilotagePage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {teams.map((t) => (
               <Link key={t.id} href={`/pilotage/equipe/${t.id}`}>
-                <Card size="sm" className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
-                  <CardContent className="space-y-1 py-3">
-                    <div className="text-sm font-medium">{t.nom}</div>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <Badge variant="outline">{t._count.members} membre(s)</Badge>
-                      {t.leader && <Badge variant="secondary">{t.leader.name}</Badge>}
+                <Card
+                  size="sm"
+                  accent="primary"
+                  className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                >
+                  <CardContent className="flex items-center gap-2.5 py-3">
+                    <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-md", iconToneForAccent("primary"))}>
+                      <Users2 className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 space-y-1">
+                      <div className="truncate text-sm font-medium">{t.nom}</div>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <Badge variant="outline">{t._count.members} membre(s)</Badge>
+                        {t.leader && <Badge variant="secondary">{t.leader.name}</Badge>}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -202,7 +223,7 @@ export default async function DepartmentPilotagePage({
               <Link key={p.id} href={`/projets/${p.id}`}>
                 <Card
                   accent={accentForStatus(p.statut)}
-                  className="transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                  className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
                 >
                   <CardContent className="space-y-1 py-3">
                     <div className="text-sm font-medium">{p.nom}</div>

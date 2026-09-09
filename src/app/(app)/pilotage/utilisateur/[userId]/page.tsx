@@ -165,7 +165,7 @@ export default async function IndividualPilotagePage({
               <Link key={project.id} href={`/projets/${project.id}`}>
                 <Card
                   accent={accentForStatus(project.statut)}
-                  className="transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                  className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
                 >
                   <CardContent className="space-y-1 py-3">
                     <div className="text-sm font-medium">{project.nom}</div>
