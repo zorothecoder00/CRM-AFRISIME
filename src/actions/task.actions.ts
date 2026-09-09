@@ -382,7 +382,7 @@ export async function updateTaskStatus(taskId: string, statut: string) {
   // sous-tache.
   const existing = await prisma.task.findUniqueOrThrow({
     where: { id: data.taskId },
-    select: { statut: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
+    select: { statut: true, dateDebut: true, responsablePrincipalId: true, assignees: { select: { userId: true } } },
   });
   const isOwner =
     existing.responsablePrincipalId === session.user.id ||
@@ -414,6 +414,15 @@ export async function updateTaskStatus(taskId: string, statut: string) {
     }
   }
 
+  // Demande utilisateur — passer en "En cours" (ou directement "Terminée"
+  // sans être passé par "En cours") doit renseigner automatiquement la date
+  // de début si elle n'a jamais été saisie, plutôt que la laisser vide
+  // indéfiniment. Uniquement si elle est encore vide : ne jamais écraser une
+  // date de début déjà renseignée (planifiée à l'avance, ou saisie
+  // manuellement) par l'instant du changement de statut.
+  const shouldAutoStartDate =
+    (data.statut === "EN_COURS" || data.statut === "TERMINEE") && existing.dateDebut === null;
+
   const task = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.task.update({
       where: { id: data.taskId },
@@ -424,7 +433,11 @@ export async function updateTaskStatus(taskId: string, statut: string) {
         // des sous-taches par recomputeParentTaskFromSubtasks) — sans ce
         // reset, rouvrir une tache Terminee la laissait bloquee a 100 %.
         avancement: data.statut === "TERMINEE" ? 100 : 0,
+        // completedAt sert deja de "date de fin" reelle pour une tache (pas
+        // echeance, qui reste la date-limite CIBLE — necessaire telle
+        // quelle pour le calcul du respect des delais, voir tauxRespectDelais).
         completedAt: data.statut === "TERMINEE" ? new Date() : null,
+        ...(shouldAutoStartDate ? { dateDebut: new Date() } : {}),
         ...(autoTempsReelHeures !== undefined ? { tempsReelHeures: autoTempsReelHeures } : {}),
       },
     })

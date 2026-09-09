@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
+import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { runProjectStatusChangedRules, runProjectRiskCreatedRules, runMeetingDecisionCreatedRules } from "@/lib/automation";
@@ -547,10 +548,29 @@ export async function updateProjectStatus(projectId: string, statut: string) {
 
   const data = updateProjectStatusSchema.parse({ projectId, statut });
 
+  // Demande utilisateur — passer un projet en "En cours" (ou directement
+  // "Terminé") doit renseigner automatiquement dateDebut/dateFin quand elles
+  // n'ont jamais ete saisies, plutot que rester vides indefiniment.
+  // Uniquement si encore vide : ne jamais ecraser une date deja renseignee
+  // (planifiee a l'avance ou saisie manuellement). dateFinReelle (Post-Mortem
+  // §54) reste volontairement distincte et manuelle — voir son commentaire
+  // dans schema.prisma ("aucun evenement systeme ne marque fiablement le jour
+  // ou le projet est vraiment termine").
+  const existing = await prisma.project.findUniqueOrThrow({
+    where: { id: data.projectId },
+    select: { dateDebut: true, dateFin: true },
+  });
+  const shouldAutoStartDate = data.statut === "EN_COURS" && existing.dateDebut === null;
+  const shouldAutoEndDate = data.statut === "TERMINE" && existing.dateFin === null;
+
   const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.project.update({
       where: { id: data.projectId },
-      data: { statut: data.statut },
+      data: {
+        statut: data.statut,
+        ...(shouldAutoStartDate ? { dateDebut: new Date() } : {}),
+        ...(shouldAutoEndDate ? { dateFin: new Date() } : {}),
+      },
     })
   );
 

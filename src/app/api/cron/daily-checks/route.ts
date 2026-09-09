@@ -17,6 +17,7 @@ import { runTaskDelayImpactChecks } from "@/lib/task-delay-impact";
 import { enforceRetentionPolicies, notifyTrashOverdue } from "@/lib/retention";
 import { runEarlyWarningCheck } from "@/lib/early-warning";
 import { expireOutdatedContracts } from "@/lib/contract-lifecycle";
+import { autoStartDueTasksAndProjects } from "@/lib/auto-start";
 
 // Numéro de semaine ISO — utilisé pour que l'alerte de surcharge (§14) ne se
 // répète qu'une fois par semaine par utilisateur (idempotence via la
@@ -56,6 +57,12 @@ export async function GET(request: NextRequest) {
     }),
     prisma.leave.findMany({ where: { statut: "APPROUVE" } }),
   ]);
+
+  // Demande utilisateur — bascule automatique "En cours" des taches/projets
+  // dont la date de debut est arrivee (voir auto-start.ts) : en premier, pour
+  // que les verifications de retard/notifications ci-dessous s'appuient deja
+  // sur les statuts a jour du jour.
+  const autoStartResult = await autoStartDueTasksAndProjects();
 
   await Promise.all(users.map((u) => generateDeadlineNotifications(u.id)));
   await Promise.all(users.map((u) => generatePlanningReminders(u.id)));
@@ -337,6 +344,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     usersChecked: users.length,
+    autoStarted: autoStartResult,
     overloadedCount: overloaded.length,
     lateObjectivesCount: lateObjectives.length,
     lateProjectsCount: lateProjects.length,
