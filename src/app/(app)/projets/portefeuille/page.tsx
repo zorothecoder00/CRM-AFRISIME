@@ -6,11 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { getOrganizationDevise } from "@/lib/currency";
+import { convertMontant } from "@/lib/exchange-rates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import type { Prisma } from "@/generated/prisma/client";
-import { FolderKanban, Sparkles, Lightbulb, HandCoins, ChevronRight, type LucideIcon } from "lucide-react";
+import { FolderKanban, Sparkles, Lightbulb, HandCoins, ChevronRight, TriangleAlert, type LucideIcon } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -66,7 +67,7 @@ export default async function PortfolioPage({
     andClauses.push({ departmentId: { in: allowedDepartmentIds } });
   }
 
-  const [projects, departments, users, programmes, paysList, bailleurList] = await Promise.all([
+  const [projects, departments, entities, users, programmes, paysList, bailleurList] = await Promise.all([
     prisma.project.findMany({
       where: { AND: andClauses },
       include: {
@@ -80,6 +81,7 @@ export default async function PortfolioPage({
       orderBy: { updatedAt: "desc" },
     }),
     prisma.department.findMany({ orderBy: { name: "asc" } }),
+    prisma.entity.findMany({ select: { id: true, devise: true } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.programme.findMany({ orderBy: { nom: "asc" } }),
     prisma.project.findMany({ where: { pays: { not: null } }, select: { pays: true }, distinct: ["pays"] }),
@@ -87,18 +89,48 @@ export default async function PortfolioPage({
   ]);
   const paysOptions = paysList.map((p) => p.pays).filter((v): v is string => v !== null);
 
-  const enriched = projects.map((p) => {
-    const niveauRisque = computeNiveauRisque(p.risks);
-    const enRetard = !!p.dateFin && p.dateFin < new Date() && p.statut !== "TERMINE" && p.statut !== "ANNULE";
-    const financementObtenu = p.financements
-      .filter((f) => f.statut === "OBTENU")
-      .reduce((sum, f) => sum + Number(f.montant), 0);
-    const financementRecherche = p.financements
-      .filter((f) => f.statut === "RECHERCHE" || f.statut === "NEGOCIATION")
-      .reduce((sum, f) => sum + Number(f.montant), 0);
-    const bailleurs = p.financements.map((f) => f.bailleur);
-    return { ...p, niveauRisque, enRetard, financementObtenu, financementRecherche, bailleurs };
-  });
+  // Revue applicative — ce portefeuille regroupe des projets de plusieurs
+  // entites/pays potentiellement en devises differentes (voir Entity.devise) :
+  // sommer les montants bruts sans convertir juxtaposerait des nombres dans
+  // des devises differentes sous une seule etiquette, trompeur (meme
+  // probleme/solution que computeScopePilotage et computeEntityBudgetRollup).
+  const departmentEntityId = new Map(departments.map((d) => [d.id, d.entityId]));
+  const entityDevise = new Map(entities.map((e) => [e.id, e.devise]));
+  function deviseForDepartment(departmentId: string): string {
+    const entityId = departmentEntityId.get(departmentId);
+    return (entityId ? entityDevise.get(entityId) : null) || devise;
+  }
+
+  let conversionIncomplete = false;
+  async function toOrgDevise(amount: number, fromDevise: string): Promise<number> {
+    const { value, converted } = await convertMontant(amount, fromDevise, devise);
+    if (!converted && fromDevise !== devise) conversionIncomplete = true;
+    return value;
+  }
+
+  const enriched = await Promise.all(
+    projects.map(async (p) => {
+      const niveauRisque = computeNiveauRisque(p.risks);
+      const enRetard = !!p.dateFin && p.dateFin < new Date() && p.statut !== "TERMINE" && p.statut !== "ANNULE";
+      const projectDevise = deviseForDepartment(p.departmentId);
+      const budgetConverted = p.budget !== null ? await toOrgDevise(Number(p.budget), projectDevise) : 0;
+      const coutReelConverted = p.coutReel !== null ? await toOrgDevise(Number(p.coutReel), projectDevise) : 0;
+      const financementObtenu = (
+        await Promise.all(
+          p.financements.filter((f) => f.statut === "OBTENU").map((f) => toOrgDevise(Number(f.montant), projectDevise))
+        )
+      ).reduce((sum, v) => sum + v, 0);
+      const financementRecherche = (
+        await Promise.all(
+          p.financements
+            .filter((f) => f.statut === "RECHERCHE" || f.statut === "NEGOCIATION")
+            .map((f) => toOrgDevise(Number(f.montant), projectDevise))
+        )
+      ).reduce((sum, v) => sum + v, 0);
+      const bailleurs = p.financements.map((f) => f.bailleur);
+      return { ...p, niveauRisque, enRetard, budgetConverted, coutReelConverted, financementObtenu, financementRecherche, bailleurs };
+    })
+  );
 
   const filtered = enriched.filter((p) => {
     if (filters.departmentId && p.departmentId !== filters.departmentId) return false;
@@ -120,8 +152,8 @@ export default async function PortfolioPage({
     termines: filtered.filter((p) => p.statut === "TERMINE").length,
     enRetard: filtered.filter((p) => p.enRetard).length,
     aRisque: filtered.filter((p) => p.niveauRisque === "ELEVE").length,
-    budgetTotal: filtered.reduce((sum, p) => sum + (p.budget ? Number(p.budget) : 0), 0),
-    budgetConsomme: filtered.reduce((sum, p) => sum + (p.coutReel ? Number(p.coutReel) : 0), 0),
+    budgetTotal: filtered.reduce((sum, p) => sum + p.budgetConverted, 0),
+    budgetConsomme: filtered.reduce((sum, p) => sum + p.coutReelConverted, 0),
     financementObtenu: filtered.reduce((sum, p) => sum + p.financementObtenu, 0),
     financementRecherche: filtered.reduce((sum, p) => sum + p.financementRecherche, 0),
     avancementMoyen: filtered.length
@@ -181,6 +213,21 @@ export default async function PortfolioPage({
         <Kpi label="Avancement moyen" value={`${kpi.avancementMoyen}%`} />
         <Kpi label="Impact suivi (indicateurs)" value={kpi.avecIndicateurs} />
       </div>
+
+      {conversionIncomplete && (
+        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-warning">
+          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <p>
+            Un ou plusieurs projets sont dans une devise sans taux de change configuré vers {devise} — les totaux
+            budget/financement ci-dessus additionnent leur montant brut non converti et sont donc probablement
+            inexacts. Renseignez le taux manquant dans{" "}
+            <Link href="/administration/devises" className="underline">
+              Administration → Devises
+            </Link>
+            .
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -39,11 +39,17 @@ export function ScopePilotagePanel({ pilotage, devise }: { pilotage: ScopePilota
         label="Budget"
         value={formatMontant(pilotage.coutReelTotal, devise)}
         icon={Wallet}
-        tone={pilotage.budgetDepasseCount > 0 ? "danger" : "success"}
+        tone={pilotage.budgetDepasseCount > 0 ? "danger" : pilotage.conversionIncomplete ? "warning" : "success"}
+        // Revue applicative — un perimetre peut regrouper des projets de
+        // plusieurs entites/devises (voir computeScopePilotage) : signale
+        // quand une conversion a echoue (taux manquant), le total est alors
+        // une sous-estimation plutot qu'une erreur silencieuse.
         description={
           pilotage.budgetDepasseCount > 0
             ? `${pilotage.budgetDepasseCount} projet(s) en dépassement`
-            : `Budget : ${formatMontant(pilotage.budgetTotal, devise)}`
+            : pilotage.conversionIncomplete
+              ? `Budget : ${formatMontant(pilotage.budgetTotal, devise)} — conversion incomplète, taux manquant`
+              : `Budget : ${formatMontant(pilotage.budgetTotal, devise)}`
         }
       />
 

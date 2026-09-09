@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { TaskStatus } from "@/generated/prisma/enums";
 import { collectDescendantIds, type DepartmentNode } from "@/lib/department-tree";
+import { getOrganizationDevise } from "@/lib/currency";
+import { convertMontant } from "@/lib/exchange-rates";
 import type { CardAccent } from "@/components/ui/card";
 
 const ACTIVE_TASK_STATUSES: TaskStatus[] = [
@@ -18,6 +20,10 @@ export type ScopePilotage = {
   avancementMoyen: number | null;
   budgetTotal: number;
   coutReelTotal: number;
+  /** Devise dans laquelle budgetTotal/coutReelTotal sont exprimés (celle de l'organisation — voir computeScopePilotage). */
+  devise: string;
+  /** true si au moins un projet du périmètre était dans une devise sans taux de change configuré : le total est alors une sous-estimation (montant brut non converti additionné tel quel), même principe que EntityBudgetRollup.conversionIncomplete. */
+  conversionIncomplete: boolean;
   budgetDepasseCount: number;
   tachesEnCours: number;
   tachesEnRetard: number;
@@ -69,7 +75,7 @@ export async function computeScopePilotage(params: {
   const { userIds, projectIds } = params;
   const now = new Date();
 
-  const [users, projects, projectTasks, personTasks, risks, evaluations, leaves] = await Promise.all([
+  const [users, projects, projectTasks, personTasks, risks, evaluations, leaves, orgDevise, departments, entities] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: userIds } }, include: { role: true } }),
     prisma.project.findMany({ where: { id: { in: projectIds } } }),
     prisma.task.findMany({
@@ -94,13 +100,46 @@ export async function computeScopePilotage(params: {
     userIds.length > 0
       ? prisma.leave.findMany({ where: { statut: "APPROUVE", userId: { in: userIds } } })
       : Promise.resolve([]),
+    getOrganizationDevise(),
+    prisma.department.findMany({ select: { id: true, entityId: true } }),
+    prisma.entity.findMany({ select: { id: true, devise: true } }),
   ]);
 
   const avancementMoyen =
     projects.length > 0 ? Math.round(projects.reduce((s, p) => s + p.avancement, 0) / projects.length) : null;
 
-  const budgetTotal = projects.reduce((s, p) => s + (p.budget ? Number(p.budget) : 0), 0);
-  const coutReelTotal = projects.reduce((s, p) => s + (p.coutReel ? Number(p.coutReel) : 0), 0);
+  // Revue applicative — un perimetre au niveau Organisation (racine) peut
+  // regrouper des projets de plusieurs entites/pays en devises differentes
+  // (voir Entity.devise) : sommer les montants bruts sans convertir
+  // juxtaposerait des nombres dans des devises differentes sous une seule
+  // etiquette, trompeur (meme probleme, meme solution que
+  // computeEntityBudgetRollup dans consolidation.ts). Un perimetre sous une
+  // seule Direction reste dans une seule entite (toutes ses sous-unites
+  // heritent de la meme entite racine) : la conversion y est alors un
+  // no-op (taux 1, meme devise), sans cout de justesse.
+  const departmentEntityId = new Map(departments.map((d) => [d.id, d.entityId]));
+  const entityDevise = new Map(entities.map((e) => [e.id, e.devise]));
+  function deviseForProject(p: { departmentId: string }): string {
+    const entityId = departmentEntityId.get(p.departmentId);
+    return (entityId ? entityDevise.get(entityId) : null) || orgDevise;
+  }
+
+  let budgetTotal = 0;
+  let coutReelTotal = 0;
+  let conversionIncomplete = false;
+  for (const p of projects) {
+    const projectDevise = deviseForProject(p);
+    if (p.budget !== null) {
+      const { value, converted } = await convertMontant(Number(p.budget), projectDevise, orgDevise);
+      budgetTotal += value;
+      if (!converted && projectDevise !== orgDevise) conversionIncomplete = true;
+    }
+    if (p.coutReel !== null) {
+      const { value, converted } = await convertMontant(Number(p.coutReel), projectDevise, orgDevise);
+      coutReelTotal += value;
+      if (!converted && projectDevise !== orgDevise) conversionIncomplete = true;
+    }
+  }
   const budgetDepasseCount = projects.filter(
     (p) => p.budget !== null && p.coutReel !== null && Number(p.coutReel) > Number(p.budget)
   ).length;
@@ -156,6 +195,8 @@ export async function computeScopePilotage(params: {
     avancementMoyen,
     budgetTotal,
     coutReelTotal,
+    devise: orgDevise,
+    conversionIncomplete,
     budgetDepasseCount,
     tachesEnCours,
     tachesEnRetard,
