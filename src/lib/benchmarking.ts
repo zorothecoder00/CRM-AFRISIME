@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
-import { computeEntityScopePilotage } from "@/lib/consolidation";
+import { computeEntityScopePilotage, computeEntityBudgetRollup } from "@/lib/consolidation";
 import { getOrganizationDevise } from "@/lib/currency";
 
 const ACTIVE_TASK_STATUSES = ["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE"];
@@ -119,32 +119,34 @@ async function benchmarkTeamsUncached(teamIds: string[]): Promise<BenchmarkColum
 
 /**
  * Comparaison entre entités (cahier des charges V2.2 §25, ex. "Togo vs
- * Bénin") — réutilise computeEntityScopePilotage (§24). Devise résolue PAR
- * entité (Entity.devise si renseignée, sinon repli sur la devise globale de
- * l'organisation) plutôt qu'une seule devise partagée pour toutes les
- * colonnes : comparer deux entités qui opèrent dans des devises différentes
- * sous une étiquette unique serait trompeur (cf. src/lib/currency.ts,
- * getDeviseForEntity).
+ * Bénin") — réutilise computeEntityScopePilotage (§24) pour tout sauf le
+ * budget, et computeEntityBudgetRollup pour le budget lui-même : ce dernier
+ * convertit chaque projet vers la devise DE L'ENTITÉ COMPARÉE (pas celle de
+ * l'organisation, contrairement à pilotage.budgetTotal — voir
+ * computeScopePilotage) — comparer deux entités qui opèrent dans des
+ * devises différentes sous une étiquette unique serait trompeur (cf.
+ * src/lib/currency.ts, getDeviseForEntity). Utiliser pilotage.budgetTotal
+ * ici afficherait un montant converti vers la devise de l'organisation sous
+ * l'étiquette de la devise de l'entité — deux fois faux.
  */
 async function benchmarkEntitiesUncached(entityIds: string[]): Promise<BenchmarkColumn[]> {
-  const [entities, orgDevise] = await Promise.all([
-    prisma.entity.findMany({ where: { id: { in: entityIds } } }),
-    getOrganizationDevise(),
-  ]);
+  const entities = await prisma.entity.findMany({ where: { id: { in: entityIds } } });
 
   const results: BenchmarkColumn[] = [];
   for (const id of entityIds) {
     const entity = entities.find((e) => e.id === id);
     if (!entity) continue;
-    const devise = entity.devise || orgDevise;
-    const pilotage = await computeEntityScopePilotage(id);
+    const [pilotage, budgetRollup] = await Promise.all([computeEntityScopePilotage(id), computeEntityBudgetRollup(id)]);
     results.push({
       label: entity.nom,
       rows: [
         { label: "Effectif", value: `${pilotage.headcount}` },
         { label: "Projets actifs", value: `${pilotage.projectsActifs} / ${pilotage.projectsTotal}` },
         { label: "Avancement moyen", value: pilotage.avancementMoyen !== null ? `${pilotage.avancementMoyen}%` : "—" },
-        { label: "Budget total", value: `${pilotage.budgetTotal.toLocaleString("fr-FR")} ${devise}` },
+        {
+          label: "Budget total",
+          value: `${budgetRollup.budgetTotal.toLocaleString("fr-FR")} ${budgetRollup.devise}${budgetRollup.conversionIncomplete ? " ⚠" : ""}`,
+        },
         {
           label: "Taux d'occupation moyen",
           value: pilotage.tauxOccupationMoyen !== null ? `${pilotage.tauxOccupationMoyen}%` : "—",

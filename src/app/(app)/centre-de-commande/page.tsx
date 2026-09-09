@@ -145,6 +145,11 @@ export default async function ExecutiveCommandCenterPage() {
             Écart : {snap.finances.ecartBudgetaire > 0 ? "+" : ""}
             {snap.finances.ecartBudgetaire.toLocaleString("fr-FR")} {devise}
           </p>
+          {snap.finances.conversionIncomplete && (
+            <p className="text-xs text-warning">
+              ⚠ Conversion incomplète (taux manquant) — total probablement sous-estimé.
+            </p>
+          )}
           {snap.finances.systemesFinanciersConnectes.length === 0 ? (
             <p className="text-xs text-muted-foreground">Aucun système financier connecté.</p>
           ) : (

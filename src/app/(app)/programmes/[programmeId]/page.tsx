@@ -20,6 +20,7 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import { ProjectRoadmapView, type RoadmapProjectRow } from "@/components/projects/project-roadmap-view";
 import { BeneficiairesSection } from "@/components/programmes/beneficiaires-section";
 import { getOrganizationDevise } from "@/lib/currency";
+import { convertMontant } from "@/lib/exchange-rates";
 import { BackLink } from "@/components/ui/back-link";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -48,7 +49,7 @@ export default async function ProgrammeDetailPage({
   const canReadWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManageWorkload = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
 
-  const [programme, availableProjects, users, departments, allProjects, allProgrammes, devise] = await Promise.all([
+  const [programme, availableProjects, users, departments, allProjects, allProgrammes, devise, entities] = await Promise.all([
     prisma.programme.findUnique({
       where: { id: programmeId },
       include: {
@@ -69,6 +70,7 @@ export default async function ProgrammeDetailPage({
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.programme.findMany({ orderBy: { nom: "asc" } }),
     getOrganizationDevise(),
+    prisma.entity.findMany({ select: { id: true, devise: true } }),
   ]);
 
   if (!programme) {
@@ -120,7 +122,18 @@ export default async function ProgrammeDetailPage({
     programme.projects.length > 0
       ? Math.round(programme.projects.reduce((sum, p) => sum + p.avancement, 0) / programme.projects.length)
       : 0;
-  const budgetProjets = programme.projects.reduce((sum, p) => sum + (p.budget ? Number(p.budget) : 0), 0);
+  // Revue applicative — un programme peut regrouper des projets de
+  // plusieurs entites/devises (meme probleme/solution que computeScopePilotage).
+  const entityDevise = new Map(entities.map((e) => [e.id, e.devise]));
+  let budgetProjetsConversionIncomplete = false;
+  let budgetProjets = 0;
+  for (const p of programme.projects) {
+    if (p.budget === null) continue;
+    const projectDevise = (p.department.entityId ? entityDevise.get(p.department.entityId) : null) || devise;
+    const { value, converted } = await convertMontant(Number(p.budget), projectDevise, devise);
+    budgetProjets += value;
+    if (!converted && projectDevise !== devise) budgetProjetsConversionIncomplete = true;
+  }
 
   const roadmapRows: RoadmapProjectRow[] = programme.projects.map((p) => ({
     id: p.id,
@@ -183,7 +196,10 @@ export default async function ProgrammeDetailPage({
                 value={programme.dateFin ? programme.dateFin.toLocaleDateString("fr-FR") : "—"}
               />
               <Info label="Avancement moyen des projets" value={`${avancementMoyen}%`} />
-              <Info label="Budget cumulé des projets" value={`${budgetProjets.toLocaleString("fr-FR")} ${devise}`} />
+              <Info
+                label="Budget cumulé des projets"
+                value={`${budgetProjets.toLocaleString("fr-FR")} ${devise}${budgetProjetsConversionIncomplete ? " ⚠ conversion incomplète" : ""}`}
+              />
             </CardContent>
             <CardContent className="pt-0">
               <div className="mb-1 text-xs text-muted-foreground">Coût réel</div>

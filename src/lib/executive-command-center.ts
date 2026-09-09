@@ -3,6 +3,8 @@ import { computeScopePilotage, type ScopePilotage } from "@/lib/pilotage-levels"
 import { computeWorkload, ACTIVE_TASK_STATUSES, isSameCalendarDay } from "@/lib/workload";
 import { computeTeamPrediction, type TeamPrediction } from "@/lib/predictive-scoring";
 import { computePartnerEcosystemAnalysis } from "@/lib/partner-ecosystem-graph";
+import { getOrganizationDevise } from "@/lib/currency";
+import { convertMontant } from "@/lib/exchange-rates";
 
 export type ExecutiveSnapshot = {
   performanceGlobale: ScopePilotage;
@@ -20,6 +22,8 @@ export type ExecutiveSnapshot = {
     budgetTotalProjetsActifs: number;
     coutReelTotalProjetsActifs: number;
     ecartBudgetaire: number;
+    devise: string;
+    conversionIncomplete: boolean;
     systemesFinanciersConnectes: { id: string; nom: string; statut: string }[];
   };
   partenaires: { partenairesStrategiquesCount: number; relationsCritiquesCount: number; risquesCount: number };
@@ -100,17 +104,46 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     }),
   ]);
 
-  const [projetsActifsFinance, integrationsFinancieres, partenairesAnalysis] = await Promise.all([
+  const [projetsActifsFinance, integrationsFinancieres, partenairesAnalysis, orgDevise, departments, entities] = await Promise.all([
     prisma.project.findMany({
       where: { statut: { in: ["PLANIFIE", "EN_COURS"] } },
-      select: { budget: true, coutReel: true },
+      select: { budget: true, coutReel: true, departmentId: true },
     }),
     prisma.integration.findMany({
       where: { type: "SYSTEME_FINANCIER" },
       select: { id: true, nom: true, statut: true },
     }),
     computePartnerEcosystemAnalysis(),
+    getOrganizationDevise(),
+    prisma.department.findMany({ select: { id: true, entityId: true } }),
+    prisma.entity.findMany({ select: { id: true, devise: true } }),
   ]);
+
+  // Revue applicative — vue executive, org-wide : peut regrouper des
+  // projets de plusieurs entites/devises (meme probleme/solution que
+  // computeScopePilotage dans pilotage-levels.ts).
+  const departmentEntityId = new Map(departments.map((d) => [d.id, d.entityId]));
+  const entityDevise = new Map(entities.map((e) => [e.id, e.devise]));
+  function deviseForDepartment(departmentId: string): string {
+    const entityId = departmentEntityId.get(departmentId);
+    return (entityId ? entityDevise.get(entityId) : null) || orgDevise;
+  }
+  let financesConversionIncomplete = false;
+  let budgetTotalProjetsActifs = 0;
+  let coutReelTotalProjetsActifs = 0;
+  for (const p of projetsActifsFinance) {
+    const projectDevise = deviseForDepartment(p.departmentId);
+    if (p.budget !== null) {
+      const { value, converted } = await convertMontant(Number(p.budget), projectDevise, orgDevise);
+      budgetTotalProjetsActifs += value;
+      if (!converted && projectDevise !== orgDevise) financesConversionIncomplete = true;
+    }
+    if (p.coutReel !== null) {
+      const { value, converted } = await convertMontant(Number(p.coutReel), projectDevise, orgDevise);
+      coutReelTotalProjetsActifs += value;
+      if (!converted && projectDevise !== orgDevise) financesConversionIncomplete = true;
+    }
+  }
 
   const userIds = activeUsers.map((u) => u.id);
   const projectIds = allProjects.map((p) => p.id);
@@ -188,12 +221,11 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     alertes,
     previsionsIa,
     finances: {
-      budgetTotalProjetsActifs: projetsActifsFinance.reduce((s, p) => s + (p.budget ? Number(p.budget) : 0), 0),
-      coutReelTotalProjetsActifs: projetsActifsFinance.reduce((s, p) => s + (p.coutReel ? Number(p.coutReel) : 0), 0),
-      ecartBudgetaire: projetsActifsFinance.reduce(
-        (s, p) => s + ((p.coutReel ? Number(p.coutReel) : 0) - (p.budget ? Number(p.budget) : 0)),
-        0
-      ),
+      budgetTotalProjetsActifs,
+      coutReelTotalProjetsActifs,
+      ecartBudgetaire: coutReelTotalProjetsActifs - budgetTotalProjetsActifs,
+      devise: orgDevise,
+      conversionIncomplete: financesConversionIncomplete,
       systemesFinanciersConnectes: integrationsFinancieres,
     },
     partenaires: {
