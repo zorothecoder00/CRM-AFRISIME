@@ -11,7 +11,7 @@ import { PlanFormDialog } from "@/components/planning/plan-form-dialog";
 import { LinkObjectiveForm } from "@/components/planning/link-objective-form";
 import { LinkProgrammeForm } from "@/components/planning/link-programme-form";
 import { UnlinkObjectiveButton, UnlinkProgrammeButton } from "@/components/planning/unlink-buttons";
-import { getOrganizationDevise } from "@/lib/currency";
+import { getOrganizationDevise, getDeviseForDepartment } from "@/lib/currency";
 import { BackLink } from "@/components/ui/back-link";
 
 const NIVEAU_LABELS: Record<string, string> = {
@@ -44,7 +44,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
   }
   const canManage = session!.user.permissions.includes(PERMISSIONS.PLAN_MANAGE);
 
-  const [plan, departments, users, axes, parentCandidates, availableObjectives, availableProgrammes, devise] =
+  const [plan, departments, users, axes, parentCandidates, availableObjectives, availableProgrammes] =
     await Promise.all([
       prisma.plan.findUnique({
         where: { id: planId },
@@ -72,12 +72,17 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
         orderBy: { nom: "asc" },
         select: { id: true, nom: true },
       }),
-      getOrganizationDevise(),
     ]);
 
   if (!plan) {
     notFound();
   }
+
+  // Revue applicative — un plan peut etre rattache a un departement (donc a
+  // une entite operant potentiellement dans une autre devise) ; sans
+  // departement, le plan est org-wide, la devise organisation reste la
+  // bonne reference. Meme correctif que la fiche projet individuelle.
+  const devise = plan.departmentId ? await getDeviseForDepartment(plan.departmentId) : await getOrganizationDevise();
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">

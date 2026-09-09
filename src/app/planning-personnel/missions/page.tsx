@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toneForStatus } from "@/lib/status-tone";
 import { ENTRY_STATUT_LABELS, ENTRY_TYPE_META } from "@/lib/personal-planning-types";
-import { getOrganizationDevise, formatMontant } from "@/lib/currency";
+import { getOrganizationDevise, getDeviseForDepartment, formatMontant } from "@/lib/currency";
 import { PersonalPlanningEntryFormDialog } from "@/components/personal-planning/entry-form-dialog";
 import type { PersonalPlanningReferenceData } from "@/components/personal-planning/entry-fields";
 import { Briefcase, ChevronRight, MapPin, Wallet, Car, BedDouble } from "lucide-react";
@@ -39,7 +39,14 @@ export default async function PersonalPlanningMissionsPage({
   const { du, au, statut, type } = await searchParams;
   const session = await getServerSession(authOptions);
   const userId = session!.user.id;
-  const devise = await getOrganizationDevise();
+  // Revue applicative — budget de mission agrege sur les missions d'UN SEUL
+  // utilisateur (userId ci-dessous), jamais melange entre utilisateurs :
+  // pas de risque de sommer des devises differentes, mais la devise
+  // affichee doit rester celle du departement DE CET utilisateur (via son
+  // entite), pas la devise globale de l'organisation en dur.
+  const devise = session!.user.departmentId
+    ? await getDeviseForDepartment(session!.user.departmentId)
+    : await getOrganizationDevise();
 
   const typeFilter = type && (MISSION_TYPES as readonly string[]).includes(type) ? [type] : MISSION_TYPES;
   const where: Prisma.PersonalPlanningEntryWhereInput = { userId, type: { in: typeFilter as never[] } };
