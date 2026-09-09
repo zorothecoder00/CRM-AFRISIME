@@ -79,7 +79,13 @@ export type NavGroup = {
   items: NavItem[];
 };
 
-/** Regroupement par usage plutot qu'une liste plate de 13 items — sert de repere visuel dans la sidebar. */
+/**
+ * Regroupement par usage plutot qu'une liste plate de 13 items — sert de
+ * repere visuel dans la sidebar. Ordre des groupes (demande utilisateur) :
+ * Aperçu - Travail - Collaboration - Pilotage - CRM - IA - Administration
+ * (Administration en dernier car c'est le plus volumineux, replie par
+ * defaut — voir defaultOpenGroups dans sidebar-nav.tsx).
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
     labelKey: "apercu",
@@ -89,6 +95,60 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
       { titleKey: "horairesTravail", href: "/planning-personnel/parametres", icon: Clock },
+    ],
+  },
+  {
+    labelKey: "travail",
+    items: [
+      { titleKey: "planification", href: "/planification", icon: Milestone, permission: PERMISSIONS.PLAN_READ },
+      { titleKey: "programmes", href: "/programmes", icon: Layers, permission: PERMISSIONS.PROGRAM_READ },
+      { titleKey: "taches", href: "/taches", icon: ListChecks, permission: PERMISSIONS.TASK_READ },
+      // Regroupes desormais en blocs dans /projets/portefeuille (demande
+      // utilisateur) : Projets, Project Studio, Laboratoire d'idees, Appel a
+      // projets. Portefeuille de projets reste le point d'entree unique.
+      { titleKey: "portefeuilleProjets", href: "/projets/portefeuille", icon: Briefcase, permission: PERMISSIONS.PROJECT_READ },
+      { titleKey: "equipes", href: "/administration/equipes", icon: Users2, permission: PERMISSIONS.TEAM_CREATE },
+    ],
+  },
+  {
+    labelKey: "collaboration",
+    items: [
+      { titleKey: "reunions", href: "/reunions", icon: CalendarClock, permission: PERMISSIONS.MEETING_READ },
+      { titleKey: "calendrier", href: "/calendrier", icon: CalendarDays },
+      { titleKey: "documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENT_READ },
+    ],
+  },
+  {
+    labelKey: "pilotage",
+    items: [
+      { titleKey: "rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },
+      { titleKey: "marketplace", href: "/marketplace", icon: Store },
+      { titleKey: "corbeille", href: "/corbeille", icon: Trash2, permission: PERMISSIONS.TRASH_MANAGE },
+    ],
+  },
+  {
+    labelKey: "crm",
+    items: [
+      { titleKey: "crmContacts", href: "/crm/contacts", icon: Users, permission: PERMISSIONS.CRM_READ },
+      { titleKey: "crmOrganisations", href: "/crm/organisations", icon: Building2, permission: PERMISSIONS.CRM_READ },
+    ],
+  },
+  {
+    // Regroupe les pages explicitement presentees comme IA dans leur propre
+    // code/commentaire (agents, orchestrateur, gouvernance IA, conseiller
+    // stratégique "IA" §9, Strategy Copilot §10 — même famille heuristique
+    // que le conseiller, Intelligence Prédictive §11) — demande utilisateur,
+    // même logique que le regroupement "Administration". Les autres pages
+    // "Intelligence *" (Skills/Decision Intelligence) ne se présentent pas
+    // elles-mêmes comme IA et restent dans "Administration".
+    labelKey: "ia",
+    items: [
+      { titleKey: "agentsIa", href: "/agents-ia", icon: BrainCircuit, permission: PERMISSIONS.DASHBOARD_READ },
+      { titleKey: "orchestrateurIa", href: "/orchestrateur-ia", icon: Combine, permission: PERMISSIONS.DASHBOARD_READ },
+      { titleKey: "copilotStrategique", href: "/copilot-strategique", icon: Sparkles, permission: PERMISSIONS.PLAN_READ },
+      { titleKey: "conseillerStrategique", href: "/conseiller-strategique", icon: MessageCircleQuestion, permission: PERMISSIONS.PLAN_READ },
+      { titleKey: "predictions", href: "/predictions", icon: TrendingUp, permission: PERMISSIONS.DASHBOARD_READ },
+      { titleKey: "gouvernanceIa", href: "/gouvernance-ia", icon: ShieldCheck, permission: PERMISSIONS.AI_GOVERNANCE_APPROVE },
     ],
   },
   {
@@ -149,60 +209,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Building2,
         permission: PERMISSIONS.PLATFORM_MANAGE,
       },
-    ],
-  },
-  {
-    labelKey: "crm",
-    items: [
-      { titleKey: "crmContacts", href: "/crm/contacts", icon: Users, permission: PERMISSIONS.CRM_READ },
-      { titleKey: "crmOrganisations", href: "/crm/organisations", icon: Building2, permission: PERMISSIONS.CRM_READ },
-    ],
-  },
-  {
-    labelKey: "travail",
-    items: [
-      { titleKey: "planification", href: "/planification", icon: Milestone, permission: PERMISSIONS.PLAN_READ },
-      { titleKey: "programmes", href: "/programmes", icon: Layers, permission: PERMISSIONS.PROGRAM_READ },
-      { titleKey: "taches", href: "/taches", icon: ListChecks, permission: PERMISSIONS.TASK_READ },
-      // Regroupes desormais en blocs dans /projets/portefeuille (demande
-      // utilisateur) : Projets, Project Studio, Laboratoire d'idees, Appel a
-      // projets. Portefeuille de projets reste le point d'entree unique.
-      { titleKey: "portefeuilleProjets", href: "/projets/portefeuille", icon: Briefcase, permission: PERMISSIONS.PROJECT_READ },
-      { titleKey: "equipes", href: "/administration/equipes", icon: Users2, permission: PERMISSIONS.TEAM_CREATE },
-    ],
-  },
-  {
-    labelKey: "collaboration",
-    items: [
-      { titleKey: "reunions", href: "/reunions", icon: CalendarClock, permission: PERMISSIONS.MEETING_READ },
-      { titleKey: "calendrier", href: "/calendrier", icon: CalendarDays },
-      { titleKey: "documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENT_READ },
-    ],
-  },
-  {
-    labelKey: "pilotage",
-    items: [
-      { titleKey: "rapports", href: "/rapports", icon: FileBarChart, permission: PERMISSIONS.REPORT_EXPORT },
-      { titleKey: "marketplace", href: "/marketplace", icon: Store },
-      { titleKey: "corbeille", href: "/corbeille", icon: Trash2, permission: PERMISSIONS.TRASH_MANAGE },
-    ],
-  },
-  {
-    // Regroupe les pages explicitement presentees comme IA dans leur propre
-    // code/commentaire (agents, orchestrateur, gouvernance IA, conseiller
-    // stratégique "IA" §9, Strategy Copilot §10 — même famille heuristique
-    // que le conseiller, Intelligence Prédictive §11) — demande utilisateur,
-    // même logique que le regroupement "Administration". Les autres pages
-    // "Intelligence *" (Skills/Decision Intelligence) ne se présentent pas
-    // elles-mêmes comme IA et restent dans "Administration".
-    labelKey: "ia",
-    items: [
-      { titleKey: "agentsIa", href: "/agents-ia", icon: BrainCircuit, permission: PERMISSIONS.DASHBOARD_READ },
-      { titleKey: "orchestrateurIa", href: "/orchestrateur-ia", icon: Combine, permission: PERMISSIONS.DASHBOARD_READ },
-      { titleKey: "copilotStrategique", href: "/copilot-strategique", icon: Sparkles, permission: PERMISSIONS.PLAN_READ },
-      { titleKey: "conseillerStrategique", href: "/conseiller-strategique", icon: MessageCircleQuestion, permission: PERMISSIONS.PLAN_READ },
-      { titleKey: "predictions", href: "/predictions", icon: TrendingUp, permission: PERMISSIONS.DASHBOARD_READ },
-      { titleKey: "gouvernanceIa", href: "/gouvernance-ia", icon: ShieldCheck, permission: PERMISSIONS.AI_GOVERNANCE_APPROVE },
     ],
   },
 ];
