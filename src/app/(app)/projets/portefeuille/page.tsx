@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import type { Prisma } from "@/generated/prisma/client";
-import { FolderKanban, Sparkles, Lightbulb, HandCoins, type LucideIcon } from "lucide-react";
+import { FolderKanban, Sparkles, Lightbulb, HandCoins, ChevronRight, type LucideIcon } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -304,16 +304,25 @@ function PortfolioBlockLink({
   description: string;
 }) {
   return (
-    <Link href={href}>
-      <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
-        <CardContent className="flex items-start gap-3 px-(--card-spacing)">
+    // Demande utilisateur — ces blocs ressemblaient a du texte simple : bordure
+    // gauche coloree + fleche persistante (pas seulement au survol) pour que
+    // l'affordance "c'est cliquable" soit visible d'emblee, comme les autres
+    // cartes-lien de l'appli (voir accentForStatus/toneForStatus ailleurs).
+    <Link href={href} className="group block">
+      <Card
+        className="h-full border-l-4 border-l-primary/40 transition-all hover:-translate-y-0.5 hover:border-l-primary hover:bg-muted/50"
+      >
+        <CardContent className="flex items-center gap-3 px-(--card-spacing)">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <Icon className="size-4.5" />
           </span>
-          <div className="space-y-0.5">
-            <div className="text-sm font-semibold">{title}</div>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="text-sm font-semibold text-primary underline decoration-primary/30 underline-offset-2 group-hover:decoration-primary">
+              {title}
+            </div>
             <p className="text-xs text-muted-foreground">{description}</p>
           </div>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </CardContent>
       </Card>
     </Link>

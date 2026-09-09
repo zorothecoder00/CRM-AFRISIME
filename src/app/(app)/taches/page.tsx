@@ -164,13 +164,31 @@ export default async function TachesPage({
   return (
     <div className="space-y-6">
       <ContextualBackLink from={from} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Tâches</h1>
-          <p className="text-sm text-muted-foreground">
-            {taskRows.length} tâche(s){onlyMine ? " — assignées à moi" : ""}
-          </p>
+
+      {/* Demande utilisateur — meme habillage carte + separateurs que
+          /planning-personnel/mes-taches, pour que "Mes taches" ait le meme
+          design cote dashboard general que cote Planning personnel. */}
+      <div className="space-y-3 rounded-md border bg-card p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Tâches</h1>
+            <p className="text-sm text-muted-foreground">
+              {taskRows.length} tâche(s){onlyMine ? " — assignées à moi" : ""}
+            </p>
+          </div>
+          {canCreate && (
+            <TaskFormDialog
+              projects={projectOptions}
+              users={userOptions}
+              objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
+              plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
+              competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
+            />
+          )}
         </div>
+
+        <div className="border-t" />
+
         <div className="flex flex-wrap items-center gap-2">
           <ProjectFilter projects={projectOptions.map((p) => ({ id: p.id, label: p.nom }))} />
           <TaskPriorityFilter />
@@ -202,40 +220,40 @@ export default async function TachesPage({
               </Link>
             </div>
           )}
-          {canCreate && (
-            <TaskFormDialog
-              projects={projectOptions}
-              users={userOptions}
-              objectives={objectives.map((o) => ({ id: o.id, label: o.titre }))}
-              plans={plans.map((p) => ({ id: p.id, label: p.nom }))}
-              competences={competences.map((c) => ({ id: c.id, label: c.nom }))}
-            />
-          )}
         </div>
-      </div>
 
-      {vue === "kanban" && (
-        <TaskKanbanView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} currentUserId={userId} />
-      )}
-      {vue === "chronologie" && <TaskTimelineView tasks={taskRows} />}
-      {vue === "gantt" && <TaskGanttView tasks={ganttRows} />}
-      {vue === "mindmap" && <TaskMindMapView tasks={mindMapRows} />}
-      {vue === "portefeuille" && <TaskPortfolioView tasks={taskRows} projects={projectOptions} />}
-      {vue === "blanc" &&
-        (projetId ? (
-          <TaskWhiteboardView
-            projectId={projetId}
-            initialNotes={(whiteboard?.content as WhiteboardNote[] | undefined) ?? []}
+        <div className="border-t" />
+
+        {vue === "kanban" && (
+          <TaskKanbanView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} currentUserId={userId} />
+        )}
+        {vue === "chronologie" && <TaskTimelineView tasks={taskRows} />}
+        {vue === "gantt" && <TaskGanttView tasks={ganttRows} />}
+        {vue === "mindmap" && <TaskMindMapView tasks={mindMapRows} />}
+        {vue === "portefeuille" && <TaskPortfolioView tasks={taskRows} projects={projectOptions} />}
+        {vue === "blanc" &&
+          (projetId ? (
+            <TaskWhiteboardView
+              projectId={projetId}
+              initialNotes={(whiteboard?.content as WhiteboardNote[] | undefined) ?? []}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Filtrez par projet pour ouvrir son tableau blanc (le tableau blanc est propre à chaque
+              projet).
+            </p>
+          ))}
+        {vue === "liste" && (
+          <TaskListView
+            tasks={taskRows}
+            users={userOptions}
+            canManage={canManage}
+            canDelete={canDelete}
+            currentUserId={userId}
+            className="border-0"
           />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Filtrez par projet pour ouvrir son tableau blanc (le tableau blanc est propre à chaque
-            projet).
-          </p>
-        ))}
-      {vue === "liste" && (
-        <TaskListView tasks={taskRows} users={userOptions} canManage={canManage} canDelete={canDelete} currentUserId={userId} />
-      )}
+        )}
+      </div>
     </div>
   );
 }
