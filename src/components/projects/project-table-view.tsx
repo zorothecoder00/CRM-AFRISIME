@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { toneForStatus, toneForPriority } from "@/lib/status-tone";
 import { ExportXlsxButton } from "@/components/ui/export-xlsx-button";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
@@ -80,6 +81,7 @@ export function ProjectTableView({
   users = [],
   canManage = false,
   canDelete = false,
+  compact = false,
 }: {
   projects: ProjectRow[];
   /** Repli pour l'export si jamais une ligne n'a pas sa propre devise (ne devrait pas arriver, voir ProjectRow.devise). */
@@ -88,6 +90,12 @@ export function ProjectTableView({
   users?: Option[];
   canManage?: boolean;
   canDelete?: boolean;
+  // Demande utilisateur — /projets?vue=liste réutilise ce tableau (au lieu
+  // des cartes) avec le même habillage visuel compact que les vues liste des
+  // tâches (mes-taches, /planning, /taches) : texte réduit, en-tête grisé
+  // bordé, cellules qui passent à la ligne. /projets?vue=table garde le
+  // rendu par défaut (non compact), pour distinguer les deux onglets.
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -112,40 +120,44 @@ export function ProjectTableView({
         />
       </div>
       <div className="rounded-md border">
-      <Table>
-        <TableHeader>
+      <Table className={compact ? "text-[11px]" : undefined}>
+        <TableHeader className={compact ? "bg-muted/60" : undefined}>
           <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Priorité</TableHead>
-            <TableHead>Département</TableHead>
-            <TableHead>Responsable</TableHead>
-            <TableHead>Avancement</TableHead>
-            <TableHead>Budget</TableHead>
-            <TableHead>Échéance</TableHead>
-            {(canManage || canDelete) && <TableHead className="w-10" />}
+            <TableHead className={compact ? "border border-border" : undefined}>Échéance</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Nom</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Priorité</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Statut</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Avancement</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Département</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Responsable</TableHead>
+            <TableHead className={compact ? "border border-border" : undefined}>Budget</TableHead>
+            {(canManage || canDelete) && <TableHead className={cn("w-10", compact && "border border-border")} />}
           </TableRow>
         </TableHeader>
         <TableBody>
           {projects.map((p) => {
             const depasse = p.budget !== null && p.coutReel !== null && p.coutReel > p.budget;
+            const cellClass = compact ? "whitespace-normal break-words align-top" : undefined;
             return (
               <TableRow key={p.id}>
-                <TableCell>
+                <TableCell className={cn("text-muted-foreground", cellClass)}>
+                  {p.dateFin ? new Date(p.dateFin).toLocaleDateString("fr-FR") : "—"}
+                </TableCell>
+                <TableCell className={cellClass}>
                   <Link href={`/projets/${p.id}`} className="font-medium hover:underline">
                     {p.nom}
                   </Link>
                 </TableCell>
-                <TableCell>
-                  <Badge variant={toneForStatus(p.statut)}>{STATUS_LABELS[p.statut]}</Badge>
-                </TableCell>
-                <TableCell>
+                <TableCell className={cellClass}>
                   <Badge variant={toneForPriority(p.priorite)}>{PRIORITY_LABELS[p.priorite]}</Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{p.departmentNom}</TableCell>
-                <TableCell className="text-muted-foreground">{p.responsableNom}</TableCell>
-                <TableCell>{p.avancement}%</TableCell>
-                <TableCell>
+                <TableCell className={cellClass}>
+                  <Badge variant={toneForStatus(p.statut)}>{STATUS_LABELS[p.statut]}</Badge>
+                </TableCell>
+                <TableCell className={cellClass}>{p.avancement}%</TableCell>
+                <TableCell className={cn("text-muted-foreground", cellClass)}>{p.departmentNom}</TableCell>
+                <TableCell className={cn("text-muted-foreground", cellClass)}>{p.responsableNom}</TableCell>
+                <TableCell className={cellClass}>
                   {formatMontant(p.budget, p.devise)}
                   {depasse && (
                     <Badge variant="destructive" className="ml-1.5">
@@ -153,11 +165,8 @@ export function ProjectTableView({
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {p.dateFin ? new Date(p.dateFin).toLocaleDateString("fr-FR") : "—"}
-                </TableCell>
                 {(canManage || canDelete) && (
-                  <TableCell>
+                  <TableCell className={cellClass}>
                     <RowActionsMenu
                       onEdit={canManage ? () => setEditingId(p.id) : undefined}
                       onDelete={canDelete ? () => remove(p.id) : undefined}

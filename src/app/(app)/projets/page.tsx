@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
 import { ProjectTableView, type ProjectRow } from "@/components/projects/project-table-view";
 import { ProjectKanbanView } from "@/components/projects/project-kanban-view";
-import { ProjectListCard } from "@/components/projects/project-list-card";
 import { PeriodFilter } from "@/components/ui/period-filter";
 import { buildDateRangeFilter } from "@/lib/date-filter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -216,21 +215,15 @@ export default async function ProjetsPage({
         />
       )}
       {vue === "liste" && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projectRows.map((project) => (
-            <ProjectListCard
-              key={project.id}
-              project={project}
-              departments={departmentOptions}
-              users={userOptions}
-              canManage={canManage}
-              canDelete={canDelete}
-            />
-          ))}
-          {projectRows.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>
-          )}
-        </div>
+        <ProjectTableView
+          projects={projectRows}
+          fallbackDevise={devise}
+          departments={departmentOptions}
+          users={userOptions}
+          canManage={canManage}
+          canDelete={canDelete}
+          compact
+        />
       )}
     </div>
   );
