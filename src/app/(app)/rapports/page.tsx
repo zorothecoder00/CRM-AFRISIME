@@ -11,12 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ReportTargetLinks } from "@/components/rapports/report-target-links";
+import { ActivityReportUploadDialog } from "@/components/rapports/activity-report-upload-dialog";
+import { ActivityReportsList, type ActivityReportRow } from "@/components/rapports/activity-reports-list";
 
-// Demande utilisateur — 3 sections plutot qu'une grille plate de 17 cartes.
+// Demande utilisateur — 2 blocs : "Rapports automatiques" (generes depuis les
+// donnees) vs "Rapports d'activite (manuels)" (exportes a la demande, PV/
+// gouvernance, et desormais rapports importes/uploades a partager).
 const AUTOMATIC_TYPES: ReportType[] = ["MENSUEL", "TRIMESTRIEL", "ANNUEL", "REVUE_HEBDOMADAIRE", "ACTIVITE", "AUDIT"];
-const GOUVERNANCE_PV_TYPES: ReportType[] = ["GOUVERNANCE"];
-const OTHER_TYPES: ReportType[] = REPORT_TYPES.filter(
-  (t) => t !== "CHARTE_PROJET" && !AUTOMATIC_TYPES.includes(t) && !GOUVERNANCE_PV_TYPES.includes(t)
+const MANUAL_EXPORT_TYPES: ReportType[] = REPORT_TYPES.filter(
+  (t) => t !== "CHARTE_PROJET" && !AUTOMATIC_TYPES.includes(t)
 );
 
 const FORMATS: { format: string; label: string }[] = [
@@ -55,10 +58,55 @@ export default async function RapportsPage() {
   if (!session!.user.permissions.includes(PERMISSIONS.REPORT_EXPORT)) {
     redirect("/dashboard");
   }
+  const userId = session!.user.id;
+  const canDeleteAnyReport = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_DELETE);
 
-  const departments = await prisma.department.findMany({ select: { id: true, name: true, parentId: true } });
+  const [departments, users, teams, activityReports] = await Promise.all([
+    prisma.department.findMany({ select: { id: true, name: true, parentId: true } }),
+    prisma.user.findMany({ where: { isActive: true, id: { not: userId } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.team.findMany({ orderBy: { nom: "asc" }, select: { id: true, nom: true } }),
+    // Rapports d'activite (manuels) visibles : les miens, ceux partages avec
+    // moi directement, ou partages avec une equipe dont je suis membre.
+    prisma.activityReport.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { createdById: userId },
+          { shares: { some: { userId } } },
+          { shares: { some: { team: { members: { some: { userId } } } } } },
+        ],
+      },
+      include: {
+        createdBy: { select: { name: true } },
+        shares: {
+          include: { user: { select: { name: true } }, team: { select: { nom: true } } },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
   const directions = departments.filter((d) => computeDepartmentDepth(d.id, new Map(departments.map((x) => [x.id, x]))) === 0);
   const depthMap = new Map(departments.map((x) => [x.id, x]));
+
+  const activityReportRows: ActivityReportRow[] = activityReports.map((r) => ({
+    id: r.id,
+    titre: r.titre,
+    description: r.description,
+    url: r.url,
+    sizeBytes: r.sizeBytes,
+    createdByNom: r.createdBy.name,
+    createdById: r.createdById,
+    createdAt: r.createdAt.toISOString(),
+    shares: r.shares.map((s) => ({
+      id: s.id,
+      userId: s.userId,
+      userName: s.user?.name ?? null,
+      teamId: s.teamId,
+      teamName: s.team?.nom ?? null,
+    })),
+  }));
+  const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
+  const teamOptions = teams.map((t) => ({ id: t.id, label: t.nom }));
 
   function renderCard(type: ReportType) {
     return (
@@ -116,9 +164,12 @@ export default async function RapportsPage() {
         <div className="grid gap-4 md:grid-cols-2">{AUTOMATIC_TYPES.map(renderCard)}</div>
       </ReportSection>
 
-      <ReportSection title="Rapports et PV">
+      <ReportSection
+        title="Rapports d'activité (manuels)"
+        description="Documents à exporter à la demande, PV/gouvernance, et rapports importés — partageables à des utilisateurs ou des équipes."
+      >
         <div className="grid gap-4 md:grid-cols-2">
-          {GOUVERNANCE_PV_TYPES.map(renderCard)}
+          {MANUAL_EXPORT_TYPES.map(renderCard)}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Comptes rendus de réunion</CardTitle>
@@ -131,10 +182,25 @@ export default async function RapportsPage() {
             </CardContent>
           </Card>
         </div>
-      </ReportSection>
 
-      <ReportSection title="Autres rapports" description="Documents à exporter manuellement, à la demande.">
-        <div className="grid gap-4 md:grid-cols-2">{OTHER_TYPES.map(renderCard)}</div>
+        <div className="space-y-3 rounded-md border bg-card p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold">Rapports importés</h3>
+              <p className="text-[11px] text-muted-foreground">
+                {activityReportRows.length} rapport(s) — rédigés hors de l&apos;application, à partager.
+              </p>
+            </div>
+            <ActivityReportUploadDialog />
+          </div>
+          <ActivityReportsList
+            reports={activityReportRows}
+            users={userOptions}
+            teams={teamOptions}
+            currentUserId={userId}
+            canDeleteAny={canDeleteAnyReport}
+          />
+        </div>
       </ReportSection>
     </div>
   );

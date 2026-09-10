@@ -734,6 +734,13 @@ model User {
   successionPlanTitulaireFor          SuccessionPlan[]                   @relation("SuccessionPlanTitulaire")
   successionCandidacies               SuccessionCandidate[]              @relation("SuccessionCandidateUser")
   appCatalogInterests                 AppCatalogInterest[]
+  // Demande utilisateur — /rapports, bloc "Rapports d'activité (manuels)" :
+  // rapports uploadés manuellement (distincts des exports générés à la
+  // volée depuis les données), partageables à des utilisateurs ou des équipes.
+  activityReportsCreated              ActivityReport[]                   @relation("ActivityReportCreatedBy")
+  activityReportsDeleted              ActivityReport[]                   @relation("ActivityReportDeletedBy")
+  activityReportSharesReceived        ActivityReportShare[]              @relation("ActivityReportShareUser")
+  activityReportSharesCreated         ActivityReportShare[]              @relation("ActivityReportShareCreatedBy")
 
   @@index([departmentId])
   @@index([roleId])
@@ -888,9 +895,10 @@ model Team {
   createdBy      User                  @relation("TeamCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime              @default(now())
 
-  members             TeamMember[]
-  conversation        Conversation?
-  permissionOverrides PermissionOverride[]
+  members              TeamMember[]
+  conversation         Conversation?
+  permissionOverrides  PermissionOverride[]
+  activityReportShares ActivityReportShare[]
 
   @@index([departmentId])
 }
@@ -1226,6 +1234,8 @@ model PlatformOrganization {
   stakeholderProjects               StakeholderProject[]               @relation("PlatformOrganizationStakeholderProjects")
   stakeholderCommunications         StakeholderCommunication[]         @relation("PlatformOrganizationStakeholderCommunications")
   userSessions                      UserSession[]                      @relation("PlatformOrganizationUserSessions")
+  activityReports                   ActivityReport[]                   @relation("PlatformOrganizationActivityReports")
+  activityReportShares              ActivityReportShare[]              @relation("PlatformOrganizationActivityReportShares")
 }
 
 enum PlatformOrganizationStatut {
@@ -3233,6 +3243,60 @@ model DocumentAccess {
 
   @@unique([documentId, userId])
   @@index([documentId])
+}
+
+// Demande utilisateur — /rapports, bloc "Rapports d'activité (manuels)" :
+// un fichier uploadé manuellement (rédigé hors de l'application), distinct
+// des rapports générés à la volée depuis les données (voir REPORT_TYPES dans
+// lib/reports.ts) — pas rattaché à un projet (contrairement à Document),
+// partageable à des utilisateurs et/ou des équipes (ActivityReportShare).
+model ActivityReport {
+  id             String                @id @default(cuid())
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationActivityReports", fields: [organizationId], references: [id])
+  titre          String
+  description    String?
+  url            String
+  mimeType       String?
+  sizeBytes      Int?
+  createdById    String
+  createdBy      User                  @relation("ActivityReportCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  // Corbeille (V2.2 §37) — meme convention que Document/Task/Project.
+  deletedAt      DateTime?
+  deletedById    String?
+  deletedBy      User?                 @relation("ActivityReportDeletedBy", fields: [deletedById], references: [id])
+
+  shares ActivityReportShare[]
+
+  @@index([createdById])
+  @@index([deletedAt])
+}
+
+// Partage d'un ActivityReport à un utilisateur OU une équipe (jamais les
+// deux à la fois, validé côté application — voir activity-report.schema.ts),
+// même principe que PersonalPlanningShare mais avec une cible qui peut être
+// individuelle (userId) ou collective (teamId, réutilise Team comme "groupe").
+model ActivityReportShare {
+  id             String                @id @default(cuid())
+  reportId       String
+  report         ActivityReport        @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   PlatformOrganization? @relation("PlatformOrganizationActivityReportShares", fields: [organizationId], references: [id])
+  userId         String?
+  user           User?                 @relation("ActivityReportShareUser", fields: [userId], references: [id])
+  teamId         String?
+  team           Team?                 @relation(fields: [teamId], references: [id])
+  createdById    String
+  createdBy      User                  @relation("ActivityReportShareCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime              @default(now())
+
+  @@unique([reportId, userId])
+  @@unique([reportId, teamId])
+  @@index([reportId])
+  @@index([userId])
+  @@index([teamId])
 }
 
 // Data Governance (cahier des charges V3.0 §46) — classification/
@@ -5942,17 +6006,17 @@ enum AppCatalogStatut {
 // l'architecture sans construire les apps elles-memes, conformement au
 // perimetre explicite du cahier des charges.
 model AppCatalogEntry {
-  id          String           @id @default(cuid())
-  nom         String           @unique
+  id          String               @id @default(cuid())
+  nom         String               @unique
   categorie   AppCategory
   description String?
   // Texte plus riche qu'une simple description courte — "pour qui / pour
   // quel usage" — affiche sur la fiche detaillee du catalogue.
   casUsage    String?
-  statut      AppCatalogStatut @default(PLANIFIE)
+  statut      AppCatalogStatut     @default(PLANIFIE)
   interests   AppCatalogInterest[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 }
 
 // "Me prevenir quand disponible" (extension marketplace) — un utilisateur
@@ -5961,12 +6025,12 @@ model AppCatalogEntry {
 // l'interet reel sans notifier automatiquement (aucun canal push/email
 // fiable disponible pour ce declencheur — voir memoire projet).
 model AppCatalogInterest {
-  id                String           @id @default(cuid())
+  id                String          @id @default(cuid())
   appCatalogEntryId String
-  appCatalogEntry   AppCatalogEntry  @relation(fields: [appCatalogEntryId], references: [id], onDelete: Cascade)
+  appCatalogEntry   AppCatalogEntry @relation(fields: [appCatalogEntryId], references: [id], onDelete: Cascade)
   userId            String
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt         DateTime         @default(now())
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
 
   @@unique([appCatalogEntryId, userId])
   @@index([appCatalogEntryId])
