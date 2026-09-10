@@ -47,3 +47,7 @@ next-env.d.ts
 /.windsurf/
 /.claude/
 skills-lock.json
+
+# scratch personnel (capture de collage du cahier des charges, jamais a commiter)
+/fichier.txt
+/cdc.txt
