@@ -249,6 +249,10 @@ export default async function TachesPage({
             users={userOptions}
             canManage={canManage}
             canDelete={canDelete}
+            showCreneau
+            showCreneauColumn={false}
+            titreHeader="Titre"
+            showResponsable
             currentUserId={userId}
             className="border-0"
           />

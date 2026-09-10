@@ -560,6 +560,10 @@ async function PlanningListeView({
           canManage={canManage}
           canDelete={canDelete}
           canAddSubtask={canCreate}
+          showCreneau
+          showCreneauColumn={false}
+          titreHeader="Titre"
+          showResponsable
           className="border-0"
           currentUserId={userId}
         />

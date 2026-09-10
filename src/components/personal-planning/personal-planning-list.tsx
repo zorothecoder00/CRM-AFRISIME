@@ -55,17 +55,22 @@ export function PersonalPlanningList({
 
   return (
     <div className="rounded-md border">
-      <Table>
-        <TableHeader>
+      {/* Demande utilisateur — même disposition/design que le tableau
+          mes-tâches (showCreneau) : Créneau en premier, puis Titre (au lieu
+          de "Tâche" — ces lignes ne sont pas toutes des tâches), Échéance,
+          Priorité, Statut, Projet, Responsable (conservée ici, contrairement
+          à mes-taches où le responsable est toujours l'utilisateur courant). */}
+      <Table className="text-[11px]">
+        <TableHeader className="bg-muted/60">
           <TableRow>
-            <TableHead>Titre</TableHead>
-            <TableHead>Créneau</TableHead>
-            <TableHead>Échéance</TableHead>
-            <TableHead>Priorité</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Projet</TableHead>
-            <TableHead>Responsable</TableHead>
-            <TableHead className="w-10" />
+            <TableHead className="border border-border">Créneau</TableHead>
+            <TableHead className="border border-border">Titre</TableHead>
+            <TableHead className="border border-border">Échéance</TableHead>
+            <TableHead className="border border-border">Priorité</TableHead>
+            <TableHead className="border border-border">Statut</TableHead>
+            <TableHead className="border border-border">Projet</TableHead>
+            <TableHead className="border border-border">Responsable</TableHead>
+            <TableHead className="w-10 border border-border" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,7 +79,10 @@ export function PersonalPlanningList({
             const nonWorking = nonWorkingByDate?.get(dueKey);
             return (
             <TableRow key={entry.id}>
-              <TableCell className="font-medium">
+              <TableCell className="whitespace-nowrap align-top text-muted-foreground">
+                {formatCreneau(entry.dateDebut, entry.dateFin)}
+              </TableCell>
+              <TableCell className="whitespace-normal break-words align-top font-medium">
                 {entry.meetingHref ? (
                   <Link href={entry.meetingHref} className="text-primary hover:underline">
                     {entry.titre}
@@ -83,10 +91,7 @@ export function PersonalPlanningList({
                   entry.titre
                 )}
               </TableCell>
-              <TableCell className="whitespace-nowrap text-muted-foreground">
-                {formatCreneau(entry.dateDebut, entry.dateFin)}
-              </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal break-words align-top">
                 <span className="flex items-center gap-1">
                   {new Date(entry.dateFin).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   {nonWorking && (
@@ -96,17 +101,17 @@ export function PersonalPlanningList({
                   )}
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal break-words align-top">
                 <Badge variant={toneForPriority(entry.priorite)}>
                   {ENTRY_PRIORITE_META[entry.priorite].emoji} {ENTRY_PRIORITE_META[entry.priorite].label}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal break-words align-top">
                 <Badge variant={toneForStatus(entry.statut)}>{ENTRY_STATUT_LABELS[entry.statut]}</Badge>
               </TableCell>
-              <TableCell>{entry.projetNom ?? "—"}</TableCell>
-              <TableCell>{entry.responsableNom}</TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal break-words align-top">{entry.projetNom ?? "—"}</TableCell>
+              <TableCell className="whitespace-normal break-words align-top">{entry.responsableNom}</TableCell>
+              <TableCell className="align-top">
                 {entry.type !== "RESERVE" && !entry.meetingHref && (
                   <RowActionsMenu
                     onEdit={() => setEditing(entry)}

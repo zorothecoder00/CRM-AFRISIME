@@ -161,6 +161,17 @@ function buildColumns(options: {
   // Par défaut = canManage (comportement historique inchangé sur /taches).
   canAddSubtask: boolean;
   showCreneau: boolean;
+  // Demande utilisateur — /planning?vue=liste reprend la disposition
+  // showCreneau (mes-taches) mais avec l'en-tête "Titre" (au lieu de
+  // "Tâche") et une colonne Responsable en plus (le responsable n'y est pas
+  // toujours l'utilisateur courant, contrairement à mes-taches).
+  titreHeader?: string;
+  showResponsable?: boolean;
+  // Demande utilisateur — /planning?vue=liste et /taches (vue liste) gardent
+  // la disposition showCreneau mais sans la colonne Créneau elle-même : ces
+  // tâches ne sont pas liées à des sessions de planning personnel, la plage
+  // horaire n'a donc pas de sens ici (toujours "Non planifiée" sinon).
+  showCreneauColumn?: boolean;
   onEdit: (id: string) => void;
   onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
@@ -173,9 +184,9 @@ function buildColumns(options: {
   // Projet en dernier (remplace l'ancienne colonne "Créneau" complète,
   // devenue redondante avec Échéance + ce nouveau Créneau).
   if (options.showCreneau) {
-    const cols: ColumnDef<TaskRow>[] = [
-      expandColumn({ expandedIds: options.expandedIds, onToggle: options.onToggleExpand }),
-      {
+    const cols: ColumnDef<TaskRow>[] = [expandColumn({ expandedIds: options.expandedIds, onToggle: options.onToggleExpand })];
+    if (options.showCreneauColumn ?? true) {
+      cols.push({
         accessorKey: "creneau",
         id: "creneau",
         header: "Créneau",
@@ -184,14 +195,17 @@ function buildColumns(options: {
             {row.original.creneau ? formatCreneauRange(row.original.creneau) : "Non planifiée"}
           </span>
         ),
-      },
-      { accessorKey: "titre", header: "Tâche", cell: TITRE_CELL },
+      });
+    }
+    cols.push(
+      { accessorKey: "titre", header: options.titreHeader ?? "Tâche", cell: TITRE_CELL },
       { accessorKey: "echeance", header: "Échéance", cell: ECHEANCE_CELL },
       { accessorKey: "priorite", header: "Priorité", cell: ({ row }) => priorityCell(row, options.canManage) },
       { accessorKey: "statut", header: "Statut", cell: ({ row }) => statutCell(row, options.canManage) },
       { accessorKey: "avancement", header: "%", cell: ({ row }) => `${row.original.avancement}%` },
-      { accessorKey: "projectNom", header: "Projet" },
-    ];
+      { accessorKey: "projectNom", header: "Projet" }
+    );
+    if (options.showResponsable) cols.push({ accessorKey: "responsableNom", header: "Responsable" });
     if (options.canManage || options.canDelete || options.canAddSubtask) cols.push(actionsColumn(options));
     return cols;
   }
@@ -218,6 +232,9 @@ export function TaskListView({
   canDelete = false,
   canAddSubtask,
   showCreneau = false,
+  showCreneauColumn = true,
+  titreHeader,
+  showResponsable = false,
   className,
   currentUserId,
 }: {
@@ -233,6 +250,16 @@ export function TaskListView({
   // l'utilisateur courant sur /planning-personnel/mes-taches, donc sans
   // intérêt) par la plage horaire réelle de la tâche.
   showCreneau?: boolean;
+  // Demande utilisateur — /planning?vue=liste et /taches (vue liste) : même
+  // disposition showCreneau, sans la colonne Créneau (tâches non liées à des
+  // sessions de planning personnel, toujours "Non planifiée" sinon).
+  showCreneauColumn?: boolean;
+  // Demande utilisateur — /planning?vue=liste : même disposition que
+  // mes-taches (showCreneau) mais en-tête "Titre" au lieu de "Tâche", et
+  // colonne Responsable conservée (le responsable n'y est pas toujours
+  // l'utilisateur courant, contrairement à mes-taches).
+  titreHeader?: string;
+  showResponsable?: boolean;
   className?: string;
   // Demande utilisateur : le responsable principal ne peut pas changer les
   // dates d'une tâche qui lui est assignée directement depuis ce dialogue
@@ -297,13 +324,16 @@ export function TaskListView({
         canDelete,
         canAddSubtask: resolvedCanAddSubtask,
         showCreneau,
+        showCreneauColumn,
+        titreHeader,
+        showResponsable,
         onEdit: setEditingId,
         onAddSubtask: (task) => setSubtaskParentId(task.id),
         onDelete: (task) => remove(task.id),
         expandedIds,
         onToggleExpand: toggleExpand,
       }),
-    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, remove, expandedIds, toggleExpand]
+    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, showCreneauColumn, titreHeader, showResponsable, remove, expandedIds, toggleExpand]
   );
 
   const table = useReactTable({
