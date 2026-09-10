@@ -11,6 +11,19 @@ import { logAudit } from "@/lib/audit";
 import { createUserSchema, updateUserSchema, type CreateUserInput, type UpdateUserInput } from "@/lib/validations/user.schema";
 import { createPasswordResetToken } from "@/lib/password-reset";
 
+const SENSITIVE_USER_FIELDS = new Set(["passwordHash", "mfaSecret", "mfaBackupCodes"]);
+
+/** Strip les champs sensibles (hash, secrets MFA) et convertit le Decimal avant de renvoyer un user au client — un Decimal brut fait planter la frontiere Server/Client Component. */
+function serializeUser<T extends { capaciteHebdomadaireHeures: unknown }>(user: T) {
+  const rest = Object.fromEntries(
+    Object.entries(user as Record<string, unknown>).filter(([key]) => !SENSITIVE_USER_FIELDS.has(key))
+  );
+  return {
+    ...rest,
+    capaciteHebdomadaireHeures: user.capaciteHebdomadaireHeures !== null ? Number(user.capaciteHebdomadaireHeures) : null,
+  };
+}
+
 /** Un manager ne peut pas etre son propre subordonne, direct ou indirect (meme principe que assertNoCycle pour Department/Objective/Plan). */
 async function assertNoManagerCycle(userId: string, managerId: string) {
   if (managerId === userId) {
@@ -71,7 +84,7 @@ export async function createUser(input: CreateUserInput) {
   });
 
   revalidatePath("/administration/utilisateurs");
-  return user;
+  return serializeUser(user);
 }
 
 export async function updateUser(input: UpdateUserInput) {
@@ -116,7 +129,7 @@ export async function updateUser(input: UpdateUserInput) {
   });
 
   revalidatePath("/administration/utilisateurs");
-  return user;
+  return serializeUser(user);
 }
 
 /**
@@ -160,5 +173,5 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   });
 
   revalidatePath("/administration/utilisateurs");
-  return user;
+  return serializeUser(user);
 }

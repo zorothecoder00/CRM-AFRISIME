@@ -17,17 +17,28 @@ import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell, Mail, Clipboa
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
+import { Badge } from "@/components/ui/badge";
 import { PERMISSIONS } from "@/lib/permissions";
 
 /** Raccourci icône topbar — demande utilisateur : Demandes/Messagerie/Courrier
- * au niveau du profil (à côté de la cloche) plutôt que dans la sidebar. */
-function TopbarShortcut({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
+ * au niveau du profil (à côté de la cloche) plutôt que dans la sidebar.
+ * `count` affiche une pastille (comme la cloche de notifications) pour
+ * signaler une action en attente sans avoir à ouvrir la page. */
+function TopbarShortcut({ href, label, icon: Icon, count }: { href: string; label: string; icon: LucideIcon; count?: number }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="sm" asChild>
+        <Button variant="ghost" size="sm" className="relative" asChild>
           <Link href={href} aria-label={label}>
             <Icon className="h-5 w-5" />
+            {!!count && count > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -right-1 -top-1 h-5 w-5 justify-center rounded-full p-0 text-[10px]"
+              >
+                {count > 9 ? "9+" : count}
+              </Badge>
+            )}
           </Link>
         </Button>
       </TooltipTrigger>
@@ -43,6 +54,9 @@ export function Topbar({
   roleKey,
   notifications,
   unreadCount,
+  pendingRequestsCount,
+  unreadMessagesCount,
+  pendingCourriersCount,
   permissions,
 }: {
   userName: string;
@@ -51,6 +65,9 @@ export function Topbar({
   roleKey?: string;
   notifications: NotificationPreview[];
   unreadCount: number;
+  pendingRequestsCount?: number;
+  unreadMessagesCount?: number;
+  pendingCourriersCount?: number;
   permissions: string[];
 }) {
   const pathname = usePathname();
@@ -89,13 +106,13 @@ export function Topbar({
       </div>
       <div className="flex items-center gap-1">
         {permissions.includes(PERMISSIONS.ADMIN_REQUEST_READ) && (
-          <TopbarShortcut href="/demandes" label="Demandes" icon={ClipboardList} />
+          <TopbarShortcut href="/demandes" label="Demandes" icon={ClipboardList} count={pendingRequestsCount} />
         )}
         {permissions.includes(PERMISSIONS.MESSAGE_READ) && (
-          <TopbarShortcut href="/messages" label="Messagerie" icon={MessageSquare} />
+          <TopbarShortcut href="/messages" label="Messagerie" icon={MessageSquare} count={unreadMessagesCount} />
         )}
         {permissions.includes(PERMISSIONS.COURRIER_READ) && (
-          <TopbarShortcut href="/courrier" label="Courrier" icon={Mail} />
+          <TopbarShortcut href="/courrier" label="Courrier" icon={Mail} count={pendingCourriersCount} />
         )}
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
         <DropdownMenu>

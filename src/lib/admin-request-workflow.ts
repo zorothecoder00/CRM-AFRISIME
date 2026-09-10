@@ -118,6 +118,19 @@ export async function assertActiveAdminRequestWorkflow(
   );
 }
 
+/** Nombre de demandes dont l'etape courante attend la validation de ce role — pour la pastille topbar (miroir du filtre de /demandes). */
+export async function countPendingAdminRequestApprovals(roleKey: string) {
+  const approvals = await prisma.adminRequestApproval.findMany({
+    where: {
+      statut: "EN_ATTENTE",
+      step: { approverRole: roleKey as RoleKey },
+      run: { statut: "EN_COURS" },
+    },
+    select: { step: { select: { ordre: true } }, run: { select: { currentOrdre: true } } },
+  });
+  return approvals.filter((a) => a.step.ordre === a.run.currentOrdre).length;
+}
+
 async function notifyApproversForStep(params: {
   approverRole: RoleKey;
   adminRequestId: string;
