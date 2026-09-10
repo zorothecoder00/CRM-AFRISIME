@@ -9,16 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
 import { Trash2 } from "lucide-react";
 
-// Corbeille (cahier des charges V2.2 §37) — les 3 entites soft-deletables
-// (Project/Task/Document, voir prisma/schema.prisma). Purge manuelle
-// uniquement, jamais automatique (voir le commentaire dans trash.actions.ts).
+// Corbeille (cahier des charges V2.2 §37) — les entites soft-deletables
+// (Project/Task/Document, plus ActivityReport — demande utilisateur — voir
+// prisma/schema.prisma). Purge manuelle uniquement, jamais automatique (voir
+// le commentaire dans trash.actions.ts).
 export default async function CorbeillePage() {
   const session = await getServerSession(authOptions);
   if (!session!.user.permissions.includes(PERMISSIONS.TRASH_MANAGE)) {
     redirect("/dashboard");
   }
 
-  const [projects, tasks, documents] = await Promise.all([
+  const [projects, tasks, documents, activityReports] = await Promise.all([
     prisma.project.findMany({
       where: { deletedAt: { not: null } },
       include: { deletedBy: { select: { name: true } } },
@@ -32,6 +33,11 @@ export default async function CorbeillePage() {
     prisma.document.findMany({
       where: { deletedAt: { not: null } },
       include: { deletedBy: { select: { name: true } }, project: { select: { nom: true } } },
+      orderBy: { deletedAt: "desc" },
+    }),
+    prisma.activityReport.findMany({
+      where: { deletedAt: { not: null } },
+      include: { deletedBy: { select: { name: true } } },
       orderBy: { deletedAt: "desc" },
     }),
   ]);
@@ -110,6 +116,30 @@ export default async function CorbeillePage() {
                 </p>
               </div>
               <TrashItemActions entityType="Document" id={d.id} canPurge />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Rapports d&apos;activité ({activityReports.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {activityReports.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucun rapport d&apos;activité dans la corbeille.</p>
+          )}
+          {activityReports.map((r) => (
+            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">{r.titre}</p>
+                <p className="text-xs text-muted-foreground">
+                  Supprimé par {r.deletedBy?.name ?? "—"} le {r.deletedAt!.toLocaleDateString("fr-FR")}
+                  {" · "}
+                  <Badge variant="outline">{daysUntilPurge(r.deletedAt!)} j avant purge recommandée</Badge>
+                </p>
+              </div>
+              <TrashItemActions entityType="ActivityReport" id={r.id} canPurge />
             </div>
           ))}
         </CardContent>

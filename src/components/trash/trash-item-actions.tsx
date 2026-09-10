@@ -1,15 +1,22 @@
 "use client";
 
 import { useAction } from "@/hooks/use-action";
-import { restoreProject, restoreTask, restoreDocument, purgeTrashItem } from "@/actions/trash.actions";
+import {
+  restoreProject,
+  restoreTask,
+  restoreDocument,
+  restoreActivityReport,
+  purgeTrashItem,
+} from "@/actions/trash.actions";
 import { Button } from "@/components/ui/button";
 
-type EntityType = "Project" | "Task" | "Document";
+type EntityType = "Project" | "Task" | "Document" | "ActivityReport";
 
 const RESTORE_ACTIONS = {
   Project: restoreProject,
   Task: restoreTask,
   Document: restoreDocument,
+  ActivityReport: restoreActivityReport,
 } as const;
 
 export function TrashItemActions({ entityType, id, canPurge }: { entityType: EntityType; id: string; canPurge: boolean }) {

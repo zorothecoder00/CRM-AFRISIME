@@ -11,11 +11,9 @@ import {
   createActivityReportSchema,
   shareActivityReportSchema,
   unshareActivityReportSchema,
-  deleteActivityReportSchema,
   type CreateActivityReportInput,
   type ShareActivityReportInput,
   type UnshareActivityReportInput,
-  type DeleteActivityReportInput,
 } from "@/lib/validations/activity-report.schema";
 
 async function requireSession() {
@@ -52,34 +50,6 @@ export async function createActivityReport(input: CreateActivityReportInput) {
 
   revalidatePath("/rapports");
   return report;
-}
-
-// Pas de permission REPORT_DELETE dediee : l'auteur peut toujours supprimer
-// son propre rapport ; document.delete (deja utilise pour les fichiers de
-// projet) sert de repli pour un gestionnaire qui doit nettoyer un rapport
-// qui n'est pas le sien.
-export async function deleteActivityReport(input: DeleteActivityReportInput) {
-  const session = await requireSession();
-  const data = deleteActivityReportSchema.parse(input);
-
-  const report = await prisma.activityReport.findUniqueOrThrow({
-    where: { id: data.reportId },
-    select: { createdById: true, titre: true },
-  });
-  const isOwner = report.createdById === session.user.id;
-  if (!isOwner) requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_DELETE);
-
-  await prisma.activityReport.delete({ where: { id: data.reportId } });
-
-  await logAudit({
-    userId: session.user.id,
-    action: "activity_report.deleted",
-    entityType: "ActivityReport",
-    entityId: data.reportId,
-    changes: { titre: report.titre },
-  });
-
-  revalidatePath("/rapports");
 }
 
 /** Partage à un utilisateur ou une équipe (voir shareActivityReportSchema — jamais les deux à la fois). */

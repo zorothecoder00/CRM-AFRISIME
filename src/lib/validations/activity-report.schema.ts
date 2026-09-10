@@ -31,9 +31,3 @@ export const unshareActivityReportSchema = z.object({
 });
 
 export type UnshareActivityReportInput = z.infer<typeof unshareActivityReportSchema>;
-
-export const deleteActivityReportSchema = z.object({
-  reportId: z.string().min(1),
-});
-
-export type DeleteActivityReportInput = z.infer<typeof deleteActivityReportSchema>;

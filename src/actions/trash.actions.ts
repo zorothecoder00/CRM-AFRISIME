@@ -129,7 +129,62 @@ export async function restoreDocument(documentId: string) {
   revalidatePath("/corbeille");
 }
 
-type TrashEntityType = "Project" | "Task" | "Document";
+// Demande utilisateur — etend la corbeille aux rapports d'activite manuels
+// (/rapports). Pas de permission REPORT_DELETE dediee : l'auteur peut
+// toujours supprimer/restaurer son propre rapport ; document.delete (deja
+// utilise pour les fichiers de projet) sert de repli pour un gestionnaire
+// qui doit nettoyer un rapport qui n'est pas le sien.
+export async function deleteActivityReport(reportId: string) {
+  const session = await requireSession();
+
+  const report = await prisma.activityReport.findUniqueOrThrow({
+    where: { id: reportId },
+    select: { createdById: true, titre: true },
+  });
+  if (report.createdById !== session.user.id) requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_DELETE);
+
+  await prisma.activityReport.update({
+    where: { id: reportId },
+    data: { deletedAt: new Date(), deletedById: session.user.id },
+  });
+  await logAudit({
+    userId: session.user.id,
+    action: "activity_report.deleted",
+    entityType: "ActivityReport",
+    entityId: reportId,
+    changes: { titre: report.titre },
+  });
+
+  revalidatePath("/rapports");
+  revalidatePath("/corbeille");
+}
+
+export async function restoreActivityReport(reportId: string) {
+  const session = await requireSession();
+
+  const report = await prisma.activityReport.findUniqueOrThrow({
+    where: { id: reportId },
+    select: { createdById: true, titre: true },
+  });
+  if (report.createdById !== session.user.id) requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_DELETE);
+
+  await prisma.activityReport.update({
+    where: { id: reportId },
+    data: { deletedAt: null, deletedById: null },
+  });
+  await logAudit({
+    userId: session.user.id,
+    action: "activity_report.restored",
+    entityType: "ActivityReport",
+    entityId: reportId,
+    changes: { titre: report.titre },
+  });
+
+  revalidatePath("/rapports");
+  revalidatePath("/corbeille");
+}
+
+type TrashEntityType = "Project" | "Task" | "Document" | "ActivityReport";
 
 /** Purge définitive — action manuelle explicite (voir le commentaire en tête de fichier). */
 export async function purgeTrashItem(entityType: TrashEntityType, id: string) {
@@ -140,6 +195,7 @@ export async function purgeTrashItem(entityType: TrashEntityType, id: string) {
     if (entityType === "Project") await prisma.project.delete({ where: { id } });
     if (entityType === "Task") await prisma.task.delete({ where: { id } });
     if (entityType === "Document") await prisma.document.delete({ where: { id } });
+    if (entityType === "ActivityReport") await prisma.activityReport.delete({ where: { id } });
   } catch {
     throw new Error(
       "Suppression impossible : cet élément a encore des données liées (tâches, documents, réunions…). Supprimez-les d'abord."

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
-import { deleteActivityReport } from "@/actions/activity-report.actions";
+import { deleteActivityReport } from "@/actions/trash.actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,8 @@ export function ActivityReportsList({
   const { run: remove, isPending: isDeleting } = useAction(deleteActivityReport, { successMessage: "Rapport supprimé." });
 
   async function handleDelete(report: ActivityReportRow) {
-    if (!confirm(`Supprimer « ${report.titre} » ?`)) return;
-    const result = await remove({ reportId: report.id });
+    if (!confirm(`Supprimer « ${report.titre} » ? Le rapport sera déplacé dans la corbeille.`)) return;
+    const result = await remove(report.id);
     if (result.ok) router.refresh();
   }
 
