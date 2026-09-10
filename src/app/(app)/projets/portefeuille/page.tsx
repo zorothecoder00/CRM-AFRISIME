@@ -101,10 +101,10 @@ export default async function PortfolioPage({
     return (entityId ? entityDevise.get(entityId) : null) || devise;
   }
 
-  let conversionIncomplete = false;
+  const conversionState = { incomplete: false };
   async function toOrgDevise(amount: number, fromDevise: string): Promise<number> {
     const { value, converted } = await convertMontant(amount, fromDevise, devise);
-    if (!converted && fromDevise !== devise) conversionIncomplete = true;
+    if (!converted && fromDevise !== devise) conversionState.incomplete = true;
     return value;
   }
 
@@ -214,7 +214,7 @@ export default async function PortfolioPage({
         <Kpi label="Impact suivi (indicateurs)" value={kpi.avecIndicateurs} />
       </div>
 
-      {conversionIncomplete && (
+      {conversionState.incomplete && (
         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2.5 text-xs text-warning">
           <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p>
