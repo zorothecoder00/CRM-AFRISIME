@@ -19,7 +19,7 @@ const RANK_TONE = [
 // d'ombre) au survol, au lieu d'une simple ligne de texte plate.
 export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore[] }) {
   return (
-    <Card>
+    <Card accent="primary">
       <CardHeader className="flex flex-row items-center gap-2">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Target className="size-4" />

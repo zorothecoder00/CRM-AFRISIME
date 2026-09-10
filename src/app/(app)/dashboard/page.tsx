@@ -291,22 +291,24 @@ export default async function DashboardPage() {
           <KpiCard
             label="Mon taux d'occupation"
             value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
-            accent={myWorkload?.enSurcharge ? "destructive" : undefined}
+            accent={myWorkload?.enSurcharge ? "destructive" : "primary"}
           />
           <KpiCard
             label="Ma disponibilité restante"
             value={myWorkload ? `${myWorkload.disponibiliteHeures} h` : "—"}
+            accent="info"
           />
           <KpiCard
             label="Temps moyen de réalisation"
             value={myWorkload?.tempsMoyenRealisationHeures != null ? `${myWorkload.tempsMoyenRealisationHeures} h` : "—"}
+            accent="success"
           />
         </div>
       </DashboardSection>
 
       <DashboardSection title="À traiter">
         <div className="grid gap-4 md:grid-cols-3">
-          <Card accent={myPendingApprovals.length > 0 ? "warning" : "none"}>
+          <Card accent="warning">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes validations en attente</CardTitle>
               {myPendingApprovals.length > 0 && <Badge variant="destructive">{myPendingApprovals.length}</Badge>}
@@ -328,7 +330,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent={myNotifications.some((n) => !n.isRead) ? "info" : "none"}>
+          <Card accent="info">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes notifications</CardTitle>
               {myNotifications.some((n) => !n.isRead) && <Badge>Nouveau</Badge>}
@@ -356,7 +358,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card accent="primary">
             <CardHeader>
               <CardTitle className="text-base">Mes demandes</CardTitle>
             </CardHeader>
@@ -387,7 +389,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Cette semaine">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+          <Card accent="info">
             <CardHeader>
               <CardTitle className="text-base">Mes réunions</CardTitle>
             </CardHeader>
@@ -414,7 +416,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card accent="success">
             <CardHeader>
               <CardTitle className="text-base">Mon calendrier (14 jours)</CardTitle>
             </CardHeader>
@@ -447,7 +449,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Équipe & collaboration">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+          <Card accent="warning">
             <CardHeader>
               <CardTitle className="text-base">Mes messages</CardTitle>
             </CardHeader>
@@ -480,7 +482,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card accent="primary">
             <CardHeader>
               <CardTitle className="text-base">Mes documents récents</CardTitle>
             </CardHeader>
@@ -508,7 +510,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Mes projets & objectifs">
         <div className="space-y-4">
-          <Card>
+          <Card accent="info">
             <CardHeader>
               <CardTitle className="text-base">Mes projets</CardTitle>
             </CardHeader>
@@ -536,7 +538,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card accent="success">
             <CardHeader>
               <CardTitle className="text-base">Mes objectifs</CardTitle>
             </CardHeader>
@@ -572,7 +574,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card accent="warning">
             <CardHeader>
               <CardTitle className="text-base">Activités récentes de l&apos;équipe</CardTitle>
             </CardHeader>
