@@ -1,15 +1,15 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
+// Retire next-themes (voir layout.tsx) — sonner gere deja "system" tout
+// seul en interne (matchMedia prefers-color-scheme), useTheme() etait
+// redondant ici.
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="system"
       className="toaster group"
       icons={{
         success: (
