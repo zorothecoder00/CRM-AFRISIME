@@ -180,6 +180,7 @@ export default async function PersonalPlanningMesTachesPage({
           // pas TASK_UPDATE (voir task-list-view.tsx).
           canAddSubtask={canCreate}
           showCreneau
+          hoverLift3d
           className="border-0"
           currentUserId={userId}
         />

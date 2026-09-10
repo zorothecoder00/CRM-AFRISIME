@@ -119,7 +119,7 @@ export function ProjectTableView({
           currency={fallbackDevise}
         />
       </div>
-      <div className="rounded-md border">
+      <div className={cn("rounded-md border", compact && "[perspective:1000px]")}>
       <Table className={compact ? "text-[11px]" : undefined}>
         <TableHeader className={compact ? "bg-muted/60" : undefined}>
           <TableRow>
@@ -139,7 +139,14 @@ export function ProjectTableView({
             const depasse = p.budget !== null && p.coutReel !== null && p.coutReel > p.budget;
             const cellClass = compact ? "whitespace-normal break-words align-top" : undefined;
             return (
-              <TableRow key={p.id}>
+              <TableRow
+                key={p.id}
+                className={cn(
+                  compact &&
+                    "relative transition-all duration-300 ease-out will-change-transform hover:z-10 hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-primary/40 hover:shadow-xl"
+                )}
+                style={compact ? { transformStyle: "preserve-3d" } : undefined}
+              >
                 <TableCell className={cn("text-muted-foreground", cellClass)}>
                   {p.dateFin ? new Date(p.dateFin).toLocaleDateString("fr-FR") : "—"}
                 </TableCell>

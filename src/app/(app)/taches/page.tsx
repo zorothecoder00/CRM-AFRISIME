@@ -253,6 +253,7 @@ export default async function TachesPage({
             showCreneauColumn={false}
             titreHeader="Titre"
             showResponsable
+            hoverLift3d
             currentUserId={userId}
             className="border-0"
           />

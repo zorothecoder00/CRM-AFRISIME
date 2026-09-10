@@ -564,6 +564,7 @@ async function PlanningListeView({
           showCreneauColumn={false}
           titreHeader="Titre"
           showResponsable
+          hoverLift3d
           className="border-0"
           currentUserId={userId}
         />
