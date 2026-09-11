@@ -13,5 +13,10 @@ import { BackLink } from "@/components/ui/back-link";
 export function PersonalPlanningBackLink() {
   const pathname = usePathname();
   if (pathname === "/planning-personnel") return null;
+  // Demande utilisateur — /journal se rejoint uniquement depuis /agenda
+  // ("voir le journal complet") : le retour doit y ramener, pas au hub.
+  if (pathname.startsWith("/planning-personnel/journal")) {
+    return <BackLink href="/planning-personnel/agenda" label="Retour à l'agenda" />;
+  }
   return <BackLink href="/planning-personnel" label="Retour à mon planning personnel" />;
 }

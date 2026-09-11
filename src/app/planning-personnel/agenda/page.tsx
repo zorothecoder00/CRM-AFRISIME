@@ -25,8 +25,8 @@ import { ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, CalendarRa
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPlanningWeek, type PersonalPlanningDay, type PersonalPlanningEntryRow } from "@/components/personal-planning/personal-planning-week";
-import { PersonalPlanningDay as PersonalPlanningDayView } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningMonth } from "@/components/personal-planning/personal-planning-month";
+import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
 import { PersonalPlanningDndProvider } from "@/components/personal-planning/dnd-provider";
 import { PersonalPlanningViewSwitcher, AGENDA_CALENDAR_VIEWS } from "@/components/personal-planning/view-switcher";
 import { AgendaExportButton, type AgendaExportRow } from "@/components/personal-planning/agenda-export-button";
@@ -122,6 +122,12 @@ export default async function PersonalPlanningAgendaPage({
   // l'export/impression ci-dessous porte sur allEntries (non filtré : un
   // agenda imprimé pour archive doit montrer ce qui s'est réellement passé).
   const visibleEntries = allEntries.filter((e) => !HIDDEN_STATUTS.has(e.statut));
+  // Demande utilisateur — la vue jour doit aussi masquer ce qui est déjà
+  // passé (heure de fin dépassée), même jamais marqué "Terminée" : la liste
+  // du jour ne doit montrer que ce qu'il reste réellement à faire. Portée à
+  // la seule vue jour (pas semaine/mois, où revoir la journée passée dans
+  // son contexte hebdomadaire/mensuel reste utile).
+  const dayVisibleEntries = visibleEntries.filter((e) => new Date(e.dateFin) >= now);
 
   const schedulesByWeekday = groupSchedulesByWeekday(scheduleRows);
 
@@ -165,7 +171,7 @@ export default async function PersonalPlanningAgendaPage({
               <div>
                 <h1 className="text-2xl font-semibold">Agenda</h1>
                 <p className="text-sm text-muted-foreground">
-                  {visibleEntries.length} activité(s) à faire —{" "}
+                  {(vue === "jour" ? dayVisibleEntries : visibleEntries).length} activité(s) à faire —{" "}
                   <Link href="/planning-personnel/journal" className="text-primary hover:underline">
                     voir le journal complet
                   </Link>
@@ -197,15 +203,12 @@ export default async function PersonalPlanningAgendaPage({
             </div>
           </div>
 
-          {vue === "jour" && (
-            <PersonalPlanningDayView
-              day={refDate}
-              entries={visibleEntries}
-              refData={refData}
-              nonWorkingReason={nonWorkingMap.get(format(refDate, "yyyy-MM-dd")) ?? null}
-              schedule={schedulesByWeekday.get(refDate.getDay()) ?? null}
-            />
-          )}
+          {/* Demande utilisateur — revient au design d'origine pour la vue
+              jour (point + tâche/activité, une ligne par activité, comme
+              /planning-personnel/agenda avant sa refonte en grille horaire),
+              en gardant le filtrage des activités déjà traitées
+              (visibleEntries, voir HIDDEN_STATUTS ci-dessus). */}
+          {vue === "jour" && <PersonalPlanningTimeline entries={dayVisibleEntries} nonWorkingByDate={nonWorkingMap} />}
 
           {vue === "semaine" && (
             <PersonalPlanningWeek
