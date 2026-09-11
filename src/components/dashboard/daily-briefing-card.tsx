@@ -65,11 +65,15 @@ export function DailyBriefingCard({ userName, briefing }: { userName: string | n
       </CardHeader>
       <CardContent className="space-y-3">
         {briefing.prioriteRecommandee && (
+          // Demande utilisateur — la carte englobante est deja bleue (accent
+          // "info") : garder ce bloc en bleu aussi le fondait dedans
+          // ("tautologie de bleu"). "warning" (dore, une couleur du logo) le
+          // fait vraiment ressortir comme le point le plus important.
           <Link
             href={briefing.prioriteRecommandee.href}
-            className="group flex items-center gap-2 rounded-lg border border-info/30 bg-gradient-to-r from-info/10 to-transparent p-3 text-sm transition-colors hover:border-info/50 hover:from-info/15"
+            className="group flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/15 p-3 text-sm transition-colors hover:border-warning/50 hover:bg-warning/25"
           >
-            <Badge variant="info" className="shrink-0">
+            <Badge variant="warning" className="shrink-0">
               Priorité recommandée
             </Badge>
             <span className="min-w-0 truncate font-medium group-hover:underline">{briefing.prioriteRecommandee.label}</span>
