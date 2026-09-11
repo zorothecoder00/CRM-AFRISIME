@@ -1,142 +1,180 @@
 import Link from "next/link";
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  addMonths,
+  subMonths,
+  format,
+  parseISO,
+  isWithinInterval,
+  startOfDay,
+  endOfDay,
+} from "date-fns";
+import { fr } from "date-fns/locale";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay, format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PersonalPlanningWeekLoadChart, type WeekLoadDay } from "@/components/personal-planning/personal-planning-week-load-chart";
-import { resolveDailyCapacity, computeDailyCharge, formatHours, groupSchedulesByWeekday } from "@/lib/personal-planning-workload";
+import { Badge } from "@/components/ui/badge";
+import { dateKey } from "@/components/calendar/month-grid";
+import { PersonalMonthGrid, type PersonalCalendarDayItems } from "@/components/personal-planning/personal-month-grid";
+import { toPersonalPlanningEntryRow, TACHE_DEPENDENCIES_SELECT } from "@/lib/personal-planning-rows";
 import { meetingToEntryRow } from "@/lib/personal-planning-meetings";
-import { ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
+import { ENTRY_TYPE_META } from "@/lib/personal-planning-types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+/** Déjà traité — masqué du calendrier, même convention que /planning-personnel/agenda (consultable sur /planning-personnel/journal). */
+const HIDDEN_STATUTS = new Set(["TERMINEE", "ANNULEE"]);
 
 /**
- * "Calendrier" (prototype V2) — analyse de charge de la semaine (KPIs +
- * graphique en barres par jour), distincte du calendrier mensuel (accessible
- * depuis "Ma journée" via son sélecteur de vue) : ce lien du sidebar montrait
- * auparavant ?vue=mois sur le hub, remplacé ici par cette vue dédiée.
+ * "Calendrier" (revue 2026-09-11) — remplace l'ancienne analyse de charge
+ * (redondante avec /planning-personnel/charge-de-travail, déjà dédiée à ça)
+ * par un vrai calendrier mensuel, même structure que /calendrier (grille +
+ * détail du jour sélectionné), mais strictement mes tâches et activités
+ * personnelles — sans congés, événements organisationnels ni création
+ * depuis cette page (déjà couvert par la barre d'outils du module).
  */
 export default async function PersonalPlanningCalendrierPage({
   searchParams,
 }: {
-  searchParams: Promise<{ semaine?: string }>;
+  searchParams: Promise<{ annee?: string; mois?: string; jour?: string }>;
 }) {
-  const { semaine } = await searchParams;
+  const { annee, mois, jour } = await searchParams;
   const session = await getAppSession();
   const userId = session!.user.id;
+
   const now = new Date();
-  const refDate = semaine ? new Date(semaine) : now;
+  const year = annee ? parseInt(annee, 10) : now.getFullYear();
+  const month = mois ? parseInt(mois, 10) : now.getMonth() + 1;
+  const currentMonth = new Date(year, month - 1, 1);
 
-  const weekStart = startOfWeek(refDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(refDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const gridStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
-  const [entries, meetings, me, schedules, exceptions] = await Promise.all([
+  const [tasks, entriesRaw, meetingsRaw] = await Promise.all([
+    prisma.task.findMany({
+      where: {
+        OR: [{ responsablePrincipalId: userId }, { assignees: { some: { userId } } }],
+        echeance: { gte: gridStart, lte: gridEnd },
+        deletedAt: null,
+      },
+      select: { id: true, titre: true, echeance: true },
+    }),
     prisma.personalPlanningEntry.findMany({
-      where: { userId, dateDebut: { lte: weekEnd }, dateFin: { gte: weekStart } },
-      select: { dateDebut: true, dateFin: true },
+      where: { userId, dateDebut: { lte: gridEnd }, dateFin: { gte: gridStart } },
+      include: {
+        tache: { select: { titre: true, projectId: true, ...TACHE_DEPENDENCIES_SELECT } },
+        projet: { select: { nom: true } },
+        participants: { select: { userId: true } },
+      },
     }),
     prisma.meeting.findMany({
-      where: { participants: { some: { userId } }, dateHeure: { gte: weekStart, lte: weekEnd } },
+      where: { participants: { some: { userId } }, dateHeure: { gte: gridStart, lte: gridEnd } },
       select: { id: true, titre: true, dateHeure: true, lieu: true, statut: true },
     }),
-    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { capaciteHebdomadaireHeures: true } }),
-    prisma.userWorkSchedule.findMany({ where: { userId }, include: { breaks: { orderBy: { ordre: "asc" } } }, orderBy: { ordre: "asc" } }),
-    prisma.userWorkScheduleException.findMany({ where: { userId, date: { in: weekDays } } }),
   ]);
 
-  const chargeEntries = [
-    ...entries.map((e) => ({ dateDebut: e.dateDebut.toISOString(), dateFin: e.dateFin.toISOString() })),
-    ...meetings.map((m) => {
-      const row = meetingToEntryRow(m);
-      return { dateDebut: row.dateDebut, dateFin: row.dateFin };
-    }),
-  ];
+  const activityRows = [
+    ...entriesRaw.map((e) => toPersonalPlanningEntryRow(e, new Map())),
+    ...meetingsRaw.map(meetingToEntryRow),
+  ].filter((e) => !HIDDEN_STATUTS.has(e.statut));
 
-  const scheduleByWeekday = groupSchedulesByWeekday(schedules);
-  const exceptionByDate = new Map(exceptions.map((e) => [format(e.date, "yyyy-MM-dd"), e]));
+  const itemsByDate = new Map<string, PersonalCalendarDayItems>();
+  function ensure(key: string): PersonalCalendarDayItems {
+    if (!itemsByDate.has(key)) itemsByDate.set(key, { tasks: [], activities: [] });
+    return itemsByDate.get(key)!;
+  }
 
-  const days: WeekLoadDay[] = weekDays.map((day) => {
-    const dateKey = format(day, "yyyy-MM-dd");
-    const capaciteHeures = resolveDailyCapacity(
-      scheduleByWeekday.get(day.getDay()) ?? null,
-      Number(me.capaciteHebdomadaireHeures),
-      exceptionByDate.get(dateKey) ?? null
-    );
-    const charge = computeDailyCharge(chargeEntries, capaciteHeures, day);
-    return {
-      label: format(day, "EEE", { locale: fr }),
-      dateLabel: format(day, "d MMM", { locale: fr }),
-      tauxOccupation: charge.tauxOccupation,
-      chargeHeures: charge.chargeHeures,
-      capaciteHeures: charge.capaciteHeures,
-      isToday: isSameDay(day, now),
-    };
-  });
+  for (const t of tasks) {
+    if (t.echeance) ensure(dateKey(t.echeance)).tasks.push({ id: t.id, titre: t.titre });
+  }
+  for (const day of days) {
+    const key = dateKey(day);
+    for (const a of activityRows) {
+      if (isWithinInterval(day, { start: startOfDay(new Date(a.dateDebut)), end: endOfDay(new Date(a.dateFin)) })) {
+        ensure(key).activities.push({
+          id: a.id,
+          titre: a.titre,
+          type: a.type,
+          href: a.meetingHref ?? (a.tacheId ? `/taches/${a.tacheId}` : undefined),
+        });
+      }
+    }
+  }
 
-  const planifieTotal = Math.round(days.reduce((sum, d) => sum + d.chargeHeures, 0) * 10) / 10;
-  const capaciteTotal = Math.round(days.reduce((sum, d) => sum + d.capaciteHeures, 0) * 10) / 10;
-  const chargeMoyenne = capaciteTotal > 0 ? Math.round((planifieTotal / capaciteTotal) * 100) : 0;
+  const selectedKey = jour;
+  const selectedItems = selectedKey ? itemsByDate.get(selectedKey) : undefined;
 
-  const prevHref = `/planning-personnel/calendrier?semaine=${format(subWeeks(weekStart, 1), "yyyy-MM-dd")}`;
-  const nextHref = `/planning-personnel/calendrier?semaine=${format(addWeeks(weekStart, 1), "yyyy-MM-dd")}`;
-  const todayHref = "/planning-personnel/calendrier";
+  const prevMonth = subMonths(currentMonth, 1);
+  const nextMonth = addMonths(currentMonth, 1);
+  const monthHref = (d: Date) => `/planning-personnel/calendrier?annee=${d.getFullYear()}&mois=${d.getMonth() + 1}`;
+  const dayHref = (key: string) => `/planning-personnel/calendrier?annee=${year}&mois=${month}&jour=${key}`;
 
   return (
-    <div className="space-y-6">
-
-      <div className="flex items-center gap-2">
-        <CalendarRange className="size-5 text-primary" />
-        <div>
-          <h1 className="text-2xl font-semibold">Calendrier — analyse de charge</h1>
-          <p className="text-sm text-muted-foreground">
-            Répartition de votre charge de travail sur la semaine, jour par jour.
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold">Calendrier</h1>
+        <p className="text-sm text-muted-foreground">Vue mensuelle de mes tâches et activités personnelles.</p>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <CardTitle className="text-base capitalize">
-            Semaine du {format(weekStart, "d MMMM", { locale: fr })} au {format(weekEnd, "d MMMM yyyy", { locale: fr })}
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Link href={prevHref}>
-              <Button variant="outline" size="icon">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href={todayHref}>
-              <Button variant="outline" size="sm">
-                Aujourd&apos;hui
-              </Button>
-            </Link>
-            <Link href={nextHref}>
-              <Button variant="outline" size="icon">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-md border p-3 text-center">
-              <div className="text-2xl font-semibold">{formatHours(planifieTotal)}</div>
-              <div className="text-xs text-muted-foreground">Planifié</div>
-            </div>
-            <div className="rounded-md border p-3 text-center">
-              <div className="text-2xl font-semibold">{formatHours(capaciteTotal)}</div>
-              <div className="text-xs text-muted-foreground">Capacité</div>
-            </div>
-            <div className="rounded-md border p-3 text-center">
-              <div className="text-2xl font-semibold">{chargeMoyenne}%</div>
-              <div className="text-xs text-muted-foreground">Charge moyenne</div>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <Link href={monthHref(prevMonth)}>
+          <Button variant="outline" size="sm">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <span className="text-lg font-medium capitalize">{format(currentMonth, "MMMM yyyy", { locale: fr })}</span>
+        <Link href={monthHref(nextMonth)}>
+          <Button variant="outline" size="sm">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
 
-          <PersonalPlanningWeekLoadChart days={days} />
-        </CardContent>
-      </Card>
+      <PersonalMonthGrid days={days} currentMonth={currentMonth} selectedDateKey={selectedKey} itemsByDate={itemsByDate} dayHref={dayHref} />
+
+      {selectedKey && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{format(parseISO(selectedKey), "EEEE d MMMM yyyy", { locale: fr })}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {!selectedItems && <p className="text-muted-foreground">Rien de prévu ce jour-là.</p>}
+            {selectedItems?.tasks.map((t) => (
+              <Link key={t.id} href={`/taches/${t.id}`} className="block hover:underline">
+                <Badge variant="outline" className="mr-2">
+                  Tâche
+                </Badge>
+                {t.titre}
+              </Link>
+            ))}
+            {selectedItems?.activities.map((a) => {
+              const content = (
+                <>
+                  <Badge variant="outline" className="mr-2">
+                    {ENTRY_TYPE_META[a.type].label}
+                  </Badge>
+                  {a.titre}
+                </>
+              );
+              return a.href ? (
+                <Link key={a.id} href={a.href} className="block hover:underline">
+                  {content}
+                </Link>
+              ) : (
+                <div key={a.id}>{content}</div>
+              );
+            })}
+            {selectedItems && selectedItems.tasks.length === 0 && selectedItems.activities.length === 0 && (
+              <p className="text-muted-foreground">Rien de prévu ce jour-là.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
