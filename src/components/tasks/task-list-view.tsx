@@ -238,6 +238,7 @@ export function TaskListView({
   hoverLift3d = false,
   className,
   currentUserId,
+  tableTextClassName,
 }: {
   tasks: TaskRow[];
   users?: Option[];
@@ -275,6 +276,10 @@ export function TaskListView({
   // responsablePrincipalId uniquement (TaskRow n'a pas les co-assignés) ;
   // l'autorisation réelle et complète reste vérifiée côté serveur (updateTask).
   currentUserId?: string;
+  // Demande utilisateur — /planning-personnel/mes-taches uniquement : police
+  // légèrement plus grande que le text-[11px] par défaut de la variante
+  // showCreneau, sans affecter les autres appelants (/taches, /planning).
+  tableTextClassName?: string;
 }) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -363,7 +368,7 @@ export function TaskListView({
           directement sur <Table>, uniquement pour la variante mes-taches
           (showCreneau), sans toucher /taches (l'autre appelant). Demande
           utilisateur — encore plus reduit que le text-xs d'origine. */}
-      <Table className={showCreneau ? "text-[11px]" : undefined}>
+      <Table className={showCreneau ? (tableTextClassName ?? "text-[11px]") : undefined}>
         {/* Demande utilisateur — bords visibles sur le th (mes-taches
             uniquement) pour bien distinguer l'en-tete du tbody, en plus du
             simple border-b herite de TableHeader. */}

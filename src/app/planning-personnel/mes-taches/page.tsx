@@ -183,6 +183,9 @@ export default async function PersonalPlanningMesTachesPage({
           hoverLift3d
           className="border-0"
           currentUserId={userId}
+          // Demande utilisateur — police légèrement plus grande que le
+          // text-[11px] par défaut de la variante showCreneau.
+          tableTextClassName="text-xs"
         />
       </div>
     </div>
