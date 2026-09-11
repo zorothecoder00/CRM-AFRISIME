@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import {
   createDataFormSchema,
   updateDataFormActifSchema,
@@ -28,6 +28,23 @@ async function requireSession() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
   return session;
+}
+
+/**
+ * Revue de robustesse (2026-09-11) — un id invalide (`findUniqueOrThrow`
+ * manqué) remontait l'erreur Prisma brute au client. Convertit uniquement
+ * ce cas précis (P2025) en message clair ; toute autre erreur remonte
+ * inchangée.
+ */
+async function withNotFoundMessage<T>(fn: () => Promise<T>, message: string): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      throw new Error(message);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -109,8 +126,9 @@ export async function deleteDataForm(input: DeleteDataFormInput) {
 
   const data = deleteDataFormSchema.parse(input);
 
-  const form = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.projectDataForm.delete({ where: { id: data.formId } })
+  const form = await withNotFoundMessage(
+    () => withTenantScopedSession(session.user.organizationId, (tx) => tx.projectDataForm.delete({ where: { id: data.formId } })),
+    "Formulaire introuvable."
   );
 
   await logAudit({
@@ -131,7 +149,7 @@ export async function addDataFormField(input: AddDataFormFieldInput) {
 
   const data = addDataFormFieldSchema.parse(input);
 
-  const { field, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+  const { field, projectId } = await withNotFoundMessage(() => withTenantScopedSession(session.user.organizationId, async (tx) => {
     const form = await tx.projectDataForm.findUniqueOrThrow({ where: { id: data.formId }, select: { projectId: true } });
     const count = await tx.projectDataFormField.count({ where: { formId: data.formId } });
     const created = await tx.projectDataFormField.create({
@@ -147,7 +165,7 @@ export async function addDataFormField(input: AddDataFormFieldInput) {
       },
     });
     return { field: created, projectId: form.projectId };
-  });
+  }), "Formulaire introuvable.");
 
   await logAudit({
     userId: session.user.id,
@@ -167,14 +185,14 @@ export async function deleteDataFormField(input: DeleteDataFormFieldInput) {
 
   const data = deleteDataFormFieldSchema.parse(input);
 
-  const { field, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+  const { field, projectId } = await withNotFoundMessage(() => withTenantScopedSession(session.user.organizationId, async (tx) => {
     const existing = await tx.projectDataFormField.findUniqueOrThrow({
       where: { id: data.fieldId },
       include: { form: { select: { projectId: true } } },
     });
     const deleted = await tx.projectDataFormField.delete({ where: { id: data.fieldId } });
     return { field: deleted, projectId: existing.form.projectId };
-  });
+  }), "Champ introuvable.");
 
   await logAudit({
     userId: session.user.id,
@@ -194,7 +212,7 @@ export async function submitDataForm(input: SubmitDataFormInput) {
 
   const data = submitDataFormSchema.parse(input);
 
-  const { submission, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+  const { submission, projectId } = await withNotFoundMessage(() => withTenantScopedSession(session.user.organizationId, async (tx) => {
     const form = await tx.projectDataForm.findUniqueOrThrow({ where: { id: data.formId }, select: { projectId: true } });
 
     const created = await tx.projectDataFormSubmission.create({
@@ -214,7 +232,7 @@ export async function submitDataForm(input: SubmitDataFormInput) {
     }
 
     return { submission: created, projectId: form.projectId };
-  });
+  }), "Formulaire introuvable.");
 
   await logAudit({
     userId: session.user.id,
@@ -234,7 +252,7 @@ export async function deleteDataFormSubmission(input: DeleteDataFormSubmissionIn
 
   const data = deleteDataFormSubmissionSchema.parse(input);
 
-  const { submission, projectId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+  const { submission, projectId } = await withNotFoundMessage(() => withTenantScopedSession(session.user.organizationId, async (tx) => {
     const existing = await tx.projectDataFormSubmission.findUniqueOrThrow({
       where: { id: data.submissionId },
       include: { form: { select: { projectId: true } } },
@@ -249,7 +267,7 @@ export async function deleteDataFormSubmission(input: DeleteDataFormSubmissionIn
     }
 
     return { submission: deleted, projectId: existing.form.projectId };
-  });
+  }), "Soumission introuvable.");
 
   await logAudit({
     userId: session.user.id,

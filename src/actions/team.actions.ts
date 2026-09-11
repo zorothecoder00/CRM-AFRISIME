@@ -82,7 +82,14 @@ export async function deleteTeam(id: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
 
-  const team = await prisma.team.delete({ where: { id } });
+  // Revue de robustesse (2026-09-11) — une équipe encore référencée ailleurs
+  // (FK) plantait avec l'erreur Prisma brute au lieu d'un message clair.
+  let team;
+  try {
+    team = await prisma.team.delete({ where: { id } });
+  } catch {
+    throw new Error("Impossible de supprimer : cette équipe a encore des membres ou des rattachements.");
+  }
 
   await logAudit({
     userId: session.user.id,

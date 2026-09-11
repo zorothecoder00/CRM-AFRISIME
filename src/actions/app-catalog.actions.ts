@@ -10,6 +10,7 @@ import {
   createAppCatalogEntrySchema,
   updateAppCatalogEntrySchema,
   deleteAppCatalogEntrySchema,
+  updateAppCatalogStatutSchema,
   type CreateAppCatalogEntryInput,
   type UpdateAppCatalogEntryInput,
   type DeleteAppCatalogEntryInput,
@@ -21,7 +22,8 @@ export async function updateAppCatalogStatut(id: string, statut: AppCatalogStatu
   if (!session) throw new Error("Non authentifié");
   requirePermission(session.user.permissions, PERMISSIONS.MARKETPLACE_MANAGE);
 
-  await prisma.appCatalogEntry.update({ where: { id }, data: { statut } });
+  const validatedStatut = updateAppCatalogStatutSchema.parse(statut);
+  await prisma.appCatalogEntry.update({ where: { id }, data: { statut: validatedStatut } });
 
   await logAudit({
     userId: session.user.id,

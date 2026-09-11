@@ -25,6 +25,16 @@ export async function createDelegation(input: CreateDelegationInput) {
   requirePermission(session.user.permissions, PERMISSIONS.ADMINISTRATION_USERS_MANAGE);
   const data = createDelegationSchema.parse(input);
 
+  // Revue de robustesse (2026-09-11) — un id invalide/inactif plantait
+  // auparavant avec une erreur de contrainte de clé étrangère brute.
+  const [delegant, delegataire] = await Promise.all([
+    prisma.user.findUnique({ where: { id: data.delegantId }, select: { isActive: true } }),
+    prisma.user.findUnique({ where: { id: data.delegataireId }, select: { isActive: true } }),
+  ]);
+  if (!delegant?.isActive || !delegataire?.isActive) {
+    throw new Error("Le délégant et le délégataire doivent être des utilisateurs actifs.");
+  }
+
   const delegation = await prisma.delegation.create({
     data: {
       delegantId: data.delegantId,

@@ -155,6 +155,7 @@ const MODELS = [
   { label: "Parties prenantes de projet", client: prisma.stakeholderProject },
   { label: "Communications avec parties prenantes", client: prisma.stakeholderCommunication },
   { label: "Sessions utilisateur", client: prisma.userSession },
+  { label: "Profils d'organisation", client: prisma.organizationProfile },
 ] as const;
 
 async function main() {

@@ -31,3 +31,7 @@ export type UpdateAppCatalogEntryInput = z.infer<typeof updateAppCatalogEntrySch
 export const deleteAppCatalogEntrySchema = z.object({ id: z.string().min(1) });
 
 export type DeleteAppCatalogEntryInput = z.infer<typeof deleteAppCatalogEntrySchema>;
+
+// Revue de robustesse (2026-09-11) — updateAppCatalogStatut passait `statut`
+// brut sans validation runtime, contrairement aux autres actions du fichier.
+export const updateAppCatalogStatutSchema = z.enum(["PLANIFIE", "BIENTOT", "DISPONIBLE"]);

@@ -66,6 +66,8 @@ export async function createDecisionOption(input: CreateDecisionOptionInput) {
   requirePermission(session.user.permissions, PERMISSIONS.DECISION_MATRIX_MANAGE);
 
   const data = createDecisionOptionSchema.parse(input);
+  // Revue de robustesse (2026-09-11) — matrixId n'était jamais vérifié.
+  await prisma.decisionMatrix.findUniqueOrThrow({ where: { id: data.matrixId } });
   const option = await prisma.decisionOption.create({
     data: {
       matrixId: data.matrixId,
@@ -88,6 +90,14 @@ export async function createDecisionOption(input: CreateDecisionOptionInput) {
 export async function deleteDecisionOption(optionId: string, matrixId: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.DECISION_MATRIX_MANAGE);
+
+  // Revue de robustesse (2026-09-11) — optionId et matrixId étaient acceptés
+  // comme deux paramètres indépendants sans vérifier que le premier
+  // appartient bien au second.
+  const option = await prisma.decisionOption.findUniqueOrThrow({ where: { id: optionId } });
+  if (option.matrixId !== matrixId) {
+    throw new Error("Cette option n'appartient pas à cette matrice de décision.");
+  }
 
   await prisma.decisionOption.delete({ where: { id: optionId } });
   await logAudit({ userId: session.user.id, action: "decision_option.deleted", entityType: "DecisionOption", entityId: optionId });

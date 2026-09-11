@@ -319,49 +319,65 @@ export async function convertOpportunityToProject(input: ConvertOpportunityInput
   requirePermission(session.user.permissions, PERMISSIONS.PROJECT_CREATE);
   const data = convertOpportunitySchema.parse(input);
 
-  const opportunity = await prisma.crmOpportunity.findUniqueOrThrow({
-    where: { id: data.opportunityId },
-    include: { organization: true },
-  });
+  // Revue de robustesse (2026-09-11) — lecture du statut "pas encore
+  // convertie" puis création du projet et mise à jour de l'opportunité
+  // étaient trois étapes séparées : un crash entre elles pouvait laisser un
+  // projet orphelin, et deux conversions concurrentes pouvaient toutes deux
+  // passer le contrôle avant qu'aucune n'écrive (double projet pour la même
+  // opportunité). Regroupées en transaction, avec une garde sur le WHERE de
+  // la mise à jour finale (updateMany + vérification du count) pour un
+  // verrou effectif même sous forte concurrence.
+  const { project, opportunityId } = await prisma.$transaction(async (tx) => {
+    const opportunity = await tx.crmOpportunity.findUnique({
+      where: { id: data.opportunityId },
+      include: { organization: true },
+    });
+    if (!opportunity) throw new Error("Opportunité introuvable.");
 
-  if (opportunity.convertedProjectId) {
-    throw new Error("Cette opportunité a déjà été convertie en projet.");
-  }
-  if (opportunity.statut !== "GAGNEE") {
-    throw new Error("L'opportunité doit être au statut « Gagnée » avant de générer le projet.");
-  }
+    if (opportunity.convertedProjectId) {
+      throw new Error("Cette opportunité a déjà été convertie en projet.");
+    }
+    if (opportunity.statut !== "GAGNEE") {
+      throw new Error("L'opportunité doit être au statut « Gagnée » avant de générer le projet.");
+    }
 
-  const project = await prisma.project.create({
-    data: {
-      nom: opportunity.nom,
-      description: opportunity.organization ? `Opportunité gagnée — ${opportunity.organization.nom}` : undefined,
-      responsableId: data.responsableId,
-      departmentId: data.departmentId,
-      budget: opportunity.montantEstime ?? undefined,
-      dateFin: opportunity.dateClotureEstimee ?? undefined,
-      createdById: session.user.id,
-      organizationId: session.user.organizationId,
-      members: {
-        create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET", organizationId: session.user.organizationId }],
+    const project = await tx.project.create({
+      data: {
+        nom: opportunity.nom,
+        description: opportunity.organization ? `Opportunité gagnée — ${opportunity.organization.nom}` : undefined,
+        responsableId: data.responsableId,
+        departmentId: data.departmentId,
+        budget: opportunity.montantEstime ?? undefined,
+        dateFin: opportunity.dateClotureEstimee ?? undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+        members: {
+          create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET", organizationId: session.user.organizationId }],
+        },
       },
-    },
-  });
+    });
 
-  await prisma.crmOpportunity.update({
-    where: { id: opportunity.id },
-    data: { convertedProjectId: project.id },
+    const { count } = await tx.crmOpportunity.updateMany({
+      where: { id: opportunity.id, convertedProjectId: null },
+      data: { convertedProjectId: project.id },
+    });
+    if (count === 0) {
+      throw new Error("Cette opportunité a déjà été convertie en projet.");
+    }
+
+    return { project, opportunityId: opportunity.id };
   });
 
   await logAudit({
     userId: session.user.id,
     action: "crm.opportunity.converted_to_project",
     entityType: "CrmOpportunity",
-    entityId: opportunity.id,
+    entityId: opportunityId,
     changes: { projectId: project.id },
   });
 
   revalidatePath("/crm/pipeline");
-  revalidatePath(`/crm/opportunites/${opportunity.id}`);
+  revalidatePath(`/crm/opportunites/${opportunityId}`);
   revalidatePath("/projets");
   revalidatePath("/projets/portefeuille");
   return { id: project.id };

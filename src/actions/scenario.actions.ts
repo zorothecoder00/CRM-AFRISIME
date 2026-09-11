@@ -27,7 +27,7 @@ export async function runWhatIfSimulation(input: WhatIfInput) {
 
 export async function createScenario(input: CreateScenarioInput) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.REPORT_EXPORT);
+  requirePermission(session.user.permissions, PERMISSIONS.SCENARIO_MANAGE);
 
   const data = createScenarioSchema.parse(input);
 
@@ -63,7 +63,7 @@ export async function createScenario(input: CreateScenarioInput) {
 
 export async function deleteScenario(scenarioId: string) {
   const session = await requireSession();
-  requirePermission(session.user.permissions, PERMISSIONS.REPORT_EXPORT);
+  requirePermission(session.user.permissions, PERMISSIONS.SCENARIO_MANAGE);
 
   const scenario = await prisma.scenario.delete({ where: { id: scenarioId } });
 

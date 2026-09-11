@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { authenticateApiKey, apiKeyHasPermission } from "@/lib/api-keys";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 
 /**
  * Data & Analytics Platform (cahier des charges V3.0 §48) — "préparer une
@@ -58,16 +58,23 @@ export async function GET(request: NextRequest) {
   const entityType = request.nextUrl.searchParams.get("entityType") ?? undefined;
   const metric = request.nextUrl.searchParams.get("metric") ?? undefined;
   const since = request.nextUrl.searchParams.get("since");
+  const sinceDate = since ? new Date(since) : undefined;
+  if (sinceDate && Number.isNaN(sinceDate.getTime())) {
+    return NextResponse.json({ error: "Paramètre since invalide (date ISO attendue)" }, { status: 400 });
+  }
 
-  const snapshots = await prisma.metricSnapshot.findMany({
-    where: {
-      entityType,
-      metric,
-      capturedAt: since ? { gte: new Date(since) } : undefined,
-    },
-    orderBy: { capturedAt: "desc" },
-    take: 1000,
-  });
+  // Isolation multi-tenant (RLS) — voir /api/v1/tasks/route.ts.
+  const snapshots = await withTenantScopedSession(apiKey.organizationId, (tx) =>
+    tx.metricSnapshot.findMany({
+      where: {
+        entityType,
+        metric,
+        capturedAt: sinceDate ? { gte: sinceDate } : undefined,
+      },
+      orderBy: { capturedAt: "desc" },
+      take: 1000,
+    })
+  );
 
   return NextResponse.json({
     data: snapshots.map((s) => ({

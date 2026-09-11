@@ -47,6 +47,10 @@ function LoginForm() {
       setError("Code de vérification invalide.");
       return;
     }
+    if (result?.error === "RATE_LIMITED") {
+      setError("Trop de tentatives. Réessayez dans quelques minutes.");
+      return;
+    }
     if (result?.error) {
       setError("Email ou mot de passe incorrect.");
       return;

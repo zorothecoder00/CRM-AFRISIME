@@ -767,6 +767,19 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+// Revue de robustesse (2026-09-11) — aucun rate limiting n'existait nulle
+// part dans l'app (pas de Redis/Upstash dans les dépendances) : bourrage
+// d'identifiants sur la connexion et spam de tokens de reset étaient
+// ouverts. Fenêtre fixe (pas de fenêtre glissante), un compteur par clé
+// logique ("login:email:...", "login:ip:...", ...) plutôt qu'une ligne par
+// tentative — le nombre de lignes reste borné au nombre de clés actives, pas
+// au nombre de requêtes. Voir src/lib/rate-limit.ts.
+model RateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int      @default(0)
+}
+
 model Role {
   id          String           @id @default(cuid())
   key         RoleKey          @unique
@@ -962,7 +975,14 @@ enum OrgDesignStatut {
 // et §III "Vision / Mission / Valeurs") — ligne unique (id fixe "org-profile"),
 // pas de vraie table multi-tenant : ce logiciel pilote une seule organisation.
 model OrganizationProfile {
-  id          String   @id @default("org-profile")
+  id             String                @id @default(cuid())
+  // Revue de robustesse (2026-09-11) — un profil par organisation plutôt
+  // qu'une ligne unique partagée : l'ancien id fixe "org-profile" permettait
+  // à n'importe quelle organisation d'écraser le profil de toutes les
+  // autres. Nullable, rétro-compatible avec la ligne historique (voir
+  // scripts/backfill-platform-organization.ts) le temps du rattachement.
+  organizationId String?               @unique
+  organization   PlatformOrganization? @relation("PlatformOrganizationOrganizationProfile", fields: [organizationId], references: [id])
   nom         String   @default("Mon organisation")
   logoUrl     String?
   description String?
@@ -1156,6 +1176,7 @@ model PlatformOrganization {
   processusExecutionEtapes          ProcessusExecutionEtape[]          @relation("PlatformOrganizationProcessusExecutionEtapes")
   processusDocuments                ProcessusDocument[]                @relation("PlatformOrganizationProcessusDocuments")
   organizationalRisks               OrganizationalRisk[]               @relation("PlatformOrganizationOrganizationalRisks")
+  organizationProfile               OrganizationProfile?               @relation("PlatformOrganizationOrganizationProfile")
   complianceObligations             ComplianceObligation[]             @relation("PlatformOrganizationComplianceObligations")
   complianceControls                ComplianceControl[]                @relation("PlatformOrganizationComplianceControls")
   complianceObligationDocuments     ComplianceObligationDocument[]     @relation("PlatformOrganizationComplianceObligationDocuments")
@@ -4334,7 +4355,14 @@ model IntegrationEvent {
   eventType      String
   payload        Json
   receivedAt     DateTime              @default(now())
+  // Revue de robustesse (2026-09-11) — identifiant fourni par l'émetteur
+  // (en-tête x-event-id, ou champ id/eventId du payload) pour dédupliquer
+  // une redélivrance webhook et éviter de redéclencher deux fois les règles
+  // d'automatisation. Nullable : un émetteur qui ne fournit aucun id ne peut
+  // simplement pas être dédupliqué.
+  externalEventId String?
 
+  @@unique([integrationId, externalEventId])
   @@index([integrationId])
 }
 

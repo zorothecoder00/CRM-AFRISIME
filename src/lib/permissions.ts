@@ -80,6 +80,11 @@ export const PERMISSIONS = {
 
   REPORT_EXPORT: "report.export",
 
+  // Revue de robustesse (2026-09-11) — scenario.actions.ts empruntait
+  // REPORT_EXPORT (export de rapports, sans rapport avec la simulation de
+  // scénarios) faute de permission dédiée.
+  SCENARIO_MANAGE: "scenario.manage",
+
   SECURITY_AUDIT_READ: "security.audit.read",
 
   INTEGRATION_MANAGE: "integration.manage",
@@ -228,6 +233,8 @@ export const PERMISSION_CATALOG: {
 
   { key: PERMISSIONS.REPORT_EXPORT, label: "Exporter des rapports (PDF/Excel/Word/présentation)", category: "Rapports" },
 
+  { key: PERMISSIONS.SCENARIO_MANAGE, label: "Créer et gérer les scénarios de planification (What-If)", category: "Rapports" },
+
   { key: PERMISSIONS.SECURITY_AUDIT_READ, label: "Consulter le journal d'audit et l'état MFA", category: "Sécurité" },
 
   { key: PERMISSIONS.INTEGRATION_MANAGE, label: "Gérer les intégrations externes", category: "Intégrations" },
@@ -340,6 +347,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.SCENARIO_MANAGE,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.ADMINISTRATION_ACCESS,
@@ -428,6 +436,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.SCENARIO_MANAGE,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.GOVERNANCE_MANAGE,
@@ -504,6 +513,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.SCENARIO_MANAGE,
     PERMISSIONS.DEPARTMENT_MANAGE,
     PERMISSIONS.TEAM_CREATE,
     PERMISSIONS.GOVERNANCE_READ,
@@ -581,6 +591,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.SCENARIO_MANAGE,
     PERMISSIONS.GOVERNANCE_READ,
     PERMISSIONS.PROCESS_MANAGE,
     PERMISSIONS.PROCESS_READ,
@@ -642,6 +653,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.SCENARIO_MANAGE,
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_READ,
     PERMISSIONS.SUCCESSION_READ,
@@ -686,6 +698,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.AUTOMATION_READ,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.SCENARIO_MANAGE,
     PERMISSIONS.PROCESS_READ,
     PERMISSIONS.MEMORY_READ,
     PERMISSIONS.SUCCESSION_READ,

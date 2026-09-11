@@ -64,6 +64,18 @@ export async function addInstanceMember(input: AddInstanceMemberInput) {
 
   const data = addInstanceMemberSchema.parse(input);
 
+  // Revue de robustesse (2026-09-11) — rien n'empêchait d'ajouter deux fois
+  // le même utilisateur, actif, à la même instance. Pas de contrainte
+  // unique en base (une réaffectation après un mandat terminé reste
+  // légitime) : vérifié ici plutôt qu'en base, sur les seules adhésions
+  // encore actives.
+  const alreadyMember = await prisma.governanceInstanceMember.findFirst({
+    where: { instanceId: data.instanceId, userId: data.userId, statut: "ACTIF" },
+  });
+  if (alreadyMember) {
+    throw new Error("Cet utilisateur est déjà membre actif de cette instance.");
+  }
+
   const member = await prisma.governanceInstanceMember.create({
     data: {
       instanceId: data.instanceId,

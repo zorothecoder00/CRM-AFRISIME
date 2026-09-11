@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import {
   createProgrammeSchema,
   updateProgrammeSchema,
@@ -34,19 +34,22 @@ export async function createProgramme(input: CreateProgrammeInput) {
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = createProgrammeSchema.parse(input);
 
-  const programme = await prisma.programme.create({
-    data: {
-      nom: data.nom,
-      description: data.description || undefined,
-      objectif: data.objectif || undefined,
-      responsableId: data.responsableId,
-      statut: data.statut,
-      budget: data.budget ? Number(data.budget) : undefined,
-      dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
-      dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
-      createdById: session.user.id,
-    },
-  });
+  const programme = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.programme.create({
+      data: {
+        nom: data.nom,
+        description: data.description || undefined,
+        objectif: data.objectif || undefined,
+        responsableId: data.responsableId,
+        statut: data.statut,
+        budget: data.budget ? Number(data.budget) : undefined,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
+        dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -65,19 +68,21 @@ export async function updateProgramme(input: UpdateProgrammeInput) {
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = updateProgrammeSchema.parse(input);
 
-  const programme = await prisma.programme.update({
-    where: { id: data.id },
-    data: {
-      nom: data.nom,
-      description: data.description || undefined,
-      objectif: data.objectif || undefined,
-      responsableId: data.responsableId,
-      statut: data.statut,
-      budget: data.budget ? Number(data.budget) : undefined,
-      dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
-      dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
-    },
-  });
+  const programme = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.programme.update({
+      where: { id: data.id },
+      data: {
+        nom: data.nom,
+        description: data.description || undefined,
+        objectif: data.objectif || undefined,
+        responsableId: data.responsableId,
+        statut: data.statut,
+        budget: data.budget ? Number(data.budget) : undefined,
+        dateDebut: data.dateDebut ? new Date(data.dateDebut) : undefined,
+        dateFin: data.dateFin ? new Date(data.dateFin) : undefined,
+      },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -98,9 +103,18 @@ export async function linkProjectToProgramme(input: LinkProjectToProgrammeInput)
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = linkProjectToProgrammeSchema.parse(input);
 
-  const project = await prisma.project.update({
-    where: { id: data.projectId },
-    data: { programmeId: data.programmeId || null },
+  const project = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    // Une contrainte FK n'est pas filtrée par la RLS (elle s'exécute avec les
+    // privilèges du propriétaire de la table) — sans cette vérification
+    // explicite, rattacher un projet à un programme d'une autre organisation
+    // pourrait réussir même sous la connexion cloisonnée par tenant.
+    if (data.programmeId) {
+      await tx.programme.findUniqueOrThrow({ where: { id: data.programmeId } });
+    }
+    return tx.project.update({
+      where: { id: data.projectId },
+      data: { programmeId: data.programmeId || null },
+    });
   });
 
   await logAudit({
@@ -122,10 +136,12 @@ export async function updateProgrammeCoutReel(input: UpdateProgrammeCoutReelInpu
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = updateProgrammeCoutReelSchema.parse(input);
 
-  const programme = await prisma.programme.update({
-    where: { id: data.programmeId },
-    data: { coutReel: Number(data.coutReel) },
-  });
+  const programme = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.programme.update({
+      where: { id: data.programmeId },
+      data: { coutReel: Number(data.coutReel) },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -146,17 +162,22 @@ export async function createProgrammeRisk(input: CreateProgrammeRiskInput) {
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = createProgrammeRiskSchema.parse(input);
 
-  const risk = await prisma.programmeRisk.create({
-    data: {
-      programmeId: data.programmeId,
-      titre: data.titre,
-      description: data.description,
-      probabilite: data.probabilite,
-      impact: data.impact,
-      planMitigation: data.planMitigation,
-      responsableId: data.responsableId || undefined,
-      createdById: session.user.id,
-    },
+  const risk = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    // Une contrainte FK n'est pas filtrée par la RLS — voir linkProjectToProgramme ci-dessus.
+    await tx.programme.findUniqueOrThrow({ where: { id: data.programmeId } });
+    return tx.programmeRisk.create({
+      data: {
+        programmeId: data.programmeId,
+        titre: data.titre,
+        description: data.description,
+        probabilite: data.probabilite,
+        impact: data.impact,
+        planMitigation: data.planMitigation,
+        responsableId: data.responsableId || undefined,
+        createdById: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+    });
   });
 
   await logAudit({
@@ -176,10 +197,12 @@ export async function updateProgrammeRiskStatus(input: UpdateProgrammeRiskStatus
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = updateProgrammeRiskStatusSchema.parse(input);
 
-  const risk = await prisma.programmeRisk.update({
-    where: { id: data.riskId },
-    data: { statut: data.statut },
-  });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.programmeRisk.update({
+      where: { id: data.riskId },
+      data: { statut: data.statut },
+    })
+  );
 
   await logAudit({
     userId: session.user.id,
@@ -198,7 +221,9 @@ export async function deleteProgrammeRisk(input: DeleteProgrammeRiskInput) {
   requirePermission(session.user.permissions, PERMISSIONS.PROGRAM_MANAGE);
   const data = deleteProgrammeRiskSchema.parse(input);
 
-  const risk = await prisma.programmeRisk.delete({ where: { id: data.riskId } });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.programmeRisk.delete({ where: { id: data.riskId } })
+  );
 
   await logAudit({
     userId: session.user.id,

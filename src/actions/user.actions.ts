@@ -10,6 +10,7 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { createUserSchema, updateUserSchema, type CreateUserInput, type UpdateUserInput } from "@/lib/validations/user.schema";
 import { createPasswordResetToken } from "@/lib/password-reset";
+import { revokeActiveSessionsForUser } from "@/lib/session-revocation";
 
 const SENSITIVE_USER_FIELDS = new Set(["passwordHash", "mfaSecret", "mfaBackupCodes"]);
 
@@ -22,6 +23,29 @@ function serializeUser<T extends { capaciteHebdomadaireHeures: unknown }>(user: 
     ...rest,
     capaciteHebdomadaireHeures: user.capaciteHebdomadaireHeures !== null ? Number(user.capaciteHebdomadaireHeures) : null,
   };
+}
+
+/**
+ * Revue de robustesse (2026-09-11) — empêche de retirer le dernier
+ * utilisateur actif capable de gérer les comptes (retrait du droit lui-même,
+ * changement de rôle, ou désactivation) : sans ce garde-fou, une erreur
+ * (ou un abus) peut verrouiller définitivement l'administration de
+ * l'organisation, personne ne pouvant plus restaurer l'accès.
+ */
+async function assertNotLastUserAdmin(excludeUserId: string) {
+  const otherAdmin = await prisma.user.findFirst({
+    where: {
+      id: { not: excludeUserId },
+      isActive: true,
+      role: { permissions: { some: { permission: { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE } } } },
+    },
+    select: { id: true },
+  });
+  if (!otherAdmin) {
+    throw new Error(
+      "Impossible : ce compte est le dernier à pouvoir gérer les utilisateurs. Attribuez ce droit à un autre compte avant de continuer."
+    );
+  }
 }
 
 /** Un manager ne peut pas etre son propre subordonne, direct ou indirect (meme principe que assertNoCycle pour Department/Objective/Plan). */
@@ -98,6 +122,21 @@ export async function updateUser(input: UpdateUserInput) {
     await assertNoManagerCycle(data.id, data.managerId);
   }
 
+  const hasAdminPermission = async (roleId: string) =>
+    (await prisma.rolePermission.findFirst({
+      where: { roleId, permission: { key: PERMISSIONS.ADMINISTRATION_USERS_MANAGE } },
+      select: { roleId: true },
+    })) !== null;
+
+  const before = await prisma.user.findUniqueOrThrow({ where: { id: data.id }, select: { roleId: true, isActive: true } });
+  const roleChanged = before.roleId !== data.roleId;
+  if (roleChanged && before.isActive && (await hasAdminPermission(before.roleId)) && !(await hasAdminPermission(data.roleId))) {
+    // Vérifié AVANT d'écrire : si ce compte est le dernier admin et que le
+    // nouveau rôle ne porte plus ce droit, le changement ne doit même pas
+    // être tenté.
+    await assertNotLastUserAdmin(data.id);
+  }
+
   let user;
   try {
     user = await prisma.user.update({
@@ -118,6 +157,12 @@ export async function updateUser(input: UpdateUserInput) {
       throw new Error("Cet email est déjà utilisé par un autre utilisateur.");
     }
     throw err;
+  }
+
+  // Un changement de rôle doit s'appliquer immédiatement, pas seulement à
+  // la prochaine connexion (voir session-revocation.ts).
+  if (roleChanged) {
+    await revokeActiveSessionsForUser(user.id, session.user.id);
   }
 
   await logAudit({
@@ -163,7 +208,22 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   if (!session) throw new Error("Non authentifié");
   requirePermission(session.user.permissions, PERMISSIONS.ADMINISTRATION_USERS_MANAGE);
 
+  if (!isActive) {
+    const target = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { role: { select: { permissions: { select: { permission: { select: { key: true } } } } } } },
+    });
+    const isAdmin = target.role.permissions.some((p) => p.permission.key === PERMISSIONS.ADMINISTRATION_USERS_MANAGE);
+    if (isAdmin) await assertNotLastUserAdmin(userId);
+  }
+
   const user = await prisma.user.update({ where: { id: userId }, data: { isActive } });
+
+  // Désactiver un compte doit couper l'accès immédiatement, pas seulement
+  // bloquer les futures connexions (voir session-revocation.ts).
+  if (!isActive) {
+    await revokeActiveSessionsForUser(user.id, session.user.id);
+  }
 
   await logAudit({
     userId: session.user.id,

@@ -114,7 +114,13 @@ export async function deleteStakeholder(input: DeleteStakeholderInput) {
   requirePermission(session.user.permissions, PERMISSIONS.PROJECT_UPDATE);
   const data = deleteStakeholderSchema.parse(input);
 
-  await prisma.stakeholder.delete({ where: { id: data.id } });
+  // Revue de robustesse (2026-09-11) — un id invalide ou encore référencé
+  // plantait avec l'erreur Prisma brute au lieu d'un message clair.
+  try {
+    await prisma.stakeholder.delete({ where: { id: data.id } });
+  } catch {
+    throw new Error("Impossible de supprimer : cette partie prenante est introuvable ou encore rattachée à un projet.");
+  }
 
   await logAudit({
     userId: session.user.id,

@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission, type PermissionKey } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { revokeActiveSessionsForRole } from "@/lib/session-revocation";
 
 /**
  * Bascule une permission pour un rôle (cahier des charges §3/§19 : « droits
@@ -32,6 +33,10 @@ export async function toggleRolePermission(roleId: string, permissionKey: Permis
     });
   } else {
     await prisma.rolePermission.deleteMany({ where: { roleId, permissionId: permission.id } });
+    // Revue de robustesse — un retrait de permission doit s'appliquer
+    // immédiatement, pas seulement à la prochaine connexion (voir
+    // session-revocation.ts).
+    await revokeActiveSessionsForRole(roleId, session.user.id);
   }
 
   await logAudit({

@@ -105,6 +105,19 @@ export async function unshareActivityReport(input: UnshareActivityReportInput) {
 
   const data = unshareActivityReportSchema.parse(input);
 
+  // Revue de robustesse (2026-09-11) — la seule permission globale
+  // REPORT_EXPORT permettait de supprimer le partage de n'importe quel
+  // rapport via son shareId. Restreint à qui a créé ce partage précis ou
+  // qui gère le rapport concerné (createdById, déjà suivi sur les deux
+  // tables).
+  const share = await prisma.activityReportShare.findUniqueOrThrow({
+    where: { id: data.shareId },
+    select: { createdById: true, report: { select: { createdById: true } } },
+  });
+  if (share.createdById !== session.user.id && share.report.createdById !== session.user.id) {
+    throw new Error("Vous ne gérez pas ce partage.");
+  }
+
   await prisma.activityReportShare.delete({ where: { id: data.shareId } });
 
   await logAudit({

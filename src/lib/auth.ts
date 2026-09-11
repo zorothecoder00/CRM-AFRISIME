@@ -4,6 +4,9 @@ import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/crypto";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const LOGIN_RATE_LIMIT = { max: 8, windowMs: 10 * 60 * 1000 };
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -22,6 +25,22 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Revue de robustesse (2026-09-11) — aucune limitation n'existait
+        // sur la connexion (bourrage d'identifiants). Double clé (email +
+        // IP) : bloque autant l'attaquant qui vise un seul compte que celui
+        // qui teste beaucoup de comptes depuis une même IP.
+        const ip = (req?.headers?.["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() || "unknown";
+        const [byEmail, byIp] = await Promise.all([
+          checkRateLimit(`login:email:${credentials.email.toLowerCase()}`, LOGIN_RATE_LIMIT),
+          checkRateLimit(`login:ip:${ip}`, { max: 30, windowMs: 10 * 60 * 1000 }),
+        ]);
+        if (!byEmail.allowed || !byIp.allowed) {
+          await prisma.auditLog.create({
+            data: { action: "auth.rate_limited", entityType: "AuthAttempt", entityId: credentials.email },
+          });
+          throw new Error("RATE_LIMITED");
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },

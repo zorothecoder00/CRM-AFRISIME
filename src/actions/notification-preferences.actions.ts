@@ -1,10 +1,21 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { NotificationChannel } from "@/generated/prisma/enums";
+
+// Revue de robustesse (2026-09-11) — subscribePush acceptait n'importe
+// quelle forme/taille de payload sans validation (format Web Push standard).
+const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url("Endpoint d'abonnement invalide."),
+  keys: z.object({
+    p256dh: z.string().min(1, "Clé p256dh manquante."),
+    auth: z.string().min(1, "Clé auth manquante."),
+  }),
+});
 
 const EXTERNAL_CHANNELS: NotificationChannel[] = ["EMAIL", "SMS", "PUSH", "MESSAGERIE_EXTERNE"];
 
@@ -28,14 +39,16 @@ export async function subscribePush(subscription: { endpoint: string; keys: { p2
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
 
+  const data = pushSubscriptionSchema.parse(subscription);
+
   await prisma.pushSubscription.upsert({
-    where: { endpoint: subscription.endpoint },
-    update: { userId: session.user.id, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
+    where: { endpoint: data.endpoint },
+    update: { userId: session.user.id, p256dh: data.keys.p256dh, auth: data.keys.auth },
     create: {
       userId: session.user.id,
-      endpoint: subscription.endpoint,
-      p256dh: subscription.keys.p256dh,
-      auth: subscription.keys.auth,
+      endpoint: data.endpoint,
+      p256dh: data.keys.p256dh,
+      auth: data.keys.auth,
     },
   });
 

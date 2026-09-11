@@ -11,6 +11,12 @@ export const createDelegationSchema = z
   .refine((data) => data.delegantId !== data.delegataireId, {
     message: "Le délégant et le délégataire doivent être différents.",
     path: ["delegataireId"],
+  })
+  // Revue de robustesse (2026-09-11) — une délégation qui finit avant de
+  // commencer était acceptée silencieusement.
+  .refine((data) => new Date(data.dateFin) > new Date(data.dateDebut), {
+    message: "La date de fin doit être postérieure à la date de début.",
+    path: ["dateFin"],
   });
 
 export type CreateDelegationInput = z.infer<typeof createDelegationSchema>;

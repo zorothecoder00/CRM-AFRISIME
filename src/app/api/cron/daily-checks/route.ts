@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isValidCronSecret } from "@/lib/cron-auth";
 import { generateDeadlineNotifications, generatePlanningReminders, createNotification } from "@/lib/notify";
 import { computeWorkload } from "@/lib/workload";
 import {
@@ -42,8 +43,7 @@ const CLIENT_STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
  * vercel.json), protégé par CRON_SECRET pour empêcher un appel public.
  */
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isValidCronSecret(request.headers.get("authorization"))) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 

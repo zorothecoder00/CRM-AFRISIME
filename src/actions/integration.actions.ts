@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -23,11 +24,17 @@ export async function createIntegration(input: CreateIntegrationInput) {
 
   const data = createIntegrationSchema.parse(input);
 
+  // Revue de robustesse (2026-09-11) — le webhook entrant (voir
+  // /api/webhooks/[integrationId]) refuse désormais toute requête si
+  // l'intégration n'a pas de clé : en générer une par défaut évite qu'une
+  // intégration créée sans clé se retrouve simplement inutilisable.
+  const apiKey = data.apiKey || randomBytes(24).toString("hex");
+
   const integration = await prisma.integration.create({
     data: {
       nom: data.nom,
       type: data.type,
-      apiKey: data.apiKey || undefined,
+      apiKey,
       webhookUrl: data.webhookUrl || undefined,
       description: data.description,
       createdById: session.user.id,

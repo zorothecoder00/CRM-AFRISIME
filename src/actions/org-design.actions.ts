@@ -112,12 +112,29 @@ export async function deployOrgDesignDraft(input: IdInput) {
     throw new Error("Simulez le brouillon avant de le déployer.");
   }
 
+  // Revue de robustesse (2026-09-11) — lire le statut puis déployer puis
+  // écrire "DEPLOYE" en trois étapes séparées laissait une fenêtre où deux
+  // appels concurrents passaient tous deux le contrôle ci-dessus, produisant
+  // Department/Team/Project dupliqués (deployOrgDesign n'est pas idempotent).
+  // On "réserve" le déploiement en bascule atomique AVANT l'opération lourde
+  // (`updateMany` avec le statut attendu dans le WHERE : un seul appel
+  // concurrent peut gagner ce count) plutôt qu'après — le brouillon reste
+  // marqué DEPLOYE même si deployOrgDesign échoue ensuite, mais c'est
+  // strictement préférable à un double déploiement silencieux.
+  const { count } = await prisma.orgDesignDraft.updateMany({
+    where: { id, statut: "SIMULE" },
+    data: { statut: "DEPLOYE" },
+  });
+  if (count === 0) {
+    throw new Error("Ce brouillon a déjà été déployé.");
+  }
+
   const structure = draft.structure as unknown as Parameters<typeof deployOrgDesign>[0];
   const rootDepartmentId = await deployOrgDesign(structure, session.user.id);
 
   await prisma.orgDesignDraft.update({
     where: { id },
-    data: { statut: "DEPLOYE", deployedDepartmentId: rootDepartmentId, deployedAt: new Date() },
+    data: { deployedDepartmentId: rootDepartmentId, deployedAt: new Date() },
   });
 
   await logAudit({

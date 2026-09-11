@@ -319,7 +319,7 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
     dateFin: first.dateFin.toISOString(),
     // §26bis — missionBudget est un Decimal Prisma : non serialisable tel quel
     // vers un Client Component (voir memoire "Decimal serialization").
-    missionBudget: first.missionBudget ? first.missionBudget.toString() : null,
+    missionBudget: first.missionBudget ? Number(first.missionBudget) : null,
     occurrencesCreated: created.length,
     warnings,
   };
@@ -487,7 +487,10 @@ export async function updatePersonalPlanningEntry(input: UpdatePersonalPlanningE
     ...entry,
     dateDebut: entry.dateDebut.toISOString(),
     dateFin: entry.dateFin.toISOString(),
-    missionBudget: entry.missionBudget ? entry.missionBudget.toString() : null,
+    // Revue de robustesse (2026-09-11) — .toString() renvoyait une chaîne
+    // plutôt qu'un nombre (incohérent avec la convention Decimal->Number du
+    // reste de l'app, voir ligne ~322 ci-dessus pour le même correctif).
+    missionBudget: entry.missionBudget ? Number(entry.missionBudget) : null,
   };
 }
 
@@ -1234,15 +1237,25 @@ export async function decideAvailabilityRequest(input: DecideAvailabilityRequest
     throw new Error("Cette demande a déjà été traitée.");
   }
 
+  // Revue de robustesse (2026-09-11) — le contrôle "encore EN_ATTENTE"
+  // ci-dessus est lu hors transaction : deux clics "Accepter" concurrents
+  // peuvent tous deux le passer avant qu'aucun n'écrive, créant deux entrées
+  // RESERVE dupliquées. La transaction ci-dessous existait déjà pour
+  // update+create, mais sans garde de statut dans le WHERE de l'update —
+  // ajoutée via updateMany + vérification du count pour un verrou effectif.
   const request = await prisma.$transaction(async (tx) => {
-    const updated = await tx.availabilityRequest.update({
-      where: { id: data.requestId },
+    const { count } = await tx.availabilityRequest.updateMany({
+      where: { id: data.requestId, statut: "EN_ATTENTE" },
       data: {
         statut: data.statut,
         decidedAt: new Date(),
         motifRefus: data.statut === "REFUSEE" ? data.motifRefus || undefined : null,
       },
     });
+    if (count === 0) {
+      throw new Error("Cette demande a déjà été traitée.");
+    }
+    const updated = await tx.availabilityRequest.findUniqueOrThrow({ where: { id: data.requestId } });
 
     if (data.statut === "ACCEPTEE") {
       await tx.personalPlanningEntry.create({

@@ -45,7 +45,15 @@ export async function deleteCompetence(id: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
 
-  const competence = await prisma.competence.delete({ where: { id } });
+  // Revue de robustesse (2026-09-11) — une compétence encore assignée à des
+  // collaborateurs (UserCompetence, contrainte FK) plantait avec l'erreur
+  // Prisma brute au lieu d'un message clair.
+  let competence;
+  try {
+    competence = await prisma.competence.delete({ where: { id } });
+  } catch {
+    throw new Error("Impossible de supprimer : cette compétence est encore assignée à des collaborateurs.");
+  }
 
   await logAudit({
     userId: session.user.id,

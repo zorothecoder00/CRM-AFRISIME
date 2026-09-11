@@ -128,6 +128,16 @@ export async function toggleReaction(input: AddReactionInput) {
     requirePermission(session.user.permissions, PERMISSIONS.TASK_COMMENT);
   } else {
     requirePermission(session.user.permissions, PERMISSIONS.MESSAGE_CREATE);
+
+    // Revue de robustesse (2026-09-11) — la permission globale MESSAGE_CREATE
+    // ne suffit pas : sans ce contrôle, n'importe quel utilisateur pouvait
+    // réagir à un message d'une conversation dont il ne fait pas partie
+    // (même principe que markConversationRead ci-dessus).
+    const participant = await prisma.conversationParticipant.findFirst({
+      where: { userId: session.user.id, conversation: { messages: { some: { id: data.messageId } } } },
+      select: { userId: true },
+    });
+    if (!participant) throw new Error("Vous ne faites pas partie de cette conversation.");
   }
 
   const existing = await prisma.reaction.findFirst({

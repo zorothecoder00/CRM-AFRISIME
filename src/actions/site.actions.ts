@@ -85,7 +85,14 @@ export async function deleteSite(input: DeleteSiteInput) {
   requirePermission(session.user.permissions, PERMISSIONS.DEPARTMENT_MANAGE);
   const data = deleteSiteSchema.parse(input);
 
-  const site = await prisma.site.delete({ where: { id: data.id } });
+  // Revue de robustesse (2026-09-11) — un site encore référencé ailleurs (FK)
+  // plantait avec l'erreur Prisma brute au lieu d'un message clair.
+  let site;
+  try {
+    site = await prisma.site.delete({ where: { id: data.id } });
+  } catch {
+    throw new Error("Impossible de supprimer : ce site est encore utilisé ailleurs.");
+  }
 
   await logAudit({
     userId: session.user.id,

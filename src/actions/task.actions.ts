@@ -928,6 +928,10 @@ export async function addChecklistItem(
 
 export async function toggleChecklistItem(itemId: string, isDone: boolean) {
   const session = await requireSession();
+  // Revue de robustesse (2026-09-11) — seule mutation du fichier sans
+  // vérification de permission ; toutes les autres exigent TASK_UPDATE
+  // (comme addChecklistItem ci-dessus) ou une vérification de propriété.
+  requirePermission(session.user.permissions, PERMISSIONS.TASK_UPDATE);
 
   const item = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.checklistItem.update({

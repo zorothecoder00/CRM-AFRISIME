@@ -18,7 +18,7 @@ export function generateApiKey(): { plaintext: string; prefix: string; hash: str
   return { plaintext, prefix: plaintext.slice(0, 12), hash };
 }
 
-export type AuthenticatedApiKey = { id: string; permissions: PermissionKey[] };
+export type AuthenticatedApiKey = { id: string; permissions: PermissionKey[]; organizationId: string | null };
 
 /** Vérifie un header `Authorization: Bearer <clé>` — retourne null si absent/invalide/révoquée. */
 export async function authenticateApiKey(authHeader: string | null): Promise<AuthenticatedApiKey | null> {
@@ -31,7 +31,7 @@ export async function authenticateApiKey(authHeader: string | null): Promise<Aut
   if (!key) return null;
 
   await prisma.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } });
-  return { id: key.id, permissions: key.permissions as PermissionKey[] };
+  return { id: key.id, permissions: key.permissions as PermissionKey[], organizationId: key.organizationId };
 }
 
 export function apiKeyHasPermission(key: AuthenticatedApiKey, permission: PermissionKey): boolean {

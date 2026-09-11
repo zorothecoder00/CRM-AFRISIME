@@ -31,6 +31,7 @@ export async function createApiKey(input: CreateApiKeyInput) {
       keyHash: hash,
       permissions: data.permissions,
       createdById: session.user.id,
+      organizationId: session.user.organizationId,
     },
   });
 

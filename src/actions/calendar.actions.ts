@@ -62,10 +62,20 @@ export async function decideLeave(input: DecideLeaveInput) {
 
   const data = decideLeaveSchema.parse(input);
 
-  const leave = await prisma.leave.update({
-    where: { id: data.leaveId },
+  // Revue de robustesse (2026-09-11) — contrairement à decideAdminRequest
+  // (admin-request.actions.ts), rien ne vérifiait que le congé était encore
+  // EN_ATTENTE : un congé déjà décidé pouvait être re-décidé, et ré-approuver
+  // un congé déjà approuvé relançait reorganizeEntriesForApprovedLeave et la
+  // notification une seconde fois. Garde de statut dans le WHERE (updateMany
+  // + count) pour un verrou effectif même sous forte concurrence.
+  const { count } = await prisma.leave.updateMany({
+    where: { id: data.leaveId, statut: "EN_ATTENTE" },
     data: { statut: data.statut, decidedById: session.user.id },
   });
+  if (count === 0) {
+    throw new Error("Ce congé a déjà été traité.");
+  }
+  const leave = await prisma.leave.findUniqueOrThrow({ where: { id: data.leaveId } });
 
   await logAudit({
     userId: session.user.id,

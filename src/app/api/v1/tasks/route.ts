@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { authenticateApiKey, apiKeyHasPermission } from "@/lib/api-keys";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 
 /** Voir /api/v1/projects/route.ts pour le contexte général (§34). */
 export async function GET(request: NextRequest) {
@@ -15,12 +15,17 @@ export async function GET(request: NextRequest) {
 
   const projectId = request.nextUrl.searchParams.get("projectId") ?? undefined;
 
-  const tasks = await prisma.task.findMany({
-    where: projectId ? { projectId } : undefined,
-    include: { project: { select: { id: true, nom: true } }, responsablePrincipal: { select: { id: true, name: true } } },
-    orderBy: { updatedAt: "desc" },
-    take: 200,
-  });
+  // Isolation multi-tenant (RLS, voir tenant-scoped-prisma.ts) — une clé API
+  // ne doit jamais pouvoir lire les tâches d'une autre organisation que la
+  // sienne, quel que soit le filtre projectId fourni.
+  const tasks = await withTenantScopedSession(apiKey.organizationId, (tx) =>
+    tx.task.findMany({
+      where: projectId ? { projectId } : undefined,
+      include: { project: { select: { id: true, nom: true } }, responsablePrincipal: { select: { id: true, name: true } } },
+      orderBy: { updatedAt: "desc" },
+      take: 200,
+    })
+  );
 
   return NextResponse.json({
     data: tasks.map((t) => ({

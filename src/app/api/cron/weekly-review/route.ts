@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notify";
 import { hasPermission, PERMISSIONS } from "@/lib/permissions";
+import { isValidCronSecret } from "@/lib/cron-auth";
 
 // Meme principe que isoWeekKey dans daily-checks/route.ts (entityId
 // deterministe par semaine ISO, deduplique via la contrainte unique de
@@ -26,8 +27,7 @@ function isoWeekKey(date: Date): string {
  * protégé par CRON_SECRET comme daily-checks.
  */
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isValidCronSecret(request.headers.get("authorization"))) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 

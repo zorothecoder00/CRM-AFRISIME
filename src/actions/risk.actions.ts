@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { notifyMany } from "@/lib/notify";
 import { computeCriticite } from "@/lib/risk-matrix";
 import { runOrganizationalRiskCreatedRules } from "@/lib/automation";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import {
   createOrganizationalRiskSchema,
   updateOrganizationalRiskSchema,
@@ -22,9 +24,30 @@ async function requireSession() {
   return session;
 }
 
-async function nextRiskCode() {
-  const count = await prisma.organizationalRisk.count();
-  return `R-${String(count + 1).padStart(4, "0")}`;
+/**
+ * Revue de robustesse (2026-09-11) — l'ancien `count()` puis `+1` sans
+ * transaction ni contrainte produisait le même code pour deux créations
+ * concurrentes. `code` reste unique (voir schema.prisma) : on retente avec
+ * le compteur suivant en cas de collision plutôt que de garantir
+ * l'atomicité par un verrou dédié, suffisant pour un identifiant lisible
+ * (pas une clé de sécurité).
+ */
+async function createRiskWithUniqueCode(
+  tx: Prisma.TransactionClient,
+  buildData: (code: string) => Prisma.OrganizationalRiskUncheckedCreateInput
+) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const count = await tx.organizationalRisk.count();
+    const code = `R-${String(count + 1 + attempt).padStart(4, "0")}`;
+    try {
+      return await tx.organizationalRisk.create({ data: buildData(code) });
+    } catch (err) {
+      const isCodeConflict =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002" && (err.meta?.target as string[] | undefined)?.includes("code");
+      if (!isCodeConflict || attempt === 4) throw err;
+    }
+  }
+  throw new Error("Impossible de générer un code de risque unique.");
 }
 
 /**
@@ -85,10 +108,15 @@ export async function createOrganizationalRisk(input: CreateOrganizationalRiskIn
 
   const data = createOrganizationalRiskSchema.parse(input);
   const criticite = computeCriticite(data.probabilite, data.impact);
-  const code = await nextRiskCode();
 
-  const risk = await prisma.organizationalRisk.create({
-    data: {
+  const risk = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    // Une contrainte FK n'est pas filtrée par la RLS (elle s'exécute avec
+    // les privilèges du propriétaire de la table) — vérifie explicitement
+    // que le projet/processus rattaché appartient bien à cette organisation.
+    if (data.projectId) await tx.project.findUniqueOrThrow({ where: { id: data.projectId } });
+    if (data.processusId) await tx.processus.findUniqueOrThrow({ where: { id: data.processusId } });
+
+    return createRiskWithUniqueCode(tx, (code) => ({
       code,
       titre: data.titre,
       description: data.description,
@@ -104,7 +132,8 @@ export async function createOrganizationalRisk(input: CreateOrganizationalRiskIn
       planMitigation: data.planMitigation,
       echeance: data.echeance ? new Date(data.echeance) : undefined,
       createdById: session.user.id,
-    },
+      organizationId: session.user.organizationId,
+    }));
   });
 
   await logAudit({
@@ -135,24 +164,29 @@ export async function updateOrganizationalRisk(input: UpdateOrganizationalRiskIn
   const data = updateOrganizationalRiskSchema.parse(input);
   const criticite = computeCriticite(data.probabilite, data.impact);
 
-  const risk = await prisma.organizationalRisk.update({
-    where: { id: data.riskId },
-    data: {
-      titre: data.titre,
-      description: data.description,
-      categorie: data.categorie,
-      origine: data.origine,
-      probabilite: data.probabilite,
-      impact: data.impact,
-      criticite,
-      responsableId: data.responsableId || null,
-      projectId: data.projectId || null,
-      processusId: data.processusId || null,
-      mesuresPreventives: data.mesuresPreventives,
-      planMitigation: data.planMitigation,
-      echeance: data.echeance ? new Date(data.echeance) : null,
-      statut: data.statut,
-    },
+  const risk = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    if (data.projectId) await tx.project.findUniqueOrThrow({ where: { id: data.projectId } });
+    if (data.processusId) await tx.processus.findUniqueOrThrow({ where: { id: data.processusId } });
+
+    return tx.organizationalRisk.update({
+      where: { id: data.riskId },
+      data: {
+        titre: data.titre,
+        description: data.description,
+        categorie: data.categorie,
+        origine: data.origine,
+        probabilite: data.probabilite,
+        impact: data.impact,
+        criticite,
+        responsableId: data.responsableId || null,
+        projectId: data.projectId || null,
+        processusId: data.processusId || null,
+        mesuresPreventives: data.mesuresPreventives,
+        planMitigation: data.planMitigation,
+        echeance: data.echeance ? new Date(data.echeance) : null,
+        statut: data.statut,
+      },
+    });
   });
 
   await logAudit({
@@ -177,7 +211,9 @@ export async function triggerRiskAlert(riskId: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.RISK_MANAGE);
 
-  const risk = await prisma.organizationalRisk.findUniqueOrThrow({ where: { id: riskId } });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.organizationalRisk.findUniqueOrThrow({ where: { id: riskId } })
+  );
   await notifyRiskStakeholders(risk, session.user.id);
 
   await logAudit({
@@ -193,7 +229,9 @@ export async function deleteOrganizationalRisk(riskId: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.RISK_MANAGE);
 
-  const risk = await prisma.organizationalRisk.delete({ where: { id: riskId } });
+  const risk = await withTenantScopedSession(session.user.organizationId, (tx) =>
+    tx.organizationalRisk.delete({ where: { id: riskId } })
+  );
 
   await logAudit({
     userId: session.user.id,

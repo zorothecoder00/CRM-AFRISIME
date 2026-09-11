@@ -12,7 +12,12 @@ export default async function OrganizationProfilePage() {
     redirect("/dashboard");
   }
 
-  const profile = await prisma.organizationProfile.findUnique({ where: { id: "org-profile" } });
+  // Un profil par organisation (revue de robustesse 2026-09-11) — repli sur
+  // l'ancien id fixe pour une session pas encore rattachée à une
+  // organisation, voir organization-profile.actions.ts.
+  const profile = session!.user.organizationId
+    ? await prisma.organizationProfile.findUnique({ where: { organizationId: session!.user.organizationId } })
+    : await prisma.organizationProfile.findUnique({ where: { id: "org-profile" } });
 
   return (
     <div className="space-y-6">

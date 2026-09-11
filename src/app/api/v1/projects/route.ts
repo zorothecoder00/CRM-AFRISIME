@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { authenticateApiKey, apiKeyHasPermission } from "@/lib/api-keys";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 
 /**
  * API REST sortante (cahier des charges V2.2 §34) — lecture seule,
@@ -20,11 +20,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Permission refusée" }, { status: 403 });
   }
 
-  const projects = await prisma.project.findMany({
-    include: { department: true, responsable: { select: { id: true, name: true } } },
-    orderBy: { updatedAt: "desc" },
-    take: 200,
-  });
+  // Isolation multi-tenant (RLS) — voir /api/v1/tasks/route.ts.
+  const projects = await withTenantScopedSession(apiKey.organizationId, (tx) =>
+    tx.project.findMany({
+      include: { department: true, responsable: { select: { id: true, name: true } } },
+      orderBy: { updatedAt: "desc" },
+      take: 200,
+    })
+  );
 
   return NextResponse.json({
     data: projects.map((p) => ({

@@ -40,7 +40,14 @@ export async function deleteSwotItem(id: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.PLAN_MANAGE);
 
-  const item = await prisma.swotItem.delete({ where: { id } });
+  // Revue de robustesse (2026-09-11) — un id invalide plantait avec l'erreur
+  // Prisma brute au lieu d'un message clair.
+  let item;
+  try {
+    item = await prisma.swotItem.delete({ where: { id } });
+  } catch {
+    throw new Error("Élément SWOT introuvable ou déjà supprimé.");
+  }
 
   await logAudit({
     userId: session.user.id,

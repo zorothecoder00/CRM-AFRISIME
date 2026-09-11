@@ -70,18 +70,25 @@ export async function addComplianceControl(input: AddComplianceControlInput) {
   requirePermission(session.user.permissions, PERMISSIONS.GOVERNANCE_MANAGE);
   const data = addComplianceControlSchema.parse(input);
 
-  const control = await prisma.complianceControl.create({
-    data: {
-      obligationId: data.obligationId,
-      resultat: data.resultat,
-      commentaire: data.commentaire || undefined,
-      controleParId: session.user.id,
-    },
-  });
+  // Revue de robustesse (2026-09-11) — create puis update séparés : si le
+  // second échoue, le contrôle est enregistré mais le statut de
+  // l'obligation ne suit pas. Regroupés en transaction.
+  const control = await prisma.$transaction(async (tx) => {
+    const created = await tx.complianceControl.create({
+      data: {
+        obligationId: data.obligationId,
+        resultat: data.resultat,
+        commentaire: data.commentaire || undefined,
+        controleParId: session.user.id,
+      },
+    });
 
-  await prisma.complianceObligation.update({
-    where: { id: data.obligationId },
-    data: { statut: data.resultat === "CONFORME" ? "A_JOUR" : "NON_CONFORME" },
+    await tx.complianceObligation.update({
+      where: { id: data.obligationId },
+      data: { statut: data.resultat === "CONFORME" ? "A_JOUR" : "NON_CONFORME" },
+    });
+
+    return created;
   });
 
   await logAudit({

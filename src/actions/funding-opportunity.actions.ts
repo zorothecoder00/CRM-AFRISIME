@@ -84,16 +84,21 @@ export async function convertFundingOpportunityToProject(input: ConvertFundingOp
 
   const data = convertFundingOpportunitySchema.parse(input);
 
-  const opportunity = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.fundingOpportunity.findUniqueOrThrow({ where: { id: data.fundingOpportunityId } })
-  );
+  // Revue de robustesse (2026-09-11) — find → create projet → update lien
+  // étaient trois `withTenantScopedSession` séquentiels (donc trois
+  // transactions distinctes) : un crash entre elles laissait un projet
+  // orphelin, et deux conversions concurrentes pouvaient toutes deux passer
+  // le contrôle "pas déjà converti" avant qu'aucune n'écrive. Regroupés en
+  // une seule transaction, avec une garde sur le WHERE de la mise à jour
+  // finale pour un verrou effectif même sous forte concurrence.
+  const { project, opportunityId } = await withTenantScopedSession(session.user.organizationId, async (tx) => {
+    const opportunity = await tx.fundingOpportunity.findUniqueOrThrow({ where: { id: data.fundingOpportunityId } });
 
-  if (opportunity.projectId) {
-    throw new Error("Cet appel à projets est déjà lié à un projet.");
-  }
+    if (opportunity.projectId) {
+      throw new Error("Cet appel à projets est déjà lié à un projet.");
+    }
 
-  const project = await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.project.create({
+    const project = await tx.project.create({
       data: {
         nom: opportunity.bailleur,
         description: `Appel à projets formalisé — ${opportunity.bailleur}`,
@@ -107,18 +112,24 @@ export async function convertFundingOpportunityToProject(input: ConvertFundingOp
           create: [{ userId: data.responsableId, roleOnProject: "CHEF_PROJET", organizationId: session.user.organizationId }],
         },
       },
-    })
-  );
+    });
 
-  await withTenantScopedSession(session.user.organizationId, (tx) =>
-    tx.fundingOpportunity.update({ where: { id: opportunity.id }, data: { projectId: project.id } })
-  );
+    const { count } = await tx.fundingOpportunity.updateMany({
+      where: { id: opportunity.id, projectId: null },
+      data: { projectId: project.id },
+    });
+    if (count === 0) {
+      throw new Error("Cet appel à projets est déjà lié à un projet.");
+    }
+
+    return { project, opportunityId: opportunity.id };
+  });
 
   await logAudit({
     userId: session.user.id,
     action: "funding_opportunity.converted_to_project",
     entityType: "FundingOpportunity",
-    entityId: opportunity.id,
+    entityId: opportunityId,
     changes: { projectId: project.id },
   });
 

@@ -22,7 +22,9 @@ export default async function StrategiePage() {
   const canEditProfile = session!.user.permissions.includes(PERMISSIONS.ADMINISTRATION_ACCESS);
 
   const [profile, axes] = await Promise.all([
-    prisma.organizationProfile.findUnique({ where: { id: "org-profile" } }),
+    session!.user.organizationId
+      ? prisma.organizationProfile.findUnique({ where: { organizationId: session!.user.organizationId } })
+      : prisma.organizationProfile.findUnique({ where: { id: "org-profile" } }),
     prisma.strategicAxis.findMany({
       include: { _count: { select: { plans: true, objectives: true } } },
       orderBy: { nom: "asc" },

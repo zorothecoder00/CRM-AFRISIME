@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import {
@@ -29,6 +30,18 @@ async function requireSession() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error("Non authentifié");
   return session;
+}
+
+/** Revue de robustesse (2026-09-11) — convertit un `findUniqueOrThrow` manqué (P2025) en message clair plutôt que l'erreur Prisma brute. */
+async function withNotFoundMessage<T>(fn: () => Promise<T>, message: string): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      throw new Error(message);
+    }
+    throw err;
+  }
 }
 
 export async function createFolder(input: CreateFolderInput) {
@@ -341,10 +354,10 @@ export async function requestExternalValidation(documentId: string) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
 
-  const document = await prisma.document.findUniqueOrThrow({
-    where: { id: documentId },
-    include: { task: true },
-  });
+  const document = await withNotFoundMessage(
+    () => prisma.document.findUniqueOrThrow({ where: { id: documentId }, include: { task: true } }),
+    "Document introuvable."
+  );
   if (!document.task?.externalContactId) {
     throw new Error("Ce document n'est pas rattaché à une mission avec un partenaire externe.");
   }
@@ -426,10 +439,10 @@ export async function reviewPortalDeliverable(input: ReviewPortalDeliverableInpu
   const portalSession = await requirePortalSession();
   const data = reviewPortalDeliverableSchema.parse(input);
 
-  const document = await prisma.document.findUniqueOrThrow({
-    where: { id: data.documentId },
-    include: { task: true },
-  });
+  const document = await withNotFoundMessage(
+    () => prisma.document.findUniqueOrThrow({ where: { id: data.documentId }, include: { task: true } }),
+    "Document introuvable."
+  );
   if (document.task?.externalContactId !== portalSession.contactId) {
     throw new Error("Vous n'avez pas accès à ce document.");
   }
