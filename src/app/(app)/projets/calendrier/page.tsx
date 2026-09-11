@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import {
   startOfMonth,
   endOfMonth,
@@ -15,7 +14,7 @@ import {
   endOfDay,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { toneForStatus, toneForMilestoneStatus } from "@/lib/status-tone";
@@ -41,7 +40,7 @@ export default async function ProjetsCalendrierPage({
   searchParams: Promise<{ annee?: string; mois?: string; jour?: string }>;
 }) {
   const { annee, mois, jour } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const where = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
 
   const now = new Date();

@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { daysUntilPurge, TRASH_RETENTION_DAYS } from "@/lib/trash";
@@ -14,7 +13,7 @@ import { Trash2 } from "lucide-react";
 // prisma/schema.prisma). Purge manuelle uniquement, jamais automatique (voir
 // le commentaire dans trash.actions.ts).
 export default async function CorbeillePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.TRASH_MANAGE)) {
     redirect("/dashboard");
   }

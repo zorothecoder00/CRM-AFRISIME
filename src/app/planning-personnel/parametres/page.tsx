@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkScheduleForm } from "@/components/parametres/work-schedule-form";
 import { WorkScheduleExceptions } from "@/components/parametres/work-schedule-exceptions";
@@ -21,7 +20,7 @@ const DEFAULT_ACTIVE_DAYS = new Set([1, 2, 3, 4, 5]); // lundi-vendredi
  * correction, laissés de côté.
  */
 export default async function PersonalPlanningParametresPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   const [schedules, exceptions, user] = await Promise.all([

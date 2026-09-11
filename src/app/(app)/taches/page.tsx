@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere, taskVisibilityWhere } from "@/lib/portal-scope";
@@ -40,7 +39,7 @@ export default async function TachesPage({
   }>;
 }) {
   const { vue: vueParam, projetId, mine, annee, mois, from, priorite, statut } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
   const canManage = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);

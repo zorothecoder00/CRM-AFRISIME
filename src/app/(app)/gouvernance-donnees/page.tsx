@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import { DocumentClassifyList } from "@/components/data-governance/document-clas
 // les 4 autres facettes réutilisent des mécanismes déjà en place — voir
 // liens ci-dessous plutôt qu'une duplication d'UI.
 export default async function GouvernanceDonneesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DATA_BACKUP_MANAGE)) {
     redirect("/dashboard");
   }

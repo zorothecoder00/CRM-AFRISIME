@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeWorkload } from "@/lib/workload";
@@ -13,7 +12,7 @@ export default async function ChargeDeTravailPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { from } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canRead = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_READ);
   const canManage = session!.user.permissions.includes(PERMISSIONS.WORKLOAD_MANAGE);
 

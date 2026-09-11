@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -29,7 +28,7 @@ export default async function CourrierPage({
   searchParams: Promise<{ q?: string; type?: string; statut?: string }>;
 }) {
   const { q, type, statut } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.COURRIER_READ)) {
     redirect("/dashboard");
   }

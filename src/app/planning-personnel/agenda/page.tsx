@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { subYears, addYears } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPlanningTimeline } from "@/components/personal-planning/personal-planning-timeline";
 import { AgendaExportButton, type AgendaExportRow } from "@/components/personal-planning/agenda-export-button";
@@ -19,7 +18,7 @@ import { CalendarRange } from "lucide-react";
  * "En retard"/"À venir" sur le hub pour représenter "tout le planning".
  */
 export default async function PersonalPlanningAgendaPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const now = new Date();
   const rangeStart = subYears(now, 2);

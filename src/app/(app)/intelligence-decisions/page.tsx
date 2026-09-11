@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { DecisionOutcomeEvaluateDialog } from "@/components/decisions/decision-o
 // délai, performance, incidents, ROI, enseignements). L'évaluation nourrit
 // aussi la mémoire organisationnelle (§17-18).
 export default async function IntelligenceDecisionsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.DECISION_MATRIX_MANAGE);
 
   const outcomes = await prisma.decisionOutcome.findMany({ orderBy: { dateDecision: "desc" } });

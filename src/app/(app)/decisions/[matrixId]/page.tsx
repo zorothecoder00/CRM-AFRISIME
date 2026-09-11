@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeDecisionRecommendation, buildDecisionJustification } from "@/lib/decision-matrix";
@@ -22,7 +21,7 @@ export default async function DecisionMatrixDetailPage({
   params: Promise<{ matrixId: string }>;
 }) {
   const { matrixId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.DECISION_MATRIX_MANAGE);
 
   const matrix = await prisma.decisionMatrix.findUnique({

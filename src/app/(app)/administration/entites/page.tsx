@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
@@ -61,7 +60,7 @@ function flattenForOptions(nodes: EntityTreeNode[], depth = 0): { id: string; la
 }
 
 export default async function EntitesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.ENTITY_MANAGE)) {
     redirect("/dashboard");
   }

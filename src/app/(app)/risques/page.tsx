@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +45,7 @@ export default async function RisquesPage({
   searchParams: Promise<{ statut?: string; criticite?: string }>;
 }) {
   const { statut, criticite } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.RISK_MANAGE);
 
   const [allRisks, users, projects, processus] = await Promise.all([

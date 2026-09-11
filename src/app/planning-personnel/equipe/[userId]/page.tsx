@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isWithinInterval, startOfDay, endOfDay, format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolvePersonalPlanningAccess, hasAgendaEditPermission } from "@/lib/personal-planning-access";
 import { PersonalPlanningWeek, type PersonalPlanningDay } from "@/components/personal-planning/personal-planning-week";
@@ -24,7 +23,7 @@ import { Lock, Pencil, ChevronLeft } from "lucide-react";
  */
 export default async function SubordinatePersonalPlanningPage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId: targetUserId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const accessReason = await resolvePersonalPlanningAccess(session!.user.id, targetUserId);
   if (!accessReason) redirect("/dashboard");
 

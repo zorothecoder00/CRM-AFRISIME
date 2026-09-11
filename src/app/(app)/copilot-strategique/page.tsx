@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { buildSwotBoard, buildPriorities, buildRoadmap, buildTrackingAndGaps } from "@/lib/strategy-copilot";
 import { SwotBoard } from "@/components/strategy/swot-board";
@@ -18,7 +17,7 @@ const PRIORITY_LABELS: Record<string, string> = { BASSE: "Basse", MOYENNE: "Moye
 // /objectifs), suivi strategique + analyse des ecarts (meme heuristique que
 // le Conseiller strategique, §9).
 export default async function StrategyCopilotPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.PLAN_READ)) {
     redirect("/dashboard");
   }

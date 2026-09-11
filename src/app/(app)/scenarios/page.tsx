@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +20,7 @@ const TYPE_LABELS: Record<string, string> = {
  * sur /scenarios/comparaison.
  */
 export default async function ScenariosPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.REPORT_EXPORT);
 
   const [scenarios, departments] = await Promise.all([

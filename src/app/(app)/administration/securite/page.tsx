@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import Link from "next/link";
@@ -20,7 +19,7 @@ import { SessionList } from "@/components/security/session-list";
 import { detectSuspiciousActivity, computePermissionsOverview } from "@/lib/security-trust-center";
 
 export default async function SecuritePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.SECURITY_AUDIT_READ)) {
     redirect("/dashboard");
   }

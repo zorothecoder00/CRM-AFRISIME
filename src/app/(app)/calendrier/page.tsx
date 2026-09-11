@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import {
   startOfMonth,
   endOfMonth,
@@ -15,7 +14,7 @@ import {
   endOfDay,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,7 @@ export default async function CalendrierPage({
   searchParams: Promise<{ annee?: string; mois?: string; jour?: string }>;
 }) {
   const { annee, mois, jour } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const canManageLeaves = session!.user.permissions.includes(PERMISSIONS.LEAVE_MANAGE);
   const canCreateLeave = session!.user.permissions.includes(PERMISSIONS.LEAVE_CREATE);

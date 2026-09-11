@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { accentForOpportunityStatus } from "@/lib/status-tone";
@@ -40,7 +39,7 @@ export default async function CrmOpportunityDetailPage({
     notFound();
   }
 
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const entityScope = await getUserEntityScope(session!.user.id, session!.user.permissions);
   if (!entityScope.canViewAll) {
     // Meme priorite que crmOpportunityScopeWhere : entite du contact si

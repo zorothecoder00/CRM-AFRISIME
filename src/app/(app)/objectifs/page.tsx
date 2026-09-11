@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { objectiveProgress } from "@/lib/objective-progress";
 import type { ObjectivePeriod, ObjectiveScope } from "@/generated/prisma/enums";
@@ -40,7 +39,7 @@ export default async function ObjectifsPage({
   searchParams: Promise<{ periode?: string; scope?: string; from?: string }>;
 }) {
   const { periode, scope, from } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   // Depuis Planning personnel, on ne montre que MES objectifs — pas ceux de
   // l'organisation/equipe/departement assignes a d'autres personnes.

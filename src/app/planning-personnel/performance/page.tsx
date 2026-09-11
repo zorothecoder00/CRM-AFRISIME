@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { subDays, startOfWeek, subWeeks } from "date-fns";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPerformance } from "@/components/personal-planning/personal-performance";
 import { PersonalPerformanceTrend, type PerformanceTrendWeek } from "@/components/personal-planning/personal-performance-trend";
@@ -14,7 +13,7 @@ import { BarChart3 } from "lucide-react";
  * terminées — rien d'autre (pas de grille horaire ni de bloc "Ma journée").
  */
 export default async function PersonalPlanningPerformancePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const now = new Date();
 

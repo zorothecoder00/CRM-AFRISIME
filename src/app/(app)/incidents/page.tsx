@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { IncidentReportForm } from "@/components/incidents/incident-report-form";
@@ -24,7 +23,7 @@ export default async function IncidentsPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.RISK_MANAGE);
 
   const [incidents, total, projects, users] = await Promise.all([

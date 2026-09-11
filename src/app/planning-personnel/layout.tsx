@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
 import { format } from "date-fns";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { PersonalPlanningSidebar } from "@/components/personal-planning/layout/personal-planning-sidebar";
@@ -18,7 +17,7 @@ import type { PersonalPlanningReferenceData } from "@/components/personal-planni
  * hériter de son layout, sans changer l'URL /planning-personnel.
  */
 export default async function PlanningPersonnelLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   if (!session) {
     redirect("/login");

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { startOfDay, endOfDay, subDays } from "date-fns";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PersonalPlanningDay } from "@/components/personal-planning/personal-planning-day";
 import { PersonalPlanningToday } from "@/components/personal-planning/personal-planning-today";
@@ -34,7 +33,7 @@ import { Sunrise } from "lucide-react";
  * le shell du dashboard principal — incohérence UX relevée par l'utilisateur.
  */
 export default async function MaJourneePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const now = new Date();
   const dayStart = startOfDay(now);

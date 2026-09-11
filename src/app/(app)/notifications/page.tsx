@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateDeadlineNotifications } from "@/lib/notify";
 import { runDeadlineApproachingRules } from "@/lib/automation";
@@ -40,7 +39,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default async function NotificationsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   await generateDeadlineNotifications(userId);

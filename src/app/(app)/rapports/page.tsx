@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { REPORT_TYPES, REPORT_LABELS, type ReportType } from "@/lib/reports";
@@ -54,7 +53,7 @@ const DESCRIPTIONS: Record<ReportType, string> = {
 };
 
 export default async function RapportsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.REPORT_EXPORT)) {
     redirect("/dashboard");
   }

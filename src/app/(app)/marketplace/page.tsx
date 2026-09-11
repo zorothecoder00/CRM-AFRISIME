@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -47,7 +46,7 @@ export default async function MarketplacePage({
   searchParams: Promise<{ q?: string; categorie?: string; statut?: string }>;
 }) {
   const { q, categorie, statut } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const canManage = session!.user.permissions.includes(PERMISSIONS.MARKETPLACE_MANAGE);
 

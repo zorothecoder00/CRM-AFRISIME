@@ -1,4 +1,5 @@
-import type { NextAuthOptions } from "next-auth";
+import { cache } from "react";
+import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
@@ -169,3 +170,15 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+/**
+ * Revue de performance (2026-09-11) — chaque page ("layout" + "page", parfois
+ * plus) appelait `getServerSession(authOptions)` séparément, et le callback
+ * `session()` ci-dessus refait un aller-retour DB (`userSession.findUnique`,
+ * voire un `update` toutes les 5 min) À CHAQUE appel, pas seulement à chaque
+ * requête HTTP — une navigation multipliait donc les requêtes DB par le
+ * nombre de composants qui lisent la session. `cache()` de React dédoublonne
+ * les appels identiques au sein du même rendu serveur : tous les composants
+ * d'une même requête partagent maintenant un seul appel réel.
+ */
+export const getAppSession = cache(() => getServerSession(authOptions));

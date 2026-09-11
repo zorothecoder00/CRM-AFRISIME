@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ProjectIdeaFormDialog } from "@/components/projects/project-idea-form-dialog";
 import { ProjectIdeaTable, type ProjectIdeaRow } from "@/components/projects/project-idea-table";
 
 export default async function ProjectIdeasPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
 

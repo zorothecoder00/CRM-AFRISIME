@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -38,7 +37,7 @@ function describeRule(repetition: string, firstDate: Date): string {
  * second formulaire simplifié qui dupliquerait le même objet.
  */
 export default async function PersonalPlanningRecurrencesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const now = new Date();
 

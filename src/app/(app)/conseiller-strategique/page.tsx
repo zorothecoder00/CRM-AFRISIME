@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { buildStrategicAdvisorAnswers } from "@/lib/strategic-advisor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { MessageCircleQuestion } from "lucide-react";
 // heuristiques sur les données réelles (voir src/lib/strategic-advisor.ts),
 // pas par un vrai échange en langage naturel — présenté comme tel ci-dessous.
 export default async function StrategicAdvisorPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.PLAN_READ)) {
     redirect("/dashboard");
   }

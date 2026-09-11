@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
@@ -39,7 +38,7 @@ export default async function ProjetsPage({
   searchParams: Promise<{ vue?: string; mine?: string; annee?: string; mois?: string }>;
 }) {
   const { vue = "liste", mine, annee, mois } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);

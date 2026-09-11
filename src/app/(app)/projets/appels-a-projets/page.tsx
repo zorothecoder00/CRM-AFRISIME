@@ -1,11 +1,10 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { FundingOpportunityPipeline, type FundingOpportunityPipelineRow } from "@/components/projects/funding-opportunity-pipeline";
 
 export default async function FundingOpportunitiesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
   const [opportunities, projects, users, departments] = await Promise.all([

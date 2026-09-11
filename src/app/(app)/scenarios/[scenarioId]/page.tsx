@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { computeBaseline, computeScenarioImpact } from "@/lib/scenario-simulation";
@@ -20,7 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
 /** V2.2 §14 — détail d'un scénario : impact projeté vs situation actuelle. */
 export default async function ScenarioDetailPage({ params }: { params: Promise<{ scenarioId: string }> }) {
   const { scenarioId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.REPORT_EXPORT);
 
   const scenario = await prisma.scenario.findUnique({

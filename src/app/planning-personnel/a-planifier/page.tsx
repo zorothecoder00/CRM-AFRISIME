@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { APlanifierTaskRow, type APlanifierTask } from "@/components/personal-planning/a-planifier-task-row";
 import { Inbox } from "lucide-react";
@@ -16,7 +15,7 @@ import { Inbox } from "lucide-react";
  * aucune plage horaire concrète, elle doit donc rester "à planifier".
  */
 export default async function PersonalPlanningAPlanifierPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   const [tasksRaw, colleaguesRaw] = await Promise.all([

@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
@@ -34,7 +33,7 @@ export default async function PersonalPlanningMesTachesPage({
   }>;
 }) {
   const { projetId, annee, mois, semaine, jour, priorite, statut } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);
   const canManage = session!.user.permissions.includes(PERMISSIONS.TASK_UPDATE);

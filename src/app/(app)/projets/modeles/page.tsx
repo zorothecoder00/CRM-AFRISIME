@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { ProjectTemplatesLibrary, type ProjectTemplateRow } from "@/components/p
 
 /** Bibliothèque de modèles de projet (cahier des charges Project Studio §60). */
 export default async function ProjectTemplatesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
 
   const templates = await prisma.projectTemplate.findMany({

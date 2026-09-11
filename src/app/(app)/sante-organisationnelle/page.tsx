@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeOrganizationalHealth } from "@/lib/health-score";
 import { HealthScoreWeightRow } from "@/components/administration/health-score-weight-row";
@@ -20,7 +19,7 @@ function toneForScore(score: number): "success" | "warning" | "destructive" {
 // voir src/lib/health-score.ts. "Configurable" via les poids ci-dessous,
 // "explicable" via le détail par dimension.
 export default async function OrganizationalHealthPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/dashboard");
   }

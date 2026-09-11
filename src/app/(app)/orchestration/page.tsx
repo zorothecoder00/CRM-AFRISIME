@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +39,7 @@ const ACTION_LABELS: Record<string, string> = {
  * moteur de src/lib/automation.ts, pas de moteur dédié.
  */
 export default async function OrchestrationPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.AUTOMATION_MANAGE);
 
   const [playbooks, projects, users] = await Promise.all([

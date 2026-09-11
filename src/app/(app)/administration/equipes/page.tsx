@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
@@ -14,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 
 export default async function EquipesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManageDepartment = session!.user.permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE);
   const canCreateTeam = session!.user.permissions.includes(PERMISSIONS.TEAM_CREATE);
   if (!canManageDepartment && !canCreateTeam) {

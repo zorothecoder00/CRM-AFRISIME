@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { searchOrganizationalMemory } from "@/lib/organizational-memory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { MemoryEntryFormDialog } from "@/components/memory/memory-entry-form-dia
 // recommandations déjà enregistrées dans l'app, plus les entrées manuelles
 // (succès/échecs/expériences) sans entité dédiée.
 export default async function OrganizationalMemoryPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.MEMORY_MANAGE);
 
   const recentResults = await searchOrganizationalMemory();

@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { OpportunityKanban, type OpportunityRow } from "@/components/crm/opportunity-kanban";
@@ -8,7 +7,7 @@ import { getUserEntityScope, crmOpportunityScopeWhere } from "@/lib/entity-scope
 import { getOrganizationDevise } from "@/lib/currency";
 
 export default async function CrmPipelinePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const canManage = session!.user.permissions.includes(PERMISSIONS.CRM_MANAGE);
 

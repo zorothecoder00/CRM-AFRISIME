@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -51,7 +50,7 @@ export default async function BaseDeConnaissancesPage({
   searchParams: Promise<{ categoryId?: string; q?: string }>;
 }) {
   const { categoryId, q } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.KNOWLEDGE_READ)) {
     redirect("/dashboard");
   }

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -25,7 +24,7 @@ export default async function AuditPage({
     page?: string;
   }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.SECURITY_AUDIT_READ)) {
     redirect("/dashboard");
   }

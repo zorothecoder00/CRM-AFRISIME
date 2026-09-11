@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +23,7 @@ const STATUT_TONE: Record<string, "secondary" | "info" | "success"> = {
 // virtuellement une organisation (ex. Direction -> pays -> équipes) puis la
 // simuler avant tout déploiement réel dans les vraies tables organisationnelles.
 export default async function OrganisationVirtuellePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE);
 
   const drafts = await prisma.orgDesignDraft.findMany({

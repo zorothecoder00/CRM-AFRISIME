@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,7 +42,7 @@ export default async function BenchmarkingPage({
   const axe: Axe = AXES.some((a) => a.key === sp.axe) ? (sp.axe as Axe) : "projets";
   const selectedIds = sp.ids ? (Array.isArray(sp.ids) ? sp.ids : [sp.ids]) : [];
 
-  await getServerSession(authOptions);
+  await getAppSession();
 
   let columns: BenchmarkColumn[] = [];
   let candidates: { id: string; label: string }[] = [];

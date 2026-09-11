@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { computeBaseline, computeScenarioImpact } from "@/lib/scenario-simulation";
@@ -22,7 +21,7 @@ export default async function SalleDeSimulationPage({
 }: {
   searchParams: Promise<{ ids?: string | string[] }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.EXECUTIVE_VIEW)) {
     redirect("/dashboard");
   }

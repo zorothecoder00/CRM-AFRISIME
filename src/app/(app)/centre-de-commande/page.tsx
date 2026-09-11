@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { buildExecutiveSnapshot } from "@/lib/executive-command-center";
 import { getOrganizationDevise } from "@/lib/currency";
@@ -42,7 +41,7 @@ function StatCard({
 // src/lib/executive-command-center.ts) : aucune nouvelle donnee, seulement
 // une vue unifiee.
 export default async function ExecutiveCommandCenterPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.EXECUTIVE_VIEW)) {
     redirect("/dashboard");
   }

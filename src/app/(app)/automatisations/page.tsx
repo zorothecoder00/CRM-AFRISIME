@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +16,7 @@ export default async function AutomatisationsPage({
   searchParams: Promise<{ projetId?: string }>;
 }) {
   const { projetId } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.AUTOMATION_MANAGE);
 
   const projects = await prisma.project.findMany({ orderBy: { nom: "asc" } });

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay, format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,7 +22,7 @@ export default async function PersonalPlanningCalendrierPage({
   searchParams: Promise<{ semaine?: string }>;
 }) {
   const { semaine } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const now = new Date();
   const refDate = semaine ? new Date(semaine) : now;

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { Scale } from "lucide-react";
 // options selon coût/délai/risque/impact/ressources/ROI/faisabilité et
 // produire une recommandation calculée (voir src/lib/decision-matrix.ts).
 export default async function DecisionsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.DECISION_MATRIX_MANAGE);
 
   const matrices = await prisma.decisionMatrix.findMany({

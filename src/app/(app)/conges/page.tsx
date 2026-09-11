@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -31,7 +30,7 @@ export default async function CongesPage({
   searchParams: Promise<{ userId?: string; statut?: string; type?: string; du?: string; au?: string }>;
 }) {
   const { userId, statut, type, du, au } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.LEAVE_MANAGE);
   const canCreate = session!.user.permissions.includes(PERMISSIONS.LEAVE_CREATE);
   if (!canManage && !canCreate) redirect("/dashboard");

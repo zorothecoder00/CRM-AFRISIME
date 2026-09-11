@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
@@ -34,7 +33,7 @@ const TABLE_LABELS: Record<string, string> = {
 // Sauvegarde/restauration (cahier des charges V2.2 §37) — voir src/lib/backup.ts
 // pour le perimetre exact (7 tables, colonnes scalaires uniquement).
 export default async function DonneesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DATA_BACKUP_MANAGE)) {
     redirect("/dashboard");
   }

@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeWorkload } from "@/lib/workload";
 import { MyWorkloadCard } from "@/components/workload/my-workload-card";
@@ -11,7 +10,7 @@ import { MyWorkloadCard } from "@/components/workload/my-workload-card";
  * avec "Charge de l'équipe" pour les managers, reste à part.
  */
 export default async function PersonalPlanningChargeDeTravailPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   const [me, tasks, leaves, missions] = await Promise.all([

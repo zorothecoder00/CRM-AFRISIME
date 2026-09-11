@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import { PlatformOrganizationCard } from "@/components/administration/platform-o
 // voir le commentaire sur le modèle PlatformOrganization dans schema.prisma
 // pour le détail de ce choix de périmètre.
 export default async function PlateformePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.PLATFORM_MANAGE)) {
     redirect("/dashboard");
   }

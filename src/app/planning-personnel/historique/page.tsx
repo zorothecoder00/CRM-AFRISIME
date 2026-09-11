@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,7 +30,7 @@ function toDatetimeLocalValue(date: Date): string {
  * restent gérées depuis /planning-personnel/recurrences, pas ici.
  */
 export default async function PersonalPlanningHistoriquePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const now = new Date();
 

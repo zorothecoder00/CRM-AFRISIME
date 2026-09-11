@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { analyzeTransformationImpact } from "@/lib/change-impact";
@@ -31,7 +30,7 @@ export default async function TransformationDetailPage({
   params: Promise<{ transformationId: string }>;
 }) {
   const { transformationId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PLAN_MANAGE);
 
   const [transformation, processus, projects] = await Promise.all([

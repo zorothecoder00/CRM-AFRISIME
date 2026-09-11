@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeWorkload } from "@/lib/workload";
@@ -20,7 +19,7 @@ import { ChevronLeft } from "lucide-react";
  */
 export default async function PersonalPlanningEquipeDetailPage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/planning-personnel");
   }

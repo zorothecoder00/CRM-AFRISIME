@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeIndividualPilotage } from "@/lib/individual-pilotage";
 import { canViewPersonalPlanningOf } from "@/lib/personal-planning-access";
@@ -41,7 +40,7 @@ export default async function IndividualPilotagePage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/dashboard");
   }

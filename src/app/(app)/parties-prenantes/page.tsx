@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,7 @@ const POSITION_LABELS: Record<string, string> = { FAVORABLE: "Favorable", NEUTRE
 
 /** Gestion des parties prenantes (cahier des charges V2.2 §21) — profil unique réutilisable sur plusieurs projets. */
 export default async function PartiesPrenantesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
   const [stakeholders, users, contacts] = await Promise.all([

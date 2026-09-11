@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { PlanTree, type PlanNode } from "@/components/planning/plan-tree";
@@ -54,7 +53,7 @@ function flattenForOptions(nodes: PlanNode[], depth = 0): { id: string; label: s
 }
 
 export default async function PlanificationPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.PLAN_READ)) {
     redirect("/dashboard");
   }

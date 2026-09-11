@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { checkDependencyRisk, resolveDependencyLabels } from "@/lib/dependencies";
@@ -13,7 +12,7 @@ import { DependencyList, type DependencyRow } from "@/components/dependencies/de
  * cas détaillé par le cahier des charges — voir src/lib/dependencies.ts.
  */
 export default async function DependenciesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
   const [dependencies, projects, teams, users, processus, meetingDecisions, governanceDecisions, resources, partners, providers, transformations, milestones] =

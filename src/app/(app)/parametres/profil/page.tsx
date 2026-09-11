@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { UserCompetencesManager } from "@/components/profile/user-competences-manager";
@@ -12,7 +11,7 @@ export default async function ParametresProfilPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { from } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   const [user, competences, catalogue] = await Promise.all([
     prisma.user.findUniqueOrThrow({

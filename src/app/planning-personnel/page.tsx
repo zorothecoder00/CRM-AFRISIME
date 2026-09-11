@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   startOfWeek,
@@ -124,7 +123,7 @@ export default async function PlanningPersonnelPage({
   const vue: Vue = (["semaine", "jour", "mois", "agenda", "liste", "timeline"] as const).includes(vueParam as Vue)
     ? (vueParam as Vue)
     : "semaine";
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const userName = session!.user.name ?? "Moi";
   const canCreateTask = session!.user.permissions.includes(PERMISSIONS.TASK_CREATE);

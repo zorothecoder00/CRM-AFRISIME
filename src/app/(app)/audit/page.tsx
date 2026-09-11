@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { AuditPlanFormDialog } from "@/components/audit/audit-plan-form-dialog";
 
 /** v2.0 §8 — Audit interne : registre des plans d'audit (équipe, missions, constats). */
 export default async function AuditPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.AUDIT_READ)) {
     redirect("/dashboard");
   }

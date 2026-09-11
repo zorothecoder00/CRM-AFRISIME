@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +25,7 @@ const STATUT_TONE: Record<string, "secondary" | "success" | "warning" | "destruc
 // aucune page ; cette page comble ce trou plutôt que de dupliquer un
 // nouveau modèle.
 export default async function ConformitePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.GOVERNANCE_READ)) {
     redirect("/dashboard");
   }

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAiRoleFlavor } from "@/lib/conversational-assistant";
 import { ConversationalAssistantBar } from "@/components/assistant/conversational-assistant-bar";
@@ -13,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 // src/components/assistant/conversational-assistant-bar.tsx pour l'usage
 // de l'API navigateur SpeechRecognition.
 export default async function AssistantPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const flavor = getAiRoleFlavor(session!.user.roleKey);
 
   const projects = await prisma.project.findMany({

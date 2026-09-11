@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
@@ -27,7 +26,7 @@ import type { Prisma } from "@/generated/prisma/client";
  * qui permet un scan rapide de tous les projets sans les ouvrir un à un.
  */
 export default async function ProjectControlTowerPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   const andClauses: Prisma.ProjectWhereInput[] = [];

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeScopePilotage, getDepartmentScope, getDirectTeamScope, accentForPilotage } from "@/lib/pilotage-levels";
@@ -48,7 +47,7 @@ export default async function DepartmentPilotagePage({
   params: Promise<{ departmentId: string }>;
 }) {
   const { departmentId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/dashboard");
   }

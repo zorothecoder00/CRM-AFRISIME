@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { SuccessionPlanCard } from "@/components/succession/succession-plan-card
 // de logiciel RH opérationnel — l'évaluation individuelle continue de vivre
 // dans le module Évaluations.
 export default async function SuccessionPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.SUCCESSION_MANAGE);
 
   const [plans, postesCritiques, users] = await Promise.all([

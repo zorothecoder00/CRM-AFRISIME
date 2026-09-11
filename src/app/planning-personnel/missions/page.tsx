@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { format, differenceInCalendarDays } from "date-fns";
@@ -37,7 +36,7 @@ export default async function PersonalPlanningMissionsPage({
   searchParams: Promise<{ du?: string; au?: string; statut?: string; type?: string }>;
 }) {
   const { du, au, statut, type } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   // Revue applicative — budget de mission agrege sur les missions d'UN SEUL
   // utilisateur (userId ci-dessous), jamais melange entre utilisateurs :

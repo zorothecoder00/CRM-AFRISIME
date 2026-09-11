@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeTransformationRoadmap, type RoadmapInitiative } from "@/lib/transformation-roadmap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +39,7 @@ function InitiativeCard({ initiative }: { initiative: RoadmapInitiative }) {
 // (36 mois). Voir src/lib/transformation-roadmap.ts pour la génération
 // heuristique (pas de vrai LLM disponible dans cette instance).
 export default async function FeuilleDeRouteTransformationPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/dashboard");
   }

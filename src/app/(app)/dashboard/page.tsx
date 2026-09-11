@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { getServerSession } from "next-auth";
 import Link from "next/link";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { TaskStatus } from "@/generated/prisma/enums";
@@ -68,7 +67,7 @@ const ACTIVE_STATUSES: TaskStatus[] = [
 ];
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
   const briefing = await generateDailyBriefing(userId);
   const topActions = await computeTop5Actions(userId);

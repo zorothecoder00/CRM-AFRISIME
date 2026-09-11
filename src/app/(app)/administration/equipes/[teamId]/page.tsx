@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureTeamConversation } from "@/lib/team-conversation";
 import { MessageThread, type MessageData } from "@/components/messages/message-thread";
@@ -14,7 +13,7 @@ export default async function TeamDiscussionPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   const team = await prisma.team.findUnique({
     where: { id: teamId },

@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { MessagesShell, type ConversationListItem } from "@/components/messages/messages-shell";
 import { ConversationFormDialog } from "@/components/messages/conversation-form-dialog";
 
 export default async function MessagesLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   const [conversations, users] = await Promise.all([

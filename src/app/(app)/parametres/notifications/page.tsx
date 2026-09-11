@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NotificationPreferencesForm } from "@/components/notifications/notification-preferences-form";
 
 export default async function ParametresNotificationsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session!.user.id },

@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { MfaSettings } from "@/components/security/mfa-settings";
 import { SessionList } from "@/components/security/session-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function ParametresSecuritePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const [user, sessions] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session!.user.id },

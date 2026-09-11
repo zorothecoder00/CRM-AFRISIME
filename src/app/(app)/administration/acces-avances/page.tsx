@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, PERMISSION_CATALOG } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
@@ -13,7 +12,7 @@ import { DeletePermissionOverrideButton } from "@/components/administration/dele
 const PERMISSION_LABELS = new Map<string, string>(PERMISSION_CATALOG.map((p) => [p.key, p.label]));
 
 export default async function AccesAvancesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.ADMINISTRATION_ROLES_MANAGE)) {
     redirect("/dashboard");
   }

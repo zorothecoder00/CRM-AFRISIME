@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
  * de renvoyer vers /projets/studio/[projectId].
  */
 export default async function ProjectStudioPickerPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
 
   const projects = await prisma.project.findMany({

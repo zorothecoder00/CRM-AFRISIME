@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +26,7 @@ export default async function ProjectIdeaDetailPage({
   params: Promise<{ ideaId: string }>;
 }) {
   const { ideaId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
 

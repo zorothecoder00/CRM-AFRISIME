@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
@@ -64,7 +63,7 @@ export default async function TaskDetailPage({
 }) {
   const { taskId } = await params;
   const { from } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },

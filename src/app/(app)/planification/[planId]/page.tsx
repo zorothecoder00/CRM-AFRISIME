@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +37,7 @@ const OBJECTIVE_STATUS_LABELS: Record<string, string> = {
 
 export default async function PlanDetailPage({ params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.PLAN_READ)) {
     redirect("/dashboard");
   }

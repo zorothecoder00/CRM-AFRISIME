@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,7 +43,7 @@ export default async function PersonalPlanningDemandesPage({
 }) {
   const { type: typeParam, du, au, statut } = await searchParams;
   const type = typeParam === "envoyees" ? "envoyees" : "recues";
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const userId = session!.user.id;
 
   const where: Prisma.AvailabilityRequestWhereInput =

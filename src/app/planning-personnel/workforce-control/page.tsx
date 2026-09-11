@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { subDays } from "date-fns";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeWorkload, ACTIVE_TASK_STATUSES } from "@/lib/workload";
@@ -20,7 +19,7 @@ import { Grid3x3, BrainCircuit } from "lucide-react";
  * humain explicite, fait au cas par cas depuis /taches.
  */
 export default async function WorkforceControlPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/planning-personnel");
   }

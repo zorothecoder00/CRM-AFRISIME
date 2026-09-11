@@ -1,6 +1,5 @@
 import { Fragment } from "react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, PERMISSION_CATALOG } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/table";
 
 export default async function RolesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.ADMINISTRATION_ROLES_MANAGE);
 
   const roles = await prisma.role.findMany({

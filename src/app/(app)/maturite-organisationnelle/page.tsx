@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { computeMaturityAssessment } from "@/lib/maturity-assessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,7 @@ function toneForScore(score: number): "success" | "warning" | "destructive" {
 // outils organisationnels sur 10 dimensions, pas la vitalité opérationnelle
 // instantanée. Voir src/lib/maturity-assessment.ts.
 export default async function MaturiteOrganisationnellePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.DASHBOARD_READ)) {
     redirect("/dashboard");
   }

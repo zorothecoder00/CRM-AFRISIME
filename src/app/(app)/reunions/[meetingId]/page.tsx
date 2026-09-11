@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +54,7 @@ export default async function MeetingDetailPage({
     notFound();
   }
 
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const canTag = session!.user.permissions.includes(PERMISSIONS.MEETING_UPDATE);
   const tags = await getTagsFor("Meeting", meeting.id);
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { globalSearch, type SearchResult, type SearchResultType } from "@/lib/search";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,7 +44,7 @@ export default async function RecherchePage({
   }>;
 }) {
   const params = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const query = params.q?.trim() ?? "";
   const tags = params.tags
     ? params.tags.split(",").map((t) => t.trim()).filter(Boolean)

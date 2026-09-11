@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
@@ -8,7 +7,7 @@ import { IntegrationFormDialog } from "@/components/administration/integration-f
 import { IntegrationCard } from "@/components/administration/integration-card";
 
 export default async function IntegrationsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   if (!session!.user.permissions.includes(PERMISSIONS.INTEGRATION_MANAGE)) {
     redirect("/dashboard");
   }

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
@@ -55,7 +54,7 @@ export default async function PortfolioPage({
   searchParams: Promise<SearchParams>;
 }) {
   const filters = await searchParams;
-  const session = await getServerSession(authOptions);
+  const session = await getAppSession();
   const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
   const devise = await getOrganizationDevise();
 
