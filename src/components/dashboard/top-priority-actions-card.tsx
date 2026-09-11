@@ -18,8 +18,13 @@ const RANK_TONE = [
 // carte avec effet de bascule 3D (perspective + rotation legere + elevation
 // d'ombre) au survol, au lieu d'une simple ligne de texte plate.
 export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore[] }) {
+  // Demande utilisateur — fond de la carte nettement colore (pas juste
+  // blanc/gris) ; garde le bleu ici (accent d'origine, pas vise par la
+  // remarque "trop de bleu", qui portait sur les lignes ci-dessous). bg-none
+  // neutralise le degrade par defaut de l'accent (qui finit en var(--card),
+  // quasi-blanc) au profit d'une teinte pleine et visible.
   return (
-    <Card accent="primary">
+    <Card accent="primary" className="bg-none bg-primary/10">
       <CardHeader className="flex flex-row items-center gap-2">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Target className="size-4" />
@@ -35,7 +40,12 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
               <li key={a.taskId}>
                 <Link
                   href={a.href}
-                  className="group flex items-center gap-3 rounded-lg border bg-card p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-primary/40 hover:shadow-xl"
+                  // Demande utilisateur — chaque ligne était en bg-card (blanc) ;
+                  // "success" (vert, une couleur du logo) plutot que primary
+                  // (bleu, deja la couleur de la carte englobante juste
+                  // au-dessus) pour que les lignes restent distinctes sans
+                  // ajouter encore du bleu.
+                  className="group flex items-center gap-3 rounded-lg border bg-success/15 p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-success/40 hover:bg-success/20 hover:shadow-xl"
                   style={{ transformStyle: "preserve-3d" }}
                 >
                   <span
@@ -47,7 +57,7 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
                     {i + 1}
                   </span>
                   <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate font-medium group-hover:text-primary group-hover:underline">
+                    <span className="min-w-0 flex-1 truncate font-medium group-hover:text-success group-hover:underline">
                       {a.titre}
                     </span>
                     <span className="shrink-0 truncate text-xs text-muted-foreground">{a.projectNom}</span>

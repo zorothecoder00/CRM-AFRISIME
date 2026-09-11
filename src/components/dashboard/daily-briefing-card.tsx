@@ -43,17 +43,24 @@ const ITEMS: {
 // cliquables avec icone/couleur par categorie + priorite recommandee mise
 // en avant en tete.
 export function DailyBriefingCard({ userName, briefing }: { userName: string | null | undefined; briefing: DailyBriefing }) {
-  const today = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  const now = new Date();
+  const today = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  // Demande utilisateur — cette salutation restait figée sur "Bonjour" quelle
+  // que soit l'heure, contrairement à celle sous le titre "Tableau de bord".
+  const greeting = now.getHours() >= 18 ? "Bonsoir" : now.getHours() >= 12 ? "Bon après-midi" : "Bonjour";
   const visibleItems = ITEMS.filter((item) => (briefing[item.key] as number) > 0);
 
+  // Demande utilisateur — fond nettement colore (pas juste blanc/gris) :
+  // bg-none neutralise le degrade par defaut de l'accent (qui finit en
+  // var(--card), quasi-blanc) au profit d'une teinte pleine et visible.
   return (
-    <Card accent="info" className="overflow-hidden">
+    <Card accent="info" className="overflow-hidden bg-none bg-info/10">
       <CardHeader className="flex flex-row items-center gap-2">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
           <Sunrise className="size-4" />
         </span>
         <CardTitle className="text-base">
-          Bonjour {userName}, voici votre briefing du {today}
+          {greeting} {userName}, voici votre briefing du {today}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
