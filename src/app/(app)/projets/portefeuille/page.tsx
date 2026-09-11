@@ -8,6 +8,7 @@ import { getOrganizationDevise } from "@/lib/currency";
 import { convertMontant } from "@/lib/exchange-rates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import type { Prisma } from "@/generated/prisma/client";
 import { FolderKanban, Sparkles, Lightbulb, HandCoins, ChevronRight, TriangleAlert, type LucideIcon } from "lucide-react";
@@ -197,6 +198,11 @@ export default async function PortfolioPage({
           description="Candidatures et opportunités de financement."
         />
       </div>
+
+      {/* Demande utilisateur — separe visuellement le bloc de liens
+          (Projets/Project Studio/Laboratoire d'idees/Appel a projets) du
+          reste des statistiques du portefeuille. */}
+      <Separator />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
         <Kpi label="Actifs" value={kpi.actifs} />
