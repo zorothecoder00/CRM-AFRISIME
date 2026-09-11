@@ -76,34 +76,43 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
 
   return (
     <div className="flex h-screen">
-      <PersonalPlanningSidebar
-        aPlanifierCount={aPlanifierCount}
-        alertesCount={unreadCount}
-        permissions={session.user.permissions}
-        notifications={notificationRows}
-      />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <PersonalPlanningTopbar
-          userName={session.user.name ?? session.user.email ?? ""}
-          userImage={session.user.image}
-          roleLabel={session.user.roleLabel}
-          dateLabel={dateLabel}
-          notifications={notificationRows.slice(0, 5)}
-          sidebarNotifications={notificationRows}
-          unreadCount={unreadCount}
+      {/* Demande utilisateur — impression de l'agenda (voir AgendaExportButton) :
+          seul le contenu de la page doit apparaître sur le papier, pas le
+          chrome du module (sidebar/topbar/barre d'outils/lien retour). */}
+      <div className="print:hidden">
+        <PersonalPlanningSidebar
           aPlanifierCount={aPlanifierCount}
+          alertesCount={unreadCount}
           permissions={session.user.permissions}
+          notifications={notificationRows}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+      </div>
+      <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
+        <div className="print:hidden">
+          <PersonalPlanningTopbar
+            userName={session.user.name ?? session.user.email ?? ""}
+            userImage={session.user.image}
+            roleLabel={session.user.roleLabel}
+            dateLabel={dateLabel}
+            notifications={notificationRows.slice(0, 5)}
+            sidebarNotifications={notificationRows}
+            unreadCount={unreadCount}
+            aPlanifierCount={aPlanifierCount}
+            permissions={session.user.permissions}
+          />
+        </div>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 print:overflow-visible print:p-0">
           <div className="mx-auto w-full max-w-[1600px] space-y-4">
-            <PersonalPlanningBackLink />
-            <PersonalPlanningToolbar
-              refData={toolbarRefData}
-              meetingProjects={projects.map((p) => ({ id: p.id, label: p.nom }))}
-              colleagues={colleagueOptions}
-              canCreateMeeting={session.user.permissions.includes(PERMISSIONS.MEETING_CREATE)}
-              todayKey={format(new Date(), "yyyy-MM-dd")}
-            />
+            <div className="print:hidden">
+              <PersonalPlanningBackLink />
+              <PersonalPlanningToolbar
+                refData={toolbarRefData}
+                meetingProjects={projects.map((p) => ({ id: p.id, label: p.nom }))}
+                colleagues={colleagueOptions}
+                canCreateMeeting={session.user.permissions.includes(PERMISSIONS.MEETING_CREATE)}
+                todayKey={format(new Date(), "yyyy-MM-dd")}
+              />
+            </div>
             {children}
           </div>
         </main>

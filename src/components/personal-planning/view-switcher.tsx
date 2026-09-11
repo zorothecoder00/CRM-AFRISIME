@@ -10,20 +10,40 @@ const VIEWS = [
   { key: "timeline", label: "Timeline" },
 ] as const;
 
+/** Sous-ensemble utilisé par /planning-personnel/agenda (demande utilisateur — vue jour par défaut, calendrier semaine/mois). */
+export const AGENDA_CALENDAR_VIEWS = [
+  { key: "jour", label: "Jour" },
+  { key: "semaine", label: "Semaine" },
+  { key: "mois", label: "Mois" },
+] as const;
+
 /** Sélecteur des 6 vues du module (§8), mémorisé dans l'URL (?vue=). */
-export function PersonalPlanningViewSwitcher({ activeVue, semaine }: { activeVue: string; semaine?: string }) {
+export function PersonalPlanningViewSwitcher({
+  activeVue,
+  semaine,
+  basePath = "/planning-personnel",
+  views = VIEWS,
+}: {
+  activeVue: string;
+  semaine?: string;
+  /** Demande utilisateur — /planning-personnel/agenda réutilise ce switcher
+   * mais pointe vers sa propre page (pas le hub), avec un sous-ensemble de
+   * vues (jour/semaine/mois uniquement, voir `views`). */
+  basePath?: string;
+  views?: readonly { key: string; label: string }[];
+}) {
   function hrefFor(key: string) {
-    return `/planning-personnel?vue=${key}${semaine ? `&semaine=${semaine}` : ""}`;
+    return `${basePath}?vue=${key}${semaine ? `&semaine=${semaine}` : ""}`;
   }
 
   return (
     <div className="flex flex-wrap rounded-md border">
-      {VIEWS.map((v, i) => (
+      {views.map((v, i) => (
         <Link key={v.key} href={hrefFor(v.key)}>
           <Button
             variant={activeVue === v.key ? "default" : "ghost"}
             size="sm"
-            className={i === 0 ? "rounded-r-none" : i === VIEWS.length - 1 ? "rounded-l-none" : "rounded-none"}
+            className={i === 0 ? "rounded-r-none" : i === views.length - 1 ? "rounded-l-none" : "rounded-none"}
           >
             {v.label}
           </Button>

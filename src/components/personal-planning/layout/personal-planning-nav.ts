@@ -15,6 +15,7 @@ import {
   Settings,
   Grid3x3,
   History,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -56,6 +57,10 @@ export const PERSONAL_PLANNING_NAV_GROUPS: PersonalPlanningNavGroup[] = [
       { href: "/planning-personnel/historique", label: "Historique de planification", icon: History },
       { href: "/planning-personnel/mes-taches", label: "Mes tâches", icon: ListChecks },
       { href: "/planning-personnel/agenda", label: "Agenda", icon: LayoutList },
+      // Journal complet paginé (demande utilisateur) — distinct de
+      // "Historique de planification" (outil de replanification) : ici,
+      // simple consultation de tout, y compris terminé/annulé.
+      { href: "/planning-personnel/journal", label: "Journal d'activité", icon: ScrollText },
       { href: "/planning-personnel/recurrences", label: "Récurrences", icon: Repeat },
       { href: "/planning-personnel/reunions", label: "Réunions", icon: Users },
       { href: "/planning-personnel/missions", label: "Missions", icon: Briefcase },

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportToXlsx } from "@/lib/xlsx-export";
 import { ENTRY_TYPE_META, ENTRY_STATUT_LABELS, type PersonalPlanningEntryType, type PersonalPlanningEntryStatut } from "@/lib/personal-planning-types";
-import { Download, FileSpreadsheet, FileText, File } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, File, Printer } from "lucide-react";
 
 export type AgendaExportRow = {
   titre: string;
@@ -19,9 +19,21 @@ export type AgendaExportRow = {
  * "Agenda consolidé" (prototype V2) — export xlsx (client, voir
  * xlsx-export.ts), PDF et Word (demande utilisateur — générés côté serveur
  * via /api/planning-personnel/agenda-export, mêmes renderers que les
- * rapports organisationnels, voir report-renderers.ts).
+ * rapports organisationnels, voir report-renderers.ts), et impression.
+ *
+ * Demande utilisateur — les trois exports et l'impression portent sur la
+ * période affichée (jour/semaine/mois selon la vue active), pas toujours
+ * ±2 ans : `rows` et `range` sont fournis par l'appelant déjà filtrés sur
+ * cette période (voir /planning-personnel/agenda/page.tsx).
  */
-export function AgendaExportButton({ rows }: { rows: AgendaExportRow[] }) {
+export function AgendaExportButton({
+  rows,
+  range,
+}: {
+  rows: AgendaExportRow[];
+  /** Bornes ISO de la période affichée, transmises à l'export serveur (PDF/Word) qui refait sa propre requête. */
+  range?: { start: string; end: string };
+}) {
   function handleExportXlsx() {
     exportToXlsx(
       rows,
@@ -40,13 +52,18 @@ export function AgendaExportButton({ rows }: { rows: AgendaExportRow[] }) {
   }
 
   function handleExportServer(format: "pdf" | "word") {
-    window.location.href = `/api/planning-personnel/agenda-export?format=${format}`;
+    const params = new URLSearchParams({ format });
+    if (range) {
+      params.set("start", range.start);
+      params.set("end", range.end);
+    }
+    window.location.href = `/api/planning-personnel/agenda-export?${params.toString()}`;
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={rows.length === 0}>
+        <Button variant="outline" size="sm" disabled={rows.length === 0} className="print:hidden">
           <Download className="mr-1 h-4 w-4" />
           Exporter
         </Button>
@@ -63,6 +80,10 @@ export function AgendaExportButton({ rows }: { rows: AgendaExportRow[] }) {
         <DropdownMenuItem onSelect={() => handleExportServer("word")}>
           <File className="h-3.5 w-3.5" />
           Word (.docx)
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => window.print()}>
+          <Printer className="h-3.5 w-3.5" />
+          Imprimer
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

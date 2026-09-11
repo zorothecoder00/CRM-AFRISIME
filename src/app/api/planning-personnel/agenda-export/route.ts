@@ -37,8 +37,15 @@ export async function GET(request: NextRequest) {
 
   const userId = session.user.id;
   const now = new Date();
-  const rangeStart = subYears(now, 2);
-  const rangeEnd = addYears(now, 2);
+  // Demande utilisateur — /planning-personnel/agenda scope désormais l'export
+  // à la période affichée (jour/semaine/mois) plutôt que toujours ±2 ans ;
+  // repli sur ±2 ans si les bornes sont absentes (autre appelant éventuel).
+  const startParam = request.nextUrl.searchParams.get("start");
+  const endParam = request.nextUrl.searchParams.get("end");
+  const startDate = startParam ? new Date(startParam) : null;
+  const endDate = endParam ? new Date(endParam) : null;
+  const rangeStart = startDate && !Number.isNaN(startDate.getTime()) ? startDate : subYears(now, 2);
+  const rangeEnd = endDate && !Number.isNaN(endDate.getTime()) ? endDate : addYears(now, 2);
 
   const [entriesRaw, meetingsRaw] = await Promise.all([
     prisma.personalPlanningEntry.findMany({
@@ -62,7 +69,7 @@ export async function GET(request: NextRequest) {
   ].sort((a, b) => a.dateDebut.localeCompare(b.dateDebut));
 
   const report: ReportDocument = {
-    title: "Agenda consolidé",
+    title: startParam || endParam ? "Agenda" : "Agenda consolidé",
     generatedAt: now,
     sections: [
       {
