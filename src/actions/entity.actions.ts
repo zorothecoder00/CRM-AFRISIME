@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { invalidateEntitiesCache, invalidateHolidaysCache } from "@/lib/reference-data-cache";
 import {
   createEntitySchema,
   updateEntitySchema,
@@ -70,6 +71,7 @@ export async function createEntity(input: CreateEntityInput) {
   });
 
   revalidatePath("/administration/entites");
+  invalidateEntitiesCache();
   return { id: entity.id };
 }
 
@@ -106,6 +108,7 @@ export async function updateEntity(input: UpdateEntityInput) {
   });
 
   revalidatePath("/administration/entites");
+  invalidateEntitiesCache();
   return { id: entity.id };
 }
 
@@ -133,6 +136,7 @@ export async function createHoliday(input: CreateHolidayInput) {
   });
 
   revalidatePath("/administration/entites");
+  invalidateHolidaysCache();
   return { id: holiday.id };
 }
 
@@ -151,4 +155,5 @@ export async function deleteHoliday(holidayId: string) {
   });
 
   revalidatePath("/administration/entites");
+  invalidateHolidaysCache();
 }

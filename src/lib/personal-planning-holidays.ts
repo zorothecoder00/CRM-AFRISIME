@@ -1,18 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { getDepartmentEntityId } from "@/lib/entity-scope";
 import { dateKeyOf } from "@/lib/personal-planning-grid";
+import { getAllDepartmentsLite, getHolidaysForEntity, type HolidayLite } from "@/lib/reference-data-cache";
 
-type HolidayLite = { nom: string; date: Date; recurrenceAnnuelle: boolean };
+export type { HolidayLite };
 
 async function getEntityHolidays(userId: string): Promise<HolidayLite[]> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { departmentId: true } });
   if (!user?.departmentId) return [];
 
-  const allDepartments = await prisma.department.findMany({ select: { id: true, parentId: true, entityId: true } });
+  // Départements + jours fériés en cache (voir reference-data-cache.ts) —
+  // seul le rattachement département de l'utilisateur reste lu en direct.
+  const allDepartments = await getAllDepartmentsLite();
   const entityId = getDepartmentEntityId(user.departmentId, allDepartments);
   if (!entityId) return [];
 
-  return prisma.holiday.findMany({ where: { entityId }, select: { nom: true, date: true, recurrenceAnnuelle: true } });
+  return getHolidaysForEntity(entityId);
 }
 
 function matchHoliday(holidays: HolidayLite[], date: Date): string | null {

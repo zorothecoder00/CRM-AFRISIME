@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { PERMISSIONS } from "@/lib/permissions";
 import { collectDescendantEntityIds } from "@/lib/entity-tree";
+import { getAllDepartmentsLite, getAllEntitiesLite } from "@/lib/reference-data-cache";
 
 /** Sous-ensemble de PrismaClient utilisé ici — accepte aussi bien `prisma`
  * qu'un `Prisma.TransactionClient` scopé (voir withTenantScopedSession),
@@ -56,13 +57,16 @@ export async function getUserEntityScope(
     return { canViewAll: true, scopeEntityIds: [] };
   }
 
-  const allDepartments = await client.department.findMany({ select: { id: true, parentId: true, entityId: true } });
+  // Cache 5 min (voir reference-data-cache.ts) — uniquement sur le client
+  // global par défaut : un client scopé tenant (Phase 2, pas encore câblé
+  // ici) repasse par une lecture live, cohérente avec son propre contexte RLS.
+  const allDepartments = client === prisma ? await getAllDepartmentsLite() : await client.department.findMany({ select: { id: true, parentId: true, entityId: true } });
   const rootEntityId = getDepartmentEntityId(user.departmentId, allDepartments);
   if (!rootEntityId) {
     return { canViewAll: true, scopeEntityIds: [] };
   }
 
-  const allEntities = await client.entity.findMany({ select: { id: true, nom: true, parentId: true } });
+  const allEntities = client === prisma ? await getAllEntitiesLite() : await client.entity.findMany({ select: { id: true, nom: true, parentId: true } });
   return { canViewAll: false, scopeEntityIds: collectDescendantEntityIds(rootEntityId, allEntities) };
 }
 
@@ -73,7 +77,8 @@ export async function getUserEntityScope(
  */
 export async function getAllowedDepartmentIds(scope: EntityScope, client: ScopedClient = prisma): Promise<string[] | null> {
   if (scope.canViewAll) return null;
-  const allDepartments = await client.department.findMany({ select: { id: true, parentId: true, entityId: true } });
+  // Voir le commentaire équivalent dans getUserEntityScope ci-dessus.
+  const allDepartments = client === prisma ? await getAllDepartmentsLite() : await client.department.findMany({ select: { id: true, parentId: true, entityId: true } });
   const scopeSet = new Set(scope.scopeEntityIds);
   return allDepartments
     .filter((d) => {

@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { invalidateDepartmentsCache } from "@/lib/reference-data-cache";
 import {
   createDepartmentSchema,
   updateDepartmentSchema,
@@ -65,6 +66,10 @@ export async function createDepartment(input: CreateDepartmentInput) {
   });
 
   revalidatePath("/administration/departements");
+  // Voir src/lib/reference-data-cache.ts — la hiérarchie département/entité
+  // est mise en cache 5 min sur la plupart des pages (filtrage par
+  // périmètre), invalidée explicitement ici plutôt que d'attendre.
+  invalidateDepartmentsCache();
   return department;
 }
 
@@ -96,5 +101,9 @@ export async function updateDepartment(input: UpdateDepartmentInput) {
   });
 
   revalidatePath("/administration/departements");
+  // Voir src/lib/reference-data-cache.ts — la hiérarchie département/entité
+  // est mise en cache 5 min sur la plupart des pages (filtrage par
+  // périmètre), invalidée explicitement ici plutôt que d'attendre.
+  invalidateDepartmentsCache();
   return department;
 }
