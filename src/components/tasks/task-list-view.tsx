@@ -276,9 +276,10 @@ export function TaskListView({
   // responsablePrincipalId uniquement (TaskRow n'a pas les co-assignés) ;
   // l'autorisation réelle et complète reste vérifiée côté serveur (updateTask).
   currentUserId?: string;
-  // Demande utilisateur — /planning-personnel/mes-taches uniquement : police
-  // légèrement plus grande que le text-[11px] par défaut de la variante
-  // showCreneau, sans affecter les autres appelants (/taches, /planning).
+  // Demande utilisateur — police légèrement plus grande que le text-[11px]
+  // par défaut de la variante showCreneau, sans affecter les appelants qui
+  // ne passent pas cette prop (ex. /planning). Utilisée par
+  // /planning-personnel/mes-taches et /taches.
   tableTextClassName?: string;
 }) {
   const router = useRouter();

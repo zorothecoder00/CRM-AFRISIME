@@ -255,6 +255,9 @@ export default async function TachesPage({
             hoverLift3d
             currentUserId={userId}
             className="border-0"
+            // Demande utilisateur — meme palier que /planning-personnel/mes-taches
+            // (text-[11px] par defaut de la variante showCreneau -> text-sm).
+            tableTextClassName="text-sm"
           />
         )}
       </div>

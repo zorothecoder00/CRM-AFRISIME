@@ -137,8 +137,8 @@ export default async function PersonalPlanningMesTachesPage({
 
       <div className="space-y-3 rounded-md border bg-card p-3">
         <div>
-          <h1 className="text-sm font-semibold">Mes tâches</h1>
-          <p className="text-[11px] text-muted-foreground">{taskRows.length} tâche(s) — assignées à moi</p>
+          <h1 className="text-base font-semibold">Mes tâches</h1>
+          <p className="text-xs text-muted-foreground">{taskRows.length} tâche(s) — assignées à moi</p>
         </div>
 
         {/* Demande utilisateur — trait entre le bloc titre et le bloc des
@@ -182,9 +182,9 @@ export default async function PersonalPlanningMesTachesPage({
           hoverLift3d
           className="border-0"
           currentUserId={userId}
-          // Demande utilisateur — police légèrement plus grande que le
-          // text-[11px] par défaut de la variante showCreneau.
-          tableTextClassName="text-xs"
+          // Demande utilisateur — encore un peu plus grande (2e palier,
+          // apres le passage initial de text-[11px] a text-xs).
+          tableTextClassName="text-sm"
         />
       </div>
     </div>
