@@ -93,7 +93,7 @@ export function SubtasksSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const { run: remove } = useAction(deleteTask, { successMessage: "Sous-tâche supprimée." });
+  const { run: remove, isPending: removing } = useAction(deleteTask, { successMessage: "Sous-tâche supprimée." });
 
   async function handleRemove(id: string) {
     const result = await remove(id);
@@ -142,6 +142,7 @@ export function SubtasksSection({
               onEdit={canManage ? () => setEditingId(s.id) : undefined}
               onDelete={canDelete ? () => handleRemove(s.id) : undefined}
               deleteConfirmLabel={`Supprimer « ${s.titre} » ? La sous-tâche sera déplacée dans la corbeille.`}
+              deleteDisabled={removing}
             />
           )}
         </div>

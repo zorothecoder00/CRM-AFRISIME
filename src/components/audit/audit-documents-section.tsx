@@ -14,7 +14,7 @@ export function AuditDocumentsSection({
   documents: AuditPlanDocumentRow[];
   canManage: boolean;
 }) {
-  const { run: remove } = useAction(deleteAuditPlanDocument, { successMessage: "Document supprimé." });
+  const { run: remove, isPending: removing } = useAction(deleteAuditPlanDocument, { successMessage: "Document supprimé." });
 
   if (documents.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun document.</p>;
@@ -32,7 +32,7 @@ export function AuditDocumentsSection({
           </a>
           <span className="text-xs text-muted-foreground">{doc.uploadedByName}</span>
           {canManage && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(doc.id)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(doc.id)} disabled={removing}>
               <X className="h-3.5 w-3.5" />
             </Button>
           )}

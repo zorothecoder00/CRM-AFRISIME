@@ -19,8 +19,8 @@ export function TeamMemberManager({
   availableUsers: Option[];
 }) {
   const [value, setValue] = useState("");
-  const { run: add } = useAction(addTeamMember);
-  const { run: remove } = useAction(removeTeamMember);
+  const { run: add, isPending: adding } = useAction(addTeamMember);
+  const { run: remove, isPending: removing } = useAction(removeTeamMember);
 
   const remainingUsers = availableUsers.filter((u) => !members.some((m) => m.id === u.id));
 
@@ -34,6 +34,7 @@ export function TeamMemberManager({
             <button
               type="button"
               onClick={() => remove({ teamId, userId: m.id })}
+              disabled={removing}
               aria-label={`Retirer ${m.label}`}
             >
               <X className="h-3 w-3" />
@@ -48,6 +49,7 @@ export function TeamMemberManager({
             setValue("");
             add({ teamId, userId: v });
           }}
+          disabled={adding}
         >
           <SelectTrigger className="h-7 text-xs">
             <SelectValue placeholder="Ajouter un membre..." />

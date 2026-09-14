@@ -15,12 +15,13 @@ export function ProjectSponsorForm({
   users: Option[];
   initialSponsorId: string | null;
 }) {
-  const { run } = useAction(updateProjectSponsor, { successMessage: "Sponsor mis à jour." });
+  const { run, isPending } = useAction(updateProjectSponsor, { successMessage: "Sponsor mis à jour." });
 
   return (
     <Select
       value={initialSponsorId ?? undefined}
       onValueChange={(v) => run({ projectId, sponsorId: v })}
+      disabled={isPending}
     >
       <SelectTrigger className="h-8 w-full max-w-xs">
         <SelectValue placeholder="Non désigné" />

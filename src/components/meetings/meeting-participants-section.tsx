@@ -21,7 +21,7 @@ export function MeetingParticipantsSection({
   participants: ParticipantRow[];
   canManage: boolean;
 }) {
-  const { run: setPresence } = useAction(updateParticipantPresence, { successMessage: "Présence mise à jour." });
+  const { run: setPresence, isPending } = useAction(updateParticipantPresence, { successMessage: "Présence mise à jour." });
 
   return (
     <ul className="space-y-1.5 text-sm">
@@ -36,6 +36,7 @@ export function MeetingParticipantsSection({
                 size="sm"
                 className="h-6 px-2 text-xs"
                 onClick={() => setPresence({ meetingId, userId: p.userId, present: true })}
+                disabled={isPending}
               >
                 Présent
               </Button>
@@ -45,6 +46,7 @@ export function MeetingParticipantsSection({
                 size="sm"
                 className="h-6 px-2 text-xs"
                 onClick={() => setPresence({ meetingId, userId: p.userId, present: false })}
+                disabled={isPending}
               >
                 Absent
               </Button>

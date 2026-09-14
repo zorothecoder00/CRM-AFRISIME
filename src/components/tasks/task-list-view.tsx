@@ -136,6 +136,7 @@ function actionsColumn(options: {
   onEdit: (id: string) => void;
   onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
+  deleteDisabled?: boolean;
 }): ColumnDef<TaskRow> {
   return {
     id: "actions",
@@ -146,6 +147,7 @@ function actionsColumn(options: {
         onAddSubtask={options.canAddSubtask ? () => options.onAddSubtask(row.original) : undefined}
         onDelete={options.canDelete ? () => options.onDelete(row.original) : undefined}
         deleteConfirmLabel={`Supprimer « ${row.original.titre} » ? La tâche sera déplacée dans la corbeille.`}
+        deleteDisabled={options.deleteDisabled}
       />
     ),
   };
@@ -175,6 +177,7 @@ function buildColumns(options: {
   onEdit: (id: string) => void;
   onAddSubtask: (task: TaskRow) => void;
   onDelete: (task: TaskRow) => void;
+  deleteDisabled?: boolean;
   expandedIds: Set<string>;
   onToggleExpand: (id: string) => void;
 }): ColumnDef<TaskRow>[] {
@@ -286,7 +289,7 @@ export function TaskListView({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [subtaskParentId, setSubtaskParentId] = useState<string | null>(null);
-  const { run: remove } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
+  const { run: remove, isPending: removing } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
 
   // Demande utilisateur — dépliable pour voir/gérer les sous-tâches sans
   // quitter le tableau. Chargées à la demande (pas au chargement de la page)
@@ -344,10 +347,11 @@ export function TaskListView({
         onEdit: setEditingId,
         onAddSubtask: (task) => setSubtaskParentId(task.id),
         onDelete: (task) => remove(task.id),
+        deleteDisabled: removing,
         expandedIds,
         onToggleExpand: toggleExpand,
       }),
-    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, showCreneauColumn, titreHeader, showResponsable, remove, expandedIds, toggleExpand]
+    [canManage, canDelete, resolvedCanAddSubtask, showCreneau, showCreneauColumn, titreHeader, showResponsable, remove, removing, expandedIds, toggleExpand]
   );
 
   const table = useReactTable({

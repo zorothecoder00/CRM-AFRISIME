@@ -99,7 +99,7 @@ export function ProjectTableView({
 }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { run: remove } = useAction(deleteProject, { successMessage: "Projet supprimé." });
+  const { run: remove, isPending: removing } = useAction(deleteProject, { successMessage: "Projet supprimé." });
 
   if (projects.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun projet pour le moment.</p>;
@@ -178,6 +178,7 @@ export function ProjectTableView({
                       onEdit={canManage ? () => setEditingId(p.id) : undefined}
                       onDelete={canDelete ? () => remove(p.id) : undefined}
                       deleteConfirmLabel={`Supprimer « ${p.nom} » ? Le projet sera déplacé dans la corbeille.`}
+                      deleteDisabled={removing}
                     />
                   </TableCell>
                 )}

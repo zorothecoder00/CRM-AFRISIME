@@ -62,7 +62,7 @@ function ProjectCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: project.id });
   const [editing, setEditing] = useState(false);
-  const { run: remove } = useAction(deleteProject, { successMessage: "Projet supprimé." });
+  const { run: remove, isPending: removing } = useAction(deleteProject, { successMessage: "Projet supprimé." });
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 }
@@ -82,6 +82,7 @@ function ProjectCard({
               onEdit={canManage ? () => setEditing(true) : undefined}
               onDelete={canDelete ? handleDelete : undefined}
               deleteConfirmLabel={`Supprimer « ${project.nom} » ? Le projet sera déplacé dans la corbeille.`}
+              deleteDisabled={removing}
             />
           </div>
         )}

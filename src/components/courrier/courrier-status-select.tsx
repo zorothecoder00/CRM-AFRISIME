@@ -26,7 +26,7 @@ export function CourrierStatusSelect({
   initialStatut: string;
 }) {
   const [statut, setStatut] = useState(initialStatut);
-  const { run } = useAction(updateCourrierStatus, { successMessage: "Statut mis à jour." });
+  const { run, isPending } = useAction(updateCourrierStatus, { successMessage: "Statut mis à jour." });
 
   async function handleChange(next: string) {
     setStatut(next);
@@ -38,7 +38,7 @@ export function CourrierStatusSelect({
   }
 
   return (
-    <Select value={statut} onValueChange={handleChange}>
+    <Select value={statut} onValueChange={handleChange} disabled={isPending}>
       <SelectTrigger className="w-40">
         <SelectValue />
       </SelectTrigger>

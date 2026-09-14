@@ -89,6 +89,7 @@ export function IncidentCard({
             <Select
               value={incident.statut}
               onValueChange={(v) => statutAction.run({ id: incident.id, statut: v as (typeof INCIDENT_STATUTS)[number] }).then(() => router.refresh())}
+              disabled={statutAction.isPending}
             >
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -104,6 +105,7 @@ export function IncidentCard({
             {!incident.estEscalade && escalateTargets.length > 0 && (
               <Select
                 onValueChange={(v) => escalateAction.run({ id: incident.id, escaladeAId: v }).then(() => router.refresh())}
+                disabled={escalateAction.isPending}
               >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Escalader à..." />

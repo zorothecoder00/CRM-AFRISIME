@@ -51,7 +51,7 @@ export function ProjectIdeaTable({
   canManage: boolean;
   canCreate: boolean;
 }) {
-  const { run: setStatus } = useAction(updateProjectIdeaStatus, { successMessage: "Statut mis à jour." });
+  const { run: setStatus, isPending: settingStatus } = useAction(updateProjectIdeaStatus, { successMessage: "Statut mis à jour." });
 
   if (ideas.length === 0) {
     return (
@@ -85,7 +85,7 @@ export function ProjectIdeaTable({
             </TableCell>
             <TableCell>
               {canManage && TRANSITIONABLE_STATUSES.includes(idea.statut) ? (
-                <Select value={idea.statut} onValueChange={(v) => setStatus({ ideaId: idea.id, statut: v as never })}>
+                <Select value={idea.statut} onValueChange={(v) => setStatus({ ideaId: idea.id, statut: v as never })} disabled={settingStatus}>
                   <SelectTrigger className="h-7 w-40 text-xs">
                     <SelectValue />
                   </SelectTrigger>

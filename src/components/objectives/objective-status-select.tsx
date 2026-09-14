@@ -26,7 +26,7 @@ export function ObjectiveStatusSelect({
   initialStatut: string;
 }) {
   const [statut, setStatut] = useState(initialStatut);
-  const { run } = useAction(updateObjectiveStatus, { successMessage: "Statut mis à jour." });
+  const { run, isPending } = useAction(updateObjectiveStatus, { successMessage: "Statut mis à jour." });
 
   async function handleChange(next: string) {
     setStatut(next);
@@ -35,7 +35,7 @@ export function ObjectiveStatusSelect({
   }
 
   return (
-    <Select value={statut} onValueChange={handleChange}>
+    <Select value={statut} onValueChange={handleChange} disabled={isPending}>
       <SelectTrigger className="w-40">
         <SelectValue />
       </SelectTrigger>

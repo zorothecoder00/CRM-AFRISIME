@@ -17,12 +17,13 @@ const METHODOLOGIE_LABELS: Record<string, string> = {
 
 /** Project Studio §61 (Project Methodology) — informatif, ne restreint aucune vue. */
 export function ProjectMethodologieForm({ projectId, initialMethodologie }: { projectId: string; initialMethodologie: string | null }) {
-  const { run } = useAction(updateProjectMethodologie, { successMessage: "Méthodologie mise à jour." });
+  const { run, isPending } = useAction(updateProjectMethodologie, { successMessage: "Méthodologie mise à jour." });
 
   return (
     <Select
       value={initialMethodologie ?? undefined}
       onValueChange={(v) => run({ projectId, methodologie: v as UpdateProjectMethodologieInput["methodologie"] })}
+      disabled={isPending}
     >
       <SelectTrigger className="h-8 w-full max-w-xs">
         <SelectValue placeholder="Non définie" />

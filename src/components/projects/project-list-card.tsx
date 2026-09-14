@@ -45,7 +45,7 @@ export function ProjectListCard({
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
-  const { run: remove } = useAction(deleteProject, { successMessage: "Projet supprimé." });
+  const { run: remove, isPending: removing } = useAction(deleteProject, { successMessage: "Projet supprimé." });
 
   const depasse = project.budget !== null && project.coutReel !== null && project.coutReel > project.budget;
 
@@ -57,6 +57,7 @@ export function ProjectListCard({
             onEdit={canManage ? () => setEditing(true) : undefined}
             onDelete={canDelete ? () => remove(project.id) : undefined}
             deleteConfirmLabel={`Supprimer « ${project.nom} » ? Le projet sera déplacé dans la corbeille.`}
+            deleteDisabled={removing}
           />
         </div>
       )}

@@ -73,7 +73,7 @@ function TaskCard({
     id: task.id,
   });
   const [editing, setEditing] = useState(false);
-  const { run: remove } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
+  const { run: remove, isPending: removing } = useAction(deleteTask, { successMessage: "Tâche supprimée." });
 
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 10 }
@@ -96,6 +96,7 @@ function TaskCard({
               onEdit={canManage ? () => setEditing(true) : undefined}
               onDelete={canDelete ? handleDelete : undefined}
               deleteConfirmLabel={`Supprimer « ${task.titre} » ? La tâche sera déplacée dans la corbeille.`}
+              deleteDisabled={removing}
             />
           </div>
         )}

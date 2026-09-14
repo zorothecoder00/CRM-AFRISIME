@@ -22,7 +22,7 @@ export function OpportunityStatusSelect({
   initialStatut: string;
 }) {
   const [statut, setStatut] = useState(initialStatut);
-  const { run } = useAction(updateOpportunityStatus, { successMessage: "Statut mis à jour." });
+  const { run, isPending } = useAction(updateOpportunityStatus, { successMessage: "Statut mis à jour." });
 
   async function handleChange(next: string) {
     setStatut(next);
@@ -34,7 +34,7 @@ export function OpportunityStatusSelect({
   }
 
   return (
-    <Select value={statut} onValueChange={handleChange}>
+    <Select value={statut} onValueChange={handleChange} disabled={isPending}>
       <SelectTrigger className="w-40">
         <SelectValue />
       </SelectTrigger>

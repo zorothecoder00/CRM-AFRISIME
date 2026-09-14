@@ -47,7 +47,7 @@ export function PersonalPlanningList({
   const [editing, setEditing] = useState<PersonalPlanningListRow | null>(null);
   const editData: PersonalPlanningEntryEditData | null =
     editing && editing.type !== "RESERVE" && !editing.meetingHref ? { ...editing, type: editing.type } : null;
-  const { run: remove } = useAction(deletePersonalPlanningEntry, { successMessage: "Entrée supprimée." });
+  const { run: remove, isPending: removing } = useAction(deletePersonalPlanningEntry, { successMessage: "Entrée supprimée." });
 
   if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucune activité sur cette période.</p>;
@@ -117,6 +117,7 @@ export function PersonalPlanningList({
                     onEdit={() => setEditing(entry)}
                     onDelete={() => remove({ id: entry.id })}
                     deleteConfirmLabel={`Supprimer « ${entry.titre} » ?`}
+                    deleteDisabled={removing}
                   />
                 )}
               </TableCell>
