@@ -235,10 +235,21 @@ export async function createPersonalPlanningEntry(input: CreatePersonalPlanningE
   // les types "travail" un jour férié/non ouvré ; vérifie chaque occurrence
   // d'une série récurrente, pas seulement la première — sur le calendrier
   // du PROPRIETAIRE (ownerId), pas de qui agit (editeur eventuel).
-  for (const o of occurrences) {
-    await assertNotOnNonWorkingDay(ownerId, o.dateDebut, data.type);
-    await assertWithinWorkHours(ownerId, data.type, o.dateDebut, o.dateFin);
-  }
+  // Demande utilisateur (optimisation) — les deux vérifications tournaient
+  // une occurrence après l'autre, chacune attendant son propre aller-retour
+  // DB (une récurrence quotidienne sur un an = ~700 allers-retours
+  // séquentiels sur une seule soumission de formulaire). Paralléliser ramène
+  // ça à une seule vague de requêtes concurrentes. Chaque occurrence lève sa
+  // propre erreur si invalide ; Promise.all rejette dès la première promesse
+  // rejetée, pas forcément la plus ancienne chronologiquement si plusieurs
+  // occurrences sont invalides en même temps — différence mineure et sans
+  // conséquence ici (l'utilisateur corrige et resoumet).
+  await Promise.all(
+    occurrences.flatMap((o) => [
+      assertNotOnNonWorkingDay(ownerId, o.dateDebut, data.type),
+      assertWithinWorkHours(ownerId, data.type, o.dateDebut, o.dateFin),
+    ])
+  );
 
   const commonData = {
     userId: ownerId,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PERMISSIONS } from "@/lib/permissions";
 import { authenticateApiKey, apiKeyHasPermission } from "@/lib/api-keys";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
+import { checkApiKeyRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 /** Voir /api/v1/projects/route.ts pour le contexte général (§34). */
 export async function GET(request: NextRequest) {
@@ -11,6 +12,17 @@ export async function GET(request: NextRequest) {
   }
   if (!apiKeyHasPermission(apiKey, PERMISSIONS.TASK_READ)) {
     return NextResponse.json({ error: "Permission refusée" }, { status: 403 });
+  }
+
+  // Voir src/lib/rate-limit.ts — RateLimitBucket existait dans le schema
+  // sans jamais être utilisé, les routes /api/v1/* n'avaient donc aucun
+  // garde-fou contre un client externe qui matraque l'API.
+  const rateLimit = await checkApiKeyRateLimit(apiKey.id);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Trop de requêtes, réessayez plus tard" },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
   }
 
   const projectId = request.nextUrl.searchParams.get("projectId") ?? undefined;
@@ -27,17 +39,20 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  return NextResponse.json({
-    data: tasks.map((t) => ({
-      id: t.id,
-      titre: t.titre,
-      statut: t.statut,
-      priorite: t.priorite,
-      avancement: t.avancement,
-      echeance: t.echeance,
-      projet: t.project,
-      responsable: t.responsablePrincipal,
-      updatedAt: t.updatedAt,
-    })),
-  });
+  return NextResponse.json(
+    {
+      data: tasks.map((t) => ({
+        id: t.id,
+        titre: t.titre,
+        statut: t.statut,
+        priorite: t.priorite,
+        avancement: t.avancement,
+        echeance: t.echeance,
+        projet: t.project,
+        responsable: t.responsablePrincipal,
+        updatedAt: t.updatedAt,
+      })),
+    },
+    { headers: rateLimitHeaders(rateLimit) }
+  );
 }

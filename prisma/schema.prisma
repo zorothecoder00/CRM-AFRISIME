@@ -390,6 +390,7 @@ model AutomationCondition {
   ordre          Int                          @default(0)
 
   @@index([ruleId])
+  @@index([organizationId])
 }
 
 // Regroupement nomme de plusieurs AutomationRule executees dans l'ordre pour
@@ -417,6 +418,7 @@ model OrchestrationPlaybook {
 
   @@index([trigger])
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // Cahier des charges §21 — cadre générique de connexion à des systèmes
@@ -744,6 +746,7 @@ model User {
 
   @@index([departmentId])
   @@index([roleId])
+  @@index([organizationId])
 }
 
 // Reinitialisation de mot de passe (cf. /api/auth/forgot-password et
@@ -765,6 +768,7 @@ model PasswordResetToken {
   createdAt      DateTime              @default(now())
 
   @@index([userId])
+  @@index([organizationId])
 }
 
 // Revue de robustesse (2026-09-11) — aucun rate limiting n'existait nulle
@@ -841,6 +845,7 @@ model PermissionOverride {
   @@index([departmentId])
   @@index([projectId])
   @@index([teamId])
+  @@index([organizationId])
 }
 
 model Department {
@@ -882,6 +887,7 @@ model Department {
   createdAt           DateTime              @default(now())
 
   @@index([entityId])
+  @@index([organizationId])
 }
 
 // Équipe (cahier des charges §I "Structures... Équipes" et niveau 5 du
@@ -914,6 +920,7 @@ model Team {
   activityReportShares ActivityReportShare[]
 
   @@index([departmentId])
+  @@index([organizationId])
 }
 
 model TeamMember {
@@ -930,6 +937,7 @@ model TeamMember {
 
   @@unique([teamId, userId])
   @@index([teamId])
+  @@index([organizationId])
 }
 
 // Organizational Designer (cahier des charges V3.0 §21) — concevoir
@@ -963,6 +971,7 @@ model OrgDesignDraft {
   deployedAt           DateTime?
 
   @@index([deployedDepartmentId])
+  @@index([organizationId])
 }
 
 enum OrgDesignStatut {
@@ -983,23 +992,25 @@ model OrganizationProfile {
   // scripts/backfill-platform-organization.ts) le temps du rattachement.
   organizationId String?               @unique
   organization   PlatformOrganization? @relation("PlatformOrganizationOrganizationProfile", fields: [organizationId], references: [id])
-  nom         String   @default("Mon organisation")
-  logoUrl     String?
-  description String?
-  vision      String?
-  mission     String?
-  valeurs     String?
-  siteWeb     String?
+  nom            String                @default("Mon organisation")
+  logoUrl        String?
+  description    String?
+  vision         String?
+  mission        String?
+  valeurs        String?
+  siteWeb        String?
   // Devise d'affichage des montants (cahier des charges V3.0 §3, objectif
   // "préparer la plateforme à fonctionner à l'échelle internationale") —
   // remplace le "FCFA" jusque-là codé en dur dans ~20 fichiers (voir
   // src/lib/currency.ts). Code libre (pas un enum fermé) : les devises
   // qu'une organisation manipule varient trop pour être figées en base,
   // même principe que CrmContact.segment.
-  devise      String   @default("FCFA")
-  updatedById String?
-  updatedBy   User?    @relation(fields: [updatedById], references: [id])
-  updatedAt   DateTime @updatedAt
+  devise         String                @default("FCFA")
+  updatedById    String?
+  updatedBy      User?                 @relation(fields: [updatedById], references: [id])
+  updatedAt      DateTime              @updatedAt
+
+  @@index([organizationId])
 }
 
 // Taux de change (revue applicative du 2026-08-19, point faible "pas de
@@ -1309,6 +1320,7 @@ model DecisionOutcome {
   updatedAt            DateTime              @updatedAt
 
   @@index([sourceType, sourceId])
+  @@index([organizationId])
 }
 
 // Poste / fonction structure (cahier des charges §I) — un poste peut etre
@@ -1344,6 +1356,7 @@ model Poste {
   successionPlans      SuccessionPlan[]
 
   @@index([departmentId])
+  @@index([organizationId])
 }
 
 // Registre structure des responsabilites d'un poste (cahier des charges §I).
@@ -1359,6 +1372,7 @@ model PosteResponsabilite {
   ordre          Int                   @default(0)
 
   @@index([posteId])
+  @@index([organizationId])
 }
 
 // Talent & Succession Planning (cahier des charges V3.0 §24) — prévoit
@@ -1390,6 +1404,7 @@ model SuccessionPlan {
 
   @@index([posteId])
   @@index([titulaireId])
+  @@index([organizationId])
 }
 
 model SuccessionCandidate {
@@ -1409,6 +1424,7 @@ model SuccessionCandidate {
 
   @@unique([successionPlanId, userId])
   @@index([successionPlanId])
+  @@index([organizationId])
 }
 
 enum SuccessionPlanStatut {
@@ -1444,6 +1460,7 @@ model Site {
   users User[]
 
   @@index([departmentId])
+  @@index([organizationId])
 }
 
 // Delegation temporaire d'autorite (cahier des charges §I, "Delegations")
@@ -1470,6 +1487,7 @@ model Delegation {
 
   @@index([delegantId])
   @@index([delegataireId])
+  @@index([organizationId])
 }
 
 // Cahier des charges §IV — planification multi-niveaux. STRATEGIQUE/ANNUEL
@@ -1507,6 +1525,8 @@ model StrategicAxis {
 
   plans      Plan[]
   objectives Objective[]
+
+  @@index([organizationId])
 }
 
 enum SwotCategory {
@@ -1533,6 +1553,7 @@ model SwotItem {
   createdAt      DateTime              @default(now())
 
   @@index([categorie])
+  @@index([organizationId])
 }
 
 model Plan {
@@ -1573,6 +1594,7 @@ model Plan {
   @@index([departmentId])
   @@index([parentId])
   @@index([niveau])
+  @@index([organizationId])
 }
 
 // Regroupe plusieurs projets sous une meme initiative strategique (cahier
@@ -1611,6 +1633,7 @@ model Programme {
   beneficiaires Beneficiaire[]
 
   @@index([responsableId])
+  @@index([organizationId])
 }
 
 // Registre des risques au niveau programme (cahier des charges §V) — meme
@@ -1638,6 +1661,7 @@ model ProgrammeRisk {
   updatedAt      DateTime              @updatedAt
 
   @@index([programmeId])
+  @@index([organizationId])
 }
 
 model Project {
@@ -1780,6 +1804,8 @@ model Project {
   @@index([departmentId])
   @@index([responsableId])
   @@index([statut])
+  @@index([organizationId])
+  @@index([deletedAt])
 }
 
 // Tableau blanc collaboratif (cahier des charges §7) — un canevas par projet,
@@ -1800,6 +1826,8 @@ model Whiteboard {
   updatedById    String
   updatedBy      User                  @relation("WhiteboardUpdatedBy", fields: [updatedById], references: [id])
   updatedAt      DateTime              @updatedAt
+
+  @@index([organizationId])
 }
 
 model ProjectMember {
@@ -1815,6 +1843,7 @@ model ProjectMember {
   organization   PlatformOrganization? @relation("PlatformOrganizationProjectMembers", fields: [organizationId], references: [id])
 
   @@unique([projectId, userId])
+  @@index([organizationId])
 }
 
 // Partenaires structures d'un projet (Project Studio §62, Project
@@ -1837,6 +1866,7 @@ model ProjectPartner {
 
   @@unique([projectId, crmOrganizationId])
   @@index([crmOrganizationId])
+  @@index([organizationId])
 }
 
 enum RiskProbability {
@@ -1892,6 +1922,7 @@ model ProjectRisk {
   updatedAt       DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 enum StakeholderNiveau {
@@ -1960,6 +1991,7 @@ model Stakeholder {
   @@index([userId])
   @@index([contactId])
   @@index([responsableId])
+  @@index([organizationId])
 }
 
 // Table de liaison Stakeholder <-> Project (cahier des charges V2.2 §21,
@@ -1981,6 +2013,7 @@ model StakeholderProject {
 
   @@unique([stakeholderId, projectId])
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // Fil de communications avec une partie prenante (cahier des charges V2.2
@@ -2003,6 +2036,7 @@ model StakeholderCommunication {
   createdAt      DateTime              @default(now())
 
   @@index([stakeholderId, date])
+  @@index([organizationId])
 }
 
 enum MilestoneStatus {
@@ -2044,6 +2078,7 @@ model ProjectMilestone {
   updatedAt      DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 enum DeliverableStatus {
@@ -2106,6 +2141,7 @@ model ProjectDeliverable {
   @@index([objectiveId])
   @@index([sectionId])
   @@index([contractId])
+  @@index([organizationId])
 }
 
 // Ressource de projet (cahier des charges §VI) : registre distinct de
@@ -2138,6 +2174,7 @@ model ProjectResource {
 
   @@index([projectId])
   @@index([taskId])
+  @@index([organizationId])
 }
 
 // ─── CRM relationnel ──────────────────────────────────────────────────────
@@ -2501,6 +2538,7 @@ model ProjectSection {
   @@index([parentId])
   @@index([responsableId])
   @@index([theoryOfChangeNodeId])
+  @@index([organizationId])
 }
 
 // Commentaire sur une section (Phase/Sous-phase/Lot) — miroir de TaskComment
@@ -2520,6 +2558,7 @@ model SectionComment {
   createdAt      DateTime              @default(now())
 
   @@index([sectionId])
+  @@index([organizationId])
 }
 
 // Tâche / Sous-tâche — un seul modèle auto-référencé (sous-tâche = parentTaskId non nul).
@@ -2624,6 +2663,8 @@ model Task {
   @@index([planId])
   @@index([statut])
   @@index([echeance])
+  @@index([organizationId])
+  @@index([deletedAt])
 }
 
 enum TaskDateChangeRequestStatus {
@@ -2667,6 +2708,7 @@ model TaskDateChangeRequest {
   @@index([taskId])
   @@index([requestedById])
   @@index([statut])
+  @@index([organizationId])
 }
 
 model TaskAssignee {
@@ -2680,6 +2722,7 @@ model TaskAssignee {
   organization   PlatformOrganization? @relation("PlatformOrganizationTaskAssignees", fields: [organizationId], references: [id])
 
   @@id([taskId, userId])
+  @@index([organizationId])
 }
 
 model ChecklistItem {
@@ -2698,6 +2741,8 @@ model ChecklistItem {
   responsable    User?                 @relation("ChecklistItemResponsable", fields: [responsableId], references: [id])
   echeance       DateTime?
   createdAt      DateTime              @default(now())
+
+  @@index([organizationId])
 }
 
 model TaskComment {
@@ -2716,6 +2761,7 @@ model TaskComment {
   reactions Reaction[]
 
   @@index([taskId])
+  @@index([organizationId])
 }
 
 model TaskDependency {
@@ -2734,6 +2780,7 @@ model TaskDependency {
   organization    PlatformOrganization? @relation("PlatformOrganizationTaskDependencies", fields: [organizationId], references: [id])
 
   @@unique([taskId, dependsOnTaskId])
+  @@index([organizationId])
 }
 
 // Circuit de validation configurable (cahier des charges §9, ex: Demande →
@@ -2775,6 +2822,7 @@ model ValidationWorkflow {
   adminRequestRuns AdminRequestValidationRun[]
 
   @@index([entityType, isActive])
+  @@index([organizationId])
 }
 
 // Une étape du circuit, dans l'ordre `ordre` — l'approbateur est désigné par
@@ -2808,6 +2856,7 @@ model ValidationWorkflowStep {
   adminRequestApprovals AdminRequestApproval[]
 
   @@unique([workflowId, ordre])
+  @@index([organizationId])
 }
 
 // Instance en cours (ou terminée) d'un circuit pour une tâche précise.
@@ -2833,6 +2882,7 @@ model TaskValidationRun {
   approvals TaskApproval[]
 
   @@index([taskId])
+  @@index([organizationId])
 }
 
 // Décision (approuvé/rejeté) prise à une étape précise d'une instance de
@@ -2857,6 +2907,7 @@ model TaskApproval {
   @@unique([runId, stepId])
   @@index([runId])
   @@index([approverId])
+  @@index([organizationId])
 }
 
 // Demande administrative generique (achat, mission, decaissement, materiel,
@@ -2895,6 +2946,7 @@ model AdminRequest {
 
   @@index([demandeurId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // Miroir exact de TaskValidationRun, pour AdminRequest.
@@ -2918,6 +2970,7 @@ model AdminRequestValidationRun {
   approvals AdminRequestApproval[]
 
   @@index([adminRequestId])
+  @@index([organizationId])
 }
 
 // Miroir exact de TaskApproval, pour AdminRequestValidationRun.
@@ -2941,6 +2994,7 @@ model AdminRequestApproval {
   @@unique([runId, stepId])
   @@index([runId])
   @@index([approverId])
+  @@index([organizationId])
 }
 
 // Registre de courrier (cahier des charges §VII) — entrant/sortant/interne,
@@ -2997,6 +3051,7 @@ model Courrier {
   @@index([responsableId])
   @@index([statut])
   @@index([type])
+  @@index([organizationId])
 }
 
 enum MeetingRecurrence {
@@ -3048,6 +3103,7 @@ model Meeting {
   @@index([projectId])
   @@index([dateHeure])
   @@index([recurrenceParentId])
+  @@index([organizationId])
 }
 
 model MeetingParticipant {
@@ -3065,6 +3121,7 @@ model MeetingParticipant {
   present        Boolean?
 
   @@id([meetingId, userId])
+  @@index([organizationId])
 }
 
 // Une décision/action peut donner naissance à une Task (cahier des charges
@@ -3109,6 +3166,7 @@ model MeetingDecision {
 
   @@index([meetingId])
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // Dossier documentaire d'un projet — auto-référencé pour le classement en
@@ -3132,6 +3190,7 @@ model DocumentFolder {
 
   @@index([projectId])
   @@index([parentId])
+  @@index([organizationId])
 }
 
 // Un document appartient toujours à un projet ; il peut en plus être lié à
@@ -3242,6 +3301,8 @@ model Document {
   @@index([messageId])
   @@index([type])
   @@index([estArchive])
+  @@index([organizationId])
+  @@index([deletedAt])
 }
 
 // Controle d'acces par document (cahier des charges §10). Sans ligne pour un
@@ -3264,6 +3325,7 @@ model DocumentAccess {
 
   @@unique([documentId, userId])
   @@index([documentId])
+  @@index([organizationId])
 }
 
 // Demande utilisateur — /rapports, bloc "Rapports d'activité (manuels)" :
@@ -3293,6 +3355,7 @@ model ActivityReport {
 
   @@index([createdById])
   @@index([deletedAt])
+  @@index([organizationId])
 }
 
 // Partage d'un ActivityReport à un utilisateur OU une équipe (jamais les
@@ -3318,6 +3381,7 @@ model ActivityReportShare {
   @@index([reportId])
   @@index([userId])
   @@index([teamId])
+  @@index([organizationId])
 }
 
 // Data Governance (cahier des charges V3.0 §46) — classification/
@@ -3354,6 +3418,7 @@ model DataClassification {
 
   @@unique([entityType, entityId])
   @@index([entityType, entityId])
+  @@index([organizationId])
 }
 
 enum DataClassificationLevel {
@@ -3405,6 +3470,7 @@ model DocumentVersion {
   createdAt      DateTime              @default(now())
 
   @@index([documentId])
+  @@index([organizationId])
 }
 
 // Base de connaissances (cahier des charges §13) — wiki d'entreprise,
@@ -3444,6 +3510,8 @@ model Competence {
 
   users          UserCompetence[]
   tasksRequiring Task[]           @relation("TaskCompetencesRequises")
+
+  @@index([organizationId])
 }
 
 model UserCompetence {
@@ -3462,6 +3530,7 @@ model UserCompetence {
   @@unique([userId, competenceId])
   @@index([userId])
   @@index([competenceId])
+  @@index([organizationId])
 }
 
 model KnowledgeCategory {
@@ -3480,6 +3549,7 @@ model KnowledgeCategory {
   articles KnowledgeArticle[]
 
   @@index([parentId])
+  @@index([organizationId])
 }
 
 model KnowledgeArticle {
@@ -3502,6 +3572,7 @@ model KnowledgeArticle {
   @@index([categoryId])
   @@index([authorId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // Congé (cahier des charges §12 : le calendrier consolide tâches, réunions,
@@ -3528,6 +3599,7 @@ model Leave {
   @@index([userId])
   @@index([dateDebut])
   @@index([dateFin])
+  @@index([organizationId])
 }
 
 // Événement générique du calendrier consolidé — sans projet, c'est un
@@ -3551,6 +3623,7 @@ model Event {
 
   @@index([projectId])
   @@index([dateDebut])
+  @@index([organizationId])
 }
 
 // Objectif (cahier des charges §13) — annuel/trimestriel/mensuel/hebdomadaire,
@@ -3623,6 +3696,7 @@ model Objective {
   @@index([axisId])
   @@index([parentId])
   @@index([periode])
+  @@index([organizationId])
 }
 
 // Indicateur mesurable relié à un objectif (cahier des charges §13).
@@ -3675,6 +3749,7 @@ model Indicator {
   @@index([objectiveId])
   @@index([projectId])
   @@index([taskId])
+  @@index([organizationId])
 }
 
 enum IndicatorFrequence {
@@ -3752,6 +3827,7 @@ model Evaluation {
   @@index([departmentId])
   @@index([projectId])
   @@index([dateDebut])
+  @@index([organizationId])
 }
 
 // Critère individuel noté (ex : "Qualité du travail", "Ponctualité") —
@@ -3770,6 +3846,7 @@ model EvaluationCritere {
   createdAt      DateTime              @default(now())
 
   @@index([evaluationId])
+  @@index([organizationId])
 }
 
 // Messagerie interne (cahier des charges §11). Une conversation à deux
@@ -3802,6 +3879,8 @@ model Conversation {
 
   participants ConversationParticipant[]
   messages     Message[]
+
+  @@index([organizationId])
 }
 
 model ConversationParticipant {
@@ -3821,6 +3900,7 @@ model ConversationParticipant {
   lastReadAt     DateTime?
 
   @@id([conversationId, userId])
+  @@index([organizationId])
 }
 
 // Piece jointe (cahier des charges §11 : « partage de fichiers ») portee
@@ -3853,6 +3933,8 @@ model Message {
   documents Document[]
 
   @@index([conversationId])
+  @@index([organizationId])
+  @@index([deletedAt])
 }
 
 // Réaction à un message ou à un commentaire de tâche — exactement un des
@@ -3877,6 +3959,7 @@ model Reaction {
 
   @@unique([userId, taskCommentId, emoji])
   @@unique([userId, messageId, emoji])
+  @@index([organizationId])
 }
 
 // Notifications in-app (cahier des charges §18). `entityType`/`entityId`
@@ -3905,6 +3988,7 @@ model Notification {
 
   @@unique([userId, type, entityType, entityId])
   @@index([userId, isRead])
+  @@index([organizationId])
 }
 
 // Abonnement Web Push (canal PUSH) — un navigateur/appareil enregistre son
@@ -4035,6 +4119,7 @@ model AutomationRule {
   @@index([projectId])
   @@index([trigger])
   @@index([playbookId])
+  @@index([organizationId])
 }
 
 // Journal d'exécution — rend le moteur transparent (pas une boîte noire) :
@@ -4053,6 +4138,7 @@ model AutomationExecution {
   executedAt     DateTime              @default(now())
 
   @@index([ruleId])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §41-43 — Matrice de decision, gouvernance IA, human-in-the-loop =====================
@@ -4096,6 +4182,7 @@ model PendingAiAction {
 
   @@index([ruleId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // ===================== V3.0 §13 — Organizational Health Score =====================
@@ -4185,6 +4272,7 @@ model Transformation {
 
   @@index([departmentId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // ===================== V3.0 §17-18 — AI Memory Organisationnelle / Organizational Memory =====================
@@ -4227,6 +4315,7 @@ model OrganizationalMemoryEntry {
 
   @@index([type])
   @@index([entityType, entityId])
+  @@index([organizationId])
 }
 
 enum NiveauQualitatif {
@@ -4269,6 +4358,7 @@ model DecisionMatrix {
   options DecisionOption[]
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 model DecisionOption {
@@ -4291,6 +4381,7 @@ model DecisionOption {
   createdAt      DateTime              @default(now())
 
   @@index([matrixId])
+  @@index([organizationId])
 }
 
 // Générique — sert aussi d'historique des modifications de tâche/projet.
@@ -4315,6 +4406,7 @@ model AuditLog {
   createdAt      DateTime              @default(now())
 
   @@index([entityType, entityId])
+  @@index([organizationId, createdAt])
 }
 
 // Connexion à un système externe (cahier des charges §21). `apiKey` est le
@@ -4341,20 +4433,22 @@ model Integration {
   updatedAt      DateTime              @updatedAt
 
   events IntegrationEvent[]
+
+  @@index([organizationId])
 }
 
 // Journal des webhooks entrants reçus pour une intégration.
 model IntegrationEvent {
-  id             String                @id @default(cuid())
+  id              String                @id @default(cuid())
   // Multi-tenant Phase 1 lot 16 (2026-08-20) — meme statut que
   // Integration, denormalise depuis integration.organizationId.
-  organizationId String?
-  organization   PlatformOrganization? @relation("PlatformOrganizationIntegrationEvents", fields: [organizationId], references: [id])
-  integrationId  String
-  integration    Integration           @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  eventType      String
-  payload        Json
-  receivedAt     DateTime              @default(now())
+  organizationId  String?
+  organization    PlatformOrganization? @relation("PlatformOrganizationIntegrationEvents", fields: [organizationId], references: [id])
+  integrationId   String
+  integration     Integration           @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  eventType       String
+  payload         Json
+  receivedAt      DateTime              @default(now())
   // Revue de robustesse (2026-09-11) — identifiant fourni par l'émetteur
   // (en-tête x-event-id, ou champ id/eventId du payload) pour dédupliquer
   // une redélivrance webhook et éviter de redéclencher deux fois les règles
@@ -4364,6 +4458,7 @@ model IntegrationEvent {
 
   @@unique([integrationId, externalEventId])
   @@index([integrationId])
+  @@index([organizationId])
 }
 
 // Préférences de widgets du tableau de bord (cahier des charges §16 :
@@ -4381,6 +4476,8 @@ model DashboardWidgetPreference {
   user           User                  @relation(fields: [userId], references: [id])
   widgets        Json
   updatedAt      DateTime              @updatedAt
+
+  @@index([organizationId])
 }
 
 // ============================================================================
@@ -4439,6 +4536,8 @@ model GovernanceInstance {
 
   membres  GovernanceInstanceMember[]
   reunions GovernanceMeeting[]
+
+  @@index([organizationId])
 }
 
 model GovernanceInstanceMember {
@@ -4461,6 +4560,7 @@ model GovernanceInstanceMember {
 
   @@index([instanceId])
   @@index([userId])
+  @@index([organizationId])
 }
 
 model GovernanceMeeting {
@@ -4487,6 +4587,7 @@ model GovernanceMeeting {
   documents    GovernanceMeetingDocument[]
 
   @@index([instanceId])
+  @@index([organizationId])
 }
 
 model GovernanceMeetingParticipant {
@@ -4500,6 +4601,7 @@ model GovernanceMeetingParticipant {
   organization   PlatformOrganization? @relation("PlatformOrganizationGovernanceMeetingParticipants", fields: [organizationId], references: [id])
 
   @@id([meetingId, userId])
+  @@index([organizationId])
 }
 
 // Piece jointe simple (memes 4 champs que Message.attachment*) plutot que le
@@ -4522,6 +4624,7 @@ model GovernanceMeetingDocument {
   createdAt      DateTime              @default(now())
 
   @@index([meetingId])
+  @@index([organizationId])
 }
 
 // Workflow (cahier des charges v2 §3.2D) : Reunion -> Decision -> Action
@@ -4550,6 +4653,7 @@ model GovernanceDecision {
   createdAt      DateTime                   @default(now())
 
   @@index([meetingId])
+  @@index([organizationId])
 }
 
 enum ProcessusStatut {
@@ -4600,6 +4704,7 @@ model Processus {
   risques    OrganizationalRisk[]
 
   @@index([processusParentId])
+  @@index([organizationId])
 }
 
 model ProcessusEtape {
@@ -4624,6 +4729,7 @@ model ProcessusEtape {
   historique          ProcessusExecutionEtape[]
 
   @@index([processusId])
+  @@index([organizationId])
 }
 
 // Instantane leger a chaque nouvelle version — meme principe que
@@ -4643,6 +4749,7 @@ model ProcessusVersion {
   createdAt      DateTime              @default(now())
 
   @@index([processusId])
+  @@index([organizationId])
 }
 
 // Un "dossier" qui traverse le processus etape par etape — sert de base
@@ -4671,6 +4778,7 @@ model ProcessusExecution {
 
   @@index([processusId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // Un log par passage dans une etape : dateEntree/dateSortie permettent le
@@ -4690,6 +4798,7 @@ model ProcessusExecutionEtape {
 
   @@index([executionId])
   @@index([etapeId])
+  @@index([organizationId])
 }
 
 model ProcessusDocument {
@@ -4709,6 +4818,7 @@ model ProcessusDocument {
   createdAt      DateTime              @default(now())
 
   @@index([processusId])
+  @@index([organizationId])
 }
 
 enum RiskCriticite {
@@ -4760,6 +4870,7 @@ model OrganizationalRisk {
   @@index([projectId])
   @@index([processusId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // ===================== v2.0 §6 — Conformite =====================
@@ -4807,6 +4918,7 @@ model ComplianceObligation {
 
   @@index([statut])
   @@index([echeance])
+  @@index([organizationId])
 }
 
 model ComplianceControl {
@@ -4826,6 +4938,7 @@ model ComplianceControl {
   createdAt      DateTime                  @default(now())
 
   @@index([obligationId])
+  @@index([organizationId])
 }
 
 model ComplianceObligationDocument {
@@ -4845,6 +4958,7 @@ model ComplianceObligationDocument {
   createdAt      DateTime              @default(now())
 
   @@index([obligationId])
+  @@index([organizationId])
 }
 
 // Non-conformites partagees entre Conformite et Qualite (§6/§7) : meme cycle
@@ -4886,6 +5000,7 @@ model NonConformite {
   @@index([source])
   @@index([obligationId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 enum NonConformiteActionType {
@@ -4917,6 +5032,7 @@ model NonConformiteAction {
   createdAt       DateTime                  @default(now())
 
   @@index([nonConformiteId])
+  @@index([organizationId])
 }
 
 // ===================== v2.0 §7 — Qualite =====================
@@ -4963,6 +5079,7 @@ model QualityDocument {
 
   @@index([type])
   @@index([projectId])
+  @@index([organizationId])
 }
 
 model QualityControl {
@@ -4997,6 +5114,7 @@ model QualityControl {
 
   @@index([projectId])
   @@index([deliverableId])
+  @@index([organizationId])
 }
 
 model QualityChecklistItem {
@@ -5012,6 +5130,7 @@ model QualityChecklistItem {
   ordre          Int                   @default(0)
 
   @@index([controlId])
+  @@index([organizationId])
 }
 
 enum QualityClaimStatut {
@@ -5040,6 +5159,7 @@ model QualityClaim {
 
   @@index([statut])
   @@index([contactId])
+  @@index([organizationId])
 }
 
 // ===================== v2.0 §8 — Audit interne =====================
@@ -5079,6 +5199,8 @@ model AuditPlan {
   equipe    AuditPlanMember[]
   documents AuditPlanDocument[]
   missions  AuditMission[]
+
+  @@index([organizationId])
 }
 
 model AuditPlanMember {
@@ -5094,6 +5216,7 @@ model AuditPlanMember {
 
   @@unique([planId, userId])
   @@index([planId])
+  @@index([organizationId])
 }
 
 model AuditPlanDocument {
@@ -5113,6 +5236,7 @@ model AuditPlanDocument {
   createdAt      DateTime              @default(now())
 
   @@index([planId])
+  @@index([organizationId])
 }
 
 model AuditMission {
@@ -5134,6 +5258,7 @@ model AuditMission {
   constats AuditFinding[]
 
   @@index([planId])
+  @@index([organizationId])
 }
 
 model AuditFinding {
@@ -5153,6 +5278,7 @@ model AuditFinding {
   createdAt      DateTime              @default(now())
 
   @@index([missionId])
+  @@index([organizationId])
 }
 
 // ===================== v2.0 §9 — Incidents =====================
@@ -5219,6 +5345,7 @@ model Incident {
   @@index([statut])
   @@index([type])
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // ===================== v2.0 §10 — Gestion des changements =====================
@@ -5257,6 +5384,7 @@ model ChangeRequest {
   updatedAt         DateTime              @updatedAt
 
   @@index([statut])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §6 — Agents IA specialises =====================
@@ -5308,6 +5436,7 @@ model AiAgentInsight {
   @@index([agent])
   @@index([statut])
   @@index([entityType, entityId])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §11 — Intelligence predictive =====================
@@ -5331,6 +5460,7 @@ model MetricSnapshot {
 
   @@unique([entityType, entityId, metric, capturedAt])
   @@index([entityType, entityId, metric, capturedAt])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §13 — Cartographie des dependances =====================
@@ -5362,6 +5492,7 @@ model Dependency {
   @@unique([sourceType, sourceId, targetType, targetId])
   @@index([sourceType, sourceId])
   @@index([targetType, targetId])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §14-§15 — Scenario planning & simulation =====================
@@ -5404,6 +5535,7 @@ model Scenario {
   createdAt               DateTime              @default(now())
 
   @@index([departmentId])
+  @@index([organizationId])
 }
 
 // ===================== §16-20 — Portails externes (Client/Partenaire/ =====================
@@ -5465,6 +5597,7 @@ model MeetingExternalParticipant {
 
   @@unique([meetingId, contactId])
   @@index([contactId])
+  @@index([organizationId])
 }
 
 // Beneficiaire d'un programme/projet (V2.2 §20, portail Institution/Bailleur)
@@ -5498,6 +5631,7 @@ model Beneficiaire {
 
   @@index([programmeId])
   @@index([projectId])
+  @@index([organizationId])
 }
 
 enum BeneficiaireType {
@@ -5544,6 +5678,7 @@ model ProjectFeedback {
   createdAt      DateTime              @default(now())
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 enum MECritere {
@@ -5578,6 +5713,7 @@ model ProjectMEEvaluation {
   createdAt       DateTime                     @default(now())
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 model ProjectMEEvaluationCritere {
@@ -5592,6 +5728,7 @@ model ProjectMEEvaluationCritere {
 
   @@unique([evaluationId, critere])
   @@index([evaluationId])
+  @@index([organizationId])
 }
 
 enum DataFormFieldType {
@@ -5627,6 +5764,7 @@ model ProjectDataForm {
   updatedAt      DateTime                    @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 model ProjectDataFormField {
@@ -5648,6 +5786,7 @@ model ProjectDataFormField {
 
   @@index([formId])
   @@index([indicatorId])
+  @@index([organizationId])
 }
 
 model ProjectDataFormSubmission {
@@ -5663,6 +5802,7 @@ model ProjectDataFormSubmission {
   submittedAt    DateTime              @default(now())
 
   @@index([formId])
+  @@index([organizationId])
 }
 
 // Checklist de cloture (cahier des charges Project Studio §52) — 5 items
@@ -5685,6 +5825,8 @@ model ProjectClosureChecklist {
   beneficiairesInformes Boolean               @default(false)
   partenairesInformes   Boolean               @default(false)
   updatedAt             DateTime              @updatedAt
+
+  @@index([organizationId])
 }
 
 enum LessonType {
@@ -5712,6 +5854,7 @@ model ProjectLessonLearned {
   createdAt       DateTime              @default(now())
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 enum ProjectMethodologie {
@@ -5751,6 +5894,8 @@ model ProjectTemplate {
   createdById    String
   createdBy      User                     @relation("ProjectTemplateCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime                 @default(now())
+
+  @@index([organizationId])
 }
 
 model ProjectTemplatePhase {
@@ -5765,6 +5910,7 @@ model ProjectTemplatePhase {
   ordre          Int                   @default(0)
 
   @@index([templateId])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §22-25 — Multi-entites / Multi-pays / =====================
@@ -5809,6 +5955,7 @@ model Entity {
   crmContacts      CrmContact[]
 
   @@index([parentId])
+  @@index([organizationId])
 }
 
 // Jour ferie (cahier des charges §23) — rattache a une Entity (pays/societe),
@@ -5831,6 +5978,7 @@ model Holiday {
   createdAt          DateTime              @default(now())
 
   @@index([entityId])
+  @@index([organizationId])
 }
 
 // Module "Planning personnel" §40 — horaire hebdomadaire par utilisateur,
@@ -5869,6 +6017,7 @@ model UserWorkSchedule {
 
   @@unique([userId, jourSemaine, ordre])
   @@index([userId])
+  @@index([organizationId])
 }
 
 // Pause a l'interieur d'un horaire (UserWorkSchedule) — plusieurs pauses par
@@ -5907,6 +6056,7 @@ model UserWorkScheduleException {
 
   @@unique([userId, date])
   @@index([userId])
+  @@index([organizationId])
 }
 
 // Partage du planning personnel (demande utilisateur — "partager son agenda
@@ -5938,6 +6088,7 @@ model PersonalPlanningShare {
 
   @@unique([ownerId, granteeId])
   @@index([granteeId])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §26-30 — Digital twin, knowledge graph, recherche, command center, briefing =====================
@@ -5962,6 +6113,8 @@ model Tag {
   createdAt      DateTime              @default(now())
 
   entities EntityTag[]
+
+  @@index([organizationId])
 }
 
 model EntityTag {
@@ -5978,6 +6131,7 @@ model EntityTag {
 
   @@unique([tagId, entityType, entityId])
   @@index([entityType, entityId])
+  @@index([organizationId])
 }
 
 // ===================== V2.2 §31-35 — Weekly review, rapports, marketplace, API, automatisation inter-systemes =====================
@@ -6005,6 +6159,8 @@ model ApiKey {
   lastUsedAt     DateTime?
   revokedAt      DateTime?
   createdAt      DateTime              @default(now())
+
+  @@index([organizationId])
 }
 
 enum AppCategory {
@@ -6091,6 +6247,7 @@ model UserSession {
   revokedBy      User?                 @relation("UserSessionRevokedBy", fields: [revokedById], references: [id])
 
   @@index([userId])
+  @@index([organizationId])
 }
 
 // Canaux et niveaux de notification (cahier §39 — "Notification 2.0").
@@ -6198,6 +6355,7 @@ model ProjectIdea {
 
   @@index([statut])
   @@index([departmentId])
+  @@index([organizationId])
 }
 
 // Concept Note (Project Studio §5) — synthese pre-projet generee (et
@@ -6225,6 +6383,8 @@ model ProjectConceptNote {
   createdBy            User                  @relation("ProjectConceptNoteCreatedBy", fields: [createdById], references: [id])
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+
+  @@index([organizationId])
 }
 
 enum FinancementStatut {
@@ -6294,6 +6454,7 @@ model Financement {
 
   @@index([projectId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // ===================== PROJECT STUDIO — §6-8 (Diagnostic / arbres) =====================
@@ -6322,6 +6483,8 @@ model ProjectDiagnostic {
   updatedBy           User                  @relation("ProjectDiagnosticUpdatedBy", fields: [updatedById], references: [id])
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
+
+  @@index([organizationId])
 }
 
 enum ProblemTreeNodeType {
@@ -6375,6 +6538,7 @@ model ProblemTreeNode {
 
   @@index([projectId])
   @@index([parentId])
+  @@index([organizationId])
 }
 
 model ProblemTreeNodeDocument {
@@ -6389,6 +6553,7 @@ model ProblemTreeNodeDocument {
 
   @@unique([nodeId, documentId])
   @@index([nodeId])
+  @@index([organizationId])
 }
 
 model ProblemTreeNodeIndicator {
@@ -6403,6 +6568,7 @@ model ProblemTreeNodeIndicator {
 
   @@unique([nodeId, indicatorId])
   @@index([nodeId])
+  @@index([organizationId])
 }
 
 model ProblemTreeNodeComment {
@@ -6417,6 +6583,7 @@ model ProblemTreeNodeComment {
   createdAt      DateTime              @default(now())
 
   @@index([nodeId])
+  @@index([organizationId])
 }
 
 enum SolutionTreeNodeType {
@@ -6454,6 +6621,7 @@ model SolutionTreeNode {
 
   @@index([projectId])
   @@index([parentId])
+  @@index([organizationId])
 }
 
 // ===================== PROJECT STUDIO — §11-12 (Theorie du changement / Cadre logique) =====================
@@ -6507,6 +6675,7 @@ model TheoryOfChangeNode {
 
   @@index([projectId])
   @@index([parentId])
+  @@index([organizationId])
 }
 
 enum LogframeLevel {
@@ -6547,6 +6716,7 @@ model LogframeRow {
   updatedAt            DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // Project Studio §13 (Objectives Builder) — niveau de la chaine Objectif
@@ -6591,6 +6761,7 @@ model RaciAssignment {
   @@unique([sectionId, userId, role])
   @@index([sectionId])
   @@index([userId])
+  @@index([organizationId])
 }
 
 enum BudgetCategorie {
@@ -6632,6 +6803,7 @@ model BudgetLine {
 
   @@index([projectId])
   @@index([sectionId])
+  @@index([organizationId])
 }
 
 // Appel à projets / Funding Opportunity (Project Studio §26) — peut exister
@@ -6659,6 +6831,7 @@ model FundingOpportunity {
   updatedAt        DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 enum AssumptionStatus {
@@ -6686,6 +6859,7 @@ model ProjectAssumption {
   updatedAt      DateTime              @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // Change Request Management (Project Studio §31) — distinct du modele
@@ -6728,6 +6902,7 @@ model ProjectChangeRequest {
   updatedAt           DateTime                   @updatedAt
 
   @@index([projectId])
+  @@index([organizationId])
 }
 
 // Procurement Plan (Project Studio §34) — besoins d'achat prevus pour le
@@ -6762,6 +6937,7 @@ model ProcurementItem {
 
   @@index([projectId])
   @@index([fournisseurId])
+  @@index([organizationId])
 }
 
 // Contract Management (Project Studio §35) — Projet -> Contrat -> Fournisseur
@@ -6795,6 +6971,7 @@ model ProjectContract {
 
   @@index([projectId])
   @@index([fournisseurId])
+  @@index([organizationId])
 }
 
 model ProjectContractPayment {
@@ -6812,6 +6989,7 @@ model ProjectContractPayment {
   createdAt      DateTime              @default(now())
 
   @@index([contractId])
+  @@index([organizationId])
 }
 
 enum ContractPaymentStatus {
@@ -6845,6 +7023,7 @@ model CommunicationPlanEntry {
 
   @@index([projectId])
   @@index([stakeholderId])
+  @@index([organizationId])
 }
 
 // ===================== PLANNING PERSONNEL =====================
@@ -6987,6 +7166,7 @@ model PersonalPlanningEntry {
   @@index([tacheId])
   @@index([recurrenceGroupId])
   @@index([statut])
+  @@index([organizationId])
 }
 
 // Miroir de MeetingParticipant, sans le suivi de presence (non pertinent
@@ -7001,6 +7181,7 @@ model PersonalPlanningEntryParticipant {
   createdAt      DateTime              @default(now())
 
   @@id([entryId, userId])
+  @@index([organizationId])
 }
 
 // §22 — bilan de fin de journee : notes personnelles libres (raisons d'un
@@ -7019,6 +7200,7 @@ model PersonalPlanningDailyReview {
 
   @@unique([userId, date])
   @@index([userId])
+  @@index([organizationId])
 }
 
 // Demande de creneau sur le planning personnel d'un collegue — pattern a
@@ -7056,4 +7238,5 @@ model AvailabilityRequest {
   @@index([targetUserId])
   @@index([requestedById])
   @@index([statut])
+  @@index([organizationId])
 }

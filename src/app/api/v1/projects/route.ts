@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PERMISSIONS } from "@/lib/permissions";
 import { authenticateApiKey, apiKeyHasPermission } from "@/lib/api-keys";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
+import { checkApiKeyRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 /**
  * API REST sortante (cahier des charges V2.2 §34) — lecture seule,
@@ -20,6 +21,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Permission refusée" }, { status: 403 });
   }
 
+  // Voir src/lib/rate-limit.ts.
+  const rateLimit = await checkApiKeyRateLimit(apiKey.id);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Trop de requêtes, réessayez plus tard" },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   // Isolation multi-tenant (RLS) — voir /api/v1/tasks/route.ts.
   const projects = await withTenantScopedSession(apiKey.organizationId, (tx) =>
     tx.project.findMany({
@@ -29,18 +39,21 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  return NextResponse.json({
-    data: projects.map((p) => ({
-      id: p.id,
-      nom: p.nom,
-      statut: p.statut,
-      priorite: p.priorite,
-      avancement: p.avancement,
-      departement: p.department.name,
-      responsable: p.responsable,
-      dateDebut: p.dateDebut,
-      dateFin: p.dateFin,
-      updatedAt: p.updatedAt,
-    })),
-  });
+  return NextResponse.json(
+    {
+      data: projects.map((p) => ({
+        id: p.id,
+        nom: p.nom,
+        statut: p.statut,
+        priorite: p.priorite,
+        avancement: p.avancement,
+        departement: p.department.name,
+        responsable: p.responsable,
+        dateDebut: p.dateDebut,
+        dateFin: p.dateFin,
+        updatedAt: p.updatedAt,
+      })),
+    },
+    { headers: rateLimitHeaders(rateLimit) }
+  );
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PERMISSIONS } from "@/lib/permissions";
 import { authenticateApiKey, apiKeyHasPermission } from "@/lib/api-keys";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
+import { checkApiKeyRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 /**
  * Data & Analytics Platform (cahier des charges V3.0 §48) — "préparer une
@@ -55,6 +56,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Permission refusée" }, { status: 403 });
   }
 
+  // Voir src/lib/rate-limit.ts.
+  const rateLimit = await checkApiKeyRateLimit(apiKey.id);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Trop de requêtes, réessayez plus tard" },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   const entityType = request.nextUrl.searchParams.get("entityType") ?? undefined;
   const metric = request.nextUrl.searchParams.get("metric") ?? undefined;
   const since = request.nextUrl.searchParams.get("since");
@@ -76,13 +86,16 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  return NextResponse.json({
-    data: snapshots.map((s) => ({
-      entityType: s.entityType,
-      entityId: s.entityId,
-      metric: s.metric,
-      valeur: Number(s.valeur),
-      capturedAt: s.capturedAt,
-    })),
-  });
+  return NextResponse.json(
+    {
+      data: snapshots.map((s) => ({
+        entityType: s.entityType,
+        entityId: s.entityId,
+        metric: s.metric,
+        valeur: Number(s.valeur),
+        capturedAt: s.capturedAt,
+      })),
+    },
+    { headers: rateLimitHeaders(rateLimit) }
+  );
 }
