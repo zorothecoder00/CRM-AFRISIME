@@ -93,22 +93,27 @@ export async function createMeeting(input: CreateMeetingInput) {
       data.recurrence,
       data.recurrenceFin ? new Date(data.recurrenceFin) : undefined
     );
-    for (const dateHeure of occurrenceDates) {
-      await prisma.meeting.create({
-        data: {
-          projectId: data.projectId || null,
-          titre: data.titre,
-          dateHeure,
-          lieu: data.lieu,
-          ordreDuJour: data.ordreDuJour,
-          participantsLibres: data.participantsLibres,
-          recurrence: data.recurrence,
-          recurrenceParentId: meeting.id,
-          createdById: session.user.id,
-          participants: { create: participantIds.map((userId) => ({ userId })) },
-        },
-      });
-    }
+    // Perf (2026-09-14) — occurrences independantes (chacune sa propre
+    // creation imbriquee de participants, createMany ne le permet pas) :
+    // paralleliser plutot qu'un create sequentiel par occurrence.
+    await Promise.all(
+      occurrenceDates.map((dateHeure) =>
+        prisma.meeting.create({
+          data: {
+            projectId: data.projectId || null,
+            titre: data.titre,
+            dateHeure,
+            lieu: data.lieu,
+            ordreDuJour: data.ordreDuJour,
+            participantsLibres: data.participantsLibres,
+            recurrence: data.recurrence,
+            recurrenceParentId: meeting.id,
+            createdById: session.user.id,
+            participants: { create: participantIds.map((userId) => ({ userId })) },
+          },
+        })
+      )
+    );
   }
 
   await runMeetingCreatedRules({

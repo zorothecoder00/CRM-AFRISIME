@@ -816,15 +816,21 @@ export async function runDeadlineApproachingRules(userId: string) {
       select: { id: true, titre: true, projectId: true, responsablePrincipalId: true },
     });
 
-    for (const task of tasks) {
-      await executeAction(rule, {
-        entityType: "Task",
-        entityId: task.id,
-        label: task.titre,
-        projectId: task.projectId,
-        targetUserId: task.responsablePrincipalId,
-      });
-    }
+    // Perf (2026-09-14) — une même règle appliquée à N tâches indépendantes :
+    // aucune raison de rester séquentiel ici (contrairement à la boucle sur
+    // `rules` ci-dessus, qui doit, elle, rester dans l'ordre — voir le
+    // commentaire de findActiveRules sur les étapes d'OrchestrationPlaybook).
+    await Promise.all(
+      tasks.map((task) =>
+        executeAction(rule, {
+          entityType: "Task",
+          entityId: task.id,
+          label: task.titre,
+          projectId: task.projectId,
+          targetUserId: task.responsablePrincipalId,
+        })
+      )
+    );
   }
 }
 
@@ -851,17 +857,20 @@ export async function runTaskOverdueRules() {
       },
       select: { id: true, titre: true, projectId: true, responsablePrincipalId: true, echeance: true, priorite: true },
     });
-    for (const task of tasks) {
-      const retardJours = task.echeance ? Math.floor((Date.now() - task.echeance.getTime()) / (24 * 60 * 60 * 1000)) : 0;
-      await executeAction(rule, {
-        entityType: "Task",
-        entityId: task.id,
-        label: task.titre,
-        projectId: task.projectId,
-        targetUserId: task.responsablePrincipalId,
-        conditionData: { "task.retardJours": retardJours, "task.priorite": task.priorite },
-      });
-    }
+    // Perf — voir le commentaire équivalent dans runDeadlineApproachingRules.
+    await Promise.all(
+      tasks.map((task) => {
+        const retardJours = task.echeance ? Math.floor((Date.now() - task.echeance.getTime()) / (24 * 60 * 60 * 1000)) : 0;
+        return executeAction(rule, {
+          entityType: "Task",
+          entityId: task.id,
+          label: task.titre,
+          projectId: task.projectId,
+          targetUserId: task.responsablePrincipalId,
+          conditionData: { "task.retardJours": retardJours, "task.priorite": task.priorite },
+        });
+      })
+    );
   }
 }
 
@@ -887,15 +896,18 @@ export async function runMeetingCompletedRules() {
       },
       select: { id: true, titre: true, projectId: true, createdById: true },
     });
-    for (const meeting of meetings) {
-      await executeAction(rule, {
-        entityType: "Meeting",
-        entityId: meeting.id,
-        label: meeting.titre,
-        projectId: meeting.projectId,
-        targetUserId: meeting.createdById,
-      });
-    }
+    // Perf — voir le commentaire équivalent dans runDeadlineApproachingRules.
+    await Promise.all(
+      meetings.map((meeting) =>
+        executeAction(rule, {
+          entityType: "Meeting",
+          entityId: meeting.id,
+          label: meeting.titre,
+          projectId: meeting.projectId,
+          targetUserId: meeting.createdById,
+        })
+      )
+    );
   }
 }
 
@@ -964,16 +976,19 @@ export async function runRiskCriticalRules() {
       },
       select: { id: true, titre: true, projectId: true, responsableId: true, probabilite: true, impact: true },
     });
-    for (const risk of risks) {
-      await executeAction(rule, {
-        entityType: "ProjectRisk",
-        entityId: risk.id,
-        label: risk.titre,
-        projectId: risk.projectId,
-        targetUserId: risk.responsableId ?? undefined,
-        conditionData: { "risk.probabilite": risk.probabilite, "risk.impact": risk.impact },
-      });
-    }
+    // Perf — voir le commentaire équivalent dans runDeadlineApproachingRules.
+    await Promise.all(
+      risks.map((risk) =>
+        executeAction(rule, {
+          entityType: "ProjectRisk",
+          entityId: risk.id,
+          label: risk.titre,
+          projectId: risk.projectId,
+          targetUserId: risk.responsableId ?? undefined,
+          conditionData: { "risk.probabilite": risk.probabilite, "risk.impact": risk.impact },
+        })
+      )
+    );
   }
 }
 
@@ -1204,19 +1219,27 @@ export async function runIndicatorOffTargetRules() {
       where: { ...(rule.projectId ? { projectId: rule.projectId } : {}), valeurCible: { gt: 0 } },
       select: { id: true, nom: true, valeurCible: true, valeurActuelle: true, projectId: true },
     });
-    for (const indicator of indicators) {
-      const ecart = Math.round(
-        ((Number(indicator.valeurActuelle) - Number(indicator.valeurCible)) / Number(indicator.valeurCible)) * 100
-      );
-      if (Math.abs(ecart) < INDICATOR_OFF_TARGET_THRESHOLD_PERCENT) continue;
-      await executeAction(rule, {
-        entityType: "Indicator",
-        entityId: indicator.id,
-        label: indicator.nom,
-        projectId: indicator.projectId,
-        conditionData: { "indicator.ecartPourcent": ecart },
-      });
-    }
+    // Perf — voir le commentaire équivalent dans runDeadlineApproachingRules.
+    const offTarget = indicators
+      .map((indicator) => ({
+        indicator,
+        ecart: Math.round(
+          ((Number(indicator.valeurActuelle) - Number(indicator.valeurCible)) / Number(indicator.valeurCible)) * 100
+        ),
+      }))
+      .filter(({ ecart }) => Math.abs(ecart) >= INDICATOR_OFF_TARGET_THRESHOLD_PERCENT);
+
+    await Promise.all(
+      offTarget.map(({ indicator, ecart }) =>
+        executeAction(rule, {
+          entityType: "Indicator",
+          entityId: indicator.id,
+          label: indicator.nom,
+          projectId: indicator.projectId,
+          conditionData: { "indicator.ecartPourcent": ecart },
+        })
+      )
+    );
   }
 }
 

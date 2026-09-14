@@ -131,23 +131,29 @@ export async function runDependencyRiskChecks() {
     where: { sourceType: "Project", targetType: "Project" },
   });
 
-  for (const dep of dependencies) {
-    const risk = await checkDependencyRisk(dep);
-    if (!risk.atRisk || !risk.message) continue;
+  // Perf (2026-09-14) — cron quotidien sur TOUTES les dépendances de
+  // l'organisation : chacune est indépendante (pas d'ordre à respecter,
+  // contrairement aux règles d'automatisation/OrchestrationPlaybook), donc
+  // aucune raison de les traiter une par une plutôt qu'en une vague concurrente.
+  await Promise.all(
+    dependencies.map(async (dep) => {
+      const risk = await checkDependencyRisk(dep);
+      if (!risk.atRisk || !risk.message) return;
 
-    const sourceProject = await prisma.project.findUnique({
-      where: { id: dep.sourceId },
-      select: { responsableId: true },
-    });
+      const sourceProject = await prisma.project.findUnique({
+        where: { id: dep.sourceId },
+        select: { responsableId: true },
+      });
 
-    await recordInsight({
-      agent: "PROJECT_MANAGER",
-      type: "ALERTE",
-      titre: "Dépendance inter-projets à risque",
-      contenu: risk.message,
-      entityType: "Dependency",
-      entityId: dep.id,
-      notifyUserId: sourceProject?.responsableId,
-    });
-  }
+      await recordInsight({
+        agent: "PROJECT_MANAGER",
+        type: "ALERTE",
+        titre: "Dépendance inter-projets à risque",
+        contenu: risk.message,
+        entityType: "Dependency",
+        entityId: dep.id,
+        notifyUserId: sourceProject?.responsableId,
+      });
+    })
+  );
 }

@@ -68,28 +68,34 @@ async function runProjectManagerAgent() {
     select: { id: true, nom: true, responsableId: true, dateFin: true, budget: true, coutReel: true },
   });
 
-  for (const p of projects) {
-    const retard = p.dateFin && p.dateFin.getTime() < Date.now();
-    const depassement = p.budget !== null && p.coutReel !== null && Number(p.coutReel) > Number(p.budget);
-    if (!retard && !depassement) continue;
+  // Perf (2026-09-14) — cron quotidien sur TOUS les projets EN_COURS de
+  // l'organisation : chaque projet est traité indépendamment (recordInsight
+  // dédup par (agent, entityType, entityId), voir plus haut), aucune raison
+  // de rester séquentiel.
+  await Promise.all(
+    projects.map((p) => {
+      const retard = p.dateFin && p.dateFin.getTime() < Date.now();
+      const depassement = p.budget !== null && p.coutReel !== null && Number(p.coutReel) > Number(p.budget);
+      if (!retard && !depassement) return;
 
-    const joursRetard = retard ? Math.floor((Date.now() - p.dateFin!.getTime()) / MS_PER_DAY) : 0;
-    const raisons = [
-      retard ? `retard de ${joursRetard} jour(s)` : null,
-      depassement ? "budget dépassé" : null,
-    ].filter(Boolean);
+      const joursRetard = retard ? Math.floor((Date.now() - p.dateFin!.getTime()) / MS_PER_DAY) : 0;
+      const raisons = [
+        retard ? `retard de ${joursRetard} jour(s)` : null,
+        depassement ? "budget dépassé" : null,
+      ].filter(Boolean);
 
-    await recordInsight({
-      agent: "PROJECT_MANAGER",
-      type: "ALERTE",
-      titre: `Projet à surveiller : ${p.nom}`,
-      contenu: `${p.nom} présente ${raisons.join(" et ")}. Action proposée : revoir le plan de charge avec le responsable et, si nécessaire, réaffecter des ressources ou ajuster l'échéance. Rapport détaillé : /rapports?type=PROJETS.`,
-      entityType: "Project",
-      entityId: p.id,
-      // Déjà notifié directement par le cron (alertes retard/budget) —
-      // l'agent se contente d'agréger, pas de notifier une seconde fois.
-    });
-  }
+      return recordInsight({
+        agent: "PROJECT_MANAGER",
+        type: "ALERTE",
+        titre: `Projet à surveiller : ${p.nom}`,
+        contenu: `${p.nom} présente ${raisons.join(" et ")}. Action proposée : revoir le plan de charge avec le responsable et, si nécessaire, réaffecter des ressources ou ajuster l'échéance. Rapport détaillé : /rapports?type=PROJETS.`,
+        entityType: "Project",
+        entityId: p.id,
+        // Déjà notifié directement par le cron (alertes retard/budget) —
+        // l'agent se contente d'agréger, pas de notifier une seconde fois.
+      });
+    })
+  );
 }
 
 /** AI CRM Manager — analyse les prospects, identifie les relances, détecte les opportunités, propose les priorités. */
@@ -101,26 +107,29 @@ async function runCrmManagerAgent() {
     select: { id: true, nom: true, ownerId: true, statut: true, probabilite: true, montantEstime: true, updatedAt: true, dateClotureEstimee: true },
   });
 
-  for (const o of opportunities) {
-    const stagnante = o.updatedAt < stagnationCutoff;
-    const prioritaire =
-      (o.probabilite ?? 0) >= 70 &&
-      o.dateClotureEstimee !== null &&
-      o.dateClotureEstimee.getTime() - Date.now() < 7 * MS_PER_DAY;
-    if (!stagnante && !prioritaire) continue;
+  // Perf — voir le commentaire équivalent dans runProjectManagerAgent.
+  await Promise.all(
+    opportunities.map((o) => {
+      const stagnante = o.updatedAt < stagnationCutoff;
+      const prioritaire =
+        (o.probabilite ?? 0) >= 70 &&
+        o.dateClotureEstimee !== null &&
+        o.dateClotureEstimee.getTime() - Date.now() < 7 * MS_PER_DAY;
+      if (!stagnante && !prioritaire) return;
 
-    await recordInsight({
-      agent: "CRM_MANAGER",
-      type: prioritaire ? "RECOMMANDATION" : "ALERTE",
-      titre: prioritaire ? `Opportunité prioritaire : ${o.nom}` : `Relance suggérée : ${o.nom}`,
-      contenu: prioritaire
-        ? `${o.nom} a ${o.probabilite}% de probabilité et une clôture estimée sous 7 jours (${o.montantEstime ? `${o.montantEstime} ${devise}` : "montant non estimé"}). Priorité commerciale proposée cette semaine.`
-        : `${o.nom} n'a pas été mise à jour depuis plus de ${CRM_STAGNATION_DAYS} jours (statut : ${o.statut}). Relance recommandée pour éviter la perte de l'opportunité.`,
-      entityType: "CrmOpportunity",
-      entityId: o.id,
-      notifyUserId: o.ownerId,
-    });
-  }
+      return recordInsight({
+        agent: "CRM_MANAGER",
+        type: prioritaire ? "RECOMMANDATION" : "ALERTE",
+        titre: prioritaire ? `Opportunité prioritaire : ${o.nom}` : `Relance suggérée : ${o.nom}`,
+        contenu: prioritaire
+          ? `${o.nom} a ${o.probabilite}% de probabilité et une clôture estimée sous 7 jours (${o.montantEstime ? `${o.montantEstime} ${devise}` : "montant non estimé"}). Priorité commerciale proposée cette semaine.`
+          : `${o.nom} n'a pas été mise à jour depuis plus de ${CRM_STAGNATION_DAYS} jours (statut : ${o.statut}). Relance recommandée pour éviter la perte de l'opportunité.`,
+        entityType: "CrmOpportunity",
+        entityId: o.id,
+        notifyUserId: o.ownerId,
+      });
+    })
+  );
 
   // Comble "analyse les prospects" / "détecte les opportunités" (V2.2 §6) :
   // jusqu'ici l'agent ne réagissait qu'aux CrmOpportunity déjà créées, sans
@@ -129,18 +138,20 @@ async function runCrmManagerAgent() {
     where: { type: "PROSPECT", opportunities: { none: {} } },
     select: { id: true, prenom: true, nom: true, ownerId: true, score: true },
   });
-  for (const c of promisingProspects) {
-    if ((c.score ?? 0) < 50) continue;
-    await recordInsight({
-      agent: "CRM_MANAGER",
-      type: "RECOMMANDATION",
-      titre: `Opportunité potentielle détectée : ${c.prenom} ${c.nom}`,
-      contenu: `${c.prenom} ${c.nom} est un prospect avec un score de ${c.score}/100 mais aucune opportunité n'a encore été créée. Recommandation : qualifier et créer une opportunité.`,
-      entityType: "CrmContact",
-      entityId: c.id,
-      notifyUserId: c.ownerId,
-    });
-  }
+  await Promise.all(
+    promisingProspects.map((c) => {
+      if ((c.score ?? 0) < 50) return;
+      return recordInsight({
+        agent: "CRM_MANAGER",
+        type: "RECOMMANDATION",
+        titre: `Opportunité potentielle détectée : ${c.prenom} ${c.nom}`,
+        contenu: `${c.prenom} ${c.nom} est un prospect avec un score de ${c.score}/100 mais aucune opportunité n'a encore été créée. Recommandation : qualifier et créer une opportunité.`,
+        entityType: "CrmContact",
+        entityId: c.id,
+        notifyUserId: c.ownerId,
+      });
+    })
+  );
 }
 
 /** AI Risk Manager — analyse les risques, identifie les nouveaux risques, surveille les plans de mitigation. */
@@ -156,28 +167,31 @@ async function runRiskManagerAgent() {
     }),
   ]);
 
-  for (const r of projectRisks) {
-    await recordInsight({
-      agent: "RISK_MANAGER",
-      type: "ALERTE",
-      titre: `Risque sans plan de mitigation : ${r.titre}`,
-      contenu: `${r.titre} est un risque probable/élevé sans plan de mitigation renseigné. Action proposée : définir un plan de mitigation avant que le risque ne se matérialise.`,
-      entityType: "ProjectRisk",
-      entityId: r.id,
-      notifyUserId: r.responsableId,
-    });
-  }
-  for (const r of orgRisks) {
-    await recordInsight({
-      agent: "RISK_MANAGER",
-      type: "ALERTE",
-      titre: `Risque organisationnel sans plan de mitigation : ${r.titre}`,
-      contenu: `${r.titre} est un risque de criticité élevée/critique sans plan de mitigation renseigné. Action proposée : définir un plan de mitigation.`,
-      entityType: "OrganizationalRisk",
-      entityId: r.id,
-      notifyUserId: r.responsableId,
-    });
-  }
+  // Perf — voir le commentaire équivalent dans runProjectManagerAgent.
+  await Promise.all([
+    ...projectRisks.map((r) =>
+      recordInsight({
+        agent: "RISK_MANAGER",
+        type: "ALERTE",
+        titre: `Risque sans plan de mitigation : ${r.titre}`,
+        contenu: `${r.titre} est un risque probable/élevé sans plan de mitigation renseigné. Action proposée : définir un plan de mitigation avant que le risque ne se matérialise.`,
+        entityType: "ProjectRisk",
+        entityId: r.id,
+        notifyUserId: r.responsableId,
+      })
+    ),
+    ...orgRisks.map((r) =>
+      recordInsight({
+        agent: "RISK_MANAGER",
+        type: "ALERTE",
+        titre: `Risque organisationnel sans plan de mitigation : ${r.titre}`,
+        contenu: `${r.titre} est un risque de criticité élevée/critique sans plan de mitigation renseigné. Action proposée : définir un plan de mitigation.`,
+        entityType: "OrganizationalRisk",
+        entityId: r.id,
+        notifyUserId: r.responsableId,
+      })
+    ),
+  ]);
 
   // Comble "identifie les nouveaux risques" (V2.2 §6) : jusqu'ici l'agent ne
   // relisait que les risques déjà enregistrés sans plan — aucune détection
@@ -186,17 +200,19 @@ async function runRiskManagerAgent() {
     where: { statut: "EN_COURS", priorite: { in: ["CRITIQUE", "HAUTE"] }, risks: { none: {} } },
     select: { id: true, nom: true, responsableId: true },
   });
-  for (const p of unassessedProjects) {
-    await recordInsight({
-      agent: "RISK_MANAGER",
-      type: "RECOMMANDATION",
-      titre: `Risques non identifiés : ${p.nom}`,
-      contenu: `${p.nom} est un projet prioritaire sans aucun risque enregistré. Recommandation : réaliser une identification des risques avant qu'un problème ne se matérialise sans alerte préalable.`,
-      entityType: "Project",
-      entityId: p.id,
-      notifyUserId: p.responsableId,
-    });
-  }
+  await Promise.all(
+    unassessedProjects.map((p) =>
+      recordInsight({
+        agent: "RISK_MANAGER",
+        type: "RECOMMANDATION",
+        titre: `Risques non identifiés : ${p.nom}`,
+        contenu: `${p.nom} est un projet prioritaire sans aucun risque enregistré. Recommandation : réaliser une identification des risques avant qu'un problème ne se matérialise sans alerte préalable.`,
+        entityType: "Project",
+        entityId: p.id,
+        notifyUserId: p.responsableId,
+      })
+    )
+  );
 }
 
 /** AI Analyst — analyse les KPI, produit des rapports, détecte les anomalies. */
@@ -206,19 +222,22 @@ async function runAnalystAgent() {
     select: { id: true, nom: true, valeurCible: true, valeurActuelle: true, projectId: true, objectiveId: true },
   });
 
-  for (const ind of indicators) {
-    const ecart = Math.round(((Number(ind.valeurActuelle) - Number(ind.valeurCible)) / Number(ind.valeurCible)) * 100);
-    if (Math.abs(ecart) < KPI_ECART_THRESHOLD_PERCENT) continue;
+  // Perf — voir le commentaire équivalent dans runProjectManagerAgent.
+  await Promise.all(
+    indicators.map((ind) => {
+      const ecart = Math.round(((Number(ind.valeurActuelle) - Number(ind.valeurCible)) / Number(ind.valeurCible)) * 100);
+      if (Math.abs(ecart) < KPI_ECART_THRESHOLD_PERCENT) return;
 
-    await recordInsight({
-      agent: "ANALYST",
-      type: "ANOMALIE",
-      titre: `Écart KPI détecté : ${ind.nom}`,
-      contenu: `${ind.nom} s'écarte de sa cible de ${ecart}% (actuel : ${ind.valeurActuelle}, cible : ${ind.valeurCible}). Rapport détaillé : /rapports?type=OBJECTIFS.`,
-      entityType: "Indicator",
-      entityId: ind.id,
-    });
-  }
+      return recordInsight({
+        agent: "ANALYST",
+        type: "ANOMALIE",
+        titre: `Écart KPI détecté : ${ind.nom}`,
+        contenu: `${ind.nom} s'écarte de sa cible de ${ecart}% (actuel : ${ind.valeurActuelle}, cible : ${ind.valeurCible}). Rapport détaillé : /rapports?type=OBJECTIFS.`,
+        entityType: "Indicator",
+        entityId: ind.id,
+      });
+    })
+  );
 }
 
 /** AI Administrative Assistant — prépare les documents, suit les demandes, surveille les validations. */
@@ -235,28 +254,31 @@ async function runAdministrativeAssistantAgent() {
     }),
   ]);
 
-  for (const run of blockedRequests) {
-    await recordInsight({
-      agent: "ADMINISTRATIVE_ASSISTANT",
-      type: "ALERTE",
-      titre: `Demande bloquée : ${run.adminRequest.titre}`,
-      contenu: `${run.adminRequest.titre} est en attente de validation depuis plus de 3 jours. Suivi recommandé auprès de l'approbateur courant.`,
-      entityType: "AdminRequestValidationRun",
-      entityId: run.id,
-      // Déjà notifié directement par le cron (escalade/rappel aux
-      // approbateurs) — l'agent agrège sans notifier une seconde fois.
-    });
-  }
-  for (const run of blockedTasks) {
-    await recordInsight({
-      agent: "ADMINISTRATIVE_ASSISTANT",
-      type: "ALERTE",
-      titre: `Validation de tâche bloquée : ${run.task.titre}`,
-      contenu: `${run.task.titre} est en attente de validation depuis plus de 3 jours. Suivi recommandé auprès de l'approbateur courant.`,
-      entityType: "TaskValidationRun",
-      entityId: run.id,
-    });
-  }
+  // Perf — voir le commentaire équivalent dans runProjectManagerAgent.
+  await Promise.all([
+    ...blockedRequests.map((run) =>
+      recordInsight({
+        agent: "ADMINISTRATIVE_ASSISTANT",
+        type: "ALERTE",
+        titre: `Demande bloquée : ${run.adminRequest.titre}`,
+        contenu: `${run.adminRequest.titre} est en attente de validation depuis plus de 3 jours. Suivi recommandé auprès de l'approbateur courant.`,
+        entityType: "AdminRequestValidationRun",
+        entityId: run.id,
+        // Déjà notifié directement par le cron (escalade/rappel aux
+        // approbateurs) — l'agent agrège sans notifier une seconde fois.
+      })
+    ),
+    ...blockedTasks.map((run) =>
+      recordInsight({
+        agent: "ADMINISTRATIVE_ASSISTANT",
+        type: "ALERTE",
+        titre: `Validation de tâche bloquée : ${run.task.titre}`,
+        contenu: `${run.task.titre} est en attente de validation depuis plus de 3 jours. Suivi recommandé auprès de l'approbateur courant.`,
+        entityType: "TaskValidationRun",
+        entityId: run.id,
+      })
+    ),
+  ]);
 
   // Comble "prépare les documents" (V2.2 §6) : jusqu'ici rien n'était
   // implémenté. Faute d'un vrai moteur de génération documentaire, l'agent
@@ -267,17 +289,19 @@ async function runAdministrativeAssistantAgent() {
     where: { statut: "APPROUVE" },
     include: { adminRequest: { select: { id: true, titre: true, type: true, demandeurId: true } } },
   });
-  for (const run of approvedRequests) {
-    await recordInsight({
-      agent: "ADMINISTRATIVE_ASSISTANT",
-      type: "RECOMMANDATION",
-      titre: `Document à préparer : ${run.adminRequest.titre}`,
-      contenu: `La demande « ${run.adminRequest.titre} » (${run.adminRequest.type}) a été approuvée. Document à préparer selon le type de demande (ex. ordre de mission, bon pour accord). Lien : /demandes/${run.adminRequest.id}.`,
-      entityType: "AdminRequest",
-      entityId: run.adminRequest.id,
-      notifyUserId: run.adminRequest.demandeurId,
-    });
-  }
+  await Promise.all(
+    approvedRequests.map((run) =>
+      recordInsight({
+        agent: "ADMINISTRATIVE_ASSISTANT",
+        type: "RECOMMANDATION",
+        titre: `Document à préparer : ${run.adminRequest.titre}`,
+        contenu: `La demande « ${run.adminRequest.titre} » (${run.adminRequest.type}) a été approuvée. Document à préparer selon le type de demande (ex. ordre de mission, bon pour accord). Lien : /demandes/${run.adminRequest.id}.`,
+        entityType: "AdminRequest",
+        entityId: run.adminRequest.id,
+        notifyUserId: run.adminRequest.demandeurId,
+      })
+    )
+  );
 }
 
 /** AI Strategy Advisor — analyse les objectifs, mesure les écarts, propose des scénarios. */
@@ -287,18 +311,21 @@ async function runStrategyAdvisorAgent() {
     select: { id: true, titre: true, userId: true },
   });
 
-  for (const o of objectives) {
-    await recordInsight({
-      agent: "STRATEGY_ADVISOR",
-      type: "RECOMMANDATION",
-      titre: `Objectif en écart : ${o.titre}`,
-      contenu: `${o.titre} a dépassé son échéance sans être clôturé. Scénarios proposés : prolonger l'échéance si l'objectif reste pertinent, ou le clore en NON_ATTEINT et capitaliser sur les enseignements. Explorer l'impact chiffré d'un scénario correctif : /scenarios.`,
-      entityType: "Objective",
-      entityId: o.id,
-      // Déjà notifié directement par le cron ("objectif en retard") —
-      // l'agent agrège sans notifier une seconde fois.
-    });
-  }
+  // Perf — voir le commentaire équivalent dans runProjectManagerAgent.
+  await Promise.all(
+    objectives.map((o) =>
+      recordInsight({
+        agent: "STRATEGY_ADVISOR",
+        type: "RECOMMANDATION",
+        titre: `Objectif en écart : ${o.titre}`,
+        contenu: `${o.titre} a dépassé son échéance sans être clôturé. Scénarios proposés : prolonger l'échéance si l'objectif reste pertinent, ou le clore en NON_ATTEINT et capitaliser sur les enseignements. Explorer l'impact chiffré d'un scénario correctif : /scenarios.`,
+        entityType: "Objective",
+        entityId: o.id,
+        // Déjà notifié directement par le cron ("objectif en retard") —
+        // l'agent agrège sans notifier une seconde fois.
+      })
+    )
+  );
 }
 
 export async function runDailyAiAgents() {

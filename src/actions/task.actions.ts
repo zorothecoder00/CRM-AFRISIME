@@ -133,22 +133,30 @@ export async function createTask(input: CreateTaskInput) {
     entityId: task.id,
   });
 
-  for (const subtask of subtasks) {
-    await notifyMany([subtask.responsablePrincipalId], session.user.id, {
-      type: "NOUVELLE_TACHE",
-      titre: `Nouvelle sous-tâche assignée : ${subtask.titre}`,
-      lien: `/taches/${subtask.id}`,
-      entityType: "Task",
-      entityId: subtask.id,
-    });
-    await runTaskCreatedRules({
-      id: subtask.id,
-      titre: subtask.titre,
-      projectId: subtask.projectId,
-      responsablePrincipalId: subtask.responsablePrincipalId,
-      priorite: subtask.priorite,
-    });
-  }
+  // Perf (2026-09-14) — chaque sous-tâche est notifiée/évaluée
+  // indépendamment des autres (runTaskCreatedRules ne doit rester
+  // séquentiel qu'à l'intérieur de lui-même, pour l'ordre des règles d'un
+  // même déclencheur — voir automation.ts/findActiveRules).
+  await Promise.all(
+    subtasks.map((subtask) =>
+      Promise.all([
+        notifyMany([subtask.responsablePrincipalId], session.user.id, {
+          type: "NOUVELLE_TACHE",
+          titre: `Nouvelle sous-tâche assignée : ${subtask.titre}`,
+          lien: `/taches/${subtask.id}`,
+          entityType: "Task",
+          entityId: subtask.id,
+        }),
+        runTaskCreatedRules({
+          id: subtask.id,
+          titre: subtask.titre,
+          projectId: subtask.projectId,
+          responsablePrincipalId: subtask.responsablePrincipalId,
+          priorite: subtask.priorite,
+        }),
+      ])
+    )
+  );
 
   await runTaskCreatedRules({
     id: task.id,
