@@ -20,6 +20,13 @@ import { prisma } from "@/lib/prisma";
  * tables (voir scripts/setup-local-rls-test-role.ts) : le rôle propriétaire
  * (celui de DATABASE_URL utilisé par le reste de l'app) est exempté de RLS
  * par construction PostgreSQL, quelle que soit la valeur de app.current_org_id.
+ *
+ * Crée un nouveau pool `pg` (voir @prisma/adapter-pg) à chaque appel puis le
+ * détruit juste après — voir le commentaire sur withTenantScopedSession
+ * ci-dessous pour le risque de rafale de connexions si appelé à la fréquence
+ * d'un chargement de page. N'est appelée nulle part dans l'app aujourd'hui
+ * (seulement par les tests d'intégration) : pour du code applicatif, préférer
+ * withTenantScopedSession, qui réutilise un client mis en cache.
  */
 export async function withTenantScope<T>(
   connectionString: string,
@@ -79,7 +86,18 @@ let tenantScopedClient: PrismaClient | undefined = globalForTenantScopedPrisma.t
 
 function getTenantScopedClient(connectionString: string): PrismaClient {
   if (!tenantScopedClient) {
-    tenantScopedClient = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+    // Perf/charge (2026-09-14) — même correctif que src/lib/prisma.ts :
+    // timeout d'acquisition explicite (sinon attente indéfinie par défaut
+    // côté `pg`) + visibilité sur les erreurs de pool, jusqu'ici silencieuses.
+    tenantScopedClient = new PrismaClient({
+      adapter: new PrismaPg(
+        { connectionString, connectionTimeoutMillis: 10_000 },
+        {
+          onPoolError: (err) => console.error("[prisma:tenant-scoped] erreur pool pg (client inactif) :", err),
+          onConnectionError: (err) => console.error("[prisma:tenant-scoped] erreur connexion pg :", err),
+        }
+      ),
+    });
     if (process.env.NODE_ENV !== "production") {
       globalForTenantScopedPrisma.tenantScopedPrisma = tenantScopedClient;
     }
