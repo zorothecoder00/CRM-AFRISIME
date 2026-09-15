@@ -12,6 +12,7 @@ import {
 import { UserFormDialog } from "@/components/administration/user-form-dialog";
 import { EditUserDialog } from "@/components/administration/edit-user-dialog";
 import { ResetPasswordLinkButton } from "@/components/administration/reset-password-link-button";
+import { DisableMfaButton } from "@/components/administration/disable-mfa-button";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { Button } from "@/components/ui/button";
 
@@ -152,6 +153,7 @@ export default async function UtilisateursPage({
                       managers={managerOptions}
                     />
                     <ResetPasswordLinkButton userId={user.id} userName={user.name} />
+                    {user.mfaEnabled && <DisableMfaButton userId={user.id} userName={user.name} />}
                   </div>
                 </TableCell>
               </TableRow>

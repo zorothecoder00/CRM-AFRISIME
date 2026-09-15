@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
+import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { confirmMfaSchema, disableMfaSchema } from "@/lib/validations/security.schema";
 import { encryptSecret } from "@/lib/crypto";
 
@@ -86,4 +87,35 @@ export async function disableMfa(input: { password: string }) {
   });
 
   revalidatePath("/parametres/securite");
+}
+
+/**
+ * Débloque un utilisateur qui a perdu l'accès à son appli d'authentification
+ * (téléphone perdu/réinitialisé) ET épuisé ses codes de secours — il n'existe
+ * aucun flux self-service pour ce cas (contrairement au mot de passe, voir
+ * generatePasswordResetLink), donc un admin doit pouvoir couper le MFA à sa
+ * place. Pas de vérification de mot de passe ici (contrairement à
+ * disableMfa) : c'est l'admin qui agit, pas l'utilisateur lui-même — la
+ * permission ADMINISTRATION_USERS_MANAGE est le seul garde-fou.
+ */
+export async function adminDisableMfa(userId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.ADMINISTRATION_USERS_MANAGE);
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { mfaEnabled: false, mfaSecret: null, mfaBackupCodes: Prisma.JsonNull },
+    select: { id: true },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "security.mfa_disabled_by_admin",
+      entityType: "User",
+      entityId: user.id,
+    },
+  });
+
+  revalidatePath("/administration/utilisateurs");
 }
