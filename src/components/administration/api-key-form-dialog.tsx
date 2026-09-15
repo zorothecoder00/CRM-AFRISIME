@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "@/hooks/use-action";
 import { createApiKey } from "@/actions/api-key.actions";
-import { createApiKeySchema, type CreateApiKeyInput } from "@/lib/validations/api-key.schema";
+import { createApiKeySchema, API_KEY_PERMISSIONS, type CreateApiKeyInput } from "@/lib/validations/api-key.schema";
 import { PERMISSION_CATALOG } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 
-// Regroupe le meme catalogue que la matrice /administration/roles, mais en
-// cases a cocher compactes (une cle API porte un sous-ensemble libre, pas un
-// role entier) — voir src/lib/api-keys.ts pour la verification cote route.
-const CATEGORIES = Array.from(new Set(PERMISSION_CATALOG.map((p) => p.category)));
+// Seules les permissions réellement vérifiées par une route /api/v1/* sont
+// proposées ici (voir API_KEY_PERMISSIONS) — pas le catalogue complet des
+// permissions de rôle, dont la quasi-totalité serait inerte pour une clé API.
+type ApiKeyPermission = (typeof API_KEY_PERMISSIONS)[number];
+const SELECTABLE_PERMISSIONS = PERMISSION_CATALOG.filter(
+  (p): p is typeof p & { key: ApiKeyPermission } => (API_KEY_PERMISSIONS as readonly string[]).includes(p.key)
+);
 
 export function ApiKeyFormDialog() {
   const [open, setOpen] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<ApiKeyPermission>>(new Set());
   const {
     register,
     handleSubmit,
@@ -34,7 +37,7 @@ export function ApiKeyFormDialog() {
   });
   const { run, isPending } = useAction(createApiKey);
 
-  function toggle(key: string) {
+  function toggle(key: ApiKeyPermission) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -90,17 +93,16 @@ export function ApiKeyFormDialog() {
 
             <div className="space-y-2">
               <Label>Permissions</Label>
-              <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border p-3">
-                {CATEGORIES.map((category) => (
-                  <div key={category} className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">{category}</p>
-                    {PERMISSION_CATALOG.filter((p) => p.category === category).map((p) => (
-                      <label key={p.key} className="flex items-center gap-2 text-sm">
-                        <Checkbox checked={selected.has(p.key)} onCheckedChange={() => toggle(p.key)} />
-                        {p.label}
-                      </label>
-                    ))}
-                  </div>
+              <p className="text-xs text-muted-foreground">
+                Seules les permissions ci-dessous sont vérifiées par un endpoint /api/v1/* — le catalogue complet
+                des permissions de rôle n&apos;a aucun effet pour une clé API.
+              </p>
+              <div className="space-y-1 rounded-md border p-3">
+                {SELECTABLE_PERMISSIONS.map((p) => (
+                  <label key={p.key} className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={selected.has(p.key)} onCheckedChange={() => toggle(p.key)} />
+                    {p.label}
+                  </label>
                 ))}
               </div>
               {selected.size === 0 && <p className="text-xs text-muted-foreground">Sélectionnez au moins une permission.</p>}
