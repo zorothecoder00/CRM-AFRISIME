@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { SessionList } from "@/components/security/session-list";
 import { detectSuspiciousActivity, computePermissionsOverview } from "@/lib/security-trust-center";
+import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 
 export default async function SecuritePage() {
   const session = await getAppSession();
@@ -32,11 +33,23 @@ export default async function SecuritePage() {
       take: 50,
       include: { user: { select: { name: true } } },
     }),
-    prisma.user.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, mfaEnabled: true, role: { select: { label: true } } },
-      orderBy: { name: "asc" },
-    }),
+    // Multi-tenant Phase 2 (User est l'une des deux tables couvertes par la
+    // preuve de concept RLS, voir tenant-scoped-prisma.ts) — sans ce scope,
+    // un admin d'une organisation verrait le statut MFA/push de TOUTES les
+    // organisations de la plateforme, pas seulement la sienne.
+    withTenantScopedSession(session!.user.organizationId, (tx) =>
+      tx.user.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          mfaEnabled: true,
+          role: { select: { label: true } },
+          _count: { select: { pushSubscriptions: true } },
+        },
+        orderBy: { name: "asc" },
+      })
+    ),
     canManageSessions
       ? prisma.userSession.findMany({
           where: { revokedAt: null },
@@ -50,6 +63,8 @@ export default async function SecuritePage() {
     prisma.retentionPolicy.count({ where: { isActive: true } }),
     prisma.complianceObligation.count({ where: { statut: "NON_CONFORME" } }),
   ]);
+
+  const pushAdoptionCount = users.filter((u) => u._count.pushSubscriptions > 0).length;
 
   return (
     <div className="space-y-6">
@@ -78,7 +93,7 @@ export default async function SecuritePage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Permissions</CardTitle>
@@ -122,11 +137,27 @@ export default async function SecuritePage() {
             </Link>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Notifications push</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <p>
+              {pushAdoptionCount}/{users.length} utilisateur(s) actif(s) ont activé le push sur au moins un appareil
+            </p>
+            {users.length > 0 && (
+              <Badge variant={pushAdoptionCount === 0 ? "outline" : "default"}>
+                {Math.round((pushAdoptionCount / users.length) * 100)}% d&apos;adoption
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Double authentification (MFA)</CardTitle>
+          <CardTitle className="text-base">Double authentification (MFA) &amp; notifications push</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -135,6 +166,7 @@ export default async function SecuritePage() {
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Rôle</TableHead>
                 <TableHead>MFA</TableHead>
+                <TableHead>Push</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,6 +178,15 @@ export default async function SecuritePage() {
                     <Badge variant={u.mfaEnabled ? "default" : "outline"}>
                       {u.mfaEnabled ? "Activée" : "Désactivée"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {u._count.pushSubscriptions > 0 ? (
+                      <Badge variant="default">
+                        {u._count.pushSubscriptions} appareil{u._count.pushSubscriptions > 1 ? "s" : ""}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Aucun</Badge>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
