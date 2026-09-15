@@ -29,6 +29,7 @@ export function ApiKeyFormDialog() {
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<CreateApiKeyInput>({
@@ -37,17 +38,24 @@ export function ApiKeyFormDialog() {
   });
   const { run, isPending } = useAction(createApiKey);
 
+  // `selected` pilote l'affichage des cases (Radix Checkbox, pas un input
+  // natif que `register` pourrait suivre) — sans ce setValue, le zodResolver
+  // valide contre la valeur RHF jamais mise à jour (toujours [] par
+  // defaultValues), donc bloque silencieusement handleSubmit à chaque
+  // tentative même avec des cases cochées : le formulaire ne faisait plus
+  // rien au clic sur "Générer la clé", sans message d'erreur visible.
   function toggle(key: ApiKeyPermission) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      setValue("permissions", Array.from(next), { shouldValidate: true });
       return next;
     });
   }
 
   async function onSubmit(values: CreateApiKeyInput) {
-    const result = await run({ ...values, permissions: Array.from(selected) });
+    const result = await run(values);
     if (result.ok) {
       setCreatedKey(result.data.plaintext);
     }
@@ -57,7 +65,7 @@ export function ApiKeyFormDialog() {
     setOpen(false);
     setCreatedKey(null);
     setSelected(new Set());
-    reset({ nom: "" });
+    reset({ nom: "", permissions: [] });
   }
 
   return (
