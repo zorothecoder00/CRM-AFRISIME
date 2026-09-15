@@ -26,7 +26,7 @@ export default async function ApiKeysPage() {
         <div>
           <h1 className="text-2xl font-semibold">Clés API</h1>
           <p className="text-sm text-muted-foreground">
-            Authentification Bearer pour l&apos;API REST sortante (/api/v1/...) — cahier des charges §34. OAuth2
+            Authentification Bearer pour l&apos;API REST sortante (/api/v1/...). OAuth2
             reste un chantier différé, l&apos;accès se fait par clé API scoped par permissions.
           </p>
         </div>

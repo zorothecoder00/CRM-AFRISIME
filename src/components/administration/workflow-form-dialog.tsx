@@ -133,7 +133,7 @@ export function WorkflowFormDialog({ roles, projects }: { roles: { key: string; 
           {entityType === "ADMIN_REQUEST" && (
             <div className="space-y-4 rounded-md border p-3">
               <p className="text-xs text-muted-foreground">
-                Condition de sélection (cahier des charges §VIII) — laisser vide pour un circuit
+                Condition de sélection — laisser vide pour un circuit
                 générique, applicable à défaut d&apos;un circuit plus spécifique.
               </p>
               <div className="grid grid-cols-2 gap-4">

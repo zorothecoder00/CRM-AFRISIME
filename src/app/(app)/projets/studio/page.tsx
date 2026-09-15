@@ -41,7 +41,7 @@ export default async function ProjectStudioPickerPage() {
           <h1 className="text-2xl font-semibold">Project Studio</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Choisissez un projet pour ouvrir sa conception, sa planification, son budget, ses risques, sa qualité,
-            son exécution et son suivi-évaluation -- tout ce qu&apos;apporte le cahier des charges Project Studio.
+            son exécution et son suivi-évaluation.
           </p>
         </div>
       </div>

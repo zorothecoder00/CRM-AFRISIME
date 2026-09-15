@@ -110,7 +110,7 @@ export default async function OrganigrammePage() {
       <div>
         <h1 className="text-2xl font-semibold">Organigramme</h1>
         <p className="text-sm text-muted-foreground">
-          Vue graphique (cahier des charges §I) — la vue « Départements » reste l&apos;écran de gestion (créer,
+          Vue graphique — la vue « Départements » reste l&apos;écran de gestion (créer,
           renommer, rattacher).
         </p>
       </div>

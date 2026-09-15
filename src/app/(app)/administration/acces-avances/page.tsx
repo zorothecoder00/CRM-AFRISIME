@@ -36,7 +36,7 @@ export default async function AccesAvancesPage() {
           <h1 className="text-2xl font-semibold">Accès avancés</h1>
           <p className="text-sm text-muted-foreground">
             Dérogations ciblées par utilisateur, département, projet ou équipe — complètent la matrice par
-            rôle (cahier des charges §19). Une dérogation « Refuser » l&apos;emporte toujours sur le rôle.
+            rôle. Une dérogation « Refuser » l&apos;emporte toujours sur le rôle.
           </p>
         </div>
         <PermissionOverrideFormDialog

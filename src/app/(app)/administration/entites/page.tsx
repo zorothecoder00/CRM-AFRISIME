@@ -83,7 +83,7 @@ export default async function EntitesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Entités du groupe</h1>
           <p className="text-sm text-muted-foreground">
-            Architecture multi-entités (cahier des charges §22-23) — Groupe → Société → Filiale → Agence,
+            Architecture multi-entités — Groupe → Société → Filiale → Agence,
             chacune rattachable à un pays/une devise/un fuseau horaire propre. Les départements racines
             peuvent être rattachés à une entité pour définir le périmètre de consolidation et d&apos;isolation
             des données.

@@ -36,7 +36,7 @@ export default async function StrategiePage() {
         <div>
           <h1 className="text-2xl font-semibold">Stratégie</h1>
           <p className="text-sm text-muted-foreground">
-            Vision, mission, valeurs et axes stratégiques (cahier des charges §III) — le socle que la
+            Vision, mission, valeurs et axes stratégiques — le socle que la
             planification et les objectifs déclinent ensuite.
           </p>
         </div>

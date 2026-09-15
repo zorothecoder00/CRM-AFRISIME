@@ -36,7 +36,7 @@ export default async function EquipesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Équipes</h1>
           <p className="text-sm text-muted-foreground">
-            Groupes de travail au sein d&apos;un département (cahier des charges §I) — distincts de la hiérarchie
+            Groupes de travail au sein d&apos;un département — distincts de la hiérarchie
             Direction/Département/Service.
           </p>
         </div>

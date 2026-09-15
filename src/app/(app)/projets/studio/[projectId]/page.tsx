@@ -118,8 +118,7 @@ export default async function ProjectStudioDetailPage({
         </Link>
         <h1 className="mt-1 text-2xl font-semibold">Project Studio — {project.nom}</h1>
         <p className="text-sm text-muted-foreground">
-          Conception, planification, budget, risques, qualité, exécution, suivi-évaluation et clôture — tout ce qu&apos;apporte le
-          cahier des charges Project Studio pour ce projet.
+          Conception, planification, budget, risques, qualité, exécution, suivi-évaluation et clôture pour ce projet.
         </p>
       </div>
           <ProjectStudioPanel

@@ -64,7 +64,7 @@ export default async function EvaluationsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Évaluations de performance</h1>
           <p className="text-sm text-muted-foreground">
-            Auto-évaluation, évaluation manager, 360° et évaluation projet (cahier des charges §XII).
+            Auto-évaluation, évaluation manager, 360° et évaluation projet.
           </p>
         </div>
         <EvaluationFormDialog

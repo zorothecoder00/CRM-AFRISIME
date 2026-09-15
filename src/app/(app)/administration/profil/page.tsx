@@ -24,7 +24,7 @@ export default async function OrganizationProfilePage() {
       <div>
         <h1 className="text-2xl font-semibold">Profil de l&apos;organisation</h1>
         <p className="text-sm text-muted-foreground">
-          Identité globale de l&apos;organisation (cahier des charges §I).
+          Identité globale de l&apos;organisation.
         </p>
       </div>
 

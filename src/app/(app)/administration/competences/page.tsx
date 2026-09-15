@@ -32,7 +32,7 @@ export default async function CompetencesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Compétences</h1>
           <p className="text-sm text-muted-foreground">
-            Catalogue de compétences (cahier des charges §XII) — chaque collaborateur déclare les siennes depuis
+            Catalogue de compétences — chaque collaborateur déclare les siennes depuis
             son profil.
           </p>
         </div>

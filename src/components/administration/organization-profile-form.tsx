@@ -87,7 +87,7 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
         <CardHeader>
           <CardTitle className="text-base">Identité de l&apos;organisation</CardTitle>
           <CardDescription>
-            Vision, mission et valeurs (cahier des charges §III) — le socle que les objectifs stratégiques
+            Vision, mission et valeurs — le socle que les objectifs stratégiques
             déclinent ensuite.
           </CardDescription>
         </CardHeader>

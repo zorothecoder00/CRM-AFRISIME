@@ -37,7 +37,7 @@ export default async function DelegationsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Délégations</h1>
           <p className="text-sm text-muted-foreground">
-            Délégation temporaire d&apos;autorité (cahier des charges §I) — registre consultable, ne reroute pas
+            Délégation temporaire d&apos;autorité — registre consultable, ne reroute pas
             automatiquement les circuits de validation.
           </p>
         </div>

@@ -38,8 +38,8 @@ export default async function WorkflowsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Circuits de validation</h1>
           <p className="text-sm text-muted-foreground">
-            Chaîne d&apos;approbateurs configurable pour les tâches (cahier des charges §9) et
-            les demandes administratives (§VII/§VIII). Un seul circuit actif à la fois, par type.
+            Chaîne d&apos;approbateurs configurable pour les tâches et
+            les demandes administratives. Un seul circuit actif à la fois, par type.
           </p>
         </div>
         <WorkflowFormDialog roles={roles} projects={projects.map((p) => ({ id: p.id, label: p.nom }))} />

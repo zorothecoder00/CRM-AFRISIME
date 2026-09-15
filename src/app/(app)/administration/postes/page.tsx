@@ -35,7 +35,7 @@ export default async function PostesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Postes</h1>
           <p className="text-sm text-muted-foreground">
-            Postes structurés (cahier des charges §I) — avec responsabilités, distincts du rôle qui porte les permissions.
+            Postes structurés — avec responsabilités, distincts du rôle qui porte les permissions.
           </p>
         </div>
         <PosteFormDialog departments={departments.map((d) => ({ id: d.id, label: d.name }))} />

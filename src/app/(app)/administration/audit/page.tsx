@@ -76,7 +76,7 @@ export default async function AuditPage({
       <div>
         <h1 className="text-2xl font-semibold">Journal d&apos;audit</h1>
         <p className="text-sm text-muted-foreground">
-          Vue transversale de toutes les actions journalisées (cahier des charges §18/§23). {total} événement(s).
+          Vue transversale de toutes les actions journalisées. {total} événement(s).
         </p>
       </div>
 

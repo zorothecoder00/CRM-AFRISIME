@@ -29,7 +29,7 @@ export default async function SitesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Sites &amp; agences</h1>
           <p className="text-sm text-muted-foreground">
-            Localisations physiques de l&apos;organisation (cahier des charges §I).
+            Localisations physiques de l&apos;organisation.
           </p>
         </div>
         <SiteFormDialog departments={departments.map((d) => ({ id: d.id, label: d.name }))} />

@@ -140,7 +140,7 @@ export function DepartmentFormDialog({
 
           {!currentParentId && entities && entities.length > 0 && (
             <div className="space-y-2">
-              <Label>Entité de rattachement (cahier des charges §22)</Label>
+              <Label>Entité de rattachement</Label>
               <Select defaultValue={department?.entityId ?? undefined} onValueChange={(v) => setValue("entityId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Aucune" />

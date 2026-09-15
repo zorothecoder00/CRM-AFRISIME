@@ -120,7 +120,7 @@ export default async function SecuritePage() {
       <div>
         <h1 className="text-2xl font-semibold">Centre de sécurité</h1>
         <p className="text-sm text-muted-foreground">
-          Security & Trust Center (cahier des charges V3.0 §44) — sécurité, sessions, appareils, connexions,
+          Security & Trust Center — sécurité, sessions, appareils, connexions,
           permissions, audit, activités suspectes, politiques, conformité.
         </p>
       </div>

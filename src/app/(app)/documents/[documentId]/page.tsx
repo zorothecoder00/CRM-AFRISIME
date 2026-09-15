@@ -255,7 +255,7 @@ export default async function DocumentDetailPage({
               </div>
               <div className="border-t pt-3">
                 <p className="mb-2 text-xs text-muted-foreground">
-                  Visibilité dans le portail externe (cahier des charges §19) — non partagé par défaut.
+                  Visibilité dans le portail externe — non partagé par défaut.
                 </p>
                 <DocumentPartageExterneToggle documentId={document.id} partageExterne={document.partageExterne} />
               </div>

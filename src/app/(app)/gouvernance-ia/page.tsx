@@ -90,7 +90,7 @@ export default async function GouvernanceIaPage() {
           <h1 className="text-2xl font-semibold">Gouvernance IA</h1>
           <p className="text-sm text-muted-foreground">
             Trois niveaux — Suggestion, Validation humaine, Automatisation autorisée — et traçabilité complète de
-            chaque action IA (cahier des charges §42-43).
+            chaque action IA.
           </p>
         </div>
       </div>

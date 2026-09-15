@@ -286,7 +286,7 @@ export default async function ProgrammeDetailPage({
         <TabsContent value="objectifs" className="mt-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Objectifs rattachés directement à ce programme (cahier des charges §V).
+              Objectifs rattachés directement à ce programme.
             </p>
             <ObjectiveFormDialog
               users={users.map((u) => ({ id: u.id, label: u.name }))}
