@@ -25,9 +25,18 @@ export default async function SecuritePage() {
     redirect("/dashboard");
   }
   const canManageSessions = session!.user.permissions.includes(PERMISSIONS.SESSION_MANAGE);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const [logs, users, activeSessions, suspiciousActivity, permissionsOverview, retentionPoliciesActive, complianceNonConformesCount] =
-    await Promise.all([
+  const [
+    logs,
+    users,
+    activeSessions,
+    suspiciousActivity,
+    permissionsOverview,
+    retentionPoliciesActive,
+    complianceNonConformesCount,
+    pushDeliveryLogs,
+  ] = await Promise.all([
     prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -62,9 +71,25 @@ export default async function SecuritePage() {
     computePermissionsOverview(),
     prisma.retentionPolicy.count({ where: { isActive: true } }),
     prisma.complianceObligation.count({ where: { statut: "NON_CONFORME" } }),
+    // Tentatives d'envoi externe journalisées par attemptExternalDelivery
+    // (src/lib/notify.ts, action "notification.external_delivery_attempted") —
+    // seule trace existante d'un succès/échec d'envoi push, jamais consultée
+    // côté admin jusqu'ici (sendPush() retournait { sent: false, reason }
+    // sans que personne ne le lise).
+    prisma.auditLog.findMany({
+      where: { action: "notification.external_delivery_attempted", createdAt: { gte: thirtyDaysAgo } },
+      select: { changes: true },
+    }),
   ]);
 
   const pushAdoptionCount = users.filter((u) => u._count.pushSubscriptions > 0).length;
+
+  const pushDeliveryResults = pushDeliveryLogs.flatMap((log) => {
+    const changes = log.changes as { results?: { channel: string; sent: boolean; reason?: string }[] } | null;
+    return changes?.results?.filter((r) => r.channel === "PUSH") ?? [];
+  });
+  const pushAttemptsCount = pushDeliveryResults.length;
+  const pushFailuresCount = pushDeliveryResults.filter((r) => !r.sent).length;
 
   return (
     <div className="space-y-6">
@@ -150,6 +175,16 @@ export default async function SecuritePage() {
               <Badge variant={pushAdoptionCount === 0 ? "outline" : "default"}>
                 {Math.round((pushAdoptionCount / users.length) * 100)}% d&apos;adoption
               </Badge>
+            )}
+            {pushAttemptsCount > 0 ? (
+              <p>
+                <Badge variant={pushFailuresCount > 0 ? "destructive" : "default"}>
+                  {pushFailuresCount} échec{pushFailuresCount > 1 ? "s" : ""} d&apos;envoi
+                </Badge>{" "}
+                sur {pushAttemptsCount} tentative{pushAttemptsCount > 1 ? "s" : ""} (30 derniers jours)
+              </p>
+            ) : (
+              <p className="text-muted-foreground">Aucune tentative d&apos;envoi push sur les 30 derniers jours.</p>
             )}
           </CardContent>
         </Card>
