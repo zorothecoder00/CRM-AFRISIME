@@ -78,18 +78,22 @@ export default async function SecuritePage() {
     // sans que personne ne le lise).
     prisma.auditLog.findMany({
       where: { action: "notification.external_delivery_attempted", createdAt: { gte: thirtyDaysAgo } },
-      select: { changes: true },
+      select: { createdAt: true, changes: true, user: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 
   const pushAdoptionCount = users.filter((u) => u._count.pushSubscriptions > 0).length;
 
   const pushDeliveryResults = pushDeliveryLogs.flatMap((log) => {
-    const changes = log.changes as { results?: { channel: string; sent: boolean; reason?: string }[] } | null;
-    return changes?.results?.filter((r) => r.channel === "PUSH") ?? [];
+    const changes = log.changes as { titre?: string; results?: { channel: string; sent: boolean; reason?: string }[] } | null;
+    return (changes?.results ?? [])
+      .filter((r) => r.channel === "PUSH")
+      .map((r) => ({ createdAt: log.createdAt, userName: log.user?.name, titre: changes?.titre, ...r }));
   });
   const pushAttemptsCount = pushDeliveryResults.length;
-  const pushFailuresCount = pushDeliveryResults.filter((r) => !r.sent).length;
+  const pushFailures = pushDeliveryResults.filter((r) => !r.sent);
+  const pushFailuresCount = pushFailures.length;
 
   return (
     <div className="space-y-6">
@@ -229,6 +233,40 @@ export default async function SecuritePage() {
           </Table>
         </CardContent>
       </Card>
+
+      {pushFailuresCount > 0 && (
+        <Card accent="destructive">
+          <CardHeader>
+            <CardTitle className="text-base">
+              Échecs d&apos;envoi push (30 derniers jours) — {pushFailuresCount}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Utilisateur</TableHead>
+                  <TableHead>Notification</TableHead>
+                  <TableHead>Raison</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pushFailures.map((f, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      {f.createdAt.toLocaleString("fr-FR")}
+                    </TableCell>
+                    <TableCell>{f.userName ?? "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{f.titre ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{f.reason ?? "Raison non précisée."}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {canManageSessions && (
         <Card>
