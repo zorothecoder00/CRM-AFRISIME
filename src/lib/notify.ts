@@ -15,6 +15,16 @@ const ACTIVE_TASK_STATUSES: TaskStatus[] = [
 ];
 const DEADLINE_SOON_DAYS = 2;
 
+// Tous les canaux réels — le vrai filtre est déjà `attemptExternalDelivery`
+// croisant avec `User.notificationChannelsPreferred` (l'utilisateur choisit
+// dans /parametres/notifications). Audit du 2026-09-15 : aucun des ~51
+// appelants de createNotification/notifyMany dans toute l'app ne passait
+// jamais `channels` explicitement, donc le défaut précédent (INTERNE seul)
+// coupait silencieusement PUSH/EMAIL/SMS/MESSAGERIE_EXTERNE pour absolument
+// tout événement, quels que soient les canaux activés par l'utilisateur —
+// le mécanisme de préférence existait mais n'était jamais atteint.
+const ALL_CHANNELS: NotificationChannel[] = ["INTERNE", "EMAIL", "SMS", "PUSH", "MESSAGERIE_EXTERNE"];
+
 // V2.2 §39 — "Notification 2.0" : chaque NotificationType existant (§18)
 // est classé dans l'un des 6 niveaux abstraits du cahier des charges, une
 // seule fois ici plutôt que sur chacun des ~15 sites d'appel de
@@ -52,11 +62,14 @@ const NOTIFICATION_NIVEAU_BY_TYPE: Partial<Record<NotificationType, Notification
  * entityType/entityId sont volontairement obligatoires : Prisma ne permet
  * pas de valeur NULL fiable dans une clé de recherche composite unique.
  *
- * V2.2 §39 : `channels` (par défaut INTERNE seul) est croisé avec les
- * préférences de l'utilisateur (`User.notificationChannelsPreferred`) —
- * seuls les canaux demandés ET préférés déclenchent une tentative
- * d'envoi externe, journalisée sans envoi réel (aucun fournisseur SMTP/SMS/
- * push configuré, même statut que SEND_EMAIL dans automation.ts).
+ * V2.2 §39 : `channels` (par défaut tous les canaux, voir ALL_CHANNELS) est
+ * croisé avec les préférences de l'utilisateur (`User.notificationChannelsPreferred`)
+ * — seuls les canaux à la fois demandés ET préférés déclenchent une tentative
+ * d'envoi externe. EMAIL/SMS/MESSAGERIE_EXTERNE restent journalisés sans
+ * envoi réel tant qu'aucun fournisseur n'est configuré ; PUSH fonctionne
+ * réellement dès qu'un navigateur est abonné. Un appelant ne passe
+ * `channels` explicitement que pour RESTREINDRE ce défaut (ex. un type
+ * purement interne qui ne devrait jamais sonner un téléphone).
  */
 export async function createNotification(params: {
   userId: string;
@@ -68,7 +81,7 @@ export async function createNotification(params: {
   channels?: NotificationChannel[];
 }) {
   const { userId, type, titre, lien, entityType, entityId } = params;
-  const channels = params.channels ?? ["INTERNE"];
+  const channels = params.channels ?? ALL_CHANNELS;
   const niveau: NotificationNiveau = NOTIFICATION_NIVEAU_BY_TYPE[type] ?? "INFORMATION";
 
   await prisma.notification.upsert({
