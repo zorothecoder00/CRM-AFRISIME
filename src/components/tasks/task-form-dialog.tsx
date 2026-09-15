@@ -116,187 +116,232 @@ export function TaskFormDialog({
           Nouvelle tâche
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] w-full overflow-y-auto sm:max-w-2xl lg:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Créer une tâche</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Projet</Label>
-            <Select
-              onValueChange={(v) => {
-                setSelectedProjectId(v);
-                setValue("projectId", v);
-                setValue("sectionId", undefined);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.projectId && (
-              <p className="text-sm text-destructive">{errors.projectId.message}</p>
-            )}
-          </div>
-
-          {sectionsForProject.length > 0 && (
-            <div className="space-y-2">
-              <Label>Phase / Sous-phase / Lot</Label>
-              <Select onValueChange={(v) => setValue("sectionId", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Optionnel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sectionsForProject.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="titre">Titre</Label>
-            <Input id="titre" {...register("titre")} />
-            {errors.titre && <p className="text-sm text-destructive">{errors.titre.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" {...register("description")} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Responsable principal</Label>
-                {selectedProjectId && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-xs"
-                    onClick={handleSuggest}
-                    disabled={isSuggesting}
-                  >
-                    {isSuggesting ? "Analyse..." : "Suggérer un responsable"}
-                  </Button>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Projet</Label>
+                <Select
+                  onValueChange={(v) => {
+                    setSelectedProjectId(v);
+                    setValue("projectId", v);
+                    setValue("sectionId", undefined);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.projectId && (
+                  <p className="text-sm text-destructive">{errors.projectId.message}</p>
                 )}
               </div>
-              <Select onValueChange={(v) => setValue("responsablePrincipalId", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.responsablePrincipalId && (
-                <p className="text-sm text-destructive">{errors.responsablePrincipalId.message}</p>
-              )}
-              {suggestions && (
-                <div className="space-y-1 rounded-md border p-2">
-                  {suggestions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Aucun profil disponible.</p>
-                  ) : (
-                    suggestions.map((c) => (
-                      <button
-                        key={c.userId}
-                        type="button"
-                        onClick={() => {
-                          setValue("responsablePrincipalId", c.userId);
-                          setSuggestions(null);
-                        }}
-                        className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs hover:bg-muted"
-                      >
-                        <span>
-                          {c.name} <span className="text-muted-foreground">({c.roleLabel})</span>
-                        </span>
-                        <span className="text-muted-foreground">
-                          {c.scoreTotal}/100 · charge {c.tauxOccupation}%{c.enConge ? " · en congé" : ""}
-                        </span>
-                      </button>
-                    ))
-                  )}
+
+              {sectionsForProject.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Phase / Sous-phase / Lot</Label>
+                  <Select onValueChange={(v) => setValue("sectionId", v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Optionnel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sectionsForProject.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
-            </div>
 
-            <div className="space-y-2">
-              <Label>Priorité</Label>
-              <Select
-                defaultValue="MOYENNE"
-                onValueChange={(v) => setValue("priorite", v as CreateTaskInput["priorite"])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TRES_HAUTE">Très haute</SelectItem>
-                  <SelectItem value="HAUTE">Haute</SelectItem>
-                  <SelectItem value="MOYENNE">Moyenne</SelectItem>
-                  <SelectItem value="BASSE">Basse</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Co-responsables</Label>
-            <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
-              {users.map((u) => (
-                <label key={u.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={assigneeIds.includes(u.id)}
-                    onCheckedChange={(c) => toggleAssignee(u.id, c === true)}
-                  />
-                  {u.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {competences && competences.length > 0 && (
-            <div className="space-y-2">
-              <Label>Compétences requises (optionnel)</Label>
-              <p className="text-xs text-muted-foreground">
-                Utilisées par « Suggérer un responsable » pour évaluer la correspondance.
-              </p>
-              <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
-                {competences.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={competenceIds.includes(c.id)}
-                      onCheckedChange={(checked) => toggleCompetence(c.id, checked === true)}
-                    />
-                    {c.label}
-                  </label>
-                ))}
+              <div className="space-y-2">
+                <Label htmlFor="titre">Titre</Label>
+                <Input id="titre" {...register("titre")} />
+                {errors.titre && <p className="text-sm text-destructive">{errors.titre.message}</p>}
               </div>
-            </div>
-          )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="echeance">Échéance</Label>
-              <Input id="echeance" type="date" {...register("echeance")} />
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" {...register("description")} />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="echeance">Échéance</Label>
+                  <Input id="echeance" type="date" {...register("echeance")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tempsEstimeHeures">Temps estimé (h)</Label>
+                  <Input id="tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
+                </div>
+              </div>
+
+              {(objectives && objectives.length > 0) || (plans && plans.length > 0) ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {objectives && objectives.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Objectif lié (optionnel)</Label>
+                      <Select onValueChange={(v) => setValue("objectiveId", v)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Aucun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {objectives.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {plans && plans.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Plan lié (optionnel)</Label>
+                      <Select onValueChange={(v) => setValue("planId", v)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Aucun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {plans.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="tempsEstimeHeures">Temps estimé (h)</Label>
-              <Input id="tempsEstimeHeures" type="number" step="0.5" {...register("tempsEstimeHeures")} />
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Responsable principal</Label>
+                    {selectedProjectId && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={handleSuggest}
+                        disabled={isSuggesting}
+                      >
+                        {isSuggesting ? "Analyse..." : "Suggérer un responsable"}
+                      </Button>
+                    )}
+                  </div>
+                  <Select onValueChange={(v) => setValue("responsablePrincipalId", v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.responsablePrincipalId && (
+                    <p className="text-sm text-destructive">{errors.responsablePrincipalId.message}</p>
+                  )}
+                  {suggestions && (
+                    <div className="space-y-1 rounded-md border p-2">
+                      {suggestions.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Aucun profil disponible.</p>
+                      ) : (
+                        suggestions.map((c) => (
+                          <button
+                            key={c.userId}
+                            type="button"
+                            onClick={() => {
+                              setValue("responsablePrincipalId", c.userId);
+                              setSuggestions(null);
+                            }}
+                            className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs hover:bg-muted"
+                          >
+                            <span>
+                              {c.name} <span className="text-muted-foreground">({c.roleLabel})</span>
+                            </span>
+                            <span className="text-muted-foreground">
+                              {c.scoreTotal}/100 · charge {c.tauxOccupation}%{c.enConge ? " · en congé" : ""}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Priorité</Label>
+                  <Select
+                    defaultValue="MOYENNE"
+                    onValueChange={(v) => setValue("priorite", v as CreateTaskInput["priorite"])}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TRES_HAUTE">Très haute</SelectItem>
+                      <SelectItem value="HAUTE">Haute</SelectItem>
+                      <SelectItem value="MOYENNE">Moyenne</SelectItem>
+                      <SelectItem value="BASSE">Basse</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Co-responsables</Label>
+                <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
+                  {users.map((u) => (
+                    <label key={u.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={assigneeIds.includes(u.id)}
+                        onCheckedChange={(c) => toggleAssignee(u.id, c === true)}
+                      />
+                      {u.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {competences && competences.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Compétences requises (optionnel)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Utilisées par « Suggérer un responsable » pour évaluer la correspondance.
+                  </p>
+                  <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
+                    {competences.map((c) => (
+                      <label key={c.id} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={competenceIds.includes(c.id)}
+                          onCheckedChange={(checked) => toggleCompetence(c.id, checked === true)}
+                        />
+                        {c.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -316,7 +361,7 @@ export function TaskFormDialog({
               </Button>
             </div>
             {subtaskFields.length > 0 && (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {subtaskFields.map((field, index) => (
                   <Card key={field.id} size="sm">
                     <CardContent className="space-y-2 px-(--card-spacing)">
@@ -341,7 +386,7 @@ export function TaskFormDialog({
                       )}
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <Select onValueChange={(v) => setValue(`subtasks.${index}.responsablePrincipalId`, v)}>
-                          <SelectTrigger className="h-8 text-xs">
+                          <SelectTrigger className="h-8 w-full text-xs">
                             <SelectValue placeholder="Responsable" />
                           </SelectTrigger>
                           <SelectContent>
@@ -356,7 +401,7 @@ export function TaskFormDialog({
                           defaultValue="MOYENNE"
                           onValueChange={(v) => setValue(`subtasks.${index}.priorite`, v as CreateTaskInput["priorite"])}
                         >
-                          <SelectTrigger className="h-8 text-xs">
+                          <SelectTrigger className="h-8 w-full text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -388,45 +433,6 @@ export function TaskFormDialog({
               </div>
             )}
           </div>
-
-          {(objectives && objectives.length > 0) || (plans && plans.length > 0) ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {objectives && objectives.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Objectif lié (optionnel)</Label>
-                  <Select onValueChange={(v) => setValue("objectiveId", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Aucun" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {objectives.map((o) => (
-                        <SelectItem key={o.id} value={o.id}>
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {plans && plans.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Plan lié (optionnel)</Label>
-                  <Select onValueChange={(v) => setValue("planId", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Aucun" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {plans.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Création..." : "Créer la tâche"}
