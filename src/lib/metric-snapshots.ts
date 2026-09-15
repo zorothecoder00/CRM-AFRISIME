@@ -30,6 +30,11 @@ async function upsertDailySnapshot(entityType: string, entityId: string, metric:
  * jour. Alimente src/lib/predictive-scoring.ts (tendances). Perimetre
  * volontairement restreint aux entites actives : suivre des entites closes
  * n'apporterait aucune tendance utile et gonflerait la table sans raison.
+ *
+ * Snapshots par categorie parallelises (Promise.all) : chaque upsert cible
+ * une ligne distincte (entityId different), donc sans risque de collision
+ * entre appels concurrents -- meme raisonnement que la parallelisation des
+ * boucles cron dans automation.ts/ai-agents.ts (perf 2026-09-14).
  */
 export async function captureDailySnapshots() {
   const [projects, objectives, activeUsers, tasks, leaves, opportunities] = await Promise.all([
@@ -53,20 +58,22 @@ export async function captureDailySnapshots() {
     }),
   ]);
 
-  for (const p of projects) {
-    await upsertDailySnapshot("Project", p.id, "avancement", p.avancement);
-    if (p.budget !== null && Number(p.budget) > 0) {
-      await upsertDailySnapshot("Project", p.id, "budgetRatio", (p.coutReel ? Number(p.coutReel) : 0) / Number(p.budget));
-    }
-  }
+  await Promise.all(
+    projects.map(async (p) => {
+      await upsertDailySnapshot("Project", p.id, "avancement", p.avancement);
+      if (p.budget !== null && Number(p.budget) > 0) {
+        await upsertDailySnapshot("Project", p.id, "budgetRatio", (p.coutReel ? Number(p.coutReel) : 0) / Number(p.budget));
+      }
+    })
+  );
 
-  for (const o of objectives) {
-    const cible = o.indicators.reduce((s, i) => s + Number(i.valeurCible), 0);
-    const actuel = o.indicators.reduce((s, i) => s + Number(i.valeurActuelle), 0);
-    if (cible > 0) {
-      await upsertDailySnapshot("Objective", o.id, "indicatorProgress", actuel / cible);
-    }
-  }
+  await Promise.all(
+    objectives.map((o) => {
+      const cible = o.indicators.reduce((s, i) => s + Number(i.valeurCible), 0);
+      const actuel = o.indicators.reduce((s, i) => s + Number(i.valeurActuelle), 0);
+      return cible > 0 ? upsertDailySnapshot("Objective", o.id, "indicatorProgress", actuel / cible) : undefined;
+    })
+  );
 
   const workload = computeWorkload(
     activeUsers.map((u) => ({
@@ -86,15 +93,13 @@ export async function captureDailySnapshots() {
     })),
     leaves.map((l) => ({ userId: l.userId, dateDebut: l.dateDebut, dateFin: l.dateFin, statut: l.statut }))
   );
-  for (const w of workload) {
-    await upsertDailySnapshot("User", w.userId, "tauxOccupation", w.tauxOccupation);
-  }
+  await Promise.all(workload.map((w) => upsertDailySnapshot("User", w.userId, "tauxOccupation", w.tauxOccupation)));
 
-  for (const o of opportunities) {
-    if (o.probabilite !== null) {
-      await upsertDailySnapshot("CrmOpportunity", o.id, "probabilite", o.probabilite);
-    }
-  }
+  await Promise.all(
+    opportunities
+      .filter((o) => o.probabilite !== null)
+      .map((o) => upsertDailySnapshot("CrmOpportunity", o.id, "probabilite", o.probabilite!))
+  );
 }
 
 export { ACTIVE_TASK_STATUSES };
