@@ -46,6 +46,12 @@ export default async function SecuritePage() {
     // preuve de concept RLS, voir tenant-scoped-prisma.ts) — sans ce scope,
     // un admin d'une organisation verrait le statut MFA/push de TOUTES les
     // organisations de la plateforme, pas seulement la sienne.
+    // roleId brut (pas de select imbriqué sur `role`) : Role n'est pas dans
+    // COVERED_TABLES (scripts/lib/multi-tenant-tables.ts), le rôle Postgres
+    // tenant-scope n'a aucun droit dessus — un join échouerait avec
+    // "permission denied for table Role". Labels résolus séparément
+    // ci-dessous via le client global (Role est un référentiel global, sans
+    // organizationId, donc hors du périmètre à isoler).
     withTenantScopedSession(session!.user.organizationId, (tx) =>
       tx.user.findMany({
         where: { isActive: true },
@@ -53,8 +59,7 @@ export default async function SecuritePage() {
           id: true,
           name: true,
           mfaEnabled: true,
-          role: { select: { label: true } },
-          _count: { select: { pushSubscriptions: true } },
+          roleId: true,
         },
         orderBy: { name: "asc" },
       })
@@ -83,7 +88,21 @@ export default async function SecuritePage() {
     }),
   ]);
 
-  const pushAdoptionCount = users.filter((u) => u._count.pushSubscriptions > 0).length;
+  // Même raison que roleId ci-dessus : PushSubscription n'est pas dans
+  // COVERED_TABLES, requête séparée via le client global, restreinte aux
+  // utilisateurs déjà scopés.
+  const [pushCounts, roles] = await Promise.all([
+    prisma.pushSubscription.groupBy({
+      by: ["userId"],
+      where: { userId: { in: users.map((u) => u.id) } },
+      _count: { _all: true },
+    }),
+    prisma.role.findMany({ select: { id: true, label: true } }),
+  ]);
+  const pushCountByUser = new Map(pushCounts.map((p) => [p.userId, p._count._all]));
+  const roleLabelById = new Map(roles.map((r) => [r.id, r.label]));
+
+  const pushAdoptionCount = users.filter((u) => (pushCountByUser.get(u.id) ?? 0) > 0).length;
 
   const pushDeliveryResults = pushDeliveryLogs.flatMap((log) => {
     const changes = log.changes as { titre?: string; results?: { channel: string; sent: boolean; reason?: string }[] } | null;
@@ -209,26 +228,29 @@ export default async function SecuritePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.name}</TableCell>
-                  <TableCell>{u.role.label}</TableCell>
-                  <TableCell>
-                    <Badge variant={u.mfaEnabled ? "default" : "outline"}>
-                      {u.mfaEnabled ? "Activée" : "Désactivée"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {u._count.pushSubscriptions > 0 ? (
-                      <Badge variant="default">
-                        {u._count.pushSubscriptions} appareil{u._count.pushSubscriptions > 1 ? "s" : ""}
+              {users.map((u) => {
+                const pushCount = pushCountByUser.get(u.id) ?? 0;
+                return (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.name}</TableCell>
+                    <TableCell>{roleLabelById.get(u.roleId) ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={u.mfaEnabled ? "default" : "outline"}>
+                        {u.mfaEnabled ? "Activée" : "Désactivée"}
                       </Badge>
-                    ) : (
-                      <Badge variant="outline">Aucun</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      {pushCount > 0 ? (
+                        <Badge variant="default">
+                          {pushCount} appareil{pushCount > 1 ? "s" : ""}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Aucun</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
