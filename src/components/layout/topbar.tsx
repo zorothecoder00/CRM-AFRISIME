@@ -83,12 +83,16 @@ export function Topbar({
     .join("")
     .toUpperCase();
 
+  // Demande utilisateur — header sur le meme bleu marine que la sidebar
+  // (bg-sidebar, identique en clair/sombre), texte
+  // blanc. Les boutons ghost heritent du blanc ; le champ de recherche
+  // (fond clair) force text-foreground pour rester lisible.
   return (
-    <header className="flex h-16 items-center justify-between gap-2 border-b bg-background/80 px-4 backdrop-blur">
+    <header className="flex h-16 items-center justify-between gap-2 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground shadow-sm">
       <div className="flex items-center gap-2">
         <MobileSidebar permissions={permissions} roleKey={roleKey} />
         <div className="hidden items-center gap-3 lg:flex">
-          <span className="whitespace-nowrap text-sm text-muted-foreground">
+          <span className="whitespace-nowrap text-sm text-white/85">
             Planifier · Collaborer · Exécuter · Contrôler
           </span>
           {showDashboardSearch && (
@@ -98,7 +102,7 @@ export function Topbar({
                 name="q"
                 type="search"
                 placeholder="Rechercher tâche, projet, document…"
-                className="h-9 w-full rounded-md border bg-background pl-8 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-9 w-full rounded-md border bg-background text-foreground pl-8 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
               />
             </form>
           )}
@@ -124,7 +128,7 @@ export function Topbar({
               </Avatar>
               <div className="show-from-sm text-left">
                 <div className="text-sm font-medium leading-none">{userName}</div>
-                <div className="text-xs text-muted-foreground">{roleLabel}</div>
+                <div className="text-xs text-white/75">{roleLabel}</div>
               </div>
             </Button>
           </DropdownMenuTrigger>
