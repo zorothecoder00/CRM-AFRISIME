@@ -72,7 +72,7 @@ export default async function ConsolidationPage() {
                 pays === "__none__" ? (
                   entities.map((e) => (
                     <Link key={e.id} href={`/consolidation/entite/${e.id}`}>
-                      <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+                      <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                         <CardHeader>
                           <CardTitle className="text-base">{e.nom}</CardTitle>
                         </CardHeader>
@@ -84,7 +84,7 @@ export default async function ConsolidationPage() {
                   ))
                 ) : (
                   <Link key={pays} href={`/consolidation/pays/${encodeURIComponent(pays)}`}>
-                    <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+                    <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                       <CardHeader>
                         <CardTitle className="text-base">{pays}</CardTitle>
                       </CardHeader>

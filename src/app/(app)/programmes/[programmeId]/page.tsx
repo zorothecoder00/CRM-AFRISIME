@@ -312,7 +312,7 @@ export default async function ProgrammeDetailPage({
                 );
                 return (
                   <Link key={o.id} href={`/objectifs/${o.id}`}>
-                    <Card accent={accentForStatus(o.statut)} className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+                    <Card accent={accentForStatus(o.statut)} className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                       <CardHeader>
                         <CardTitle className="text-base">{o.titre}</CardTitle>
                       </CardHeader>

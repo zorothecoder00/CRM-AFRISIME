@@ -52,7 +52,7 @@ export default async function ProjectStudioPickerPage() {
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link key={p.id} href={`/projets/studio/${p.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                 <CardHeader>
                   <CardTitle className="text-base">{p.nom}</CardTitle>
                 </CardHeader>

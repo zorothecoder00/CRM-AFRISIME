@@ -27,7 +27,7 @@ export default async function AutomatisationsPage({
         <Header />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Link href={`/automatisations?projetId=${GLOBAL_SCOPE}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
               <CardHeader className="flex flex-row items-center gap-2">
                 <Globe2 className="h-4 w-4 text-muted-foreground" />
                 <CardTitle className="text-base">Règles globales</CardTitle>

@@ -39,7 +39,7 @@ export default async function AuditPage() {
           const cloturees = plan.missions.filter((m) => m.statut === "CLOTUREE").length;
           return (
             <Link key={plan.id} href={`/audit/${plan.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                 <CardHeader>
                   <CardTitle className="text-base">{plan.titre}</CardTitle>
                   <p className="text-xs text-muted-foreground">

@@ -320,7 +320,7 @@ export default async function PortfolioPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((project) => (
           <Link key={project.id} href={`/projets/${project.id}`}>
-            <Card accent={accentForStatus(project.statut)} className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+            <Card accent={accentForStatus(project.statut)} className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
               <CardHeader>
                 <CardTitle className="text-base">{project.nom}</CardTitle>
               </CardHeader>

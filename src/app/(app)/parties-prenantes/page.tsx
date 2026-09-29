@@ -50,7 +50,7 @@ export default async function PartiesPrenantesPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stakeholders.map((s) => (
           <Link key={s.id} href={`/parties-prenantes/${s.id}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <UsersIcon className="h-4 w-4 text-muted-foreground" />

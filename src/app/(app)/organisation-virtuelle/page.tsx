@@ -56,7 +56,7 @@ export default async function OrganisationVirtuellePage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {drafts.map((d) => (
             <Link key={d.id} href={`/organisation-virtuelle/${d.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                 <CardHeader>
                   <CardTitle className="text-base">{d.nom}</CardTitle>
                 </CardHeader>

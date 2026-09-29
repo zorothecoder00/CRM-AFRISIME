@@ -28,7 +28,7 @@ function CategoryCard({
 }) {
   return (
     <Link href={href}>
-      <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+      <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
         <CardHeader className="flex flex-row items-center gap-2">
           <Icon className="size-4 text-muted-foreground" />
           <CardTitle className="text-base">{title}</CardTitle>

@@ -43,7 +43,7 @@ export function TaskPortfolioView({
 
         return (
           <Link key={project.id} href={`/projets/${project.id}`}>
-            <Card className="h-full transition-colors hover:bg-muted/40">
+            <Card className="h-full transition-colors hover:brightness-95">
               <CardHeader>
                 <CardTitle className="text-base">{project.nom}</CardTitle>
               </CardHeader>

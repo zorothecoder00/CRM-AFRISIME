@@ -38,7 +38,7 @@ export default async function ConsolidationPaysPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {entities.map((e) => (
           <Link key={e.id} href={`/consolidation/entite/${e.id}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
               <CardHeader>
                 <CardTitle className="text-base">{e.nom}</CardTitle>
               </CardHeader>

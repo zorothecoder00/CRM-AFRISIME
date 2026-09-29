@@ -53,7 +53,7 @@ export default async function ScenariosPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {scenarios.map((s) => (
             <Link key={s.id} href={`/scenarios/${s.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
                 <CardHeader>
                   <CardTitle className="text-base">{s.nom}</CardTitle>
                 </CardHeader>

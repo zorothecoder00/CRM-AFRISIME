@@ -36,7 +36,7 @@ export default async function DecisionsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {matrices.map((m) => (
           <Link key={m.id} href={`/decisions/${m.id}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50">
+            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
               <CardHeader>
                 <CardTitle className="text-base">{m.titre}</CardTitle>
               </CardHeader>

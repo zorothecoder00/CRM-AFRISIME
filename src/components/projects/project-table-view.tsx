@@ -119,7 +119,7 @@ export function ProjectTableView({
           currency={fallbackDevise}
         />
       </div>
-      <div className={cn("rounded-md border", compact && "[perspective:1000px]")}>
+      <div className={cn("rounded-md border bg-card", compact && "[perspective:1000px]")}>
       <Table className={compact ? "text-[11px]" : undefined}>
         <TableHeader className={compact ? "bg-muted/60" : undefined}>
           <TableRow>
