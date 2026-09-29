@@ -313,3 +313,6 @@
 :where(:nth-child(8n+6) > :is([data-slot="card"], .bg-card.border):only-child) { --card: var(--md-6); }
 :where(:nth-child(8n+7) > :is([data-slot="card"], .bg-card.border):only-child) { --card: var(--md-7); }
 :where(:nth-child(8n+8) > :is([data-slot="card"], .bg-card.border):only-child) { --card: var(--md-8); }
+/* Zones exclues de la rotation Material (Planning personnel : design propre
+   deja valide) — specificite (0,2,0) > :where() ci-dessus. */
+.keep-card-neutral :is([data-slot="card"], .bg-card.border) { --card: var(--card-neutral); }

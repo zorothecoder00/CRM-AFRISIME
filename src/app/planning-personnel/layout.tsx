@@ -75,7 +75,9 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
   }));
 
   return (
-    <div className="flex h-screen">
+    // keep-card-neutral — le module garde ses cartes neutres d'origine, hors
+    // de la rotation de fonds Material appliquee au reste de l'app (globals.css).
+    <div className="keep-card-neutral flex h-screen">
       {/* Demande utilisateur — impression de l'agenda (voir AgendaExportButton) :
           seul le contenu de la page doit apparaître sur le papier, pas le
           chrome du module (sidebar/topbar/barre d'outils/lien retour). */}
