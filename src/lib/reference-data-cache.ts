@@ -42,12 +42,21 @@ export const getAllEntitiesLite = unstable_cache(
   { tags: [ENTITIES_TAG], revalidate: 300 }
 );
 
-export const getHolidaysForEntity = unstable_cache(
+const getCachedHolidaysForEntity = unstable_cache(
   async (entityId: string): Promise<HolidayLite[]> =>
     prisma.holiday.findMany({ where: { entityId }, select: { nom: true, date: true, recurrenceAnnuelle: true } }),
   ["ref-holidays-for-entity"],
   { tags: [HOLIDAYS_TAG], revalidate: 300 }
 );
+
+// unstable_cache serialise en JSON : sur un cache HIT, `date` revient en
+// string ISO (le type annonce Date ment) et h.date.getMonth() plantait
+// /planning-personnel ("h.date.getMonth is not a function"). Rehydratation
+// systematique — sans effet sur un MISS, ou c'est deja une Date.
+export async function getHolidaysForEntity(entityId: string): Promise<HolidayLite[]> {
+  const holidays = await getCachedHolidaysForEntity(entityId);
+  return holidays.map((h) => ({ ...h, date: new Date(h.date) }));
+}
 
 // updateTag (pas revalidateTag) — Next.js 16 : n'utilisable que depuis un
 // Server Action (c'est le cas de tous les appelants, voir department.actions.ts/
