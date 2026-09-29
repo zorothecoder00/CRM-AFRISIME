@@ -360,21 +360,22 @@ function PortfolioBlockLink({
     // gauche coloree + fleche persistante (pas seulement au survol) pour que
     // l'affordance "c'est cliquable" soit visible d'emblee, comme les autres
     // cartes-lien de l'appli (voir accentForStatus/toneForStatus ailleurs).
+    // Demande utilisateur — fond rouge bordeaux (red-800), texte blanc.
     <Link href={href} className="group block">
       <Card
-        className="h-full border-l-4 border-l-primary/40 transition-all hover:-translate-y-0.5 hover:border-l-primary hover:bg-muted/50"
+        className="h-full bg-red-800 text-white transition-all hover:-translate-y-0.5 hover:bg-red-700"
       >
         <CardContent className="flex items-center gap-3 px-(--card-spacing)">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white/15 text-white">
             <Icon className="size-4.5" />
           </span>
           <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="text-sm font-semibold text-primary underline decoration-primary/30 underline-offset-2 group-hover:decoration-primary">
+            <div className="text-sm font-semibold text-white underline decoration-white/40 underline-offset-2 group-hover:decoration-white">
               {title}
             </div>
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-white/75">{description}</p>
           </div>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+          <ChevronRight className="size-4 shrink-0 text-white/60 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
         </CardContent>
       </Card>
     </Link>
