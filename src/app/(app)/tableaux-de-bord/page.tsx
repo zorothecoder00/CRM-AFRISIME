@@ -23,6 +23,20 @@ import { HRIndicatorsWidget } from "@/components/dashboard/widgets/hr-indicators
 // repli normal sur des cellules individuelles).
 const STACK_PAIR: [WidgetKey, WidgetKey] = ["TIME_SPENT", "TEAM_PRODUCTIVITY"];
 
+// Demande utilisateur — fonds aux couleurs du logo (bleu/vert/or, voir
+// .brand-tint dans globals.css), fixes par widget pour que la couleur suive
+// le widget quel que soit l'ordre choisi dans "Configurer".
+const WIDGET_TINT: Record<WidgetKey, string> = {
+  PROJECT_PROGRESS: "brand-blue",
+  OVERDUE_TASKS: "brand-gold",
+  WORKLOAD: "brand-green",
+  TIME_SPENT: "brand-blue",
+  TEAM_PRODUCTIVITY: "brand-gold",
+  DEADLINE_COMPLIANCE: "brand-green",
+  DEPARTMENT_PERFORMANCE: "brand-blue",
+  HR_INDICATORS: "brand-gold",
+};
+
 function buildSlots(order: WidgetKey[]): WidgetKey[][] {
   const slots: WidgetKey[][] = [];
   for (let i = 0; i < order.length; i++) {
@@ -67,10 +81,13 @@ export default async function TableauxDeBordPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#122f7a] via-[#1d4fc4] to-[#2f9e2f] px-5 py-4 shadow-lg">
+        {/* text-white limite a ce bloc : pose sur le bandeau entier, il etait
+            herite par le bouton "Configurer" (variante outline, fond clair
+            sans couleur de texte propre) et le rendait illisible. */}
+        <div className="text-white">
           <h1 className="text-2xl font-semibold">Tableaux de bord</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/80">
             Widgets personnalisables — avancement, retards, charge, temps passé,
             productivité et indicateurs RH.
           </p>
@@ -93,7 +110,9 @@ export default async function TableauxDeBordPage() {
             className={cn("space-y-4", slot.includes("HR_INDICATORS") && "md:col-span-2")}
           >
             {slot.map((key) => (
-              <div key={key}>{widgetComponents[key]}</div>
+              <div key={key} className={cn("brand-tint", WIDGET_TINT[key])}>
+                {widgetComponents[key]}
+              </div>
             ))}
           </div>
         ))}

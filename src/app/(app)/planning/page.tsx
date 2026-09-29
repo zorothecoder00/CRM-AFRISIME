@@ -54,6 +54,11 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 const ACTIVE_TASK_STATUSES = ["A_FAIRE", "EN_COURS", "EN_REVISION", "BLOQUEE", "REPORTEE"];
 
+// Demande utilisateur — fond vert sur les blocs de jour (le fond de page
+// reste le gris-bleute par defaut). "Aujourd'hui" reste signale par son
+// anneau et son badge.
+const DAY_BG = "bg-green-100 dark:bg-green-950/60";
+
 type Vue = "semaine" | "jour" | "liste";
 
 type DayItem =
@@ -393,7 +398,7 @@ export default async function PlanningPage({
       )}
 
       {vue === "jour" ? (
-        <Card accent={isToday(refDate) ? "primary" : "none"}>
+        <Card className={DAY_BG}>
           <CardContent className="space-y-1.5">
             {(() => {
               const items = buildDayItems(refDate);
@@ -420,8 +425,7 @@ export default async function PlanningPage({
               <Card
                 key={day.toISOString()}
                 size="sm"
-                accent={today ? "primary" : "none"}
-                className={cn(today && "ring-2 ring-primary/40", weekend && !today && "opacity-75")}
+                className={cn(DAY_BG, today && "ring-2 ring-primary/40", weekend && !today && "opacity-75")}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between gap-1 text-sm">

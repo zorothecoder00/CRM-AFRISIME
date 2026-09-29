@@ -247,3 +247,19 @@
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--foreground);
 }
+/* Tableaux de bord — fonds de cartes teintes aux couleurs du logo AfriSime
+   (bleu roi / vert / or) au lieu du blanc neutre. Hors @layer expres : doit
+   l'emporter sur l'utilitaire bg- pose par cardVariants (ombre neutre d'origine
+   conservee : une ombre coloree resserrait visuellement les blocs). Le melange
+   avec var(--card) garde un rendu lisible en mode sombre comme en clair. */
+.brand-blue { --brand-tint: #1d4fc4; }
+.brand-green { --brand-tint: #2f9e2f; }
+.brand-gold { --brand-tint: #f2b705; }
+.brand-tint > [data-slot="card"] {
+  border-top-color: var(--brand-tint);
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--card), var(--brand-tint) 24%),
+    color-mix(in oklch, var(--card), var(--brand-tint) 9%) 70%
+  );
+}
