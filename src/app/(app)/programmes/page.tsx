@@ -2,10 +2,26 @@ import Link from "next/link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus, accentForStatus } from "@/lib/status-tone";
 import { ProgrammeFormDialog } from "@/components/programmes/programme-form-dialog";
+
+// Demande utilisateur — blocs de programme sur fonds colores, palette
+// Material Design (teintes 100 en clair, 900 attenuees en sombre), attribuees
+// en rotation. bg-none! retire le degrade de l'accent de statut (qui masquerait
+// la couleur de fond) ; la barre de statut en tete de carte est conservee.
+const MATERIAL_BG = [
+  "bg-[#BBDEFB] dark:bg-[#0D47A1]/40", // Blue
+  "bg-[#C8E6C9] dark:bg-[#1B5E20]/40", // Green
+  "bg-[#FFECB3] dark:bg-[#FF6F00]/30", // Amber
+  "bg-[#E1BEE7] dark:bg-[#4A148C]/40", // Purple
+  "bg-[#B2DFDB] dark:bg-[#004D40]/40", // Teal
+  "bg-[#FFCCBC] dark:bg-[#BF360C]/35", // Deep Orange
+  "bg-[#C5CAE9] dark:bg-[#1A237E]/40", // Indigo
+  "bg-[#F8BBD0] dark:bg-[#880E4F]/40", // Pink
+];
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -40,11 +56,14 @@ export default async function ProgrammesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {programmes.map((programme) => (
+        {programmes.map((programme, i) => (
           <Link key={programme.id} href={`/programmes/${programme.id}`}>
             <Card
               accent={accentForStatus(programme.statut)}
-              className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              className={cn(
+                "h-full bg-none! transition-all hover:-translate-y-0.5 hover:brightness-95",
+                MATERIAL_BG[i % MATERIAL_BG.length],
+              )}
             >
               <CardHeader>
                 <CardTitle className="text-base">{programme.nom}</CardTitle>
