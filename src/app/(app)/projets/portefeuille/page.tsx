@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { withFrom } from "@/components/ui/contextual-back-link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
@@ -55,6 +56,14 @@ export default async function PortfolioPage({
   searchParams: Promise<SearchParams>;
 }) {
   const filters = await searchParams;
+  // URL courante (filtres compris) transmise aux blocs d'acces via ?from= :
+  // leur lien de retour ramene ici avec les memes filtres.
+  const filterQuery = new URLSearchParams(
+    Object.entries(filters).filter(
+      (e): e is [string, string] => e[0] !== "from" && typeof e[1] === "string" && e[1] !== "",
+    ),
+  ).toString();
+  const currentUrl = `/projets/portefeuille${filterQuery ? `?${filterQuery}` : ""}`;
   const session = await getAppSession();
   const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
   const devise = await getOrganizationDevise();
@@ -174,25 +183,25 @@ export default async function PortfolioPage({
           la sidebar). */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <PortfolioBlockLink
-          href="/projets"
+          href={withFrom("/projets", currentUrl)}
           icon={FolderKanban}
           title="Projets"
           description="Liste détaillée, filtres et vues (kanban, gantt...)."
         />
         <PortfolioBlockLink
-          href="/projets/studio"
+          href={withFrom("/projets/studio", currentUrl)}
           icon={Sparkles}
           title="Project Studio"
           description="Cadrage assisté d'un nouveau projet."
         />
         <PortfolioBlockLink
-          href="/projets/idees"
+          href={withFrom("/projets/idees", currentUrl)}
           icon={Lightbulb}
           title="Laboratoire d'idées"
           description="Idées et opportunités à instruire."
         />
         <PortfolioBlockLink
-          href="/projets/appels-a-projets"
+          href={withFrom("/projets/appels-a-projets", currentUrl)}
           icon={HandCoins}
           title="Appel à projets"
           description="Candidatures et opportunités de financement."

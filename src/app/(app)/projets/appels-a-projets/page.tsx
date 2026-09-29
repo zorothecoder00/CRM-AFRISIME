@@ -1,9 +1,15 @@
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { FundingOpportunityPipeline, type FundingOpportunityPipelineRow } from "@/components/projects/funding-opportunity-pipeline";
 
-export default async function FundingOpportunitiesPage() {
+export default async function FundingOpportunitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
 
@@ -35,6 +41,7 @@ export default async function FundingOpportunitiesPage() {
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} fallback={{ href: "/projets/portefeuille", label: "Retour au portefeuille de projets" }} />
       <div>
         <h1 className="text-2xl font-semibold">Appels à projets</h1>
         <p className="text-sm text-muted-foreground">

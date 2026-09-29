@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/portal-scope";
@@ -21,7 +22,12 @@ const STATUS_LABELS: Record<string, string> = {
  * risques... d'UN projet), donc cette page choisit d'abord le projet avant
  * de renvoyer vers /projets/studio/[projectId].
  */
-export default async function ProjectStudioPickerPage() {
+export default async function ProjectStudioPickerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const session = await getAppSession();
   const scope = projectVisibilityWhere(session!.user.roleKey, session!.user.id);
 
@@ -33,6 +39,7 @@ export default async function ProjectStudioPickerPage() {
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} fallback={{ href: "/projets/portefeuille", label: "Retour au portefeuille de projets" }} />
       <div className="flex items-start gap-3">
         <div className="mt-0.5 rounded-lg bg-primary/10 p-2">
           <Sparkles className="h-5 w-5 text-primary" />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContextualBackLink, safeInternalPath, withFrom } from "@/components/ui/contextual-back-link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -35,9 +36,9 @@ const VIEWS = [
 export default async function ProjetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string; mine?: string; annee?: string; mois?: string }>;
+  searchParams: Promise<{ vue?: string; mine?: string; annee?: string; mois?: string; from?: string }>;
 }) {
-  const { vue = "liste", mine, annee, mois } = await searchParams;
+  const { vue = "liste", mine, annee, mois, from } = await searchParams;
   const session = await getAppSession();
   const userId = session!.user.id;
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
@@ -116,15 +117,22 @@ export default async function ProjetsPage({
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
 
   const periodQuery = `${annee ? `&annee=${annee}` : ""}${annee && mois ? `&mois=${mois}` : ""}`;
+  // ?from= conserve quand on change de vue / filtre, sinon le lien de retour
+  // perdrait sa page d'origine au premier clic.
+  const safeFrom = safeInternalPath(from);
+  const fromQuery = safeFrom ? `&from=${encodeURIComponent(safeFrom)}` : "";
+  // URL courante, transmise aux "Autres vues" pour qu'elles reviennent ici.
+  const currentUrl = `/projets?vue=${vue}${onlyMine ? "&mine=1" : ""}${periodQuery}${fromQuery}`;
 
   function withVue(key: string) {
-    return `?vue=${key}${onlyMine ? "&mine=1" : ""}${periodQuery}`;
+    return `?vue=${key}${onlyMine ? "&mine=1" : ""}${periodQuery}${fromQuery}`;
   }
 
-  const mineHref = `?vue=${vue}${onlyMine ? "" : "&mine=1"}${periodQuery}`;
+  const mineHref = `?vue=${vue}${onlyMine ? "" : "&mine=1"}${periodQuery}${fromQuery}`;
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} fallback={{ href: "/projets/portefeuille", label: "Retour au portefeuille de projets" }} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Projets</h1>
@@ -162,16 +170,16 @@ export default async function ProjetsPage({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href="/projets/portefeuille">Portefeuille</Link>
+                <Link href={withFrom("/projets/portefeuille", currentUrl)}>Portefeuille</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/projets/idees">Idées</Link>
+                <Link href={withFrom("/projets/idees", currentUrl)}>Idées</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/projets/roadmap">Roadmap</Link>
+                <Link href={withFrom("/projets/roadmap", currentUrl)}>Roadmap</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/projets/calendrier">Calendrier</Link>
+                <Link href={withFrom("/projets/calendrier", currentUrl)}>Calendrier</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/projets/carte">Carte</Link>

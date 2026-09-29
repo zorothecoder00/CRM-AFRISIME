@@ -1,10 +1,16 @@
+import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ProjectIdeaFormDialog } from "@/components/projects/project-idea-form-dialog";
 import { ProjectIdeaTable, type ProjectIdeaRow } from "@/components/projects/project-idea-table";
 
-export default async function ProjectIdeasPage() {
+export default async function ProjectIdeasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const { from } = await searchParams;
   const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROJECT_UPDATE);
   const canCreate = session!.user.permissions.includes(PERMISSIONS.PROJECT_CREATE);
@@ -34,6 +40,7 @@ export default async function ProjectIdeasPage() {
 
   return (
     <div className="space-y-6">
+      <ContextualBackLink from={from} fallback={{ href: "/projets/portefeuille", label: "Retour au portefeuille de projets" }} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Laboratoire d&apos;idées</h1>
