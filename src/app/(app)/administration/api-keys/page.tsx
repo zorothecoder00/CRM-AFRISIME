@@ -51,7 +51,7 @@ export default async function ApiKeysPage() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex flex-wrap gap-1">
                 {key.permissions.map((p) => (
-                  <Badge key={p} variant="outline">
+                  <Badge key={p} variant="outline" className="bg-background">
                     {p}
                   </Badge>
                 ))}
