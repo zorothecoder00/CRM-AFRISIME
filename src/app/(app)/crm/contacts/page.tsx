@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { accentForContactType } from "@/lib/status-tone";
 import { ContactFormDialog } from "@/components/crm/contact-form-dialog";
 import { getUserEntityScope, crmContactScopeWhere } from "@/lib/entity-scope";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const TYPE_LABELS: Record<string, string> = {
   CLIENT: "Client",
@@ -51,11 +53,11 @@ export default async function CrmContactsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {contacts.map((contact) => (
+        {contacts.map((contact, i) => (
           <Link key={contact.id} href={`/crm/contacts/${contact.id}`}>
             <Card
               accent={accentForContactType(contact.type)}
-              className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
             >
               <CardHeader>
                 <CardTitle className="text-base">

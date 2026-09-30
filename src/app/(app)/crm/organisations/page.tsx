@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { accentForOrganizationType } from "@/lib/status-tone";
 import { OrganizationFormDialog } from "@/components/crm/organization-form-dialog";
 import { getUserEntityScope, crmOrganizationScopeWhere } from "@/lib/entity-scope";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const TYPE_LABELS: Record<string, string> = {
   ENTREPRISE: "Entreprise",
@@ -39,11 +41,11 @@ export default async function CrmOrganizationsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {organizations.map((org) => (
+        {organizations.map((org, i) => (
           <Link key={org.id} href={`/crm/organisations/${org.id}`}>
             <Card
               accent={accentForOrganizationType(org.type)}
-              className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+              className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
             >
               <CardHeader>
                 <CardTitle className="text-base">{org.nom}</CardTitle>
