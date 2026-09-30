@@ -13,6 +13,7 @@ import { getOrganizationDevise } from "@/lib/currency";
 import { BackLink } from "@/components/ui/back-link";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ConvertOpportunityDialog } from "@/components/crm/convert-opportunity-dialog";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function CrmOpportunityDetailPage({
   params,
@@ -105,7 +106,7 @@ export default async function CrmOpportunityDetailPage({
           <ConvertOpportunityDialog opportunityId={opportunity.id} users={userOptions} departments={departmentOptions} />
         )}
 
-        <Card accent={accentForOpportunityStatus(opportunity.statut)}>
+        <Card accent={accentForOpportunityStatus(opportunity.statut)} className={materialTone(0)}>
           <CardHeader>
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>
@@ -131,7 +132,7 @@ export default async function CrmOpportunityDetailPage({
           )}
         </Card>
 
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Historique des interactions</CardTitle>
           </CardHeader>
@@ -151,7 +152,7 @@ export default async function CrmOpportunityDetailPage({
       </div>
 
       <div className="space-y-6">
-        <Card>
+        <Card className={materialTone(2)}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Contrats</CardTitle>
             <ContractFormDialog defaultOpportunityId={opportunity.id} defaultOrganizationId={opportunity.organization?.id} />

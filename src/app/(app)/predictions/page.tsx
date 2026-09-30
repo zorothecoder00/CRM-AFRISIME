@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/objectives/progress-bar";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 const TOP_N = 10;
 
@@ -69,7 +70,7 @@ export default async function PredictionsPage() {
         </p>
       </div>
 
-      <Card accent={earlyWarning.risqueEmergent ? "destructive" : "none"}>
+      <Card accent={earlyWarning.risqueEmergent ? "destructive" : "none"} className={materialTone(4)}>
         <CardHeader className="flex flex-row items-center gap-2">
           <ShieldAlert className="size-4 text-muted-foreground" />
           <CardTitle className="text-base">Signaux faibles (Early Warning System)</CardTitle>
@@ -95,7 +96,7 @@ export default async function PredictionsPage() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className={materialTone(0)}>
           <CardHeader>
             <CardTitle className="text-base">Projets — risque d&apos;échec</CardTitle>
           </CardHeader>
@@ -124,7 +125,7 @@ export default async function PredictionsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Objectifs — probabilité d&apos;atteinte</CardTitle>
           </CardHeader>
@@ -146,7 +147,7 @@ export default async function PredictionsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(2)}>
           <CardHeader>
             <CardTitle className="text-base">Équipes — risque de surcharge</CardTitle>
           </CardHeader>
@@ -181,7 +182,7 @@ export default async function PredictionsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(3)}>
           <CardHeader>
             <CardTitle className="text-base">CRM — risque de perte d&apos;opportunité</CardTitle>
           </CardHeader>

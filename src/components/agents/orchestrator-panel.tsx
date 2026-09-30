@@ -6,6 +6,8 @@ import { triggerAgentOrchestration } from "@/actions/agent-orchestrator.actions"
 import type { OrchestratorResult } from "@/lib/agent-orchestrator";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 // V3.0 §16 — bouton pour rejouer le pipeline et journaliser la
 // recommandation consolidée (visible ensuite sur /agents-ia, comme les
@@ -24,7 +26,7 @@ export function OrchestratorPanel({ initialResult }: { initialResult: Orchestrat
     <div className="space-y-4">
       <div className="space-y-3">
         {result.steps.map((step, i) => (
-          <div key={step.agent} className="flex gap-3 rounded-md border p-3">
+          <div key={step.agent} className={cn("flex gap-3 rounded-md border bg-card p-3", materialTone(i))}>
             <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">{i + 1}</div>
             <div className="space-y-1">
               <div className="text-sm font-medium">

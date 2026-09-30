@@ -9,6 +9,7 @@ import { PendingActionActions } from "@/components/ai-governance/pending-action-
 import { ExpandableList } from "@/components/ui/expandable-list";
 import { resolveDependencyLabels } from "@/lib/dependencies";
 import { ShieldCheck } from "lucide-react";
+import { materialTone, MATERIAL_RED } from "@/lib/card-tones";
 
 const STATUT_TONE: Record<string, "warning" | "success" | "destructive"> = {
   EN_ATTENTE: "warning",
@@ -95,7 +96,7 @@ export default async function GouvernanceIaPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">En attente de validation ({pending.length})</CardTitle>
         </CardHeader>
@@ -117,7 +118,7 @@ export default async function GouvernanceIaPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(1)}>
         <CardHeader>
           <CardTitle className="text-base">Décisions récentes</CardTitle>
         </CardHeader>
@@ -138,7 +139,7 @@ export default async function GouvernanceIaPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={MATERIAL_RED}>
         <CardHeader className="flex flex-row items-start justify-between gap-2">
           <div>
             <CardTitle className="text-base">Registre des agents IA ({agentInsights.length})</CardTitle>
@@ -157,7 +158,8 @@ export default async function GouvernanceIaPage() {
           {agentInsights.length === 0 && <p className="text-sm text-muted-foreground">Aucun insight généré.</p>}
           <ExpandableList
             items={agentInsights.map((insight) => (
-              <div key={insight.id} className="space-y-1 rounded-md border p-2.5">
+              // Meme gris que le fond de page (bg-background) pour detacher chaque insight du bloc rouge.
+              <div key={insight.id} className="space-y-1 rounded-md border bg-background p-2.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{AGENT_LABELS[insight.agent] ?? insight.agent}</Badge>
                   <Badge variant={INSIGHT_STATUT_TONE[insight.statut]}>{insight.statut}</Badge>
@@ -176,7 +178,7 @@ export default async function GouvernanceIaPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(3)}>
         <CardHeader>
           <CardTitle className="text-base">Journal d&apos;exécution (traçabilité)</CardTitle>
         </CardHeader>

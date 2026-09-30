@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableList } from "@/components/ui/expandable-list";
 import { toneForPriority } from "@/lib/status-tone";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const PRIORITY_LABELS: Record<string, string> = { BASSE: "Basse", MOYENNE: "Moyenne", HAUTE: "Haute", CRITIQUE: "Critique" };
 
@@ -93,19 +95,19 @@ export default async function StrategyCopilotPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div>
+              <div className={cn("rounded-md bg-card p-2", materialTone(0))}>
                 <div className="text-lg font-semibold">{tracking.totalObjectifs}</div>
                 <div className="text-xs text-muted-foreground">Objectifs</div>
               </div>
-              <div>
+              <div className={cn("rounded-md bg-card p-2", materialTone(1))}>
                 <div className="text-lg font-semibold text-success">{tracking.atteints}</div>
                 <div className="text-xs text-muted-foreground">Atteints</div>
               </div>
-              <div>
+              <div className={cn("rounded-md bg-card p-2", materialTone(2))}>
                 <div className="text-lg font-semibold text-info">{tracking.enCours}</div>
                 <div className="text-xs text-muted-foreground">En cours</div>
               </div>
-              <div>
+              <div className={cn("rounded-md bg-card p-2", materialTone(3))}>
                 <div className="text-lg font-semibold text-destructive">{tracking.enRetard}</div>
                 <div className="text-xs text-muted-foreground">En retard</div>
               </div>

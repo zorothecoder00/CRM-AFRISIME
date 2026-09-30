@@ -20,6 +20,9 @@ export const MATERIAL_TONES = [
   "[--card:#F8BBD0] dark:[--card:color-mix(in_oklch,oklch(0.205_0_0),#880E4F_40%)]", // Pink
 ] as const;
 
+// Teinte hors rotation, pour un bloc qui doit ressortir (Red 100 / Red 900).
+export const MATERIAL_RED = "[--card:#FFCDD2] dark:[--card:color-mix(in_oklch,oklch(0.205_0_0),#B71C1C_40%)]";
+
 /** Teinte Material en rotation selon la position de la carte dans sa liste. */
 export function materialTone(index: number): string {
   return MATERIAL_TONES[index % MATERIAL_TONES.length];

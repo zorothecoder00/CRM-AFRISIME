@@ -4,6 +4,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { buildStrategicAdvisorAnswers } from "@/lib/strategic-advisor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageCircleQuestion } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 // Conseiller stratégique IA (cahier des charges V3.0 §9). Sans clé LLM
 // disponible, les 5 questions listées par le cahier sont répondues par des
@@ -28,8 +29,8 @@ export default async function StrategicAdvisorPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {answers.map((a) => (
-          <Card key={a.question}>
+        {answers.map((a, i) => (
+          <Card key={a.question} className={materialTone(i)}>
             <CardHeader className="flex flex-row items-start gap-2">
               <MessageCircleQuestion className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <CardTitle className="text-sm font-medium">{a.question}</CardTitle>
