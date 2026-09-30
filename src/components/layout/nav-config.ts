@@ -59,6 +59,7 @@ import {
   Briefcase,
   Lock,
   Clock,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions";
@@ -95,6 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "planning", href: "/planning", icon: CalendarRange },
       { titleKey: "planningPersonnel", href: "/planning-personnel", icon: Lock },
       { titleKey: "horairesTravail", href: "/planning-personnel/parametres", icon: Clock },
+      { titleKey: "guide", href: "/guide", icon: LifeBuoy },
     ],
   },
   {

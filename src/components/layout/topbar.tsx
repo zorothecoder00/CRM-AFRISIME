@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell, Mail, ClipboardList, MessageSquare, type LucideIcon } from "lucide-react";
+import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell, Mail, ClipboardList, MessageSquare, LifeBuoy, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
@@ -170,6 +170,12 @@ export function Topbar({
               <Link href="/assistant">
                 <Mic className="mr-2 h-4 w-4" />
                 Assistant
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/guide">
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                Guide d&apos;utilisation
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
