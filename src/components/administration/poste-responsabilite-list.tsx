@@ -56,7 +56,7 @@ export function PosteResponsabiliteList({
             }
           }}
           placeholder="Ajouter une responsabilité..."
-          className="h-7 bg-background text-xs"
+          className="h-7 bg-background text-xs dark:bg-background"
         />
         <Button size="icon-xs" variant="outline" onClick={handleAdd} disabled={adding || !libelle.trim()}>
           <Plus className="h-3 w-3" />

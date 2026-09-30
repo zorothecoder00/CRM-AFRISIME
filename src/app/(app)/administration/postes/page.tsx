@@ -67,7 +67,11 @@ export default async function PostesPage() {
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {p.department && <Badge variant="outline">{p.department.name}</Badge>}
+                  {p.department && (
+                    <Badge variant="outline" className="bg-background">
+                      {p.department.name}
+                    </Badge>
+                  )}
                   <Badge variant="secondary">{p._count.users} collaborateur(s)</Badge>
                   <PosteCritiqueToggle posteId={p.id} critique={p.critique} />
                 </div>
