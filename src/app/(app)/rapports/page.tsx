@@ -9,6 +9,7 @@ import { departmentLevelLabel, computeDepartmentDepth } from "@/lib/department-t
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 import { ReportTargetLinks } from "@/components/rapports/report-target-links";
 import { ActivityReportUploadDialog } from "@/components/rapports/activity-report-upload-dialog";
 import { ActivityReportsList, type ActivityReportRow } from "@/components/rapports/activity-reports-list";
@@ -107,9 +108,11 @@ export default async function RapportsPage() {
   const userOptions = users.map((u) => ({ id: u.id, label: u.name }));
   const teamOptions = teams.map((t) => ({ id: t.id, label: t.nom }));
 
-  function renderCard(type: ReportType) {
+  // Demande utilisateur — chaque rapport sur un fond colore (rotation
+  // Material, voir lib/card-tones.ts) selon sa position dans sa grille.
+  function renderCard(type: ReportType, index: number) {
     return (
-      <Card key={type}>
+      <Card key={type} className={materialTone(index)}>
         <CardHeader>
           <CardTitle className="text-base">{REPORT_LABELS[type]}</CardTitle>
           <CardDescription>{DESCRIPTIONS[type]}</CardDescription>
@@ -169,7 +172,7 @@ export default async function RapportsPage() {
       >
         <div className="grid gap-4 md:grid-cols-2">
           {MANUAL_EXPORT_TYPES.map(renderCard)}
-          <Card>
+          <Card className={materialTone(MANUAL_EXPORT_TYPES.length)}>
             <CardHeader>
               <CardTitle className="text-base">Comptes rendus de réunion</CardTitle>
               <CardDescription>Procès-verbaux rédigés depuis la fiche de chaque réunion.</CardDescription>

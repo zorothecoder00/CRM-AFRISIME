@@ -11,6 +11,7 @@ import { AppCatalogFormDialog } from "@/components/marketplace/app-catalog-form-
 import { AppInterestButton } from "@/components/marketplace/app-interest-button";
 import { DeleteAppCatalogEntryButton } from "@/components/marketplace/delete-app-catalog-entry-button";
 import { Store, Search } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 const CATEGORY_LABELS: Record<string, string> = {
   RH: "RH",
@@ -119,8 +120,8 @@ export default async function MarketplacePage({
       </form>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {apps.map((app) => (
-          <Card key={app.id}>
+        {apps.map((app, i) => (
+          <Card key={app.id} className={materialTone(i)}>
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base">{app.nom}</CardTitle>

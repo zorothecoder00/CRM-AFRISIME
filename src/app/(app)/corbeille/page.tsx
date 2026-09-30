@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrashItemActions } from "@/components/trash/trash-item-actions";
 import { Trash2 } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 // Corbeille (cahier des charges V2.2 §37) — les entites soft-deletables
 // (Project/Task/Document, plus ActivityReport — demande utilisateur — voir
@@ -54,7 +55,7 @@ export default async function CorbeillePage() {
         </div>
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Projets ({projects.length})</CardTitle>
         </CardHeader>
@@ -76,7 +77,7 @@ export default async function CorbeillePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(1)}>
         <CardHeader>
           <CardTitle className="text-base">Tâches ({tasks.length})</CardTitle>
         </CardHeader>
@@ -98,7 +99,7 @@ export default async function CorbeillePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(2)}>
         <CardHeader>
           <CardTitle className="text-base">Documents ({documents.length})</CardTitle>
         </CardHeader>
@@ -120,7 +121,7 @@ export default async function CorbeillePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(3)}>
         <CardHeader>
           <CardTitle className="text-base">Rapports d&apos;activité ({activityReports.length})</CardTitle>
         </CardHeader>
