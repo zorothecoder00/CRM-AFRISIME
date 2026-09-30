@@ -103,16 +103,18 @@ function WorkflowSection({ title, workflows, devise }: { title: string; workflow
                 {(workflow.adminRequestType || workflow.montantMin != null) && (
                   <div className="flex flex-wrap gap-1.5">
                     {workflow.adminRequestType && (
-                      <Badge variant="outline">{ADMIN_REQUEST_TYPE_LABELS[workflow.adminRequestType]}</Badge>
+                      <Badge variant="outline" className="bg-background">
+                        {ADMIN_REQUEST_TYPE_LABELS[workflow.adminRequestType]}
+                      </Badge>
                     )}
                     {workflow.montantMin != null && (
-                      <Badge variant="outline">≥ {Number(workflow.montantMin).toLocaleString("fr-FR")} {devise}</Badge>
+                      <Badge variant="outline" className="bg-background">≥ {Number(workflow.montantMin).toLocaleString("fr-FR")} {devise}</Badge>
                     )}
                   </div>
                 )}
                 <ol className="space-y-1 text-sm">
                   {workflow.steps.map((step) => (
-                    <li key={step.id} className="text-muted-foreground">
+                    <li key={step.id} className="rounded-md bg-background px-2 py-1 text-muted-foreground">
                       {step.ordre}. {step.label || step.approverRole}
                       {step.escaladeJours && step.escaladeRole && (
                         <span className="ml-1 text-xs">(escalade à {step.escaladeRole} après {step.escaladeJours}j)</span>

@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Trash2 } from "lucide-react";
 
 type IntegrationRow = {
   id: string;
@@ -86,7 +87,7 @@ export function IntegrationCard({ integration, className }: { integration: Integ
 
         <div className="flex items-center gap-2 pt-2">
           <Select defaultValue={integration.statut} onValueChange={handleStatusChange} disabled={isPending}>
-            <SelectTrigger className="h-8 w-40">
+            <SelectTrigger className="h-8 w-40 bg-white dark:bg-neutral-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -95,7 +96,15 @@ export function IntegrationCard({ integration, className }: { integration: Integ
               <SelectItem value="ERREUR">Erreur</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
+          {/* Rouge plein (la variante destructive est un rouge /10 qui se
+              fondait dans la carte teintee). */}
+          <Button
+            size="sm"
+            onClick={handleDelete}
+            disabled={isPending}
+            className="bg-destructive text-white shadow-sm hover:bg-destructive/90 dark:bg-destructive/80 dark:hover:bg-destructive"
+          >
+            <Trash2 className="size-3.5" />
             Supprimer
           </Button>
         </div>
