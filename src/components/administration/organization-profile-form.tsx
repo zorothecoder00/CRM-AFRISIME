@@ -93,7 +93,12 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Champs sur fond blanc : transparents par defaut, ils prenaient la
+              teinte de la carte et devenaient illisibles. */}
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 [&_:is(input,textarea)]:bg-white dark:[&_:is(input,textarea)]:bg-neutral-900"
+          >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="nom">Nom de l&apos;organisation</Label>
