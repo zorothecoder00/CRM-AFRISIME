@@ -47,11 +47,15 @@ export default async function SitesPage() {
                 <DeleteSiteButton id={s.id} />
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <p className="text-muted-foreground">
+                <p className="rounded-md bg-background px-2 py-1.5 text-muted-foreground">
                   {[s.adresse, s.ville, s.pays].filter(Boolean).join(", ") || "Adresse non renseignée"}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {s.department && <Badge variant="outline">{s.department.name}</Badge>}
+                  {s.department && (
+                    <Badge variant="outline" className="bg-background">
+                      {s.department.name}
+                    </Badge>
+                  )}
                   <Badge variant="secondary">{s._count.users} collaborateur(s)</Badge>
                   {s.latitude !== null && s.longitude !== null && (
                     <Badge variant="secondary">{s.latitude.toFixed(3)}, {s.longitude.toFixed(3)}</Badge>
