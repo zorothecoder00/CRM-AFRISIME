@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAction } from "@/hooks/use-action";
 import { addTeamMember, removeTeamMember } from "@/actions/team.actions";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 
@@ -13,10 +14,13 @@ export function TeamMemberManager({
   teamId,
   members,
   availableUsers,
+  selectClassName,
 }: {
   teamId: string;
   members: Option[];
   availableUsers: Option[];
+  /** Classes en plus sur le select d'ajout (ex. fond gris dans une carte teintee). */
+  selectClassName?: string;
 }) {
   const [value, setValue] = useState("");
   const { run: add, isPending: adding } = useAction(addTeamMember);
@@ -51,7 +55,7 @@ export function TeamMemberManager({
           }}
           disabled={adding}
         >
-          <SelectTrigger className="h-7 text-xs">
+          <SelectTrigger className={cn("h-7 text-xs", selectClassName)}>
             <SelectValue placeholder="Ajouter un membre..." />
           </SelectTrigger>
           <SelectContent>

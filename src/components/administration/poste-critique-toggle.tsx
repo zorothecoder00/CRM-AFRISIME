@@ -26,12 +26,14 @@ export function PosteCritiqueToggle({ posteId, critique }: { posteId: string; cr
       aria-pressed={critique}
       className="group cursor-pointer rounded-4xl transition-transform hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
     >
+      {/* Fonds pleins (et non les teintes /10 des variantes Badge, qui se
+          fondaient dans la carte coloree) : rouge = critique, vert = non
+          critique ; au survol du vert, bordure rouge = apercu du statut vise. */}
       <Badge
-        variant={critique ? "destructive" : "outline"}
         className={
           critique
-            ? "group-hover:brightness-95"
-            : "border-dashed bg-background group-hover:border-destructive group-hover:text-destructive"
+            ? "bg-destructive text-white group-hover:brightness-90"
+            : "border-2 border-dashed border-transparent bg-success text-white group-hover:border-destructive dark:text-green-950"
         }
       >
         {critique ? (

@@ -59,7 +59,9 @@ export default async function EquipesPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{t.department.name}</Badge>
+                  <Badge variant="outline" className="bg-background">
+                    {t.department.name}
+                  </Badge>
                   {t.leader && <Badge variant="secondary">Responsable : {t.leader.name}</Badge>}
                 </div>
                 <div>
@@ -68,6 +70,7 @@ export default async function EquipesPage() {
                     teamId={t.id}
                     members={t.members.map((m) => ({ id: m.user.id, label: m.user.name }))}
                     availableUsers={users.map((u) => ({ id: u.id, label: u.name }))}
+                    selectClassName="bg-background dark:bg-background"
                   />
                 </div>
                 <Link href={`/administration/equipes/${t.id}`}>
