@@ -47,7 +47,7 @@ export function HolidaySection({ holidays, entities }: { holidays: HolidayRow[];
         ) : (
           <ul className="space-y-2">
             {holidays.map((h) => (
-              <li key={h.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+              <li key={h.id} className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{h.nom}</span>
                   <span className="text-muted-foreground">{h.entityNom}</span>

@@ -10,7 +10,9 @@ export type OrgChartNodeData = {
 
 function NodeCard({ node }: { node: OrgChartNodeData }) {
   return (
-    <div className="flex min-w-[140px] max-w-[180px] flex-col items-center gap-0.5 rounded-lg border bg-card px-3 py-2 text-center shadow-sm">
+    // bg-background (gris du fond de page) et non bg-card : la carte parente
+    // est teintee (materialTone), les noeuds s'y fondaient.
+    <div className="flex min-w-[140px] max-w-[180px] flex-col items-center gap-0.5 rounded-lg border bg-background px-3 py-2 text-center shadow-sm">
       <span className="truncate text-sm font-medium">{node.label}</span>
       {node.sublabel && <span className="truncate text-xs text-muted-foreground">{node.sublabel}</span>}
       {node.badge && (
