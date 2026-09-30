@@ -1,0 +1,66 @@
+Voici le plan de consolidation, basé sur les 3 fichiers examinés (tous suivent
+  le même schéma : auth spécifique → requête Prisma → construction HTML →
+  htmlToPdf() → pdfResponse()).
+
+  Diagnostic confirmé
+
+  lib/pdf.ts importe puppeteer-core + @sparticuz/chromium au niveau fichier, pas
+  juste dans la fonction htmlToPdf. Le traceur de dépendances de Vercel
+  (@vercel/nft) fonctionne par fichier, pas par export utilisé : dès qu'une
+  route importe n'importe quoi depuis lib/pdf.ts (même juste escapeHtml),
+  Chromium est tracé et embarqué dans le bundle de cette fonction. D'où les 29
+  copies.
+
+  (vérifié aussi exceljs : seulement 1 route + 2 libs, poids négligeable comparé
+  à Chromium — pas concerné par ce plan.)
+
+  Stratégie retenue : microservice interne de rendu (impact minimal)
+
+  Plutôt que de fusionner les 29 URLs en une seule (risqué : il faudrait
+  retrouver et modifier tous les boutons/liens frontend qui les appellent), on
+  garde les 29 routes et leurs URLs strictement inchangées. Seul lib/pdf.ts est
+  scindé :
+
+  1. lib/pdf.ts (allégé) — garde pdfResponse, escapeHtml, wrapHtmlDocument, le
+     type PdfOptions, et une nouvelle version de htmlToPdf qui ne lance plus
+     Chromium elle-même mais fait un fetch() interne vers la nouvelle route
+     ci-dessous. Signature identique → les 29 fichiers routes ne changent pas
+     d'une ligne.
+  2. lib/pdf-render.ts (nouveau) — contient tout ce qui est aujourd'hui
+     launchBrowser + le vrai htmlToPdf avec puppeteer-core +
+     @sparticuz/chromium. Ce fichier ne sera importé que par la route
+     ci-dessous.
+  3. app/api/internal/pdf-render/route.ts (nouveau) — unique route qui importe
+     lib/pdf-render.ts. POST reçoit { html, opts }, appelle le vrai htmlToPdf,
+     renvoie le PDF en octets. runtime = "nodejs", maxDuration = 30.
+     - Protégée par un secret partagé (header x-internal-pdf-secret comparé à
+       process.env.INTERNAL_PDF_SECRET) — sans ça n'importe qui pourrait taper
+       cette URL et faire tourner Chromium gratuitement à volonté.
+       L'autorisation métier reste faite en amont par chacune des 29 routes
+       (inchangé), ce secret protège juste l'accès serveur-à-serveur.
+     - URL cible construite via process.env.VERCEL_URL en prod (le déploiement
+       courant), http://localhost:3000 en dev.
+
+  Effet attendu
+
+  Chromium ne sera plus bundlé que dans 1 fonction au lieu de 29 → Function
+  Storage AfriGes devrait chuter de ~6,67 Go à moins de 1 Go. Bonus : cette
+  fonction unique restera "chaude" bien plus souvent (appelée par les 29
+  endpoints combinés), donc moins de cold-starts Chromium qu'avant.
+
+  Étapes d'implémentation
+
+  1. Créer lib/pdf-render.ts (déplacer launchBrowser + htmlToPdf actuels).
+  2. Créer app/api/internal/pdf-render/route.ts.
+  3. Réécrire htmlToPdf dans lib/pdf.ts en version "fetch vers la route
+     interne", même signature.
+  4. Ajouter INTERNAL_PDF_SECRET en local (.env) et dans Vercel (Production +
+     Preview + Development).
+  5. Tester en local : les 3 routes déjà lues (grand-livre, bulletin paie,
+     relevé compte) + npm run check.
+  6. Déployer, vérifier 1-2 PDF en prod, puis surveiller la prochaine mise à
+     jour de Function Storage sur le dashboard Usage.
+
+  Ce plan te convient ? Si oui, je passe à l'implémentation.
+
+✻ Crunched for 1m 57s · done 9:32

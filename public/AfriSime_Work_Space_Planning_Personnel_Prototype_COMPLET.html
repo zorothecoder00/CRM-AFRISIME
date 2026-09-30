@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AfriSime Work Space — Planning personnel — Prototype complet</title>
+<style>
+:root{--blue:#1672e8;--blue2:#0d5fd0;--navy:#0d2748;--bg:#f4f6f9;--card:#fff;--line:#e0e6ed;--text:#1d2936;--muted:#6e7a88;--red:#e53935;--orange:#f28a22;--green:#1f9d5a;--purple:#7657d9;--shadow:0 2px 8px rgba(20,40,70,.05)}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+button,input,select,textarea{font:inherit}.app{display:flex;min-height:100vh}
+.sidebar{width:238px;background:var(--navy);color:#eaf1fb;position:fixed;inset:0 auto 0 0;padding:18px 12px;overflow:auto}.brand{padding:4px 12px 22px;font-weight:800;font-size:18px}.brand small{display:block;font-size:10px;opacity:.62;font-weight:400;margin-top:4px}.navlabel{font-size:10px;letter-spacing:.7px;opacity:.52;padding:9px 12px}.nav button{width:100%;border:0;background:transparent;color:#dce6f5;text-align:left;padding:10px 12px;border-radius:7px;margin:2px 0;cursor:pointer;font-size:12px}.nav button:hover,.nav button.active{background:#1769dc;color:#fff}.nav button .count{float:right;background:#31527a;border-radius:10px;padding:1px 6px;font-size:9px}.sidefoot{margin-top:22px;padding:12px;font-size:9px;opacity:.5;border-top:1px solid #31506f}
+.main{margin-left:238px;flex:1;min-width:0}.topbar{height:67px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:10}.top-title{font-size:16px;font-weight:700}.top-title small{display:block;color:var(--muted);font-size:10px;font-weight:400;margin-top:3px}.global-search{width:300px;border:1px solid var(--line);border-radius:7px;padding:9px 12px;color:#8a94a0;background:#fbfcfd}.profile{display:flex;align-items:center;gap:8px}.avatar{width:34px;height:34px;border-radius:50%;background:#dbe9fb;display:grid;place-items:center;color:#17539d;font-weight:800}.profile small{display:block;color:var(--muted);font-size:9px}
+.content{padding:18px 24px 30px}.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.btn{border:1px solid #cfd8e3;background:#fff;color:#263442;border-radius:7px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:11px}.btn:hover{border-color:#aebdcc}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.danger{color:#b32621}.btn.icon{padding:7px 9px}
+.page{display:none}.page.active{display:block}.subtabs{display:flex;gap:4px;margin-bottom:12px}.subtabs button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:8px 12px;color:#536171;cursor:pointer;font-size:11px}.subtabs button.active{background:#eaf3ff;border-color:#9fc6f4;color:#1264d2;font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}.cardhead{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.cardhead h2,.cardhead h3{margin:0;font-size:15px}.cardhead p{margin:3px 0 0;color:var(--muted);font-size:10px}.body{padding:13px 15px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:13px}.kpi{padding:12px 13px}.kpi span{color:var(--muted);font-size:10px}.kpi b{display:block;font-size:21px;margin-top:4px}
+.main-grid{display:grid;grid-template-columns:minmax(650px,1fr) 295px;gap:13px}.weekbar{display:flex;align-items:center;gap:7px}.weekbar button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 9px}.calendar{display:grid;grid-template-columns:50px repeat(7,1fr);overflow:auto}.calhead{height:43px;text-align:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 4px;font-size:9px;color:#687586}.calhead.today{background:#edf6ff;color:#1164d2;font-weight:700}.time{height:55px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:right;padding:7px 5px;font-size:9px;color:#8994a1}.slot{height:55px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);position:relative}.slot.today{background:#fbfdff}.event{position:absolute;left:3px;right:3px;top:3px;border-radius:5px;padding:6px;font-size:9px;line-height:1.25;background:#eaf3ff;border-left:3px solid var(--blue);z-index:2}.event.orange{background:#fff1e6;border-left-color:var(--orange)}.event.green{background:#eaf8ef;border-left-color:var(--green)}.event.red{background:#fff0f0;border-left-color:var(--red)}.event.purple{background:#f1edff;border-left-color:var(--purple)}
+.alert{margin-top:12px;background:#fff7f6;border:1px solid #efc0be;border-radius:8px;padding:11px;display:flex;align-items:center;gap:12px}.alert strong{color:#c62f2b}.alert span{color:#667382;flex:1;font-size:11px}
+.inbox-item{padding:10px 0;border-bottom:1px solid #edf0f4}.inbox-item:last-child{border-bottom:0}.inbox-item b{font-size:10px;display:block}.inbox-item small{color:var(--muted);font-size:9px}.tag{display:inline-block;border-radius:9px;padding:2px 6px;font-size:8px;margin-top:5px}.critical{background:#ffe6e5;color:#c62828}.high{background:#fff0d8;color:#a65a00}.normal{background:#e7f7ee;color:#147642}.low{background:#edf0f4;color:#66717e}
+.bar{height:7px;background:#e9edf2;border-radius:8px;overflow:hidden;margin:7px 0}.bar i{height:100%;display:block}.bar .yellow{width:53%;background:#e1a122}.bar .green{width:94%;background:#27a466}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.metric{border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}.metric b{font-size:16px;display:block}.metric small{font-size:8px;color:var(--muted)}
+.note{margin-top:12px}.note textarea{width:100%;height:70px;border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:10px;white-space:nowrap}.table th{background:#f8fafc;color:#657180;font-size:9px;text-transform:uppercase}.status{border-radius:10px;padding:3px 7px;font-size:8px}.st-plan{background:#eaf3ff;color:#145fae}.st-course{background:#fff0d8;color:#9c5b00}.st-wait{background:#f0edff;color:#694cc4}.st-block{background:#ffe6e5;color:#c62828}.st-done{background:#e7f7ee;color:#16733f}
+.filterbar{display:flex;gap:7px;flex-wrap:wrap;padding:11px;border-bottom:1px solid var(--line)}.filterbar select,.filterbar input{border:1px solid var(--line);border-radius:6px;padding:7px;background:#fff;font-size:10px}
+.agenda-row{display:grid;grid-template-columns:95px 1fr 120px;gap:10px;padding:12px 14px;border-bottom:1px solid #edf0f4;align-items:center}.agenda-row .date{font-size:10px;color:#667382}.timeline{padding:18px}.timeline-line{border-left:2px solid #cbd7e5;margin-left:80px}.tl{position:relative;padding:0 0 20px 30px}.tl:before{content:"";position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--blue)}.tl time{position:absolute;left:-88px;top:-1px;font-size:9px;color:#73808e}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;color:var(--muted);font-size:9px;margin-bottom:4px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff}.field.full{grid-column:1/-1}.section-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.bigmetric{padding:15px}.bigmetric b{font-size:25px}.bigmetric span{display:block;color:var(--muted);font-size:10px;margin-top:3px}.mini-bars .row{display:grid;grid-template-columns:100px 1fr 40px;gap:8px;align-items:center;margin:9px 0;font-size:9px}.mini-bars .bar i{background:var(--blue)}
+.conflict{border:1px solid #efc0be;background:#fff7f6;border-radius:8px;padding:11px;margin-top:9px;font-size:10px}.conflict b{color:#c62f2b}.dep{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:15px}.node{border:1px solid var(--line);background:#fff;border-radius:7px;padding:9px;font-size:10px}.arrow{color:#8b96a4}
+.empty{padding:35px;text-align:center;color:var(--muted)}
+@media(max-width:1150px){.sidebar{width:205px}.main{margin-left:205px}.kpis{grid-template-columns:repeat(3,1fr)}.main-grid{grid-template-columns:1fr}.rightpanel{display:grid;grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.sidebar{display:none}.main{margin-left:0}.content{padding:12px}.topbar{padding:0 12px}.global-search{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.rightpanel{display:block}.formgrid,.section-grid{grid-template-columns:1fr}.layout-table{overflow:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+<div class="brand">◆ AfriSime<small>Work Space · Planning personnel</small></div>
+<div class="navlabel">PLANNING PERSONNEL</div>
+<nav class="nav">
+<button class="active" onclick="go('home',this)">⌂ Ma journée</button>
+<button onclick="go('calendar',this)">▣ Calendrier</button>
+<button onclick="go('tasks',this)">☑ Mes tâches</button>
+<button onclick="go('inbox',this)">⇩ À planifier <span class="count">12</span></button>
+<button onclick="go('agenda',this)">◫ Agenda</button>
+<button onclick="go('recurring',this)">↻ Récurrences</button>
+<button onclick="go('meetings',this)">♟ Réunions</button>
+<button onclick="go('missions',this)">⌖ Missions</button>
+<button onclick="go('objectives',this)">◎ Mes objectifs</button>
+<button onclick="go('load',this)">◷ Temps / Charge</button>
+<button onclick="go('alerts',this)">♢ Alertes <span class="count">3</span></button>
+<button onclick="go('performance',this)">▥ Ma performance</button>
+<button onclick="go('settings',this)">⚙ Paramètres</button>
+<div class="navlabel">MANAGEMENT</div>
+<button onclick="go('team',this)">👥 Planning de mon équipe</button>
+<button onclick="go('direction',this)">▦ Workforce Control</button>
+</nav>
+<div class="sidefoot">Le Planning personnel est une vue personnalisée des tâches, projets et workflows existants — une seule tâche, plusieurs vues.</div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+<div class="top-title">Mon Planning<small>Planifier · Collaborer · Exécuter · Contrôler</small></div>
+<input class="global-search" placeholder="⌕ Rechercher tâche, activité, réunion, projet, objectif…">
+<div class="profile"><div class="avatar">NA</div><div><b>Nelson AKPABLI</b><small>Super Administrateur</small></div>⌄</div>
+</header>
+
+<div class="content">
+<div class="toolbar">
+<button class="btn" onclick="modal('slot')">▣ Demander un créneau</button>
+<button class="btn primary" onclick="modal('meeting')">＋ Nouvelle réunion</button>
+<button class="btn primary" onclick="modal('activity')">＋ Nouvelle activité</button>
+<button class="btn" onclick="modal('quick')">⚡ Capture rapide</button>
+<button class="btn" onclick="modal('task')">＋ Nouvelle tâche</button>
+</div>
+
+<!-- HOME -->
+<section id="home" class="page active">
+<div class="kpis">
+<div class="card kpi"><span>Aujourd’hui</span><b>7 tâches</b></div><div class="card kpi"><span>En retard</span><b>2</b></div><div class="card kpi"><span>À venir</span><b>14</b></div><div class="card kpi"><span>Réunions</span><b>3</b></div><div class="card kpi"><span>Charge</span><b>112%</b></div><div class="card kpi"><span>Planning Health</span><b>53/100</b></div>
+</div>
+<div class="main-grid">
+<div>
+<div class="card">
+<div class="cardhead"><div><h2>Ma journée</h2><p>Mardi 1 septembre 2026 · vue personnalisée</p></div><div class="weekbar"><button>‹</button><button>Aujourd’hui</button><button>›</button></div></div>
+<div class="subtabs" style="padding:10px;margin:0;border-bottom:1px solid var(--line)"><button class="active">Semaine</button><button>Jour</button><button>Mois</button><button>Agenda</button><button>Liste</button><button>Timeline</button></div>
+<div class="calendar">
+<div class="calhead"></div><div class="calhead">Lundi 31</div><div class="calhead today">Mardi 1<br>AUJOURD’HUI</div><div class="calhead">Mercredi 2</div><div class="calhead">Jeudi 3</div><div class="calhead">Vendredi 4</div><div class="calhead">Samedi 5</div><div class="calhead">Dimanche 6</div>
+<div class="time">07h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">08h00</div><div class="slot"></div><div class="slot today"><div class="event red"><b>Réunion commerciale</b><br>09h00–10h00</div></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">09h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"><div class="event green"><b>Contrôle stock</b><br>09h00–11h00</div></div><div class="slot"></div><div class="slot"><div class="event"><b>Réunion commerciale</b><br>09h00–10h30</div></div><div class="slot"></div><div class="slot"></div><div class="time">10h00</div><div class="slot"></div><div class="slot today"><div class="event orange"><b>Recherche de fournisseurs</b><br>10h00–11h30</div></div><div class="slot"></div><div class="slot"><div class="event green"><b>Visite fournisseur</b><br>10h00–12h00</div></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">11h00</div><div class="slot"></div><div class="slot today"><div class="event orange"><b>Appeler fournisseur ABC</b><br>11h30–12h00</div></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">12h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">13h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">14h00</div><div class="slot"></div><div class="slot today"><div class="event green"><b>Travail projet</b><br>14h00–16h00</div></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">15h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">16h00</div><div class="slot"></div><div class="slot today"><div class="event purple"><b>Revue de journée</b><br>16h00–17h00</div></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">17h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="time">18h00</div><div class="slot"></div><div class="slot today"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div></div>
+<div class="alert"><strong>● Surcharge : 112 %</strong><span>Votre journée contient 1h30 de travail supplémentaire.</span><button class="btn" onclick="modal('reorg')">Réorganiser</button></div>
+<div class="card note"><div class="cardhead"><h3>Notes / raisons de la journée</h3></div><div class="body"><textarea placeholder="Contraintes, urgences, informations utiles…"></textarea></div></div>
+</div>
+
+<aside class="rightpanel">
+<div class="card">
+<div class="cardhead"><h3>📥 À planifier</h3><span class="count">12</span></div><div class="body">
+<div class="inbox-item"><b>Réactiver les clients inactifs</b><small>Projet 03.1 · Échéance 03/09</small><br><span class="tag critical">Très haute</span></div>
+<div class="inbox-item"><b>Identifier les clients à fort potentiel</b><small>Projet 03.1 · Échéance 04/09</small><br><span class="tag high">Haute</span></div>
+<div class="inbox-item"><b>Définir le stock de sécurité</b><small>Projet 02.1 · Échéance 05/09</small><br><span class="tag normal">Normale</span></div>
+<div class="inbox-item"><b>Calculer la consommation moyenne</b><small>Projet 01.1 · Échéance 05/09</small><br><span class="tag normal">Normale</span></div>
+<button class="btn" style="width:100%;margin-top:8px" onclick="go('inbox')">Voir toutes les tâches →</button>
+</div></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><h3>📅 Planning Health</h3></div><div class="body"><div style="text-align:center;font-size:28px;font-weight:800;color:#2b70b9">53<small style="font-size:11px;color:#778390">/100</small></div><div class="bar"><i class="yellow"></i></div><small style="color:var(--muted)">Tâches planifiées · échéances · surcharge · non planifiées · retards · conflits · reports</small></div></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><h3>◷ Charge du jour</h3><b>112%</b></div><div class="body"><b>9h30 / 8h00</b><div class="bar"><i class="green" style="width:100%;background:var(--red)"></i></div><small style="color:#b32621">+1h30 de surcharge</small></div></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><h3>✓ Bilan de ma journée</h3></div><div class="body"><div class="metrics"><div class="metric"><b>7</b><small>Prévues</small></div><div class="metric"><b>3</b><small>Terminées</small></div><div class="metric"><b>1</b><small>Reportée</small></div><div class="metric"><b>2</b><small>En retard</small></div><div class="metric"><b>1</b><small>Bloquée</small></div></div></div></div>
+</aside>
+</div>
+</section>
+
+<!-- CALENDAR -->
+<section id="calendar" class="page">
+<div class="card"><div class="cardhead"><div><h2>Calendrier</h2><p>Vue complète du temps réservé</p></div><div><button class="btn">‹</button> <button class="btn">Aujourd’hui</button> <button class="btn">›</button></div></div>
+<div class="subtabs"><button>Jour</button><button class="active">Semaine</button><button>Mois</button><button>Agenda</button><button>Liste</button><button>Timeline</button></div>
+<div class="body"><div class="section-grid"><div class="card bigmetric"><span>Temps planifié</span><b>37 h</b></div><div class="card bigmetric"><span>Capacité</span><b>40 h</b></div><div class="card bigmetric"><span>Charge moyenne</span><b>92 %</b></div></div><div style="margin-top:12px" class="empty">La vue calendrier détaillée reprend la même grille horaire que « Ma journée », avec déplacement des blocs, time blocking, conflits et temps de déplacement.</div></div></div>
+</section>
+
+<!-- TASKS -->
+<section id="tasks" class="page">
+<div class="card"><div class="cardhead"><div><h2>Mes tâches</h2><p>Les mêmes tâches que dans les projets et workflows — aucune duplication</p></div><button class="btn primary" onclick="modal('task')">＋ Nouvelle tâche</button></div>
+<div class="filterbar"><select><option>Toutes les périodes</option><option>Aujourd’hui</option><option>Demain</option><option>Cette semaine</option><option>Ce mois</option></select><select><option>Toutes priorités</option><option>Critique</option><option>Haute</option><option>Normale</option><option>Faible</option></select><select><option>Tous statuts</option><option>À planifier</option><option>Planifiée</option><option>En cours</option><option>En attente</option><option>Bloquée</option><option>Terminée</option><option>Annulée</option></select><select><option>Tous projets</option><option>Projet 03.1</option><option>Projet 02.1</option></select><select><option>Tous départements</option><option>Commercial</option><option>Achats</option><option>Finance</option></select><input placeholder="Rechercher…"></div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Tâche</th><th>Échéance</th><th>Priorité</th><th>Statut</th><th>Projet</th><th>Responsable</th><th>Planification</th></tr></thead><tbody>
+<tr><td><b>Réactiver les clients inactifs</b></td><td>03/09</td><td><span class="tag critical">Critique</span></td><td><span class="status st-plan">À planifier</span></td><td>03.1 Acquisition</td><td>Nelson</td><td>—</td></tr>
+<tr><td><b>Recherche de fournisseurs</b></td><td>01/09</td><td><span class="tag high">Haute</span></td><td><span class="status st-course">En cours</span></td><td>01.2 Diversification</td><td>Nelson</td><td>10h–11h30</td></tr>
+<tr><td><b>Définir le stock de sécurité</b></td><td>05/09</td><td><span class="tag normal">Normale</span></td><td><span class="status st-plan">Planifiée</span></td><td>02.1 Approvisionnement</td><td>Nelson</td><td>Mer 09h</td></tr>
+<tr><td><b>Validation budget commande</b></td><td>02/09</td><td><span class="tag high">Haute</span></td><td><span class="status st-block">Bloquée</span></td><td>02.2 Achats</td><td>Nelson</td><td>🔒 Dépendance</td></tr>
+</tbody></table></div></div>
+</section>
+
+<!-- INBOX -->
+<section id="inbox" class="page"><div class="card"><div class="cardhead"><div><h2>📥 À planifier — INBOX</h2><p>Nouvelles activités et tâches sans date ou sans plage horaire</p></div><button class="btn primary" onclick="modal('quick')">⚡ Capture rapide</button></div><div class="body">
+<div class="inbox-item"><b>Réactiver les clients inactifs</b><small>Projet 03.1 · Très haute · échéance 03/09</small><div style="margin-top:7px"><button class="btn">Planifier</button><button class="btn">Affecter</button><button class="btn">Transformer en tâche</button><button class="btn">Ajouter au projet</button><button class="btn danger">Supprimer</button></div></div>
+<div class="inbox-item"><b>Préparer rapport annuel</b><small>Activité personnelle · Normale</small><div style="margin-top:7px"><button class="btn">Planifier</button><button class="btn">Affecter</button><button class="btn">Transformer en tâche</button></div></div>
+<div class="inbox-item"><b>Appeler fournisseur ABC</b><small>Projet 01.2 · Haute</small><div style="margin-top:7px"><button class="btn">Planifier</button><button class="btn">Ajouter au projet</button></div></div>
+<p style="font-size:10px;color:var(--muted)">Glisser-déposer une tâche vers mercredi 14h00 programme automatiquement la tâche et conserve le même objet dans Projet, Tâches, Planning et Tableau de bord.</p>
+</div></div></section>
+
+<!-- AGENDA -->
+<section id="agenda" class="page"><div class="card"><div class="cardhead"><h2>Agenda</h2><p>Liste chronologique de toutes les activités</p></div>
+<div class="agenda-row"><div class="date">MAR 01/09<br>08h00–09h00</div><div><b>Traitement administratif</b><br><small>Travail personnel · Planifiée</small></div><span class="status st-plan">Planifiée</span></div>
+<div class="agenda-row"><div class="date">09h00–10h00</div><div><b>Réunion commerciale</b><br><small>Participants · ordre du jour · documents</small></div><span class="status st-plan">Réunion</span></div>
+<div class="agenda-row"><div class="date">10h00–11h30</div><div><b>Recherche de fournisseurs</b><br><small>Projet 01.2 · Haute</small></div><span class="status st-course">En cours</span></div>
+<div class="agenda-row"><div class="date">11h30–12h00</div><div><b>Appeler fournisseur ABC</b><br><small>Projet 01.2 · Appel</small></div><span class="status st-plan">Planifiée</span></div>
+<div class="agenda-row"><div class="date">12h00–12h30</div><div><b>Déplacement</b><br><small>Temps de déplacement pris en compte</small></div><span class="status st-plan">Déplacement</span></div>
+<div class="agenda-row"><div class="date">14h00–16h00</div><div><b>Travail projet</b><br><small>Objectif → KPI → Programme → Projet → Tâche</small></div><span class="status st-plan">Bloc horaire</span></div>
+</div></section>
+
+<!-- RECURRING -->
+<section id="recurring" class="page"><div class="card"><div class="cardhead"><div><h2>Récurrences</h2><p>Créer et gérer les activités répétitives</p></div><button class="btn primary" onclick="modal('recurring')">＋ Nouvelle récurrence</button></div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Activité</th><th>Règle</th><th>Prochaine occurrence</th><th>Rappel</th><th>Statut</th></tr></thead><tbody>
+<tr><td>Contrôle caisse</td><td>Tous les jours à 18h00</td><td>Aujourd’hui 18h00</td><td>15 min</td><td><span class="status st-plan">Active</span></td></tr>
+<tr><td>Réunion équipe</td><td>Chaque lundi à 08h30</td><td>07/09 08h30</td><td>30 min</td><td><span class="status st-plan">Active</span></td></tr>
+<tr><td>Rapport hebdomadaire</td><td>Chaque vendredi à 16h00</td><td>04/09 16h00</td><td>1 h</td><td><span class="status st-plan">Active</span></td></tr>
+<tr><td>Rapport mensuel</td><td>Dernier jour ouvrable du mois</td><td>30/09</td><td>1 jour</td><td><span class="status st-plan">Active</span></td></tr>
+</tbody></table></div></div></section>
+
+<!-- MEETINGS -->
+<section id="meetings" class="page"><div class="card"><div class="cardhead"><div><h2>Réunions</h2><p>Organisation, compte rendu, décisions et tâches issues des réunions</p></div><button class="btn primary" onclick="modal('meeting')">＋ Nouvelle réunion</button></div>
+<div class="body"><div class="section-grid">
+<div class="card bigmetric"><span>À venir</span><b>3</b></div><div class="card bigmetric"><span>Cette semaine</span><b>7</b></div><div class="card bigmetric"><span>Compte rendus attendus</span><b>2</b></div>
+</div>
+<div style="margin-top:12px" class="tablewrap"><table class="table"><thead><tr><th>Réunion</th><th>Date / durée</th><th>Participants</th><th>Lieu / visio</th><th>CR</th><th>Actions</th></tr></thead><tbody>
+<tr><td><b>Réunion commerciale</b><br><small>Ordre du jour disponible</small></td><td>01/09 · 09h · 1h</td><td>5</td><td>Salle COM</td><td><span class="status st-plan">À produire</span></td><td><button class="btn">Ouvrir</button></td></tr>
+<tr><td><b>CODIR</b></td><td>03/09 · 15h · 2h</td><td>8</td><td>Visio</td><td><span class="status st-plan">—</span></td><td><button class="btn">Ouvrir</button></td></tr>
+</tbody></table></div>
+<div class="conflict"><b>Après réunion :</b> les décisions peuvent créer automatiquement des tâches avec responsable, échéance et workflow associé.</div>
+</div></div></section>
+
+<!-- MISSIONS -->
+<section id="missions" class="page"><div class="card"><div class="cardhead"><div><h2>Missions & déplacements</h2><p>Le temps de déplacement entre automatiquement dans le planning</p></div><button class="btn primary" onclick="modal('mission')">＋ Nouvelle mission</button></div>
+<div class="body"><div class="section-grid"><div class="card bigmetric"><span>Missions à venir</span><b>2</b></div><div class="card bigmetric"><span>Jours en mission</span><b>4</b></div><div class="card bigmetric"><span>Budget engagé</span><b>850 000</b></div></div>
+<div style="margin-top:12px" class="tablewrap"><table class="table"><thead><tr><th>Mission</th><th>Destination</th><th>Départ / retour</th><th>Responsable</th><th>Budget</th><th>Transport</th><th>Rapport</th></tr></thead><tbody>
+<tr><td><b>Mission Kara</b><br>Objet : visite fournisseurs</td><td>Kara</td><td>08/09 → 10/09</td><td>Nelson</td><td>500 000</td><td>Véhicule</td><td>À produire</td></tr>
+<tr><td><b>Mission Atakpamé</b></td><td>Atakpamé</td><td>15/09 → 16/09</td><td>Nelson</td><td>350 000</td><td>Véhicule</td><td>—</td></tr>
+</tbody></table></div></div></div></section>
+
+<!-- OBJECTIVES -->
+<section id="objectives" class="page"><div class="card"><div class="cardhead"><div><h2>Mes objectifs</h2><p>Connexion Objectif → KPI → Programme → Projet → Tâche → Planning personnel</p></div><button class="btn">＋ Nouvel objectif</button></div>
+<div class="body"><div class="section-grid"><div class="card bigmetric"><span>Objectif</span><b>+30%</b><small>Ventes B2B</small></div><div class="card bigmetric"><span>Progression</span><b>68%</b><small>du KPI</small></div><div class="card bigmetric"><span>Tâches liées</span><b>20</b><small>6 terminées</small></div></div>
+<div class="dep"><div class="node">🎯 Augmenter ventes B2B de 30%</div><span class="arrow">→</span><div class="node">📊 KPI : prospects contactés</div><span class="arrow">→</span><div class="node">📁 Programme commercial</div><span class="arrow">→</span><div class="node">📌 Projet acquisition</div><span class="arrow">→</span><div class="node">☑ Contacter 20 prospects</div></div>
+</div></div></section>
+
+<!-- LOAD -->
+<section id="load" class="page"><div class="section-grid">
+<div class="card bigmetric"><span>Capacité cette semaine</span><b>40 h</b></div><div class="card bigmetric"><span>Temps planifié</span><b>44 h</b></div><div class="card bigmetric"><span>Charge</span><b style="color:#c62828">110%</b></div>
+</div><div class="card" style="margin-top:12px"><div class="cardhead"><h2>Temps / Charge</h2><p>Charge planifiée / capacité disponible</p></div><div class="body mini-bars">
+<div class="row"><span>Lundi</span><div class="bar"><i style="width:82%"></i></div><b>82%</b></div>
+<div class="row"><span>Mardi</span><div class="bar"><i style="width:112%;background:var(--red)"></i></div><b>112%</b></div>
+<div class="row"><span>Mercredi</span><div class="bar"><i style="width:76%"></i></div><b>76%</b></div>
+<div class="row"><span>Jeudi</span><div class="bar"><i style="width:91%"></i></div><b>91%</b></div>
+<div class="row"><span>Vendredi</span><div class="bar"><i style="width:67%"></i></div><b>67%</b></div>
+</div></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><h2>Assistant de réorganisation</h2></div><div class="body"><button class="btn">1. Reporter les tâches non prioritaires</button> <button class="btn">2. Déplacer une réunion</button> <button class="btn">3. Réduire le temps réservé</button> <button class="btn">4. Demander une réaffectation</button> <button class="btn">5. Conserver la surcharge</button></div></div></section>
+
+<!-- ALERTS -->
+<section id="alerts" class="page"><div class="card"><div class="cardhead"><div><h2>Alertes & rappels</h2><p>Notifications intelligentes sans avalanche de messages</p></div><button class="btn">Paramétrer</button></div><div class="body">
+<div class="alert"><strong>🔴 Urgente</strong><span>Votre tâche critique « Réactiver les clients inactifs » arrive à échéance dans 1 heure.</span><button class="btn">Ouvrir</button></div>
+<div class="alert" style="background:#fffaf2;border-color:#f0d6a4"><strong style="color:#9c6200">🟠 Importante</strong><span>Vous avez une tâche en retard.</span><button class="btn">Ouvrir</button></div>
+<div class="alert" style="background:#eef7ff;border-color:#bdd8f3"><strong style="color:#1465a8">🔵 Information</strong><span>Une nouvelle réunion a été ajoutée à votre planning.</span><button class="btn">Voir</button></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><h3>Rappels intelligents</h3></div><div class="body"><button class="btn">5 min</button> <button class="btn">15 min</button> <button class="btn">30 min</button> <button class="btn">1 h</button> <button class="btn">1 jour</button> <button class="btn">Personnalisé</button></div></div>
+</div></div></section>
+
+<!-- PERFORMANCE -->
+<section id="performance" class="page"><div class="section-grid">
+<div class="card bigmetric"><span>Taux d’exécution</span><b>87%</b></div><div class="card bigmetric"><span>Tâches terminées</span><b>42</b></div><div class="card bigmetric"><span>Tâches en retard</span><b>3</b></div><div class="card bigmetric"><span>Tâches bloquées</span><b>2</b></div><div class="card bigmetric"><span>Respect échéances</span><b>91%</b></div><div class="card bigmetric"><span>Charge moyenne</span><b>76%</b></div>
+</div><div class="card" style="margin-top:12px"><div class="cardhead"><h2>Ma performance</h2></div><div class="body"><div class="section-grid"><div class="card bigmetric"><span>Temps planifié</span><b>37 h</b></div><div class="card bigmetric"><span>Temps réellement consacré</span><b>34 h</b></div><div class="card bigmetric"><span>Écart</span><b>-3 h</b></div></div><p style="font-size:10px;color:var(--muted);margin-top:15px">Les indicateurs doivent être interprétés avec le contexte : dépendances, absences, urgences, changements de priorité, surcharge et blocages. Ils servent à organiser le travail et améliorer la productivité, pas à mesurer une performance isolée par le volume de tâches.</p></div></div></section>
+
+<!-- SETTINGS -->
+<section id="settings" class="page"><div class="card"><div class="cardhead"><h2>Paramètres du planning</h2></div><div class="body"><div class="formgrid">
+<div class="field"><label>Fuseau horaire</label><select><option>Africa/Lomé</option></select></div><div class="field"><label>Premier jour de la semaine</label><select><option>Lundi</option></select></div>
+<div class="field"><label>Horaires flexibles</label><select><option>Activés</option><option>Désactivés</option></select></div><div class="field"><label>Calendrier jours fériés</label><select><option>Togo</option></select></div>
+<div class="field full"><label>Horaires de travail</label><div class="tablewrap"><table class="table"><tr><th>Jour</th><th>Début</th><th>Fin</th><th>Pause</th><th>Mode</th></tr><tr><td>Lundi</td><td>08:00</td><td>17:00</td><td>12:00–13:00</td><td>Présentiel</td></tr><tr><td>Mardi</td><td>08:00</td><td>17:00</td><td>12:00–13:00</td><td>Présentiel</td></tr><tr><td>Mercredi</td><td>08:00</td><td>17:00</td><td>12:00–13:00</td><td>Télétravail</td></tr><tr><td>Jeudi</td><td>08:00</td><td>17:00</td><td>12:00–13:00</td><td>Présentiel</td></tr><tr><td>Vendredi</td><td>08:00</td><td>17:00</td><td>12:00–13:00</td><td>Présentiel</td></tr></table></div></div>
+<div class="field"><label>Notifications</label><select><option>Interne + Email</option><option>Interne</option><option>Push mobile</option></select></div><div class="field"><label>Rappels par défaut</label><select><option>15 min avant</option></select></div>
+</div></div></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><h3>Congés / absences</h3></div><div class="body"><p style="font-size:10px;color:var(--muted)">Connecté au module RH : congé approuvé → blocage de période → réorganisation des tâches → alerte manager si nécessaire.</p><button class="btn">Voir mes absences</button></div></div>
+</section>
+
+<!-- TEAM -->
+<section id="team" class="page"><div class="card"><div class="cardhead"><div><h2>👥 Planning de mon équipe</h2><p>Vision manager selon les droits d’accès</p></div><button class="btn">Semaine ▾</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Collaborateur</th><th>Charge</th><th>En retard</th><th>Aujourd’hui</th><th>Bloquées</th><th>Disponibilité</th><th>Action</th></tr></thead><tbody><tr><td>Kossi</td><td>82%</td><td>1</td><td>6</td><td>0</td><td>18%</td><td><button class="btn">Voir planning</button></td></tr><tr><td>Ama</td><td style="color:#c62828;font-weight:bold">110%</td><td style="color:#c62828">4</td><td>9</td><td style="color:#c62828">2</td><td>0%</td><td><button class="btn">Réorganiser</button></td></tr><tr><td>Kodjo</td><td>61%</td><td>0</td><td>5</td><td>0</td><td>39%</td><td><button class="btn">Voir planning</button></td></tr></tbody></table></div></div></section>
+
+<!-- DIRECTION -->
+<section id="direction" class="page"><div class="section-grid"><div class="card bigmetric"><span>Tâches aujourd’hui</span><b>128</b></div><div class="card bigmetric"><span>Terminées</span><b>91</b></div><div class="card bigmetric"><span>En retard</span><b>12</b></div><div class="card bigmetric"><span>Bloquées</span><b>7</b></div><div class="card bigmetric"><span>Charge moyenne</span><b>74%</b></div><div class="card bigmetric"><span>Départements en surcharge</span><b style="color:#c62828">2</b></div></div>
+<div class="card" style="margin-top:12px"><div class="cardhead"><div><h2>▦ Workforce Control</h2><p>Vue synthétique direction</p></div><span class="tag critical">3 problèmes critiques</span></div><div class="body"><div class="section-grid"><div class="card bigmetric"><span>Achats</span><b style="color:#c62828">112%</b><small>Surcharge</small></div><div class="card bigmetric"><span>Commercial</span><b>78%</b><small>Normal</small></div><div class="card bigmetric"><span>Finance</span><b>66%</b><small>Normal</small></div></div></div></div>
+</section>
+</div>
+</main></div>
+
+<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(7,25,48,.48);z-index:50;align-items:center;justify-content:center">
+<div style="width:min(680px,92vw);max-height:88vh;overflow:auto;background:#fff;border-radius:11px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+<div class="cardhead"><h2 id="modalTitle">Nouvelle activité</h2><button class="btn" onclick="closeModal()">✕</button></div>
+<div class="body" id="modalBody"></div>
+</div></div>
+<script>
+const pages=[...document.querySelectorAll('.page')];
+function go(id,btn){pages.forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');window.scrollTo(0,0)}
+const forms={
+activity:['Nouvelle activité',['Titre','Description','Type : Tâche / Réunion / Rendez-vous / Appel / Mission / Formation / Déplacement / Travail personnel / Pause / Événement','Date','Heure début','Heure fin','Priorité','Lieu','Participants','Projet associé','Objectif associé','Étiquette','Répétition','Rappel','Pièces jointes']],
+task:['Nouvelle tâche',['Titre','Description / résultat attendu','Responsable','Échéance','Priorité','Statut','Projet','Objectif','Dépendance','Durée estimée','Pièces jointes']],
+meeting:['Nouvelle réunion',['Titre','Date','Heure','Durée','Participants','Ordre du jour','Lieu','Lien visioconférence','Documents','Compte rendu','Décisions','Tâches issues de la réunion']],
+mission:['Nouvelle mission',['Objet','Destination','Date départ','Date retour','Responsable','Participants','Budget','Moyen de transport','Hébergement','Tâches','Documents','Rapport de mission']],
+recurring:['Nouvelle récurrence',['Activité','Règle : quotidienne / hebdomadaire / mensuelle / personnalisée','Heure','Date de début','Date de fin','Rappel']],
+quick:['Capture rapide',['Saisissez : « Appeler fournisseur demain matin »','Le système propose : activité / date / période','Validation']],
+slot:['Demander un créneau',['Objet','Durée souhaitée','Période préférée','Participants','Contrainte / motif']],
+reorg:['Assistant de réorganisation',['1. Reporter les tâches non prioritaires','2. Déplacer une réunion','3. Réduire le temps réservé','4. Demander une réaffectation','5. Conserver le planning malgré la surcharge']]
+};
+function modal(type){let f=forms[type]||forms.activity;document.getElementById('modalTitle').textContent=f[0];let body='<div class="formgrid">';f[1].forEach((x,i)=>{body+=`<div class="field ${x.includes('Description')||x.includes('Ordre')||x.includes('Documents')||x.includes('Pièces')||x.includes('Décisions')||x.includes('Tâches issues')||x.includes('Saisissez')||x.includes('Validation')||x.includes('1.')?'full':''}"><label>${x}</label>${x.includes('Type')||x.includes('Priorité')||x.includes('Statut')||x.includes('Règle')?'<select><option>Sélectionner…</option><option>Critique</option><option>Haute</option><option>Normale</option><option>Faible</option></select>':x.includes('Description')||x.includes('Ordre')||x.includes('Documents')||x.includes('Pièces')||x.includes('Décisions')||x.includes('Tâches')||x.includes('Saisissez')||x.includes('Validation')||x.includes('1.')?'<textarea rows="3"></textarea>':'<input placeholder="Saisir…">'}</div>`});body+='</div><div style="text-align:right;margin-top:14px"><button class="btn" onclick="closeModal()">Annuler</button><button class="btn primary" onclick="closeModal();alert(\'Prototype : élément enregistré et synchronisé avec les vues concernées.\')">Enregistrer</button></div>';document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').style.display='flex'}
+function closeModal(){document.getElementById('modal').style.display='none'}
+</script>
+</body></html>

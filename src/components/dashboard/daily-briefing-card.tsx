@@ -96,7 +96,7 @@ export function DailyBriefingCard({ userName, briefing }: { userName: string | n
                   </span>
                   <span className="min-w-0 leading-tight">
                     <span className="block text-base font-semibold">{value}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{item.label(value).replace(`${value} `, "")}</span>
+                    <span className="block text-xs text-balance text-muted-foreground">{item.label(value).replace(`${value} `, "")}</span>
                   </span>
                 </Link>
               );

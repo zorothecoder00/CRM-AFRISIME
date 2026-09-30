@@ -1,0 +1,264 @@
+Le module /marketplace est revenu. Les autres tournent encore — je te donne le
+  détail de celui-ci en attendant les suivants.
+
+  Marketplace est un stub volontaire, pas un module cassé.
+
+  - Une seule table (AppCatalogEntry) : nom, catégorie, description, statut
+    (Planifiée / Bientôt disponible / Disponible).
+  - Un admin avec la permission MARKETPLACE_MANAGE peut changer le statut d'une
+    entrée.
+  - Aucun bouton "installer/réserver/acheter", aucune relation vers d'autres
+    modèles (compétences, RH, projets…).
+  - Le code lui-même le documente : c'est le cahier des charges V2.2 §33 qui
+    demandait de "préparer une architecture", pas de construire de vraies apps
+    installables. Le texte affiché à l'utilisateur le dit aussi explicitement.
+
+  Donc : catalogue vitrine géré par l'admin, zéro intégration fonctionnelle avec
+  le reste de l'app. C'est assumé comme tel, pas un oubli.
+
+  J'attends les 5 autres audits (dépendances/orchestration,
+  postes-compétences-sites-managers, CRM, succession/évaluations,
+  base-de-connaissances) pour te faire le tour complet.
+
+✻ Waiting for 5 background agents to finish
+
+● Agent "Audit succession + evaluations modules" finished · 44s
+
+● Succession et Évaluations sont revenus — tous les deux fonctionnels, pas des
+  stubs.
+
+  Succession : un plan de succession est rattaché à un Poste marqué critique,
+  avec le titulaire actuel, les compétences requises, un statut (En
+  préparation/Prêt/Actif), et une liste de candidats potentiels notés par niveau
+  de préparation (Faible/Moyen/Élevé + délai). Créer/modifier un plan,
+  ajouter/retirer un candidat : tout est du vrai CRUD Prisma avec contrôle de
+  permission (SUCCESSION_MANAGE) et audit log.
+
+  Évaluations : cycle complet réel, pas un mécanisme futur.
+  1. Création d'une évaluation (types : Auto / Manager / 360° / Projet)
+  2. Ajout de critères notés
+  3. Soumission par l'évaluateur → score global calculé automatiquement (moyenne
+     des notes), évaluation verrouillée
+  4. Accusé de réception par l'évalué (avec commentaire) → notification à
+     l'évaluateur
+
+  Statuts Brouillon → Soumise → Accusé de réception, avec vérifications serveur
+  strictes (seul l'évaluateur peut soumettre, seul l'évalué peut accuser
+  réception). Donc oui, ça marche vraiment.
+
+  Encore 3 audits en cours (dépendances/orchestration, CRM,
+  postes-compétences-sites-managers, base-de-connaissances) — je reviens vers
+  toi.
+
+✻ Waiting for 4 background agents to finish
+
+● Agent "Audit dépendances + orchestration modules" finished · 1m 20s
+
+● Dépendances et Orchestration sont revenus aussi.
+
+  /dependances — cartographie des liens entre entités (projet, équipe,
+  utilisateur, processus, décision de réunion, ressource, partenaire/prestataire
+  CRM, transformation, jalon). Chaque lien est un enregistrement générique
+  source→cible avec un type de relation.
+  - On crée/supprime des dépendances via une vraie server action (permission
+    requise, audit log).
+  - Un calcul de risque automatique existe, mais seulement pour les paires
+    Projet→Projet : si le projet cible est en retard ou stoppé, le projet source
+    est marqué à risque, et un cron quotidien génère une alerte + notifie le
+    responsable.
+  - Les autres types de dépendances (équipe, utilisateur, CRM, etc.) sont
+    stockées et affichées mais sans logique de risque dédiée.
+  - Verdict : fonctionnel, mais volontairement borné à ce seul cas de risque.
+
+  /orchestration — permet de créer des "playbooks" : un déclencheur métier
+  (tâche terminée, nouvelle opportunité CRM, changement de statut projet…) qui
+  enchaîne plusieurs actions dans un ordre défini.
+  - Point clé : il n'y a pas de moteur séparé. Un playbook est juste un
+    conteneur ; chaque étape que tu ajoutes dans l'UI est en réalité une règle
+    d'automatisation classique (AutomationRule), à qui on assigne le playbook +
+    un ordre.
+  - L'exécution réutilise le même moteur que les règles simples : quand tu
+    termines une tâche ou crées une opportunité dans l'app réelle, ça va
+    chercher les règles actives pour cet événement, triées par ordre, et les
+    exécute une à une.
+  - Activer/désactiver un playbook active/désactive toutes ses règles d'un coup.
+  - Verdict : fonctionnel end-to-end, pas une façade.
+
+  Lien entre les deux : ils sont complémentaires mais pas branchés l'un sur
+  l'autre — /dependances fait de la détection passive (alerte), /orchestration
+  fait de l'action automatique (déclencheur → actions). Une dépendance à risque
+  ne déclenche pas encore un playbook, c'est juste une alerte.
+
+  Encore CRM, postes/compétences/sites/managers, et base-de-connaissances en
+  cours.
+
+✻ Waiting for 3 background agents to finish
+
+● Agent "Audit admin entities usage across app" finished · 1m 18s
+
+● Postes/Compétences/Sites/Équipes-Managers est revenu — verdict nuancé, ton
+  impression n'est vraie que pour une des quatre.
+
+  - Postes : réel. Le flag "critique" pilote directement le Succession Planning,
+    et le lien poste↔utilisateur sert au calcul des postes vacants dans le
+    Workforce Planning.
+  - Compétences : central. Utilisé par intelligence-compétences, workforce
+    planning (écarts de compétences), succession, scoring prédictif,
+    automatisation, matching tâche/compétence.
+  - Sites : ici ton impression est correcte — c'est quasi-cosmétique. CRUD pur,
+    affiché dans un menu déroulant sur la fiche utilisateur, mais aucun module
+    (planning, workforce, succession, CRM) ne lit réellement la
+    ville/pays/coordonnées d'un site.
+  - Équipes/Managers : réel. Le manager (User.managerId) et le chef d'équipe
+    (Team.leaderId, deux champs distincts) pilotent le contrôle d'accès au
+    planning personnel des subordonnés, l'organigramme, la simulation de
+    scénarios et la gestion du risque.
+
+  Donc sur 4, seul Site mérite le reproche "sert à rien" — les trois autres sont
+  des piliers silencieux de modules plus avancés que tu ne relies peut-être pas
+  mentalement à eux.
+
+  Encore CRM et base-de-connaissances en cours.
+
+✻ Waiting for 2 background agents to finish
+
+● Agent "Audit CRM workflow (contacts, opportunités, organisations)" finished ·
+2m 45s
+
+● Le CRM est revenu — voici le tour complet.
+
+  CRM : Organisations → Contacts → Opportunités → Pipeline
+
+  Structure : une Organisation (client/partenaire) contient des Contacts
+  (personnes), qui portent des Opportunités (affaires), chacune journalisée par
+  des Interactions (email/appel/whatsapp/réunion/note).
+
+  Workflow réel :
+  1. Tu crées une Organisation, puis des Contacts dessous.
+  2. Tu crées une Opportunité liée au contact/organisation.
+  3. /crm/pipeline affiche un Kanban drag & drop à 6 colonnes (Nouveau →
+     Qualification → Proposition → Négociation → Gagnée/Perdue) — glisser une
+     carte change vraiment le statut en base.
+  4. Tu loggues des interactions au fil de l'eau.
+  5. Quand l'opportunité passe "Gagnée", rien ne se déclenche automatiquement —
+     il faut cliquer un bouton dédié "Convertir en projet", qui crée un vrai
+     Project (conversion manuelle, à usage unique, bloquée si déjà convertie).
+     Un contrat peut aussi être créé depuis une opportunité gagnée, mais c'est
+     une action séparée, pas automatique.
+
+  Pas un silo : ça alimente le module Projets (conversion manuelle) et les
+  Contrats, et la création d'une opportunité peut aussi déclencher un playbook
+  d'orchestration (OPPORTUNITY_CREATED). CRUD complet, sauf suppression — pas de
+  delete sur organisation/contact/opportunité (historique commercial préservé
+  volontairement).
+
+  /crm/organisations = liste + fiche détail (contacts/opportunités/interactions
+  liées affichés sur la fiche), rien de plus que le modèle ci-dessus.
+
+  ---
+
+  Base-de-connaissances (résumé rapide, l'audit dédié va compléter) : wiki
+  d'entreprise classique — catégories arborescentes, articles avec statut
+  brouillon/publié (visibles publiquement seulement si publiés, sauf pour
+  l'auteur/modérateur), recherche texte sur titre/contenu/tags. Fonctionnel, pas
+  de dépendance externe.
+
+  J'attends encore le rapport dédié base-de-connaissances (notamment sur une
+  éventuelle intégration IA/RAG) pour confirmer ou compléter ce point.
+
+✻ Cogitated for 14s · done 8:57
+
+● Agent "Audit base-de-connaissances module" finished · 2m 48s
+
+● Tous les audits sont revenus. Voici le récap complet et final.
+
+  Base-de-connaissances (dernier module)
+
+  Wiki d'entreprise simple : articles + catégories hiérarchiques, statut
+  Brouillon/Publié, CRUD complet avec permissions et audit. Pas de
+  RAG/embeddings — recherche en fuzzy-match texte (titre/contenu/tags), pas de
+  sémantique. À ne pas confondre avec deux modules voisins mais distincts :
+  - /graphe-de-connaissances = graphe relationnel
+    Personne→Projet→Processus→Document→Décision.
+  - /intelligence-competences = écarts de compétences (dispo/requis/futur).
+
+  Trois modules séparés malgré des noms proches, aucun ne dépend d'une clé LLM
+  sauf la "mémoire organisationnelle" IA qui, elle, tourne en mode mots-clés
+  faute de clé API.
+
+  Bonus non demandé mais utile : /orchestrateur-ia (différent de /orchestration)
+  est un pipeline séquentiel d'agents IA (Strategy Advisor → Project Manager →
+  Risk Manager → Resource Manager) qui consolident une recommandation — lui
+  aussi en mode déterministe par mots-clés, faute de clé LLM.
+
+  ---
+
+  Vue d'ensemble de tout ce que tu as demandé
+
+  Module: /dependances
+  Statut: Fonctionnel, borné
+  Ce qu'il fait vraiment: Cartographie générique de liens entre entités ; alerte
+
+  de risque auto uniquement pour Projet→Projet
+  ────────────────────────────────────────
+  Module: /orchestration
+  Statut: Fonctionnel
+  Ce qu'il fait vraiment: Playbooks = chaînes ordonnées de règles
+  d'automatisation existantes, même moteur que les règles simples
+  ────────────────────────────────────────
+  Module: /marketplace
+  Statut: Stub voulu
+  Ce qu'il fait vraiment: Vitrine de futures apps métier, rien n'est installable
+
+  (§33 du cahier des charges)
+  ────────────────────────────────────────
+  Module: Postes
+  Statut: Réel
+  Ce qu'il fait vraiment: Pilote Succession Planning + Workforce Planning
+  (postes
+  vacants/critiques)
+  ────────────────────────────────────────
+  Module: Compétences
+  Statut: Central
+  Ce qu'il fait vraiment: Intelligence-compétences, workforce planning,
+  succession, scoring prédictif, matching tâches
+  ────────────────────────────────────────
+  Module: Sites
+  Statut: Quasi-cosmétique
+  Ce qu'il fait vraiment: CRUD admin, champ affiché sur la fiche utilisateur,
+  aucun module métier ne l'exploite
+  ────────────────────────────────────────
+  Module: Manager/Équipes
+  Statut: Réel
+  Ce qu'il fait vraiment: Organigramme, accès planning des subordonnés, escalade
+
+  risques, simulations
+  ────────────────────────────────────────
+  Module: CRM (Orga→Contact→Opp→Pipeline)
+  Statut: Fonctionnel, connecté
+  Ce qu'il fait vraiment: Kanban réel ; "Gagnée" ne fait rien seule, il faut
+  cliquer "Convertir en projet" (manuel)
+  ────────────────────────────────────────
+  Module: /succession
+  Statut: Fonctionnel
+  Ce qu'il fait vraiment: Plans de succession sur postes critiques, candidats
+  notés
+  ────────────────────────────────────────
+  Module: /evaluations
+  Statut: Fonctionnel
+  Ce qu'il fait vraiment: Cycle complet Brouillon→Soumise→Accusé réception,
+  score
+  auto-calculé
+  ────────────────────────────────────────
+  Module: /base-de-connaissances
+  Statut: Fonctionnel
+  Ce qu'il fait vraiment: Wiki simple, pas de RAG
+
+  Point commun le plus important : ton intuition était juste sur un seul point
+  précis — Site est effectivement décoratif, aucun autre module ne l'exploite.
+  Partout ailleurs (Postes, Compétences, Manager), les données admin nourrissent
+  réellement des modules avancés (Succession, Workforce Planning, Intelligence
+  Compétences, Organigramme) qui sont juste peu visibles dans la navigation
+  quotidienne, ce qui explique l'impression de "sert à rien".
+
+✻ Worked for 4m 31s · done 8:58

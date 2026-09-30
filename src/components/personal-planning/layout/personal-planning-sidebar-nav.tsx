@@ -83,7 +83,7 @@ export function PersonalPlanningSidebarNav({
         </span>
         {!collapsed && (
           <>
-            <span className="flex-1 truncate">{item.label}</span>
+            <span className="min-w-0 flex-1 leading-tight">{item.label}</span>
             {count > 0 && (
               <span className="ml-auto rounded-full bg-sidebar-primary/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                 {count}

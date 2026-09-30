@@ -1,15 +1,22 @@
  Pour tester : connexion collaborateur@afriflow.local / admin@afriflow.local
   Password123! 
-
+     
+-Clés VAPID générées localement (aucun compte tiers requis), service worker minimal (public/sw.js) pour les notifications push/PWA
 -@xyflow/react librairie de graphe relationnel
 -bibliothèque i18n (next-intl, i18next...)
 -extension PostgreSQL pg_trgm (similarite trigramme) pour tolerer fautes de frappe/variantes
 - Serwist pour le mode hors ligne
 -La dictée vocale (ConversationalAssistantBar, client) — utilise directement l'API navigateur SpeechRecognition (Web Speech API, native Chrome/Edge,aucune clé requise). Pas supportée partout (Firefox notamment)
+-"test": "vitest run",
+ 11 +    "test:watch": "vitest",
+-Playwright pour les tests visuels
+-Chromium headless est une lib qui permet le rendu pdf
+-Print CSS et window.print() pour les export PDF/Excel
+-Resend est une lib permettant l'envoi d'email 
+-jose pour le JWT, bcryptjs pour le hash
+-une petite dépendance (qrcode / bwip-js) pour QR scannable (et un vrai code-barres Code128) 
+-Ecrire toujours un script npm migrate:deploy:prod pour migrer via l'endpoint direct (host sans -pooler) pour éviter d'utiliser le pooler Neon et empêcher les locks
 
-https://claude.ai/code/artifact/b2308872-5d7c-44f0-a522-6d8de22ee2f1?via=auto_preview  lien pour montrer un peu comment l'app fonctionnel
-
-https://claude.ai/code/artifact/002d1820-1cc4-4783-a926-9a481d3e4f5c?via=auto_preview
 https://claude.ai/code/artifact/9161e82c-4210-444d-8ef8-3b1e70bd2dfd?via=auto_preview : plan détaillé pour l'Isolation multi-tenant réelle pour AfriFlow 
 
 https://claude.ai/code/artifact/0e7a997c-cbd3-4f78-90e7-36080d26a3e2?via=auto_preview( travail réalisé sur afriflow aujourd'hui le 25 Aout 2026)
@@ -31,15 +38,7 @@ Tip: Share Claude Code and earn $10 in usage credits · /passes
  
   1. Ce qui ne fonctionne pas
 
-  Un vrai bug, sévère :
-  - "Mot de passe oublié" est totalement inopérant. forgot-password/route.ts
-  génère un token puis se contente d'un console.log côté serveur (// TODO:
-  envoyer rawToken par email...) — aucun email n'est envoyé, et il n'existe
-  aucune alternative admin pour régénérer/consulter le lien depuis l'UI
-  (contrairement à l'invitation portail, qui elle affiche bien le lien à
-  copier-coller). Un utilisateur qui oublie son mot de passe n'a strictement
-  aucun moyen de le récupérer.
-
+ 
   Fonctionnalités présentes mais désactivées faute d'identifiants externes
   (documenté dans le code, pas des bugs de logique — mais le résultat pour
   l'utilisateur est le même : ça ne marche pas) :
@@ -50,38 +49,7 @@ Tip: Share Claude Code and earn $10 in usage credits · /passes
   sur des données réelles — pas de vrai raisonnement/LLM, faute de clé API dans
   cette instance.
 
-  Ce que je n'ai pas trouvé cassé (et qui mérite d'être dit, ça compte) : sweep
-  de 100+ pages sur 2 rôles différents (super admin, chef de projet), zéro crash
-  serveur, zéro page blanche, les redirections de permission se comportent
-  comme attendu. Structurellement, l'app est saine.
-
-  2. Points forts (vraie plus-value)
-
-  - La cascade OKR (Vision→Mission→Axes→Objectifs→OKR→KPI→Projets→Tâches) et la
-  consolidation multi-niveaux
-  (Groupe→Pays→Société→Direction→Département→Équipe→Individu) sont réellement
-  câblées bout en bout sur des données relationnelles réelles, pas des rollups
-  approximatifs.
-  - Health Score, Maturity Assessment, Early Warning : chaque score est calculé
-  à la volée sur des données opérationnelles réelles (charge, risques,
-  décisions, évaluations) et explicable — chaque dimension porte une explication
-  textuelle, pas juste un chiffre.
-  - Decision Intelligence : les décisions sont réévaluées 6 mois après (coût
-  réel, ROI, enseignements) — une vraie boucle d'apprentissage organisationnel,
-  rare dans ce type d'outil.
-  - Gouvernance IA + Zero-Trust documenté + Security Trust Center : traçabilité
-  complète des actions IA, validation humaine obligatoire sur les actions
-  sensibles (contrats, orchestration) — une réflexion sécurité sérieuse, pas
-  cosmétique.
-  - Écosystème portail externe (client/partenaire/investisseur/institution) avec
-  droits granulaires, entièrement réutilisé sur le même socle de données — pas
-  de système parallèle dupliqué.
-  - Discipline d'architecture : chaque domaine métier vit dans son propre
-  fichier lib/*.ts, jamais de logique métier dans un composant, toute mutation
-  passe par une server action typée — ça explique directement le très faible
-  taux de bug constaté en live.
-
-  3. Points faibles (à améliorer)
+  2. Points faibles (à améliorer)
    
   - Aucun canal de livraison externe (email/SMS/push) — au-delà du mot de passe
   oublié, ça limite l'usabilité réelle à grande échelle (rappels, alertes,
@@ -91,28 +59,16 @@ Tip: Share Claude Code and earn $10 in usage credits · /passes
   est un jour fournie.
   - Pas de temps réel — messagerie et notifications reposent sur du polling, pas
   de WebSocket/SSE.
-  - Recherche non sémantique — correspondance texte (contains), pas de recherche
-  floue/intelligente malgré ce que suggère le cahier.
   - Multi-tenant = registre seulement — PlatformOrganization existe mais n'isole
   pas réellement les données ; pas prêt à héberger plusieurs organisations
   indépendantes en production.
-  - Pas de moteur de conversion de change — la devise est maintenant
-  configurable par organisation/entité, mais rien ne convertit les montants ;
-  agréger des entités en devises différentes juxtapose des nombres bruts sous
-  des étiquettes différentes plutôt que de vrais totaux convertis.
   - Pas de mode hors-ligne complet — le retry-on-reconnect existe, mais pas de
   lecture hors-ligne réelle (pas de service worker), alors que le cahier insiste
   explicitement là-dessus pour l'Afrique.
   - Aucune observabilité infra (APM, latence, disponibilité) — seul l'AuditLog
   applicatif existe ; un incident de prod pourrait passer inaperçu.
-  - Zéro test automatisé — Vitest est configuré (npm test fonctionne) mais aucun
-  fichier de test n'existe dans tout le code. Toute la charge de vérification
-  repose sur des vérifications manuelles comme celles de cette session.
-  - Calculs lourds recalculés à chaque affichage (health-score,
-  maturity-assessment, benchmarking) — pas de mise en cache/pré-agrégation, ça
-  tiendra tant que le volume de données reste modéré mais deviendra un vrai
-  sujet de performance en grandissant.
-
+ 
+  
 
 
 ● Phase 1 du retrofit multi-tenant terminée — commit 0dd9fd8 poussé.
@@ -144,39 +100,74 @@ Tip: Share Claude Code and earn $10 in usage credits · /passes
     page, pas un obstacle technique nouveau.
 
 
-
-
-Explique moi le workflow de /dependances et /orchestrations ???
-
-
-Explique moi le workflow de /marketplace
-
-Tu peux m'expliquer un peu le workflow postes-competences-sites-manager ?? Je vois ces 4 infos un peu partout au niveau d'administration mais on dirait qu'elles ne servent à pratiquement rien dans l'app . Explique moi aussi un peu les opportunités , contacts ( CRM ) , leur worklow entier , à quoi ils servent et comment ils travaillent ou prennent part aux activités de l'app .
-
-
-Explique moi le workflow de /crm/organisations
-
-
-Je ne comprends pas aussi /succession . A quoi cette route sert réellement ?? Explique moi le workflow complet et son fonctionnement réel
-
-
-Explique moi le workflow de /evaluations ?? ça marche vraiment ?? Ou c'est juste un mécanisme futur qui ne fonctionne pas encore ??
-
-
-
-Explique moi le workflow de /base-de-connaissances
-
-
-
-
-Essayer de s'inspirer du design de jira
-
-
-
-
-
 Recevoir les notifications sur mail ( laisser les mails fictifs pour travailler avec de vrais mails et comme ça pouvoir directement recevoir des messages et notifs dans sa boite mail )
 
+
+ 📧 Email — Resend
+
+  Parfait, l'envoi d'email est opérationnel de bout en bout dans le CRM (Resend
+  configuré, EMAIL_ENABLED=true, sendEmail() fonctionnel).
+
+  Pour passer en prod avec de vrais destinataires, la suite serait :
+  1. Dashboard Resend → Domains → ajouter ton domaine → poser les
+     enregistrements DNS (SPF/DKIM) chez ton registrar.
+  2. Une fois vérifié, changer EMAIL_FROM en notifications@tondomaine.com dans
+     .env et .env.production.bak.
+
+
+  📱 SMS — Africa's Talking (déjà choisi dans .env, cohérent avec
+  DEFAULT_PHONE_PREFIX=228 Togo)
+
+  1. africastalking.com → crée un compte.
+  2. Test immédiat : ton compte a par défaut un accès Sandbox (dashboard →
+     bascule "Sandbox" en haut). Username = sandbox, une API Key sandbox est
+     générée automatiquement. Les SMS sandbox ne partent pas vraiment vers un
+     vrai téléphone — il faut ajouter des numéros de test simulés dans le
+     dashboard sandbox.
+  3. Pour la vraie prod : bascule en mode "Live", demande un Sender ID (ou
+     utilise le shortcode partagé par défaut) — la demande de Sender ID dédié
+     passe par une validation manuelle par Africa's Talking (peut prendre
+     quelques jours).  
+
+  AT_API_KEY=atsk_xxxxxxxx
+  AT_USERNAME=sandbox        # puis ton username live une fois validé
+  SMS_ENABLED=true
+   
+  💬 WhatsApp — Twilio (déjà choisi dans .env)
+
+  1. twilio.com → crée un compte (crédit d'essai gratuit).
+  2. Test immédiat : Console Twilio → Messaging → Try it out → Send a WhatsApp
+     message → active le WhatsApp Sandbox. Tu envoies un code depuis ton propre
+     WhatsApp vers un numéro Twilio fourni pour "rejoindre" le sandbox — après
+     ça, Twilio peut t'envoyer des messages de test sans validation business.
+  3. Console → Account → récupère Account SID et Auth Token (page d'accueil du
+     dashboard).
+  4. Pour la vraie prod : il faut un vrai profil WhatsApp Business approuvé par
+     Meta via Twilio (Console → Messaging → Senders → WhatsApp senders) — ça
+     demande une entreprise vérifiable et prend généralement plusieurs jours.
+
+  TWILIO_ACCOUNT_SID=ACxxxxxxxx
+  TWILIO_AUTH_TOKEN=xxxxxxxx
+  TWILIO_WA_FROM=whatsapp:+14155238886   # numéro sandbox fourni par Twilio, à
+  remplacer en prod
+  WA_ENABLED=true
+
+  ---
+
+  Suggestion : commence par le sandbox de chaque fournisseur pour valider que le
+  code (src/lib/notifications/*.ts) fonctionne de bout en bout avant de te
+  lancer dans les démarches de vérification business (qui prennent du temps).
+  Une fois que tu as une ou plusieurs de ces clés en main, colle-les dans .env,
+  passe le *_ENABLED correspondant à true, redémarre le serveur dev, et je peux
+  t'aider à tester l'envoi réel.
+   
+
+Clients , prospects , candidats ne doivent pas être traités dans l'espace CRM
+
+Comment limiter la casse (et la facture) avec Claude CodePour éviter de brûler vos crédits d'API ou d'atteindre les limites de votre abonnement (Pro ou Max) en quelques minutes, appliquez ces bonnes pratiques : [1] (https://www.youtube.com/watch?v=ntDIxaeo3Wg), [2] (https://claude.com/fr/product/claude-code)Utilisez un fichier CLAUDE.md : Placez ce fichier à la racine de votre projet. Indiquez-y explicitement l'architecture du projet, les commandes principales et vos règles de style. Cela évite à Claude de chercher partout et de consommer des tokens de découverte.Verrouillez le contexte avec .gitignore ou .claudeignore : Assurez-vous que Claude n'essaie jamais de lire vos dossiers géants comme node_modules, .next, dist ou vos builds de production.Privilégiez le Prompt Caching : L'outil intègre nativement du cache de prompt. Évitez d'interrompre vos sessions toutes les deux minutes, car relancer une session force Claude à recharger tout le projet à zéro.Soyez ultra-spécifique dans vos requêtes : Au lieu de lui dire "Répare les bugs du back-end", dites-lui "Regarde uniquement le fichier src/controllers/auth.ts et corrige l'erreur de double facturation". [1] (https://code.claude.com/docs/fr/overview)
+
+On va dévélopper /marketplace
+ 
 
 
 Identifiants en production
