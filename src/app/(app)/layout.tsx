@@ -3,30 +3,9 @@ import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { countPendingAdminRequestApprovals } from "@/lib/admin-request-workflow";
+import { countUnreadMessages } from "@/lib/unread-messages";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-
-/** Somme des messages non lus tous canaux confondus — meme logique que
- * src/app/(app)/messages/layout.tsx, mais reduite a un total pour la pastille topbar. */
-async function countUnreadMessages(userId: string) {
-  const participations = await prisma.conversationParticipant.findMany({
-    where: { userId },
-    select: { conversationId: true, lastReadAt: true },
-  });
-  if (participations.length === 0) return 0;
-  const counts = await Promise.all(
-    participations.map((p) =>
-      prisma.message.count({
-        where: {
-          conversationId: p.conversationId,
-          authorId: { not: userId },
-          createdAt: { gt: p.lastReadAt ?? new Date(0) },
-        },
-      })
-    )
-  );
-  return counts.reduce((sum, c) => sum + c, 0);
-}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getAppSession();

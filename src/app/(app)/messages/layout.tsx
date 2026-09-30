@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { unreadCountsByConversation } from "@/lib/unread-messages";
 import { MessagesShell, type ConversationListItem } from "@/components/messages/messages-shell";
 import { ConversationFormDialog } from "@/components/messages/conversation-form-dialog";
 
@@ -8,7 +9,7 @@ export default async function MessagesLayout({ children }: { children: ReactNode
   const session = await getAppSession();
   const userId = session!.user.id;
 
-  const [conversations, users] = await Promise.all([
+  const [conversations, users, unreadByConversation] = await Promise.all([
     prisma.conversation.findMany({
       where: { participants: { some: { userId } } },
       include: {
@@ -17,23 +18,11 @@ export default async function MessagesLayout({ children }: { children: ReactNode
       },
     }),
     prisma.user.findMany({ where: { isActive: true, id: { not: userId } }, orderBy: { name: "asc" } }),
+    unreadCountsByConversation(userId),
   ]);
 
-  const unreadCounts = await Promise.all(
-    conversations.map((conv) => {
-      const mine = conv.participants.find((p) => p.userId === userId);
-      return prisma.message.count({
-        where: {
-          conversationId: conv.id,
-          authorId: { not: userId },
-          createdAt: { gt: mine?.lastReadAt ?? new Date(0) },
-        },
-      });
-    })
-  );
-
   const items: ConversationListItem[] = conversations
-    .map((conv, i) => {
+    .map((conv) => {
       const others = conv.participants.filter((p) => p.userId !== userId);
       const title = conv.isGroup
         ? conv.nom || others.map((p) => p.user.name).join(", ")
@@ -55,7 +44,7 @@ export default async function MessagesLayout({ children }: { children: ReactNode
             : null,
         lastMessagePreview: preview,
         lastMessageAt: (lastMessage?.createdAt ?? conv.createdAt).toISOString(),
-        unreadCount: unreadCounts[i],
+        unreadCount: unreadByConversation.get(conv.id) ?? 0,
       };
     })
     // Conversation model n'a pas de champ updatedAt : on trie par activite

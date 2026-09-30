@@ -42,6 +42,25 @@ export type ExecutiveSnapshot = {
 export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
   const now = new Date();
 
+  // Perf — ce lot ne depend pas du suivant : lance en parallele au lieu
+  // d'attendre la fin du premier Promise.all.
+  const financePartnersPromise = Promise.all([
+    prisma.project.findMany({
+      where: { statut: { in: ["PLANIFIE", "EN_COURS"] } },
+      select: { budget: true, coutReel: true, departmentId: true },
+    }),
+    prisma.integration.findMany({
+      where: { type: "SYSTEME_FINANCIER" },
+      select: { id: true, nom: true, statut: true },
+    }),
+    computePartnerEcosystemAnalysis(),
+    getOrganizationDevise(),
+    prisma.department.findMany({ select: { id: true, entityId: true } }),
+    prisma.entity.findMany({ select: { id: true, devise: true } }),
+  ]);
+  // Evite un "unhandled rejection" si le premier lot echoue avant qu'on
+  // n'attende celui-ci (l'erreur reste propagee par l'await plus bas).
+  financePartnersPromise.catch(() => {});
   const [
     activeUsers,
     allProjects,
@@ -104,20 +123,10 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     }),
   ]);
 
-  const [projetsActifsFinance, integrationsFinancieres, partenairesAnalysis, orgDevise, departments, entities] = await Promise.all([
-    prisma.project.findMany({
-      where: { statut: { in: ["PLANIFIE", "EN_COURS"] } },
-      select: { budget: true, coutReel: true, departmentId: true },
-    }),
-    prisma.integration.findMany({
-      where: { type: "SYSTEME_FINANCIER" },
-      select: { id: true, nom: true, statut: true },
-    }),
-    computePartnerEcosystemAnalysis(),
-    getOrganizationDevise(),
-    prisma.department.findMany({ select: { id: true, entityId: true } }),
-    prisma.entity.findMany({ select: { id: true, devise: true } }),
-  ]);
+
+
+  const [projetsActifsFinance, integrationsFinancieres, partenairesAnalysis, orgDevise, departments, entities] =
+    await financePartnersPromise;
 
   // Revue applicative — vue executive, org-wide : peut regrouper des
   // projets de plusieurs entites/devises (meme probleme/solution que
@@ -128,18 +137,25 @@ export async function buildExecutiveSnapshot(): Promise<ExecutiveSnapshot> {
     const entityId = departmentEntityId.get(departmentId);
     return (entityId ? entityDevise.get(entityId) : null) || orgDevise;
   }
+  const rateByDevise = new Map<string, ReturnType<typeof convertMontant>>();
+  function convertToOrgDevise(amount: number, devise: string) {
+    // Perf — convertMontant(1) memoise par devise : un seul getExchangeRate
+    // par devise distincte, au lieu de deux appels DB sequentiels par projet.
+    if (!rateByDevise.has(devise)) rateByDevise.set(devise, convertMontant(1, devise, orgDevise));
+    return rateByDevise.get(devise)!.then(({ value, converted }) => ({ value: amount * value, converted }));
+  }
   let financesConversionIncomplete = false;
   let budgetTotalProjetsActifs = 0;
   let coutReelTotalProjetsActifs = 0;
   for (const p of projetsActifsFinance) {
     const projectDevise = deviseForDepartment(p.departmentId);
     if (p.budget !== null) {
-      const { value, converted } = await convertMontant(Number(p.budget), projectDevise, orgDevise);
+      const { value, converted } = await convertToOrgDevise(Number(p.budget), projectDevise);
       budgetTotalProjetsActifs += value;
       if (!converted && projectDevise !== orgDevise) financesConversionIncomplete = true;
     }
     if (p.coutReel !== null) {
-      const { value, converted } = await convertMontant(Number(p.coutReel), projectDevise, orgDevise);
+      const { value, converted } = await convertToOrgDevise(Number(p.coutReel), projectDevise);
       coutReelTotalProjetsActifs += value;
       if (!converted && projectDevise !== orgDevise) financesConversionIncomplete = true;
     }
