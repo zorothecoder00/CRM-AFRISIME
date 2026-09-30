@@ -19,6 +19,7 @@ import { SessionList } from "@/components/security/session-list";
 import { detectSuspiciousActivity, computePermissionsOverview } from "@/lib/security-trust-center";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
 import { materialTone } from "@/lib/card-tones";
+import { ExpandableTableRows } from "@/components/ui/expandable-list";
 
 export default async function SecuritePage() {
   const session = await getAppSession();
@@ -229,29 +230,32 @@ export default async function SecuritePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => {
-                const pushCount = pushCountByUser.get(u.id) ?? 0;
-                return (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell>{roleLabelById.get(u.roleId) ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={u.mfaEnabled ? "default" : "outline"}>
-                        {u.mfaEnabled ? "Activée" : "Désactivée"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {pushCount > 0 ? (
-                        <Badge variant="default">
-                          {pushCount} appareil{pushCount > 1 ? "s" : ""}
+              <ExpandableTableRows
+                colSpan={4}
+                rows={users.map((u) => {
+                  const pushCount = pushCountByUser.get(u.id) ?? 0;
+                  return (
+                    <TableRow key={u.id}>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell>{roleLabelById.get(u.roleId) ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={u.mfaEnabled ? "default" : "outline"}>
+                          {u.mfaEnabled ? "Activée" : "Désactivée"}
                         </Badge>
-                      ) : (
-                        <Badge variant="outline">Aucun</Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      </TableCell>
+                      <TableCell>
+                        {pushCount > 0 ? (
+                          <Badge variant="default">
+                            {pushCount} appareil{pushCount > 1 ? "s" : ""}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Aucun</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              />
             </TableBody>
           </Table>
         </CardContent>
@@ -307,6 +311,7 @@ export default async function SecuritePage() {
                 lastSeenAt: s.lastSeenAt.toISOString(),
               }))}
               currentSessionId={session!.user.sessionId}
+              max={10}
             />
           </CardContent>
         </Card>
