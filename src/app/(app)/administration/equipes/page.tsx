@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function EquipesPage() {
   const session = await getAppSession();
@@ -50,8 +51,8 @@ export default async function EquipesPage() {
         <p className="text-sm text-muted-foreground">Aucune équipe définie.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {teams.map((t) => (
-            <Card key={t.id} size="sm">
+          {teams.map((t, i) => (
+            <Card key={t.id} size="sm" className={materialTone(i)}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">{t.nom}</CardTitle>
                 {canManageDepartment && <DeleteTeamButton id={t.id} />}

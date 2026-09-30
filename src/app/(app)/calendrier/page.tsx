@@ -25,6 +25,7 @@ import { LeaveFormDialog } from "@/components/calendar/leave-form-dialog";
 import { EventFormDialog } from "@/components/calendar/event-form-dialog";
 import { PendingLeavesSection, type PendingLeave } from "@/components/calendar/pending-leaves-section";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function CalendrierPage({
   searchParams,
@@ -257,7 +258,8 @@ export default async function CalendrierPage({
 
       {canManageLeaves && (
         <div>
-          <Card>
+          {/* Teinte ambre (materialTone(2)) — code visuel de l'attente. */}
+          <Card className={materialTone(2)}>
             <CardHeader>
               <CardTitle className="text-base">Congés en attente</CardTitle>
             </CardHeader>
