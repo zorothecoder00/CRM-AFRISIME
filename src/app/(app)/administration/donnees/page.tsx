@@ -10,6 +10,7 @@ import { RetentionPolicyRow } from "@/components/administration/retention-policy
 import { cn } from "@/lib/utils";
 import { BACKUP_TABLES } from "@/lib/backup";
 import { Download } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 const RETENTION_LABELS: Record<string, { label: string; description: string }> = {
   AUDIT_LOG: { label: "Journal d'audit", description: "Actions journalisées (connexions, modifications) — purge automatique au-delà du seuil." },
@@ -52,7 +53,7 @@ export default async function DonneesPage() {
         </p>
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Tables incluses</CardTitle>
         </CardHeader>
@@ -65,7 +66,7 @@ export default async function DonneesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(1)}>
         <CardHeader>
           <CardTitle className="text-base">Export</CardTitle>
         </CardHeader>
@@ -77,7 +78,7 @@ export default async function DonneesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(2)}>
         <CardHeader>
           <CardTitle className="text-base">Import (restauration)</CardTitle>
         </CardHeader>
@@ -86,7 +87,7 @@ export default async function DonneesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(3)}>
         <CardHeader>
           <CardTitle className="text-base">Rétention</CardTitle>
           <p className="text-xs text-muted-foreground">

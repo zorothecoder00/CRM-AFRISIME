@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PermissionOverrideFormDialog } from "@/components/administration/permission-override-form-dialog";
 import { DeletePermissionOverrideButton } from "@/components/administration/delete-permission-override-button";
+import { materialTone } from "@/lib/card-tones";
 
 const PERMISSION_LABELS = new Map<string, string>(PERMISSION_CATALOG.map((p) => [p.key, p.label]));
 
@@ -48,7 +49,7 @@ export default async function AccesAvancesPage() {
         />
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Dérogations actives ({overrides.length})</CardTitle>
         </CardHeader>

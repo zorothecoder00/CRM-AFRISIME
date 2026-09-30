@@ -7,6 +7,7 @@ import { SiteFormDialog } from "@/components/administration/site-form-dialog";
 import { DeleteSiteButton } from "@/components/administration/delete-site-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function SitesPage() {
   const session = await getAppSession();
@@ -39,8 +40,8 @@ export default async function SitesPage() {
         <p className="text-sm text-muted-foreground">Aucun site défini.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {sites.map((s) => (
-            <Card key={s.id} size="sm">
+          {sites.map((s, i) => (
+            <Card className={materialTone(i)} key={s.id} size="sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">{s.nom}</CardTitle>
                 <DeleteSiteButton id={s.id} />

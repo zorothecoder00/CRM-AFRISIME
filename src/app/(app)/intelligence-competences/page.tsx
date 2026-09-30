@@ -1,6 +1,7 @@
 import { computeSkillsIntelligence } from "@/lib/skills-intelligence";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
 const RECO_LABELS: Record<string, string> = {
   FORMATION: "Formation",
@@ -39,7 +40,7 @@ export default async function IntelligenceCompetencesPage() {
         </p>
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Écarts identifiés ({withGap.length})</CardTitle>
         </CardHeader>
@@ -82,7 +83,7 @@ export default async function IntelligenceCompetencesPage() {
       </Card>
 
       {withoutGap.length > 0 && (
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Compétences couvertes ({withoutGap.length})</CardTitle>
           </CardHeader>

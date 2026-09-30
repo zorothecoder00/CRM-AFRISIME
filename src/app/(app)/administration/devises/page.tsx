@@ -7,6 +7,7 @@ import { ExchangeRateFormDialog } from "@/components/administration/exchange-rat
 import { DeleteExchangeRateButton } from "@/components/administration/delete-exchange-rate-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { materialTone } from "@/lib/card-tones";
 
 /**
  * Taux de change (revue applicative du 2026-08-19, point faible "pas de
@@ -49,7 +50,7 @@ export default async function DevisesPage() {
           devise ne sont pas convertis dans les totaux consolidés (affichés bruts, avec un avertissement).
         </p>
       ) : (
-        <Card>
+        <Card className={materialTone(0)}>
           <CardHeader>
             <CardTitle className="text-base">Taux enregistrés ({rates.length})</CardTitle>
           </CardHeader>

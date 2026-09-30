@@ -42,9 +42,11 @@ export type SuccessionPlanCardData = {
 export function SuccessionPlanCard({
   plan,
   candidateUsers,
+  className,
 }: {
   plan: SuccessionPlanCardData;
   candidateUsers: { id: string; label: string }[];
+  className?: string;
 }) {
   const router = useRouter();
   const [candidateId, setCandidateId] = useState("");
@@ -72,7 +74,7 @@ export function SuccessionPlanCard({
   }
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-base">{plan.poste.nom}</CardTitle>

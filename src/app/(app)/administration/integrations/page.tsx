@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { IntegrationFormDialog } from "@/components/administration/integration-form-dialog";
 import { IntegrationCard } from "@/components/administration/integration-card";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function IntegrationsPage() {
   const session = await getAppSession();
@@ -35,8 +36,8 @@ export default async function IntegrationsPage() {
         <p className="text-sm text-muted-foreground">Aucune intégration configurée.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {integrations.map((integration) => (
-            <IntegrationCard key={integration.id} integration={integration} />
+          {integrations.map((integration, i) => (
+            <IntegrationCard key={integration.id} integration={integration} className={materialTone(i)} />
           ))}
         </div>
       )}

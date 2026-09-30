@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableList } from "@/components/ui/expandable-list";
 import { getOrganizationDevise } from "@/lib/currency";
+import { materialTone } from "@/lib/card-tones";
 
 const MAX_VISIBLE = 5;
 
@@ -31,7 +32,7 @@ export default async function GraphePartenairesPage() {
       <PartnerEcosystemGraphView nodes={graph.nodes} edges={graph.edges} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className={materialTone(0)}>
           <CardHeader>
             <CardTitle className="text-base">Partenaires stratégiques</CardTitle>
           </CardHeader>
@@ -51,7 +52,7 @@ export default async function GraphePartenairesPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Relations critiques</CardTitle>
           </CardHeader>
@@ -74,7 +75,7 @@ export default async function GraphePartenairesPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(2)}>
           <CardHeader>
             <CardTitle className="text-base">Risques</CardTitle>
           </CardHeader>
@@ -97,7 +98,7 @@ export default async function GraphePartenairesPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(3)}>
           <CardHeader>
             <CardTitle className="text-base">Opportunités</CardTitle>
           </CardHeader>
@@ -121,7 +122,7 @@ export default async function GraphePartenairesPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className={materialTone(4)}>
         <CardHeader>
           <CardTitle className="text-base">Dépendances</CardTitle>
         </CardHeader>

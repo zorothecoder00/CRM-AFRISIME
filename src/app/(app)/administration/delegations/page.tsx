@@ -7,6 +7,7 @@ import { DelegationFormDialog } from "@/components/administration/delegation-for
 import { DeleteDelegationButton } from "@/components/administration/delete-delegation-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
 function statutDelegation(dateDebut: Date, dateFin: Date, now: Date): { label: string; tone: "secondary" | "success" | "outline" } {
   if (now < dateDebut) return { label: "À venir", tone: "outline" };
@@ -48,10 +49,10 @@ export default async function DelegationsPage() {
         <p className="text-sm text-muted-foreground">Aucune délégation enregistrée.</p>
       ) : (
         <div className="space-y-2">
-          {delegations.map((d) => {
+          {delegations.map((d, i) => {
             const statut = statutDelegation(d.dateDebut, d.dateFin, now);
             return (
-              <Card key={d.id} size="sm">
+              <Card className={materialTone(i)} key={d.id} size="sm">
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 px-(--card-spacing)">
                   <div className="text-sm">
                     <span className="font-medium">{d.delegant.name}</span>

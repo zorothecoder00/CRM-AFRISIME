@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { OrgChart, type OrgChartNodeData } from "@/components/administration/org-chart-tree";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { materialTone } from "@/lib/card-tones";
 
 /** Construit une forêt d'arbres a partir d'une liste plate {id, parentId}. */
 function buildForest<T extends { id: string; parentId: string | null }>(
@@ -115,7 +116,7 @@ export default async function OrganigrammePage() {
         </p>
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Structure (départements)</CardTitle>
           <CardDescription>Direction Générale → Direction → Département → Service → Équipe.</CardDescription>
@@ -125,7 +126,7 @@ export default async function OrganigrammePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(1)}>
         <CardHeader>
           <CardTitle className="text-base">Hiérarchie individuelle</CardTitle>
           <CardDescription>
@@ -137,7 +138,7 @@ export default async function OrganigrammePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(2)}>
         <CardHeader>
           <CardTitle className="text-base">Répartition par site</CardTitle>
           <CardDescription>Implantation géographique des collaborateurs actifs.</CardDescription>

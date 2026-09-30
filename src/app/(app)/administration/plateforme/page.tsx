@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AdminTabs } from "@/components/administration/admin-tabs";
 import { PlatformOrganizationFormDialog } from "@/components/administration/platform-organization-form-dialog";
 import { PlatformOrganizationCard } from "@/components/administration/platform-organization-card";
+import { materialTone } from "@/lib/card-tones";
 
 // Multi-Organization Platform (cahier des charges V3.0 §27) — registre des
 // organisations de la plateforme (branding + abonnement), fondation en vue
@@ -49,7 +50,7 @@ export default async function PlateformePage() {
           Ecosystem. Statut agrégé plutôt qu'un nouveau schéma : chaque couche
           existe déjà (marketplace §33 v2.2, clés API §34 v2.2, agents IA
           §16, intégrations §21, portails §16-20 v2.2). */}
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Écosystème AfriSime Work-Space</CardTitle>
         </CardHeader>

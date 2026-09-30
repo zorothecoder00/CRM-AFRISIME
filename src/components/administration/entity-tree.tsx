@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { EntityFormDialog } from "@/components/administration/entity-form-dialog";
 import { entityLevelLabel } from "@/lib/entity-tree";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 export type EntityTreeNode = {
   id: string;
@@ -41,8 +43,10 @@ export function EntityTree({
 
   return (
     <ul className="space-y-2" style={{ marginLeft: depth > 0 ? "1.25rem" : 0 }}>
-      {nodes.map((node) => (
-        <li key={node.id} className="rounded-md border p-3">
+      {nodes.map((node, i) => (
+        // Noeuds racines teintes (rotation Material) ; les sous-noeuds restent
+        // transparents et prennent la teinte de leur racine.
+        <li key={node.id} className={cn("rounded-md border p-3", depth === 0 && ["bg-card", materialTone(i)])}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{entityLevelLabel(depth)}</Badge>

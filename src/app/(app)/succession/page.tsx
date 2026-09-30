@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SuccessionPlanFormDialog } from "@/components/succession/succession-plan-form-dialog";
 import { SuccessionPlanCard } from "@/components/succession/succession-plan-card";
+import { materialTone } from "@/lib/card-tones";
 
 // Talent & Succession Planning (cahier des charges V3.0 §24) — postes
 // critiques, profils de remplacement, compétences, plans de succession,
@@ -66,9 +67,10 @@ export default async function SuccessionPage() {
         <p className="text-sm text-muted-foreground">Aucun plan de succession créé pour le moment.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {plans.map((plan) => (
+          {plans.map((plan, i) => (
             <SuccessionPlanCard
               key={plan.id}
+              className={materialTone(i)}
               plan={plan}
               candidateUsers={users
                 .filter((u) => !plan.profils.some((p) => p.user.id === u.id))

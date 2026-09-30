@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { materialTone } from "@/lib/card-tones";
 
 const PAGE_SIZE = 50;
 
@@ -112,7 +113,7 @@ export default async function AuditPage({
         )}
       </form>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Événements</CardTitle>
         </CardHeader>

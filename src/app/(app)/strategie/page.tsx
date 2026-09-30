@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { toneForPriority } from "@/lib/status-tone";
 import { AxisFormDialog } from "@/components/strategy/axis-form-dialog";
 import { DeleteAxisButton } from "@/components/strategy/delete-axis-button";
+import { materialTone } from "@/lib/card-tones";
 
 const PRIORITY_LABELS: Record<string, string> = { BASSE: "Basse", MOYENNE: "Moyenne", HAUTE: "Haute", CRITIQUE: "Critique" };
 
@@ -54,7 +55,7 @@ export default async function StrategiePage() {
         </div>
       </div>
 
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base">{profile?.nom ?? "Mon organisation"}</CardTitle>
@@ -84,7 +85,7 @@ export default async function StrategiePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(1)}>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base">Axes stratégiques ({axes.length})</CardTitle>
@@ -100,8 +101,8 @@ export default async function StrategiePage() {
             <p className="text-sm text-muted-foreground">Aucun axe stratégique défini.</p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {axes.map((axis) => (
-                <Card key={axis.id} size="sm">
+              {axes.map((axis, i) => (
+                <Card className={materialTone(i + 2)} key={axis.id} size="sm">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm">{axis.nom}</CardTitle>
                     {canManage && (

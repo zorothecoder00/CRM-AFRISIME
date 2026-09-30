@@ -3,6 +3,7 @@ import { computeWorkforcePlan } from "@/lib/workforce-planning";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableList } from "@/components/ui/expandable-list";
+import { materialTone } from "@/lib/card-tones";
 
 const MAX_VISIBLE = 5;
 
@@ -25,14 +26,14 @@ export default async function PlanificationEffectifsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Effectif actuel" value={plan.effectifActuel} />
-        <Stat label="Effectif il y a 12 mois" value={plan.effectifIlYA12Mois} />
-        <Stat label="Projection à 12 mois" value={plan.projectionEffectif12Mois} accent />
-        <Stat label="Taux d'occupation global" value={`${plan.tauxOccupationGlobal}%`} />
+        <Stat label="Effectif actuel" value={plan.effectifActuel} className={materialTone(0)} />
+        <Stat label="Effectif il y a 12 mois" value={plan.effectifIlYA12Mois} className={materialTone(1)} />
+        <Stat label="Projection à 12 mois" value={plan.projectionEffectif12Mois} className={materialTone(2)} accent />
+        <Stat label="Taux d'occupation global" value={`${plan.tauxOccupationGlobal}%`} className={materialTone(3)} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className={materialTone(4)}>
           <CardHeader>
             <CardTitle className="text-base">Capacité disponible</CardTitle>
           </CardHeader>
@@ -45,7 +46,7 @@ export default async function PlanificationEffectifsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(5)}>
           <CardHeader>
             <CardTitle className="text-base">Postes à créer / pourvoir</CardTitle>
           </CardHeader>
@@ -69,7 +70,7 @@ export default async function PlanificationEffectifsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className={materialTone(6)}>
         <CardHeader>
           <CardTitle className="text-base">Effectif par site</CardTitle>
         </CardHeader>
@@ -83,7 +84,7 @@ export default async function PlanificationEffectifsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(7)}>
         <CardHeader>
           <CardTitle className="text-base">Compétences critiques</CardTitle>
         </CardHeader>
@@ -109,7 +110,7 @@ export default async function PlanificationEffectifsPage() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card className={materialTone(8)}>
           <CardHeader>
             <CardTitle className="text-base">Plan de formation suggéré</CardTitle>
           </CardHeader>
@@ -121,7 +122,7 @@ export default async function PlanificationEffectifsPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className={materialTone(9)}>
           <CardHeader>
             <CardTitle className="text-base">Plan de recrutement suggéré</CardTitle>
           </CardHeader>
@@ -138,9 +139,19 @@ export default async function PlanificationEffectifsPage() {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+function Stat({
+  label,
+  value,
+  accent,
+  className,
+}: {
+  label: string;
+  value: string | number;
+  accent?: boolean;
+  className?: string;
+}) {
   return (
-    <Card>
+    <Card className={className}>
       <CardContent className="pt-6">
         <p className={`text-2xl font-semibold ${accent ? "text-primary" : ""}`}>{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>

@@ -11,6 +11,7 @@ import { getOrganizationDevise } from "@/lib/currency";
 import { iconToneForAccent } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 /**
  * Niveau 1 — Organisation (cahier des charges §XXIII, "Les niveaux de
@@ -68,7 +69,7 @@ export default async function PilotagePage() {
           // d'icone assortie + effet de survol 2D plus marque (elevation +
           // leger agrandissement), au lieu de cartes toutes identiques.
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {directionsPilotage.map(({ direction, pilotage }) => {
+            {directionsPilotage.map(({ direction, pilotage }, i) => {
               const accent = accentForPilotage(pilotage);
               // Demande utilisateur — le "pas de projet actif" doit se voir
               // pareil que le perimetre ait 0 projet au total (RH, Direction
@@ -84,8 +85,7 @@ export default async function PilotagePage() {
                     accent={accent}
                     className={cn(
                       "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg",
-                      noActiveProjects && "border-dashed border-t-muted-foreground/40"
-                    )}
+                      noActiveProjects && "border-dashed border-t-muted-foreground/40", materialTone(i))}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">
                       <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", iconToneForAccent(accent))}>

@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForEvaluationStatus, accentForEvaluationStatus } from "@/lib/status-tone";
 import { EvaluationFormDialog } from "@/components/evaluations/evaluation-form-dialog";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const PERIODE_LABELS: Record<string, string> = {
   ANNUELLE: "Annuelle",
@@ -79,11 +81,11 @@ export default async function EvaluationsPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-medium">Évaluations que je mène ({menees.length})</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {menees.map((evaluation) => (
+            {menees.map((evaluation, i) => (
               <Link key={evaluation.id} href={`/evaluations/${evaluation.id}`}>
                 <Card
                   accent={accentForEvaluationStatus(evaluation.statut)}
-                  className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                  className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
                 >
                   <CardHeader>
                     <CardTitle className="text-base">{evaluation.evalue.name}</CardTitle>
@@ -114,11 +116,11 @@ export default async function EvaluationsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-medium">Mes évaluations reçues, dont auto-évaluations ({recues.length})</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {recues.map((evaluation) => (
+          {recues.map((evaluation, i) => (
             <Link key={evaluation.id} href={`/evaluations/${evaluation.id}`}>
               <Card
                 accent={accentForEvaluationStatus(evaluation.statut)}
-                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
               >
                 <CardHeader>
                   <CardTitle className="text-base">{PERIODE_LABELS[evaluation.periode]}</CardTitle>

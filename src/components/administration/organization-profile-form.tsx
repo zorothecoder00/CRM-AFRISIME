@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UploadButton } from "@/lib/uploadthing";
 import { toast } from "sonner";
+import { materialTone } from "@/lib/card-tones";
 
 export type OrganizationProfileValues = {
   nom: string;
@@ -59,7 +60,7 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
 
   return (
     <div className="grid gap-6 md:grid-cols-[220px_1fr]">
-      <Card>
+      <Card className={materialTone(0)}>
         <CardHeader>
           <CardTitle className="text-base">Logo</CardTitle>
         </CardHeader>
@@ -83,7 +84,7 @@ export function OrganizationProfileForm({ initial }: { initial: OrganizationProf
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={materialTone(1)}>
         <CardHeader>
           <CardTitle className="text-base">Identité de l&apos;organisation</CardTitle>
           <CardDescription>

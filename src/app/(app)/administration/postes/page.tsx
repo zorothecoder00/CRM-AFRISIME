@@ -9,6 +9,7 @@ import { PosteResponsabiliteList } from "@/components/administration/poste-respo
 import { PosteCritiqueToggle } from "@/components/administration/poste-critique-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function PostesPage() {
   const session = await getAppSession();
@@ -45,8 +46,8 @@ export default async function PostesPage() {
         <p className="text-sm text-muted-foreground">Aucun poste défini.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {postes.map((p) => (
-            <Card key={p.id} size="sm">
+          {postes.map((p, i) => (
+            <Card className={materialTone(i)} key={p.id} size="sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">{p.nom}</CardTitle>
                 <DeletePosteButton id={p.id} />

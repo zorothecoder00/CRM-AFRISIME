@@ -18,6 +18,7 @@ import {
 import { SessionList } from "@/components/security/session-list";
 import { detectSuspiciousActivity, computePermissionsOverview } from "@/lib/security-trust-center";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function SecuritePage() {
   const session = await getAppSession();
@@ -126,7 +127,7 @@ export default async function SecuritePage() {
       </div>
 
       {suspiciousActivity.length > 0 && (
-        <Card accent="destructive">
+        <Card className={materialTone(0)} accent="destructive">
           <CardHeader>
             <CardTitle className="text-base">Activités suspectes</CardTitle>
           </CardHeader>
@@ -142,7 +143,7 @@ export default async function SecuritePage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Permissions</CardTitle>
           </CardHeader>
@@ -158,7 +159,7 @@ export default async function SecuritePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(2)}>
           <CardHeader>
             <CardTitle className="text-base">Politiques</CardTitle>
           </CardHeader>
@@ -170,7 +171,7 @@ export default async function SecuritePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(3)}>
           <CardHeader>
             <CardTitle className="text-base">Conformité</CardTitle>
           </CardHeader>
@@ -186,7 +187,7 @@ export default async function SecuritePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(4)}>
           <CardHeader>
             <CardTitle className="text-base">Notifications push</CardTitle>
           </CardHeader>
@@ -213,7 +214,7 @@ export default async function SecuritePage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className={materialTone(5)}>
         <CardHeader>
           <CardTitle className="text-base">Double authentification (MFA) &amp; notifications push</CardTitle>
         </CardHeader>
@@ -257,7 +258,7 @@ export default async function SecuritePage() {
       </Card>
 
       {pushFailuresCount > 0 && (
-        <Card accent="destructive">
+        <Card className={materialTone(6)} accent="destructive">
           <CardHeader>
             <CardTitle className="text-base">
               Échecs d&apos;envoi push (30 derniers jours) — {pushFailuresCount}
@@ -291,7 +292,7 @@ export default async function SecuritePage() {
       )}
 
       {canManageSessions && (
-        <Card>
+        <Card className={materialTone(7)}>
           <CardHeader>
             <CardTitle className="text-base">Sessions actives ({activeSessions.length})</CardTitle>
           </CardHeader>
@@ -311,7 +312,7 @@ export default async function SecuritePage() {
         </Card>
       )}
 
-      <Card>
+      <Card className={materialTone(8)}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Journal d&apos;audit (50 derniers événements)</CardTitle>
           <Link href="/administration/audit">

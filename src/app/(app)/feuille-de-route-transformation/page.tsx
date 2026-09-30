@@ -4,10 +4,11 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { computeTransformationRoadmap, type RoadmapInitiative } from "@/lib/transformation-roadmap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
-function InitiativeCard({ initiative }: { initiative: RoadmapInitiative }) {
+function InitiativeCard({ initiative, className }: { initiative: RoadmapInitiative; className?: string }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle className="text-sm">{initiative.titre}</CardTitle>
       </CardHeader>
@@ -60,7 +61,7 @@ export default async function FeuilleDeRouteTransformationPage() {
         <h2 className="text-lg font-medium">12 mois — Priorités immédiates</h2>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {roadmap.horizon12Mois.map((i, idx) => (
-            <InitiativeCard key={idx} initiative={i} />
+            <InitiativeCard key={idx} initiative={i} className={materialTone(idx + 0)} />
           ))}
           {roadmap.horizon12Mois.length === 0 && <p className="text-sm text-muted-foreground">Rien à prioriser dans l&apos;immédiat.</p>}
         </div>
@@ -70,7 +71,7 @@ export default async function FeuilleDeRouteTransformationPage() {
         <h2 className="text-lg font-medium">24 mois — Transformations intermédiaires</h2>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {roadmap.horizon24Mois.map((i, idx) => (
-            <InitiativeCard key={idx} initiative={i} />
+            <InitiativeCard key={idx} initiative={i} className={materialTone(idx + 3)} />
           ))}
           {roadmap.horizon24Mois.length === 0 && <p className="text-sm text-muted-foreground">Aucune transformation intermédiaire identifiée.</p>}
         </div>
@@ -80,7 +81,7 @@ export default async function FeuilleDeRouteTransformationPage() {
         <h2 className="text-lg font-medium">36 mois — Objectifs avancés</h2>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {roadmap.horizon36Mois.map((i, idx) => (
-            <InitiativeCard key={idx} initiative={i} />
+            <InitiativeCard key={idx} initiative={i} className={materialTone(idx + 6)} />
           ))}
           {roadmap.horizon36Mois.length === 0 && <p className="text-sm text-muted-foreground">Aucun objectif avancé identifié.</p>}
         </div>

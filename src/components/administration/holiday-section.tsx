@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, CalendarDays } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 type Option = { id: string; label: string };
 
@@ -32,7 +33,7 @@ export function HolidaySection({ holidays, entities }: { holidays: HolidayRow[];
   const { run: remove } = useAction(deleteHoliday, { successMessage: "Jour férié supprimé." });
 
   return (
-    <Card>
+    <Card className={materialTone(2)}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
           <CalendarDays className="h-4 w-4" />

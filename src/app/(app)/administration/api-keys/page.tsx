@@ -7,6 +7,7 @@ import { ApiKeyFormDialog } from "@/components/administration/api-key-form-dialo
 import { ApiKeyRevokeButton } from "@/components/administration/api-key-revoke-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function ApiKeysPage() {
   const session = await getAppSession();
@@ -34,8 +35,8 @@ export default async function ApiKeysPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {keys.map((key) => (
-          <Card key={key.id}>
+        {keys.map((key, i) => (
+          <Card className={materialTone(i)} key={key.id}>
             <CardHeader className="flex flex-row items-start justify-between gap-2">
               <div>
                 <CardTitle className="text-base">{key.nom}</CardTitle>

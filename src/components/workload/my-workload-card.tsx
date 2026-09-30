@@ -4,9 +4,9 @@ import { ProgressBar } from "@/components/objectives/progress-bar";
 import type { UserWorkload } from "@/lib/workload";
 import { AlertTriangle } from "lucide-react";
 
-export function MyWorkloadCard({ workload }: { workload: UserWorkload }) {
+export function MyWorkloadCard({ workload, className }: { workload: UserWorkload; className?: string }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle className="text-base">Ma charge de travail</CardTitle>
       </CardHeader>

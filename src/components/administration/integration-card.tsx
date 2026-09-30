@@ -40,7 +40,7 @@ const STATUS_ACCENT: Record<string, CardAccent> = {
   ERREUR: "destructive",
 };
 
-export function IntegrationCard({ integration }: { integration: IntegrationRow }) {
+export function IntegrationCard({ integration, className }: { integration: IntegrationRow; className?: string }) {
   const statusAction = useAction(updateIntegrationStatus);
   const deleteAction = useAction(deleteIntegration, { successMessage: "Intégration supprimée." });
   const isPending = statusAction.isPending || deleteAction.isPending;
@@ -54,7 +54,7 @@ export function IntegrationCard({ integration }: { integration: IntegrationRow }
   }
 
   return (
-    <Card accent={STATUS_ACCENT[integration.statut]}>
+    <Card accent={STATUS_ACCENT[integration.statut]} className={className}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">{integration.nom}</CardTitle>
         <Badge variant={STATUS_VARIANT[integration.statut]}>{STATUS_LABELS[integration.statut]}</Badge>

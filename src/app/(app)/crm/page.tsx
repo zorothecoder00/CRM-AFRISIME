@@ -8,6 +8,7 @@ import { toneForOpportunityStatus } from "@/lib/status-tone";
 import { getOrganizationDevise } from "@/lib/currency";
 import { ExpandableList } from "@/components/ui/expandable-list";
 import { Users, Building2, TrendingUp, Percent, UserPlus, Activity, Repeat, Wallet, BellRing } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 const MAX_VISIBLE = 5;
 
@@ -105,15 +106,15 @@ export default async function CrmHomePage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Contacts" value={contactCount} icon={Users} tone="info" />
-        <StatCard label="Organisations" value={organizationCount} icon={Building2} tone="info" />
-        <StatCard
+        <StatCard className={materialTone(0)} label="Contacts" value={contactCount} icon={Users} tone="info" />
+        <StatCard className={materialTone(1)} label="Organisations" value={organizationCount} icon={Building2} tone="info" />
+        <StatCard className={materialTone(2)}
           label="Opportunités actives"
           value={activeOpportunities.length}
           icon={TrendingUp}
           tone="default"
         />
-        <StatCard
+        <StatCard className={materialTone(3)}
           label="Taux de conversion"
           value={conversionRate !== null ? `${conversionRate}%` : "—"}
           icon={Percent}
@@ -123,29 +124,29 @@ export default async function CrmHomePage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <KpiCard label="Valeur du pipeline (pondérée par probabilité)" value={pipelineValue} />
-        <KpiCard label="Opportunités au total" value={opportunities.length} />
+        <KpiCard className={materialTone(4)} label="Valeur du pipeline (pondérée par probabilité)" value={pipelineValue} />
+        <KpiCard className={materialTone(5)} label="Opportunités au total" value={opportunities.length} />
       </div>
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Analytics CRM</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <StatCard className={materialTone(6)}
             label="Acquisition (30j)"
             value={newContacts30d}
             icon={UserPlus}
             tone={acquisitionTrend >= 0 ? "success" : "danger"}
             description={`${acquisitionTrend >= 0 ? "+" : ""}${acquisitionTrend}% vs 30j précédents`}
           />
-          <StatCard label="Engagement (30j)" value={interactions30d} icon={Activity} tone="info" description="Interactions enregistrées" />
-          <StatCard
+          <StatCard className={materialTone(7)} label="Engagement (30j)" value={interactions30d} icon={Activity} tone="info" description="Interactions enregistrées" />
+          <StatCard className={materialTone(8)}
             label="Rétention clients (90j)"
             value={retentionRate !== null ? `${retentionRate}%` : "—"}
             icon={Repeat}
             tone={retentionRate !== null && retentionRate >= 50 ? "success" : "warning"}
             description={`${clientsWithRecentInteraction}/${clients} client(s) actif(s)`}
           />
-          <StatCard label="Valeur relationnelle" value={`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(valeurRelationnelle)} ${devise}`} icon={Wallet} tone="success" description="Total des opportunités gagnées" />
+          <StatCard className={materialTone(9)} label="Valeur relationnelle" value={`${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(valeurRelationnelle)} ${devise}`} icon={Wallet} tone="success" description="Total des opportunités gagnées" />
         </div>
       </div>
 

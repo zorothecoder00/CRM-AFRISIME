@@ -6,6 +6,7 @@ import { computeMaturityAssessment } from "@/lib/maturity-assessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/objectives/progress-bar";
+import { materialTone } from "@/lib/card-tones";
 
 function toneForScore(score: number): "success" | "warning" | "destructive" {
   if (score >= 70) return "success";
@@ -49,7 +50,7 @@ export default async function MaturiteOrganisationnellePage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Forces</CardTitle>
           </CardHeader>
@@ -62,7 +63,7 @@ export default async function MaturiteOrganisationnellePage() {
             ))}
           </CardContent>
         </Card>
-        <Card>
+        <Card className={materialTone(5)}>
           <CardHeader>
             <CardTitle className="text-base">Faiblesses</CardTitle>
           </CardHeader>

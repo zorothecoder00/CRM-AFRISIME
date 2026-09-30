@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableList } from "@/components/ui/expandable-list";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
+import { materialTone } from "@/lib/card-tones";
 
 const MAX_VISIBLE = 5;
 
@@ -72,25 +73,25 @@ export default async function EcosystemePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className={materialTone(0)}>
           <CardContent className="pt-6">
             <p className="text-2xl font-semibold">{contacts.length}</p>
             <p className="text-xs text-muted-foreground">Acteurs avec accès portail</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={materialTone(1)}>
           <CardContent className="pt-6">
             <p className="text-2xl font-semibold">{contacts.filter((c) => c.portalAccount?.isActive).length}</p>
             <p className="text-xs text-muted-foreground">Accès actifs</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={materialTone(2)}>
           <CardContent className="pt-6">
             <p className="text-2xl font-semibold">{bailleurs.length}</p>
             <p className="text-xs text-muted-foreground">Bailleurs (institutions)</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={materialTone(3)}>
           <CardContent className="pt-6">
             <p className="text-2xl font-semibold">{groups.size}</p>
             <p className="text-xs text-muted-foreground">Types de participants représentés</p>

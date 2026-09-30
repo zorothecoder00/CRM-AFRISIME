@@ -7,6 +7,7 @@ import { CompetenceFormDialog } from "@/components/administration/competence-for
 import { DeleteCompetenceButton } from "@/components/administration/delete-competence-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function CompetencesPage() {
   const session = await getAppSession();
@@ -43,8 +44,8 @@ export default async function CompetencesPage() {
         <p className="text-sm text-muted-foreground">Aucune compétence définie.</p>
       ) : (
         <div className="space-y-4">
-          {Array.from(byCategory.entries()).map(([categorie, items]) => (
-            <Card key={categorie} size="sm">
+          {Array.from(byCategory.entries()).map(([categorie, items], i) => (
+            <Card className={materialTone(i)} key={categorie} size="sm">
               <CardHeader>
                 <CardTitle className="text-base">{categorie}</CardTitle>
               </CardHeader>

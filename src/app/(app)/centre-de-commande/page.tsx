@@ -7,20 +7,23 @@ import { getOrganizationDevise } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Radar, Target, ShieldAlert, Landmark, Gauge, Handshake, Bell, TrendingUp, FolderKanban, Wallet, Link2, ListChecks } from "lucide-react";
+import { materialTone } from "@/lib/card-tones";
 
 function StatCard({
   icon: Icon,
   title,
   href,
   children,
+  className,
 }: {
   icon: React.ElementType;
   title: string;
   href: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Icon className="size-4 text-muted-foreground" />
@@ -59,19 +62,19 @@ export default async function ExecutiveCommandCenterPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <StatCard icon={Gauge} title="Performance globale" href="/pilotage">
+        <StatCard className={materialTone(0)} icon={Gauge} title="Performance globale" href="/pilotage">
           <p>Avancement moyen : {snap.performanceGlobale.avancementMoyen ?? "—"}%</p>
           <p>Taux de respect des délais : {snap.performanceGlobale.tauxRespectDelais ?? "—"}%</p>
           <p>Budget dépassé sur {snap.performanceGlobale.budgetDepasseCount} projet(s)</p>
         </StatCard>
 
-        <StatCard icon={Target} title="Objectifs" href="/objectifs">
+        <StatCard className={materialTone(1)} icon={Target} title="Objectifs" href="/objectifs">
           <p>{snap.objectifs.total} objectif(s) au total</p>
           <p>{snap.objectifs.atteints} atteint(s)</p>
           {snap.objectifs.enRetard > 0 && <Badge variant="warning">{snap.objectifs.enRetard} en retard</Badge>}
         </StatCard>
 
-        <StatCard icon={FolderKanban} title="Projets critiques" href="/projets">
+        <StatCard className={materialTone(2)} icon={FolderKanban} title="Projets critiques" href="/projets">
           {snap.projetsCritiques.length === 0 && <p className="text-muted-foreground">Aucun projet critique.</p>}
           {snap.projetsCritiques.slice(0, 5).map((p) => (
             <Link key={p.id} href={`/projets/${p.id}`} className="block hover:underline">
@@ -80,7 +83,7 @@ export default async function ExecutiveCommandCenterPage() {
           ))}
         </StatCard>
 
-        <StatCard icon={ShieldAlert} title="Risques critiques" href="/risques">
+        <StatCard className={materialTone(3)} icon={ShieldAlert} title="Risques critiques" href="/risques">
           {snap.risquesCritiques.length === 0 && <p className="text-muted-foreground">Aucun risque critique.</p>}
           {snap.risquesCritiques.slice(0, 5).map((r) => (
             <div key={`${r.type}-${r.id}`} className="flex items-center gap-2">
@@ -90,7 +93,7 @@ export default async function ExecutiveCommandCenterPage() {
           ))}
         </StatCard>
 
-        <StatCard icon={Landmark} title="Décisions en attente" href="/gouvernance">
+        <StatCard className={materialTone(4)} icon={Landmark} title="Décisions en attente" href="/gouvernance">
           {snap.decisionsEnAttente.length === 0 && <p className="text-muted-foreground">Aucune décision en attente.</p>}
           {snap.decisionsEnAttente.slice(0, 5).map((d) => (
             <Link key={d.id} href={d.href} className="block truncate hover:underline">
@@ -99,13 +102,13 @@ export default async function ExecutiveCommandCenterPage() {
           ))}
         </StatCard>
 
-        <StatCard icon={Gauge} title="Charge des équipes" href="/charge-de-travail">
+        <StatCard className={materialTone(5)} icon={Gauge} title="Charge des équipes" href="/charge-de-travail">
           <p>{snap.chargeEquipes.sousCharge} sous-charge</p>
           <p>{snap.chargeEquipes.chargeNormale} charge normale</p>
           {snap.chargeEquipes.surcharge > 0 && <Badge variant="warning">{snap.chargeEquipes.surcharge} en surcharge</Badge>}
         </StatCard>
 
-        <StatCard icon={ListChecks} title="Tâches" href="/taches">
+        <StatCard className={materialTone(6)} icon={ListChecks} title="Tâches" href="/taches">
           <p>{snap.taches.aujourdhui} aujourd&apos;hui · {snap.taches.terminees} terminées</p>
           <div className="flex gap-1.5">
             {snap.taches.enRetard > 0 && <Badge variant="destructive">{snap.taches.enRetard} en retard</Badge>}
@@ -113,12 +116,12 @@ export default async function ExecutiveCommandCenterPage() {
           </div>
         </StatCard>
 
-        <StatCard icon={Handshake} title="Opportunités CRM" href="/crm/pipeline">
+        <StatCard className={materialTone(7)} icon={Handshake} title="Opportunités CRM" href="/crm/pipeline">
           <p>{snap.opportunitesCrm.total} opportunité(s)</p>
           <p>{snap.opportunitesCrm.montantTotal.toLocaleString("fr-FR")} {devise} — pipeline total</p>
         </StatCard>
 
-        <StatCard icon={Bell} title="Alertes" href="/agents-ia">
+        <StatCard className={materialTone(8)} icon={Bell} title="Alertes" href="/agents-ia">
           {snap.alertes.length === 0 && <p className="text-muted-foreground">Aucune alerte active.</p>}
           {snap.alertes.slice(0, 5).map((a) => (
             <div key={a.id}>
@@ -128,7 +131,7 @@ export default async function ExecutiveCommandCenterPage() {
           ))}
         </StatCard>
 
-        <StatCard icon={TrendingUp} title="Prévisions IA" href="/predictions">
+        <StatCard className={materialTone(9)} icon={TrendingUp} title="Prévisions IA" href="/predictions">
           <p>Risque de surcharge global : {snap.previsionsIa.risqueSurcharge}%</p>
           <p>
             Productivité : {snap.previsionsIa.baisseProductivite ? "en baisse" : "stable ou en hausse"}
@@ -137,7 +140,7 @@ export default async function ExecutiveCommandCenterPage() {
           </p>
         </StatCard>
 
-        <StatCard icon={Wallet} title="Finances" href="/administration/integrations">
+        <StatCard className={materialTone(10)} icon={Wallet} title="Finances" href="/administration/integrations">
           <p>Budget (projets actifs) : {snap.finances.budgetTotalProjetsActifs.toLocaleString("fr-FR")} {devise}</p>
           <p>Coût réel : {snap.finances.coutReelTotalProjetsActifs.toLocaleString("fr-FR")} {devise}</p>
           <p className={snap.finances.ecartBudgetaire > 0 ? "text-destructive" : ""}>
@@ -160,7 +163,7 @@ export default async function ExecutiveCommandCenterPage() {
           )}
         </StatCard>
 
-        <StatCard icon={Link2} title="Partenaires" href="/graphe-partenaires">
+        <StatCard className={materialTone(11)} icon={Link2} title="Partenaires" href="/graphe-partenaires">
           <p>{snap.partenaires.partenairesStrategiquesCount} partenaire(s) stratégique(s)</p>
           {snap.partenaires.relationsCritiquesCount > 0 && (
             <Badge variant="warning">{snap.partenaires.relationsCritiquesCount} relation(s) critique(s)</Badge>

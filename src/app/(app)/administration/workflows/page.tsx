@@ -8,6 +8,7 @@ import { ToggleWorkflowButton } from "@/components/administration/toggle-workflo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOrganizationDevise } from "@/lib/currency";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function WorkflowsPage() {
   const session = await getAppSession();
@@ -89,8 +90,8 @@ function WorkflowSection({ title, workflows, devise }: { title: string; workflow
         <p className="text-sm text-muted-foreground">Aucun circuit configuré.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {workflows.map((workflow) => (
-            <Card key={workflow.id}>
+          {workflows.map((workflow, i) => (
+            <Card className={materialTone(i)} key={workflow.id}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">{workflow.nom}</CardTitle>
                 <div className="flex items-center gap-2">

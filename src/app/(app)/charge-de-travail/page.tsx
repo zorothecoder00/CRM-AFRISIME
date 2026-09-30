@@ -5,6 +5,7 @@ import { computeWorkload } from "@/lib/workload";
 import { MyWorkloadCard } from "@/components/workload/my-workload-card";
 import { WorkloadTable } from "@/components/workload/workload-table";
 import { ContextualBackLink } from "@/components/ui/contextual-back-link";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function ChargeDeTravailPage({
   searchParams,
@@ -71,7 +72,7 @@ export default async function ChargeDeTravailPage({
         </p>
       </div>
 
-      {myWorkload && <MyWorkloadCard workload={myWorkload} />}
+      {myWorkload && <MyWorkloadCard workload={myWorkload} className={materialTone(0)} />}
 
       {/* Depuis Planning personnel, la page reste strictement personnelle —
           la charge de l'equipe (donnees des autres collaborateurs) n'est
