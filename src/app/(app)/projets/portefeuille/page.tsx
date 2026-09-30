@@ -216,18 +216,18 @@ export default async function PortfolioPage({
       <Separator />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-        <Kpi label="Actifs" value={kpi.actifs} />
-        <Kpi label="En préparation" value={kpi.enPreparation} />
-        <Kpi label="Suspendus" value={kpi.suspendus} />
-        <Kpi label="Terminés" value={kpi.termines} />
-        <Kpi label="En retard" value={kpi.enRetard} tone={kpi.enRetard > 0 ? "destructive" : undefined} />
-        <Kpi label="À risque" value={kpi.aRisque} tone={kpi.aRisque > 0 ? "destructive" : undefined} />
-        <Kpi label="Budget total" value={`${kpi.budgetTotal.toLocaleString("fr-FR")} ${devise}`} />
-        <Kpi label="Budget consommé" value={`${kpi.budgetConsomme.toLocaleString("fr-FR")} ${devise}`} />
-        <Kpi label="Financement obtenu" value={`${kpi.financementObtenu.toLocaleString("fr-FR")} ${devise}`} tone="success" />
-        <Kpi label="Financement recherché" value={`${kpi.financementRecherche.toLocaleString("fr-FR")} ${devise}`} />
-        <Kpi label="Avancement moyen" value={`${kpi.avancementMoyen}%`} />
-        <Kpi label="Impact suivi (indicateurs)" value={kpi.avecIndicateurs} />
+        <Kpi index={0} label="Actifs" value={kpi.actifs} />
+        <Kpi index={1} label="En préparation" value={kpi.enPreparation} />
+        <Kpi index={2} label="Suspendus" value={kpi.suspendus} />
+        <Kpi index={3} label="Terminés" value={kpi.termines} />
+        <Kpi index={4} label="En retard" value={kpi.enRetard} tone={kpi.enRetard > 0 ? "destructive" : undefined} />
+        <Kpi index={5} label="À risque" value={kpi.aRisque} tone={kpi.aRisque > 0 ? "destructive" : undefined} />
+        <Kpi index={6} label="Budget total" value={`${kpi.budgetTotal.toLocaleString("fr-FR")} ${devise}`} />
+        <Kpi index={7} label="Budget consommé" value={`${kpi.budgetConsomme.toLocaleString("fr-FR")} ${devise}`} />
+        <Kpi index={8} label="Financement obtenu" value={`${kpi.financementObtenu.toLocaleString("fr-FR")} ${devise}`} />
+        <Kpi index={9} label="Financement recherché" value={`${kpi.financementRecherche.toLocaleString("fr-FR")} ${devise}`} />
+        <Kpi index={10} label="Avancement moyen" value={`${kpi.avancementMoyen}%`} />
+        <Kpi index={11} label="Impact suivi (indicateurs)" value={kpi.avecIndicateurs} />
       </div>
 
       {conversionState.incomplete && (
@@ -393,9 +393,21 @@ function PortfolioBlockLink({
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: string | number; tone?: "destructive" | "success" }) {
+function Kpi({
+  index,
+  label,
+  value,
+  tone,
+}: {
+  index: number;
+  label: string;
+  value: string | number;
+  tone?: "destructive";
+}) {
+  // Demande utilisateur — blocs de stats colores (rotation Material, voir
+  // lib/card-tones.ts) ; l'accent de statut garde sa barre de tete.
   return (
-    <Card size="sm" accent={tone}>
+    <Card size="sm" accent={tone} className={materialTone(index)}>
       <CardContent className="px-(--card-spacing)">
         <div className="text-xs text-muted-foreground">{label}</div>
         <div className="text-lg font-semibold">{value}</div>
