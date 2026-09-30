@@ -59,7 +59,7 @@ export default async function DonneesPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 text-sm text-muted-foreground">
           {BACKUP_TABLES.map((t) => (
-            <span key={t} className="rounded-md border px-2 py-1">
+            <span key={t} className="rounded-md border bg-background px-2 py-1">
               {TABLE_LABELS[t] ?? t}
             </span>
           ))}
