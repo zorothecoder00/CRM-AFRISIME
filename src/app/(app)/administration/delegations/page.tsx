@@ -54,14 +54,14 @@ export default async function DelegationsPage() {
             return (
               <Card className={materialTone(i)} key={d.id} size="sm">
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 px-(--card-spacing)">
-                  <div className="text-sm">
+                  <div className="rounded-md bg-background px-2 py-1.5 text-sm">
                     <span className="font-medium">{d.delegant.name}</span>
                     <span className="mx-1.5 text-muted-foreground">délègue à</span>
                     <span className="font-medium">{d.delegataire.name}</span>
                     {d.motif && <p className="text-xs text-muted-foreground">{d.motif}</p>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="rounded-md bg-background px-2 py-1 text-xs text-muted-foreground">
                       {d.dateDebut.toLocaleDateString("fr-FR")} → {d.dateFin.toLocaleDateString("fr-FR")}
                     </span>
                     <Badge variant={statut.tone}>{statut.label}</Badge>
