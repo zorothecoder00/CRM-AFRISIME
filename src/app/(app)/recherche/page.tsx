@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/search/search-input";
 import { SearchFilters } from "@/components/search/search-filters";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const TYPE_ORDER: SearchResultType[] = [
   "Projet",
@@ -107,9 +109,9 @@ export default async function RecherchePage({
             {type}s ({items.length})
           </h2>
           <div className="grid gap-2 md:grid-cols-2">
-            {items.map((item: SearchResult) => (
+            {items.map((item: SearchResult, i) => (
               <Link key={`${item.type}-${item.id}`} href={item.href}>
-                <Card className="transition-all hover:-translate-y-0.5 hover:brightness-95">
+                <Card className={cn("transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                   <CardContent className="flex items-center justify-between gap-2 py-3">
                     <div>
                       <div className="text-sm font-medium">{item.title}</div>

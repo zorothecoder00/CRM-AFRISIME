@@ -8,6 +8,8 @@ import { toneForNiveau, stakeholderQuadrant } from "@/lib/status-tone";
 import { StakeholderFormDialog } from "@/components/stakeholders/stakeholder-form-dialog";
 import { StakeholderMatrix } from "@/components/stakeholders/stakeholder-matrix";
 import { Users as UsersIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const NIVEAU_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
 const POSITION_LABELS: Record<string, string> = { FAVORABLE: "Favorable", NEUTRE: "Neutre", OPPOSANT: "Opposant" };
@@ -48,9 +50,9 @@ export default async function PartiesPrenantesPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {stakeholders.map((s) => (
+        {stakeholders.map((s, i) => (
           <Link key={s.id} href={`/parties-prenantes/${s.id}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+            <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <UsersIcon className="h-4 w-4 text-muted-foreground" />

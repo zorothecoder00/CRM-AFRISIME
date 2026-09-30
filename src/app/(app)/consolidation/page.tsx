@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { computeEntityScopePilotage } from "@/lib/consolidation";
 import { Globe2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 /**
  * Consolidation Groupe (cahier des charges V2.2 §24) — drill-down
@@ -68,11 +70,11 @@ export default async function ConsolidationPage() {
             </Card>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {Array.from(paysGroups.entries()).map(([pays, entities]) =>
+              {Array.from(paysGroups.entries()).map(([pays, entities], gi) =>
                 pays === "__none__" ? (
-                  entities.map((e) => (
+                  entities.map((e, j) => (
                     <Link key={e.id} href={`/consolidation/entite/${e.id}`}>
-                      <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+                      <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(gi + j))}>
                         <CardHeader>
                           <CardTitle className="text-base">{e.nom}</CardTitle>
                         </CardHeader>
@@ -84,7 +86,7 @@ export default async function ConsolidationPage() {
                   ))
                 ) : (
                   <Link key={pays} href={`/consolidation/pays/${encodeURIComponent(pays)}`}>
-                    <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+                    <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(gi))}>
                       <CardHeader>
                         <CardTitle className="text-base">{pays}</CardTitle>
                       </CardHeader>

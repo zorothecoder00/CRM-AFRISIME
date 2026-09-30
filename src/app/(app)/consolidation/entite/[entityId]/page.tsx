@@ -9,6 +9,8 @@ import { computeEntityScopePilotage, computeEntityBudgetRollup, getRootDepartmen
 import { entityLevelLabel, buildEntityBreadcrumb, computeEntityDepth } from "@/lib/entity-tree";
 import { Building2, TriangleAlert } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 /**
  * Drill-down d'une entité (cahier des charges V2.2 §24) — descend jusqu'à
@@ -115,9 +117,9 @@ export default async function ConsolidationEntitePage({
         <div className="space-y-3">
           <h2 className="text-lg font-medium">Sous-entités</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {children.map((child) => (
+            {children.map((child, i) => (
               <Link key={child.id} href={`/consolidation/entite/${child.id}`}>
-                <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+                <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -133,9 +135,9 @@ export default async function ConsolidationEntitePage({
         <div className="space-y-3">
           <h2 className="text-lg font-medium">Départements rattachés</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {rootDepartments.map((dept) => (
+            {rootDepartments.map((dept, i) => (
               <Link key={dept.id} href={`/pilotage/departement/${dept.id}`}>
-                <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+                <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                   <CardHeader>
                     <CardTitle className="text-base">{dept.name}</CardTitle>
                   </CardHeader>

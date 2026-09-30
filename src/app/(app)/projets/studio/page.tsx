@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toneForStatus } from "@/lib/status-tone";
 import { Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -57,9 +59,9 @@ export default async function ProjectStudioPickerPage({
         <p className="text-sm text-muted-foreground">Aucun projet accessible pour le moment.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
+          {projects.map((p, i) => (
             <Link key={p.id} href={`/projets/studio/${p.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+              <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                 <CardHeader>
                   <CardTitle className="text-base">{p.nom}</CardTitle>
                 </CardHeader>

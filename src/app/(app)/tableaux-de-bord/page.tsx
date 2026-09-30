@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { sanitizeWidgetOrder, type WidgetKey } from "@/lib/dashboard-widgets";
 import { cn } from "@/lib/utils";
+import { BRAND_TINTS, type BrandTint } from "@/lib/card-tones";
 import { WidgetConfigDialog } from "@/components/dashboard/widget-config-dialog";
 import { ProjectProgressWidget } from "@/components/dashboard/widgets/project-progress-widget";
 import { OverdueTasksWidget } from "@/components/dashboard/widgets/overdue-tasks-widget";
@@ -24,17 +25,17 @@ import { HRIndicatorsWidget } from "@/components/dashboard/widgets/hr-indicators
 const STACK_PAIR: [WidgetKey, WidgetKey] = ["TIME_SPENT", "TEAM_PRODUCTIVITY"];
 
 // Demande utilisateur — fonds aux couleurs du logo (bleu/vert/or, voir
-// .brand-tint dans globals.css), fixes par widget pour que la couleur suive
+// BRAND_TINTS dans lib/card-tones.ts), fixes par widget pour que la couleur suive
 // le widget quel que soit l'ordre choisi dans "Configurer".
-const WIDGET_TINT: Record<WidgetKey, string> = {
-  PROJECT_PROGRESS: "brand-blue",
-  OVERDUE_TASKS: "brand-gold",
-  WORKLOAD: "brand-green",
-  TIME_SPENT: "brand-blue",
-  TEAM_PRODUCTIVITY: "brand-gold",
-  DEADLINE_COMPLIANCE: "brand-green",
-  DEPARTMENT_PERFORMANCE: "brand-blue",
-  HR_INDICATORS: "brand-gold",
+const WIDGET_TINT: Record<WidgetKey, BrandTint> = {
+  PROJECT_PROGRESS: "blue",
+  OVERDUE_TASKS: "gold",
+  WORKLOAD: "green",
+  TIME_SPENT: "blue",
+  TEAM_PRODUCTIVITY: "gold",
+  DEADLINE_COMPLIANCE: "green",
+  DEPARTMENT_PERFORMANCE: "blue",
+  HR_INDICATORS: "gold",
 };
 
 function buildSlots(order: WidgetKey[]): WidgetKey[][] {
@@ -110,7 +111,7 @@ export default async function TableauxDeBordPage() {
             className={cn("space-y-4", slot.includes("HR_INDICATORS") && "md:col-span-2")}
           >
             {slot.map((key) => (
-              <div key={key} className={cn("brand-tint", WIDGET_TINT[key])}>
+              <div key={key} className={BRAND_TINTS[WIDGET_TINT[key]]}>
                 {widgetComponents[key]}
               </div>
             ))}

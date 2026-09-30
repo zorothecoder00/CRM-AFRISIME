@@ -21,6 +21,8 @@ import { BeneficiairesSection } from "@/components/programmes/beneficiaires-sect
 import { getOrganizationDevise } from "@/lib/currency";
 import { convertMontant } from "@/lib/exchange-rates";
 import { BackLink } from "@/components/ui/back-link";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -303,7 +305,7 @@ export default async function ProgrammeDetailPage({
             <p className="text-sm text-muted-foreground">Aucun objectif rattaché à ce programme.</p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {programme.objectives.map((o) => {
+              {programme.objectives.map((o, idx) => {
                 const progress = objectiveProgress(
                   o.indicators.map((i) => ({
                     valeurActuelle: Number(i.valeurActuelle),
@@ -312,7 +314,7 @@ export default async function ProgrammeDetailPage({
                 );
                 return (
                   <Link key={o.id} href={`/objectifs/${o.id}`}>
-                    <Card accent={accentForStatus(o.statut)} className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+                    <Card accent={accentForStatus(o.statut)} className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(idx))}>
                       <CardHeader>
                         <CardTitle className="text-base">{o.titre}</CardTitle>
                       </CardHeader>

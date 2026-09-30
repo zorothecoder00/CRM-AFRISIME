@@ -5,6 +5,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TransformationFormDialog } from "@/components/transformations/transformation-form-dialog";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const TYPE_LABELS: Record<string, string> = {
   DIGITALE: "Transformation digitale",
@@ -69,9 +71,9 @@ export default async function TransformationsPage() {
         <p className="text-sm text-muted-foreground">Aucune transformation créée pour le moment.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {transformations.map((t) => (
+          {transformations.map((t, i) => (
             <Link key={t.id} href={`/transformations/${t.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+              <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                 <CardHeader>
                   <CardTitle className="text-base">{t.nom}</CardTitle>
                 </CardHeader>

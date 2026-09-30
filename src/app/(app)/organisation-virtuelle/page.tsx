@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const STATUT_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -54,9 +56,9 @@ export default async function OrganisationVirtuellePage() {
         <p className="text-sm text-muted-foreground">Aucun brouillon organisationnel créé pour le moment.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {drafts.map((d) => (
+          {drafts.map((d, i) => (
             <Link key={d.id} href={`/organisation-virtuelle/${d.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+              <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                 <CardHeader>
                   <CardTitle className="text-base">{d.nom}</CardTitle>
                 </CardHeader>

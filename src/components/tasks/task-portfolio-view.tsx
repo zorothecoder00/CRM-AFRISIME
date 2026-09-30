@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TaskRow } from "@/components/tasks/task-list-view";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 type ProjectSummary = {
   id: string;
@@ -31,7 +33,7 @@ export function TaskPortfolioView({
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {projects.map((project) => {
+      {projects.map((project, i) => {
         const projectTasks = tasksByProject.get(project.nom) ?? [];
         const total = projectTasks.length;
         const done = projectTasks.filter((t) => t.statut === DONE_STATUS).length;
@@ -43,7 +45,7 @@ export function TaskPortfolioView({
 
         return (
           <Link key={project.id} href={`/projets/${project.id}`}>
-            <Card className="h-full transition-colors hover:brightness-95">
+            <Card className={cn("h-full transition-colors hover:brightness-95", materialTone(i))}>
               <CardHeader>
                 <CardTitle className="text-base">{project.nom}</CardTitle>
               </CardHeader>

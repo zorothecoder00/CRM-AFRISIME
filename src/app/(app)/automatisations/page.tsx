@@ -7,6 +7,8 @@ import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
 import { RuleList, type RuleData } from "@/components/automation/rule-list";
 import { accentForStatus } from "@/lib/status-tone";
 import { Globe2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const GLOBAL_SCOPE = "global";
 
@@ -27,7 +29,7 @@ export default async function AutomatisationsPage({
         <Header />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Link href={`/automatisations?projetId=${GLOBAL_SCOPE}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+            <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(0))}>
               <CardHeader className="flex flex-row items-center gap-2">
                 <Globe2 className="h-4 w-4 text-muted-foreground" />
                 <CardTitle className="text-base">Règles globales</CardTitle>
@@ -37,11 +39,11 @@ export default async function AutomatisationsPage({
               </CardContent>
             </Card>
           </Link>
-          {projects.map((p) => (
+          {projects.map((p, i) => (
             <Link key={p.id} href={`/automatisations?projetId=${p.id}`}>
               <Card
                 accent={accentForStatus(p.statut)}
-                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i + 1))}
               >
                 <CardHeader>
                   <CardTitle className="text-base">{p.nom}</CardTitle>

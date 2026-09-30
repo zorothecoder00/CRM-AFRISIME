@@ -6,6 +6,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AuditPlanFormDialog } from "@/components/audit/audit-plan-form-dialog";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 /** v2.0 §8 — Audit interne : registre des plans d'audit (équipe, missions, constats). */
 export default async function AuditPage() {
@@ -35,11 +37,11 @@ export default async function AuditPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {plans.map((plan) => {
+        {plans.map((plan, i) => {
           const cloturees = plan.missions.filter((m) => m.statut === "CLOTUREE").length;
           return (
             <Link key={plan.id} href={`/audit/${plan.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+              <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                 <CardHeader>
                   <CardTitle className="text-base">{plan.titre}</CardTitle>
                   <p className="text-xs text-muted-foreground">

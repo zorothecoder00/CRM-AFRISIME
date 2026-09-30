@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
 import type { Prisma } from "@/generated/prisma/client";
 import { FolderKanban, Sparkles, Lightbulb, HandCoins, ChevronRight, TriangleAlert, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANIFIE: "Planifié",
@@ -327,9 +329,9 @@ export default async function PortfolioPage({
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((project) => (
+        {filtered.map((project, i) => (
           <Link key={project.id} href={`/projets/${project.id}`}>
-            <Card accent={accentForStatus(project.statut)} className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+            <Card accent={accentForStatus(project.statut)} className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
               <CardHeader>
                 <CardTitle className="text-base">{project.nom}</CardTitle>
               </CardHeader>

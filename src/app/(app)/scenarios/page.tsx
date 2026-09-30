@@ -5,6 +5,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScenarioFormDialog } from "@/components/scenarios/scenario-form-dialog";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const TYPE_LABELS: Record<string, string> = {
   EFFECTIF: "Variation d'effectifs",
@@ -51,9 +53,9 @@ export default async function ScenariosPage() {
         <p className="text-sm text-muted-foreground">Aucun scénario créé pour le moment.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {scenarios.map((s) => (
+          {scenarios.map((s, i) => (
             <Link key={s.id} href={`/scenarios/${s.id}`}>
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+              <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
                 <CardHeader>
                   <CardTitle className="text-base">{s.nom}</CardTitle>
                 </CardHeader>

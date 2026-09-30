@@ -5,6 +5,8 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DecisionMatrixFormDialog } from "@/components/decisions/decision-matrix-form-dialog";
 import { Scale } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 // Matrice de décision (cahier des charges V2.2 §41) — comparer plusieurs
 // options selon coût/délai/risque/impact/ressources/ROI/faisabilité et
@@ -34,9 +36,9 @@ export default async function DecisionsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {matrices.map((m) => (
+        {matrices.map((m, i) => (
           <Link key={m.id} href={`/decisions/${m.id}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+            <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
               <CardHeader>
                 <CardTitle className="text-base">{m.titre}</CardTitle>
               </CardHeader>

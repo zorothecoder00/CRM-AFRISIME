@@ -12,6 +12,8 @@ import {
   Landmark,
   TrendingUp,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 const DEP_TYPE_LABELS: Record<string, string> = { BLOQUE: "bloque", LIE_A: "est lié à" };
 
@@ -20,15 +22,17 @@ function CategoryCard({
   title,
   href,
   items,
+  tone,
 }: {
   icon: React.ElementType;
   title: string;
   href: string;
   items: { label: string; value: number; warn?: boolean }[];
+  tone: number;
 }) {
   return (
     <Link href={href}>
-      <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+      <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(tone))}>
         <CardHeader className="flex flex-row items-center gap-2">
           <Icon className="size-4 text-muted-foreground" />
           <CardTitle className="text-base">{title}</CardTitle>
@@ -72,7 +76,7 @@ export default async function DigitalTwinPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <CategoryCard icon={Building2} title="Organisation" href="/administration/organigramme" items={[
+        <CategoryCard tone={0} icon={Building2} title="Organisation" href="/administration/organigramme" items={[
           { label: "groupe", value: snapshot.organisation.groupe },
           { label: "sociétés", value: snapshot.organisation.societes },
           { label: "filiales", value: snapshot.organisation.filiales },
@@ -83,7 +87,7 @@ export default async function DigitalTwinPage() {
           { label: "équipes", value: snapshot.organisation.equipes },
         ]} />
 
-        <CategoryCard icon={Users} title="Capital humain" href="/administration/utilisateurs" items={[
+        <CategoryCard tone={1} icon={Users} title="Capital humain" href="/administration/utilisateurs" items={[
           { label: "collaborateurs", value: snapshot.capitalHumain.collaborateurs },
           { label: "actifs", value: snapshot.capitalHumain.actifs },
           { label: "managers", value: snapshot.capitalHumain.managers },
@@ -91,7 +95,7 @@ export default async function DigitalTwinPage() {
           { label: "en surcharge", value: snapshot.capitalHumain.enSurcharge, warn: true },
         ]} />
 
-        <CategoryCard icon={FolderKanban} title="Activités" href="/projets" items={[
+        <CategoryCard tone={2} icon={FolderKanban} title="Activités" href="/projets" items={[
           { label: "projets", value: snapshot.activites.projets },
           { label: "programmes", value: snapshot.activites.programmes },
           { label: "tâches", value: snapshot.activites.taches },
@@ -99,13 +103,13 @@ export default async function DigitalTwinPage() {
           { label: "workflows", value: snapshot.activites.workflows },
         ]} />
 
-        <CategoryCard icon={Boxes} title="Ressources" href="/projets" items={[
+        <CategoryCard tone={3} icon={Boxes} title="Ressources" href="/projets" items={[
           { label: "matériel/logiciel", value: snapshot.ressources.materiellesEtLogicielles },
           { label: "budget total", value: snapshot.ressources.budgetTotal },
           { label: "RH disponibles", value: snapshot.ressources.ressourcesHumaines },
         ]} />
 
-        <CategoryCard icon={Handshake} title="Relations" href="/crm/organisations" items={[
+        <CategoryCard tone={4} icon={Handshake} title="Relations" href="/crm/organisations" items={[
           { label: "clients", value: snapshot.relations.clients },
           { label: "partenaires", value: snapshot.relations.partenaires },
           { label: "fournisseurs", value: snapshot.relations.fournisseurs },
@@ -113,14 +117,14 @@ export default async function DigitalTwinPage() {
           { label: "investisseurs", value: snapshot.relations.investisseurs },
         ]} />
 
-        <CategoryCard icon={Landmark} title="Gouvernance" href="/gouvernance" items={[
+        <CategoryCard tone={5} icon={Landmark} title="Gouvernance" href="/gouvernance" items={[
           { label: "instances", value: snapshot.gouvernance.instances },
           { label: "réunions", value: snapshot.gouvernance.reunions },
           { label: "décisions en cours", value: snapshot.gouvernance.decisions },
           { label: "responsabilités", value: snapshot.gouvernance.responsabilites },
         ]} />
 
-        <CategoryCard icon={TrendingUp} title="Performance" href="/risques" items={[
+        <CategoryCard tone={6} icon={TrendingUp} title="Performance" href="/risques" items={[
           { label: "KPI", value: snapshot.performance.kpi },
           { label: "objectifs", value: snapshot.performance.objectifs },
           { label: "risques", value: snapshot.performance.risques, warn: true },

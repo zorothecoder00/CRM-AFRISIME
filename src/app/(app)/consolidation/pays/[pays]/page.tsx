@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackLink } from "@/components/ui/back-link";
+import { cn } from "@/lib/utils";
+import { materialTone } from "@/lib/card-tones";
 
 export default async function ConsolidationPaysPage({
   params,
@@ -36,9 +38,9 @@ export default async function ConsolidationPaysPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {entities.map((e) => (
+        {entities.map((e, i) => (
           <Link key={e.id} href={`/consolidation/entite/${e.id}`}>
-            <Card className="h-full transition-all hover:-translate-y-0.5 hover:brightness-95">
+            <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}>
               <CardHeader>
                 <CardTitle className="text-base">{e.nom}</CardTitle>
               </CardHeader>
