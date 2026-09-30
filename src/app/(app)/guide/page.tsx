@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { GuideToc } from "@/components/guide/guide-toc";
 import { GuideCatalog } from "@/components/guide/guide-catalog";
-import { Block, Bullets, Callout, Chain, Chapter, Flow, Grid, Note, Panel, Prose, Tags } from "@/components/guide/guide-blocks";
+import { Block, Bullets, Chain, Chapter, Flow, Grid, Note, Panel, Prose, Tags } from "@/components/guide/guide-blocks";
 import { GUIDE_MODULES } from "@/components/guide/guide-data";
+import { GuideFigure } from "@/components/guide/guide-figure";
 
 /**
  * Guide d'utilisation — documentation fonctionnelle de bout en bout, pour la
@@ -69,8 +70,8 @@ const LIMITS: [string, string, string][] = [
 ];
 
 const STUDIO: [string, string][] = [
-  ["Conception", "Diagnostic, arbre des problèmes, arbre des solutions, théorie du changement, cadre logique, objectifs, cadre de résultats, hiérarchie, périmètre, charte."],
-  ["Planification", "Chemin critique (tâches qui conditionnent la date de fin), matrice RACI (qui réalise, approuve, est consulté, informé)."],
+  ["Conception", "Diagnostic, arbre des problèmes, arbre des solutions, théorie du changement, cadre logique, objectifs, cadre de résultats."],
+  ["Planification", "Hiérarchie, périmètre, charte du projet, chemin critique (tâches qui conditionnent la date de fin), matrice RACI (qui réalise, approuve, est consulté, informé)."],
   ["Budget & financement", "Budget prévu et réel, sources de financement, appels à projets liés."],
   ["Risques, qualité & changements", "Hypothèses, problèmes ouverts, demandes de modification du projet (périmètre, budget, délais), plan qualité."],
   ["Achats & communication", "Achats et marchés, contrats fournisseurs, plan de communication."],
@@ -171,6 +172,7 @@ export default function GuidePage() {
                 { title: "Espace personnel", text: "Page d'accueil. Vos droits sont chargés à ce moment." },
               ]}
             />
+            <GuideFigure id="connexion" />
             <Grid>
               <Panel title="Protections en place">
                 <Bullets
@@ -196,64 +198,23 @@ export default function GuidePage() {
 
           {/* 04 */}
           <Chapter id="ecran" intro="Toutes les pages internes partagent la même structure : un menu à gauche, une barre en haut, le contenu au centre.">
-            <div className="grid min-h-80 overflow-hidden rounded-xl border text-sm sm:grid-cols-[190px_minmax(0,1fr)]" aria-label="Schéma de l'écran principal">
-              <div className="hidden space-y-3 bg-sidebar p-3 text-sidebar-foreground sm:block">
-                <div className="border-b border-white/10 pb-2 font-bold text-white">AfriSime Work-Space</div>
-                {[
-                  { n: 1, label: "Pour vous", items: ["Tâches", "Mon agenda", "Messagerie"] },
-                  { n: 2, label: "Aperçu", items: ["Espace personnel", "Tableaux de bord", "Planning personnel"] },
-                  { label: "Travail", items: ["Tâches", "Portefeuille de projets"] },
-                  { label: "Collaboration", items: ["Réunions", "Documents"] },
-                  { label: "CRM · IA · Administration…", items: [] },
-                ].map((g) => (
-                  <div key={g.label} className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 px-1.5 text-[0.66rem] uppercase tracking-wider text-sidebar-foreground/50">
-                      {g.n && <Callout n={g.n} />}
-                      {g.label}
-                    </div>
-                    {g.items.map((item) => (
-                      <div key={item} className={item === "Espace personnel" ? "rounded bg-sidebar-accent px-1.5 py-0.5 text-white" : "px-1.5 py-0.5"}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-sidebar px-3 py-2.5 text-white">
-                  <span>Planifier · Collaborer · Exécuter · Contrôler</span>
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                    <span className="flex items-center gap-1 rounded bg-white/10 px-2 py-0.5"><Callout n={3} /> Demandes 2</span>
-                    <span className="rounded bg-white/10 px-2 py-0.5">Messagerie 5</span>
-                    <span className="rounded bg-white/10 px-2 py-0.5">Courrier</span>
-                    <span className="rounded bg-white/10 px-2 py-0.5">Cloche 3</span>
-                    <span className="flex items-center gap-1 rounded bg-white/10 px-2 py-0.5"><Callout n={4} /> Profil</span>
-                  </div>
-                </div>
-                <div className="flex-1 space-y-2.5 bg-muted/40 p-3">
-                  <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2"><strong>Bonjour Awa</strong> · <Callout n={5} /> Briefing du jour et actions prioritaires</div>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                    {["Mes validations en attente", "Mes demandes", "Mes réunions", "Mes projets", "Mes objectifs", "Calendrier 14 jours"].map((c) => (
-                      <div key={c} className="rounded-md border bg-card px-3 py-2">{c}</div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <ul className="space-y-2.5">
-              {[
-                <><strong>« Pour vous »</strong> : 3 à 5 raccourcis choisis selon votre rôle. Un chef de projet y voit Projets, Tâches, Charge de travail, Risques, Planification ; un directeur y voit Stratégie, Tableaux de bord, Risques, Décisions, Scénarios.</>,
-                <><strong>Les groupes du menu</strong> : Aperçu, Travail, Collaboration, Pilotage, CRM, IA, Administration. <strong>Un menu n&apos;apparaît que si vous avez le droit correspondant</strong> : deux collègues peuvent voir des menus différents. Le groupe Administration est replié par défaut.</>,
-                <><strong>Raccourcis de la barre du haut</strong> avec compteurs : demandes en attente, messages non lus, courriers à traiter, notifications (cloche).</>,
-                <><strong>Menu profil</strong> : Mon profil, Sécurité du compte, Horaires de travail, Notifications, Recherche, Assistant, Guide d&apos;utilisation, Déconnexion.</>,
-                <><strong>Espace personnel</strong> : briefing du jour, validations qui vous attendent, notifications, demandes, réunions, calendrier sur 14 jours, messages, documents récents, projets, objectifs et activité récente de l&apos;équipe.</>,
-              ].map((text, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm">
-                  <Callout n={i + 1} />
-                  <span>{text}</span>
-                </li>
-              ))}
-            </ul>
+            <GuideFigure id="espace-personnel" />
+            <Grid>
+              <Panel title="Le menu latéral">
+                <p className="text-sm">
+                  Groupes : Aperçu, Travail, Collaboration, Pilotage, CRM, IA, Administration. <strong>Un menu n&apos;apparaît que si vous avez le droit correspondant</strong> :
+                  deux collègues peuvent voir des menus différents. Le groupe Administration est replié par défaut.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  « Pour vous » change selon le rôle : un chef de projet y voit Tâches, Charge de travail, Risques, Planification ; un directeur y voit Stratégie,
+                  Tableaux de bord, Risques, Décisions, Scénarios.
+                </p>
+              </Panel>
+              <Panel title="Le menu profil">
+                <p className="text-sm">Mon profil, Sécurité du compte, Horaires de travail, Notifications, Recherche, Assistant, Guide d&apos;utilisation, Déconnexion.</p>
+                <p className="text-sm text-muted-foreground">Le Planning personnel a son propre menu latéral, dédié à l&apos;organisation de votre agenda (voir le chapitre correspondant).</p>
+              </Panel>
+            </Grid>
             <Note title="Sur téléphone" tone="info">
               L&apos;application s&apos;adapte à l&apos;écran d&apos;un smartphone : le menu s&apos;ouvre avec le bouton en haut à gauche. Elle peut aussi être « installée » sur l&apos;écran d&apos;accueil comme une application.
             </Note>
@@ -321,6 +282,7 @@ export default function GuidePage() {
                 </div>
               </Block>
             </Panel>
+            <GuideFigure id="fiche-tache" />
             <Grid>
               <Panel title="Si la tâche est approuvée">
                 <Bullets items={["Elle passe à « Terminée », avancement 100 %.", <>L&apos;avancement du projet est <strong>recalculé automatiquement</strong> (part des tâches terminées).</>, "Le créateur de la tâche est notifié.", "Les règles d'automatisation « tâche terminée » se déclenchent (ex. créer la tâche suivante)."]} />
@@ -333,6 +295,7 @@ export default function GuidePage() {
               <Tags items={["Description", "Checklist", "Sous-tâches", "KPI", "Commentaires", "Documents liés", "Historique des modifications", "Détails", "Origine", "Validation", "Mission externe", "Dépendances"]} />
               <p className="text-sm text-muted-foreground">« Mission externe » permet de confier la tâche à un contact extérieur : elle devient visible dans son portail. « Dépendances » indique qu&apos;une tâche en bloque une autre.</p>
             </Panel>
+            <GuideFigure id="taches" />
             <Grid>
               <Panel title="Sept façons d'afficher les tâches">
                 <Tags items={["Liste", "Kanban", "Chronologie", "Gantt", "Mind Map", "Tableau blanc", "Portefeuille"]} />
@@ -383,6 +346,7 @@ export default function GuidePage() {
               <Tags items={["Aperçu", "Pilotage", "Tâches", "Timeline", "Gantt", "Jalons", "Livrables", "Risques", "Parties prenantes", "Décisions", "Ressources", "Équipe", "Charge de travail", "Réunions", "Rapports", "Documents", "Discussion", "Automatisations"]} />
               <p className="text-sm">En haut de la fiche : le nom, le <strong>sélecteur de statut</strong> (si vous pouvez modifier le projet), le bouton <strong>Supprimer</strong> (va dans la corbeille, restaurable), les étiquettes, et le bouton <strong>Project Studio</strong>. L&apos;onglet Discussion est un fil de conversation propre au projet.</p>
             </Panel>
+            <GuideFigure id="fiche-projet" />
             <h3 className="text-xl font-semibold">Project Studio : la boîte à outils méthodologique</h3>
             <p className="max-w-3xl text-muted-foreground">Un espace par projet, organisé en 8 familles qui suivent le cycle de vie d&apos;un projet de développement, de la conception à l&apos;impact.</p>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -392,6 +356,7 @@ export default function GuidePage() {
                 </Panel>
               ))}
             </div>
+            <GuideFigure id="project-studio" />
             <Panel title="Autres vues du portefeuille">
               <p className="text-sm"><strong>Control Tower</strong> (planning, budget, risques, qualité, livrables, impact de tous les projets) · <strong>Roadmap</strong> (tous les projets sur une même frise) · <strong>Calendrier des projets</strong> (dates et jalons) · <strong>Carte</strong> (projets localisés) · <strong>Modèles</strong> (partir d&apos;un projet type) · <strong>Appels à projets</strong> (opportunités de financement à suivre, puis convertir en projet).</p>
             </Panel>
@@ -414,6 +379,7 @@ export default function GuidePage() {
                 { title: "Résultat", text: "« Approuvée » ou « Rejetée ». Le demandeur est notifié à chaque étape." },
               ]}
             />
+            <GuideFigure id="demande" />
             <Note title="Si aucun circuit n'est configuré pour ce type">
               La demande ne peut pas être soumise. Le demandeur voit un message clair et les personnes qui gèrent les circuits sont alertées automatiquement pour y remédier.
             </Note>
@@ -454,6 +420,7 @@ export default function GuidePage() {
                 />
               </Panel>
             </Grid>
+            <GuideFigure id="planning-personnel" />
             <Panel title="Demander un créneau à un collègue">
               <p className="text-sm">Plutôt que d&apos;écrire « tu es dispo quand ? », on envoie une <strong>demande de créneau</strong> ou une <strong>demande de réaffectation</strong>. Le collègue accepte ou refuse depuis son planning ; l&apos;app propose des créneaux libres compatibles avec ses horaires et les jours fériés. Pour l&apos;encadrement, Workforce Control montre la charge, les retards et les blocages de toute l&apos;organisation.</p>
             </Panel>
@@ -497,6 +464,7 @@ export default function GuidePage() {
               <Panel title="Fiche contact"><p className="text-sm">Informations, <strong>historique des interactions</strong> (appels, e-mails, rendez-vous), cartographie des relations, opportunités, fiche 360°. Un contact sans interaction depuis <strong>30 jours</strong> déclenche une alerte de relance.</p></Panel>
               <Panel title="Pipeline"><p className="text-sm">Tableau en colonnes : on fait glisser une opportunité d&apos;une étape à l&apos;autre. Une opportunité gagnée peut donner lieu à un contrat, suivi jusqu&apos;à son expiration (alerte automatique).</p></Panel>
             </Grid>
+            <GuideFigure id="pipeline" />
             <h3 className="text-xl font-semibold">Le portail externe</h3>
             <p className="max-w-3xl text-muted-foreground">Un seul portail pour tous les profils externes : client, partenaire, fournisseur, investisseur, institution. Chacun n&apos;y voit que les projets auxquels il est rattaché.</p>
             <Flow
@@ -508,6 +476,7 @@ export default function GuidePage() {
                 { title: "Connexion portail", text: "Session valable 30 jours, totalement séparée des comptes internes.", kind: "ext" },
               ]}
             />
+            <GuideFigure id="portail" />
             <Grid>
               <Panel title="Ce que voit l'externe">
                 <Bullets items={["Mes projets (avancement, documents partagés)", "Missions : les tâches qui lui ont été déléguées", "Réunions : invitations, réponse présent / absent", "Messages avec l'équipe interne", "Programmes, actualités, opportunités qui le concernent"]} />
@@ -531,6 +500,7 @@ export default function GuidePage() {
               <Panel title="Charge de travail"><p className="text-sm">Pour chaque personne : nombre de tâches, taux d&apos;occupation, disponibilité. <strong>Sous-charge</strong> sous 70 %, <strong>surcharge</strong> au-delà de 100 % (alerte hebdomadaire).</p></Panel>
               <Panel title="Simuler avant de décider"><p className="text-sm"><strong>Scénarios</strong> et <strong>What-If</strong> : modifier virtuellement effectif, budget, délais, projets, puis comparer avec la situation actuelle. <strong>Salle de simulation</strong> : même principe, réservé à la Direction.</p></Panel>
             </Grid>
+            <GuideFigure id="tableaux-de-bord" />
           </Chapter>
 
           {/* 13 */}

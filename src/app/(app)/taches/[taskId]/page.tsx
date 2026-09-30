@@ -137,6 +137,9 @@ export default async function TaskDetailPage({
   const tags = await getTagsFor("Task", task.id);
 
   const canAssign = session!.user.permissions.includes(PERMISSIONS.TASK_ASSIGN);
+  // Une etape sans libelle (chaine vide saisie dans le circuit) doit
+  // retomber sur le libelle du role approbateur, pas s'afficher vide.
+  const roleLabels = new Map((await prisma.role.findMany({ select: { key: true, label: true } })).map((r) => [r.key as string, r.label]));
 
   const [otherTasks, historyEntries, externalCandidates, projectMembers, activeUsers, pendingDateChangeRequests] = await Promise.all([
     prisma.task.findMany({
@@ -548,7 +551,7 @@ export default async function TaskDetailPage({
                   const approval = task.validationRun!.approvals.find((a) => a.stepId === step.id);
                   return {
                     ordre: step.ordre,
-                    label: step.label ?? step.approverRole,
+                    label: step.label || roleLabels.get(step.approverRole) || step.approverRole,
                     statut: approval?.statut ?? "EN_ATTENTE",
                     approverName: approval?.approver?.name ?? null,
                     isCurrent: step.ordre === task.validationRun!.currentOrdre,

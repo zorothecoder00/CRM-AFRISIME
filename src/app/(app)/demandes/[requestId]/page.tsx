@@ -33,6 +33,9 @@ export default async function AdminRequestDetailPage({
   const { requestId } = await params;
   const session = await getAppSession();
   const devise = await getOrganizationDevise();
+  // Une etape sans libelle (chaine vide saisie dans le circuit) doit
+  // retomber sur le libelle du role approbateur, pas s'afficher vide.
+  const roleLabels = new Map((await prisma.role.findMany({ select: { key: true, label: true } })).map((r) => [r.key as string, r.label]));
 
   const request = await prisma.adminRequest.findUnique({
     where: { id: requestId },
@@ -108,7 +111,7 @@ export default async function AdminRequestDetailPage({
                   const approval = request.validationRun!.approvals.find((a) => a.stepId === step.id);
                   return {
                     ordre: step.ordre,
-                    label: step.label ?? step.approverRole,
+                    label: step.label || roleLabels.get(step.approverRole) || step.approverRole,
                     statut: approval?.statut ?? "EN_ATTENTE",
                     approverName: approval?.approver?.name ?? null,
                     isCurrent: step.ordre === request.validationRun!.currentOrdre,
