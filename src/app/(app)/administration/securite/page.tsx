@@ -337,20 +337,23 @@ export default async function SecuritePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="whitespace-nowrap text-sm">
-                    {log.createdAt.toLocaleString("fr-FR")}
-                  </TableCell>
-                  <TableCell>{log.user?.name ?? "—"}</TableCell>
-                  <TableCell>
-                    <code className="text-xs">{log.action}</code>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {log.entityType} · {log.entityId}
-                  </TableCell>
-                </TableRow>
-              ))}
+              <ExpandableTableRows
+                colSpan={4}
+                rows={logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      {log.createdAt.toLocaleString("fr-FR")}
+                    </TableCell>
+                    <TableCell>{log.user?.name ?? "—"}</TableCell>
+                    <TableCell>
+                      <code className="text-xs">{log.action}</code>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {log.entityType} · {log.entityId}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              />
             </TableBody>
           </Table>
         </CardContent>
