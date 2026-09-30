@@ -17,6 +17,7 @@ export default async function EquipesPage() {
   const session = await getAppSession();
   const canManageDepartment = session!.user.permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE);
   const canCreateTeam = session!.user.permissions.includes(PERMISSIONS.TEAM_CREATE);
+  const hasAdministrationAccess = session!.user.permissions.includes(PERMISSIONS.ADMINISTRATION_ACCESS);
   if (!canManageDepartment && !canCreateTeam) {
     redirect("/dashboard");
   }
@@ -32,7 +33,7 @@ export default async function EquipesPage() {
 
   return (
     <div className="space-y-6">
-      {canManageDepartment && <AdminTabs />}
+      {hasAdministrationAccess && <AdminTabs />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Équipes</h1>

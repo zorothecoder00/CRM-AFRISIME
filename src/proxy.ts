@@ -31,7 +31,14 @@ export async function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/administration")) {
     const permissions = (token.permissions as string[]) ?? [];
-    if (!permissions.includes(PERMISSIONS.ADMINISTRATION_ACCESS)) {
+    // /administration/equipes est expose dans la sidebar (groupe Travail) a
+    // TEAM_CREATE, sans ADMINISTRATION_ACCESS (chef de projet, directeur...) :
+    // la garde globale ci-dessous les renvoyait sur /dashboard alors que la
+    // page verifie deja elle-meme TEAM_CREATE / DEPARTMENT_MANAGE.
+    const isTeamsPath = pathname === "/administration/equipes" || pathname.startsWith("/administration/equipes/");
+    const canManageTeams =
+      permissions.includes(PERMISSIONS.TEAM_CREATE) || permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE);
+    if (!permissions.includes(PERMISSIONS.ADMINISTRATION_ACCESS) && !(isTeamsPath && canManageTeams)) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
