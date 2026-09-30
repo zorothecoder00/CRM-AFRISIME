@@ -7,7 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Pointait sur lui-meme (var(--font-sans)) depuis le scaffold : valeur
+     invalide, toute l'app retombait sur la police serif par defaut du
+     navigateur au lieu de Geist (chargee dans app/layout.tsx). */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
