@@ -51,7 +51,7 @@ export default async function CompetencesPage() {
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {items.map((c) => (
-                  <Badge key={c.id} variant="outline" className="gap-1 py-1">
+                  <Badge key={c.id} variant="outline" className="gap-1 bg-background py-1">
                     {c.nom}
                     <span className="text-muted-foreground">({c._count.users})</span>
                     <DeleteCompetenceButton id={c.id} />
