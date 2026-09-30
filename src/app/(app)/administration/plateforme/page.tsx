@@ -55,27 +55,27 @@ export default async function PlateformePage() {
           <CardTitle className="text-base">Écosystème AfriSime Work-Space</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <div className="space-y-1">
+          <div className="space-y-1 rounded-md bg-background p-2">
             <Badge variant="secondary">Core</Badge>
             <p className="text-xs text-muted-foreground">Application principale</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 rounded-md bg-background p-2">
             <Badge variant="info">{apiKeysCount} clé(s) API</Badge>
             <p className="text-xs text-muted-foreground">Intégration externe</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 rounded-md bg-background p-2">
             <Badge variant="info">{appsDisponiblesCount} app(s)</Badge>
             <p className="text-xs text-muted-foreground">Marketplace</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 rounded-md bg-background p-2">
             <Badge variant="info">{aiAgentsActifs} agent(s) IA</Badge>
             <p className="text-xs text-muted-foreground">Actifs</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 rounded-md bg-background p-2">
             <Badge variant="info">{integrationsConnectees} intégration(s)</Badge>
             <p className="text-xs text-muted-foreground">Connectées</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 rounded-md bg-background p-2">
             <Badge variant="info">{portailsActifs} portail(s)</Badge>
             <p className="text-xs text-muted-foreground">Externes actifs</p>
           </div>
