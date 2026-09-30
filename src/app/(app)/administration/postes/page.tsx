@@ -55,7 +55,7 @@ export default async function PostesPage() {
               <CardContent className="space-y-2 text-sm">
                 {p.description && <p className="text-muted-foreground">{p.description}</p>}
                 {p.responsabilites && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="rounded-md bg-background px-2 py-1.5 text-xs text-muted-foreground">
                     <span className="font-medium">Notes :</span> {p.responsabilites}
                   </p>
                 )}

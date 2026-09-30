@@ -29,7 +29,7 @@ export function PosteResponsabiliteList({
   return (
     <div className="space-y-1.5">
       {items.length > 0 && (
-        <ul className="space-y-1">
+        <ul className="space-y-1 rounded-md bg-background px-2 py-1.5">
           {items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-2 text-xs">
               <span className="text-muted-foreground">• {item.libelle}</span>
@@ -56,7 +56,7 @@ export function PosteResponsabiliteList({
             }
           }}
           placeholder="Ajouter une responsabilité..."
-          className="h-7 text-xs"
+          className="h-7 bg-background text-xs"
         />
         <Button size="icon-xs" variant="outline" onClick={handleAdd} disabled={adding || !libelle.trim()}>
           <Plus className="h-3 w-3" />
