@@ -8,6 +8,20 @@
  * suivent donc automatiquement.
  */
 
+// Données DANS une carte teintée : le tableau entier (en-tête compris), les
+// items de liste bordés rounded-md/lg et les cartes imbriquées passent sur le
+// gris du fond de page, la carte gardant sa teinte autour — sinon ils prennent
+// exactement la teinte de la carte et s'y fondent. Sélecteurs entièrement dans :where() =
+// spécificité nulle : un élément qui pose sa propre couleur (bg-warning/10,
+// hover:bg-muted/50...) garde la main.
+const NEUTRAL_ROWS = [
+  "[:where(&_[data-slot=table-container],&_:is(li,div):is(.rounded-md,.rounded-lg).border)]:bg-background",
+  "[:where(&_[data-slot=table-container])]:rounded-md",
+  // Cartes imbriquées (ex. une carte par session active) : --card ramené au
+  // gris du fond de page, sinon elles héritent la teinte de la carte parente.
+  "[:where(&_[data-slot=card])]:[--card:var(--background)]",
+].join(" ");
+
 // Palette Material Design — teintes 100 en clair, 900 atténuées en sombre.
 export const MATERIAL_TONES = [
   "[--card:#BBDEFB] dark:[--card:color-mix(in_oklch,oklch(0.205_0_0),#0D47A1_40%)]", // Blue
@@ -21,11 +35,11 @@ export const MATERIAL_TONES = [
 ] as const;
 
 // Teinte hors rotation, pour un bloc qui doit ressortir (Red 100 / Red 900).
-export const MATERIAL_RED = "[--card:#FFCDD2] dark:[--card:color-mix(in_oklch,oklch(0.205_0_0),#B71C1C_40%)]";
+export const MATERIAL_RED = `[--card:#FFCDD2] dark:[--card:color-mix(in_oklch,oklch(0.205_0_0),#B71C1C_40%)] ${NEUTRAL_ROWS}`;
 
 /** Teinte Material en rotation selon la position de la carte dans sa liste. */
 export function materialTone(index: number): string {
-  return MATERIAL_TONES[index % MATERIAL_TONES.length];
+  return `${MATERIAL_TONES[index % MATERIAL_TONES.length]} ${NEUTRAL_ROWS}`;
 }
 
 // Couleurs du logo AfriSime (bleu roi / vert / or) — dégradé sur fond de
