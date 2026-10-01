@@ -46,7 +46,14 @@ function accentForDocument(doc: DocumentRow): CardAccent {
   return "none";
 }
 
-export function DocumentList({ documents }: { documents: DocumentRow[] }) {
+export function DocumentList({
+  documents,
+  accentBars = true,
+}: {
+  documents: DocumentRow[];
+  /** false : sans barre d'accent (demande utilisateur sur /projets/[id]). */
+  accentBars?: boolean;
+}) {
   if (documents.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun document.</p>;
   }
@@ -57,7 +64,7 @@ export function DocumentList({ documents }: { documents: DocumentRow[] }) {
         <li key={doc.id}>
           <Link href={`/documents/${doc.id}`}>
             <Card
-              accent={accentForDocument(doc)}
+              accent={accentBars ? accentForDocument(doc) : "none"}
               size="sm"
               className="flex-row flex-wrap items-center justify-between gap-2 transition-all hover:-translate-y-0.5 hover:bg-muted/50 sm:flex-nowrap"
             >

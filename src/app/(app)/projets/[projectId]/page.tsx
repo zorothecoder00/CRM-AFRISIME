@@ -1,7 +1,7 @@
 import { loadProjectPageData } from "@/lib/project-page-data";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, toneForTaskStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus, toneForTaskStatus } from "@/lib/status-tone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -194,7 +194,7 @@ export default async function ProjectDetailPage({
         </TabsList>
         </div>
         <TabsContent value="apercu" className="mt-4">
-          <Card accent={accentForStatus(project.statut)}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Informations générales</CardTitle>
             </CardHeader>
@@ -317,7 +317,7 @@ export default async function ProjectDetailPage({
                 />
               )}
             </div>
-            <DependencyList dependencies={dependencyRows} canManage={canUpdateProject} />
+            <DependencyList dependencies={dependencyRows} canManage={canUpdateProject} accentBars={false} />
           </div>
         </TabsContent>
 
@@ -469,7 +469,7 @@ export default async function ProjectDetailPage({
               <CardTitle className="text-base">Documents (racine)</CardTitle>
             </CardHeader>
             <CardContent>
-              <DocumentList documents={documentRows} />
+              <DocumentList documents={documentRows} accentBars={false} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -503,7 +503,7 @@ export default async function ProjectDetailPage({
               />
             )}
           </div>
-          <RuleList rules={ruleData} canManage={canManageAutomation} />
+          <RuleList rules={ruleData} canManage={canManageAutomation} accentBars={false} />
         </TabsContent>
 
       </Tabs>

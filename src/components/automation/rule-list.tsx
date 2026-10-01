@@ -88,7 +88,16 @@ export type RuleData = {
   executions: { id: string; resultat: string; executedAt: string }[];
 };
 
-export function RuleList({ rules, canManage }: { rules: RuleData[]; canManage: boolean }) {
+export function RuleList({
+  rules,
+  canManage,
+  accentBars = true,
+}: {
+  rules: RuleData[];
+  canManage: boolean;
+  /** false : sans barre d'accent (demande utilisateur sur /projets/[id]). */
+  accentBars?: boolean;
+}) {
   if (rules.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucune règle d&apos;automatisation pour ce projet.</p>;
   }
@@ -96,7 +105,7 @@ export function RuleList({ rules, canManage }: { rules: RuleData[]; canManage: b
   return (
     <div className="space-y-3">
       {rules.map((rule) => (
-        <Card key={rule.id} accent={rule.isActive ? "success" : "none"}>
+        <Card key={rule.id} accent={accentBars && rule.isActive ? "success" : "none"}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">{rule.nom}</CardTitle>
             {canManage && <ToggleRuleButton ruleId={rule.id} isActive={rule.isActive} />}

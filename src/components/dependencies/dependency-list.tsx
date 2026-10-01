@@ -16,7 +16,16 @@ export type DependencyRow = {
   riskMessage: string | null;
 };
 
-export function DependencyList({ dependencies, canManage }: { dependencies: DependencyRow[]; canManage: boolean }) {
+export function DependencyList({
+  dependencies,
+  canManage,
+  accentBars = true,
+}: {
+  dependencies: DependencyRow[];
+  canManage: boolean;
+  /** false : sans barre d'accent (demande utilisateur sur /projets/[id]). */
+  accentBars?: boolean;
+}) {
   if (dependencies.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucune dépendance enregistrée.</p>;
   }
@@ -24,17 +33,29 @@ export function DependencyList({ dependencies, canManage }: { dependencies: Depe
   return (
     <div className="space-y-3">
       {dependencies.map((dep) => (
-        <DependencyCard key={dep.id} dependency={dep} canManage={canManage} />
+        <DependencyCard key={dep.id} dependency={dep} canManage={canManage} accentBars={accentBars} />
       ))}
     </div>
   );
 }
 
-function DependencyCard({ dependency, canManage }: { dependency: DependencyRow; canManage: boolean }) {
+function DependencyCard({
+  dependency,
+  canManage,
+  accentBars,
+}: {
+  dependency: DependencyRow;
+  canManage: boolean;
+  accentBars: boolean;
+}) {
   const { run, isPending } = useAction(deleteDependency, { successMessage: "Dépendance supprimée." });
 
   return (
-    <Card accent={dependency.atRisk ? "destructive" : "none"}>
+    // Sans barre d'accent, une dependance a risque garde son signal en fond rouge.
+    <Card
+      accent={accentBars && dependency.atRisk ? "destructive" : "none"}
+      className={!accentBars && dependency.atRisk ? "bg-destructive/10" : undefined}
+    >
       <CardContent className="space-y-2 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2 text-sm">
