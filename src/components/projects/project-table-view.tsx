@@ -119,7 +119,7 @@ export function ProjectTableView({
           currency={fallbackDevise}
         />
       </div>
-      <div className={cn("rounded-md border bg-card", compact && "[perspective:1000px]")}>
+      <div className="rounded-md border bg-card">
       <Table className={compact ? "text-[11px]" : undefined}>
         <TableHeader className={compact ? "bg-muted/60" : undefined}>
           <TableRow>
@@ -143,9 +143,8 @@ export function ProjectTableView({
                 key={p.id}
                 className={cn(
                   compact &&
-                    "relative transition-all duration-300 ease-out will-change-transform hover:z-10 hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-primary/40 hover:shadow-xl"
+                    "relative transition-all duration-200 ease-out hover:z-10 hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md"
                 )}
-                style={compact ? { transformStyle: "preserve-3d" } : undefined}
               >
                 <TableCell className={cn("text-muted-foreground", cellClass)}>
                   {p.dateFin ? new Date(p.dateFin).toLocaleDateString("fr-FR") : "—"}

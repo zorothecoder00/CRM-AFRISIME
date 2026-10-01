@@ -268,7 +268,8 @@ export function TaskListView({
   // Demande utilisateur — /taches, /planning-personnel/mes-taches et
   // /planning (vue liste) : même effet 3D au survol qu'utilisé pour le
   // "Top 5 des actions à réaliser aujourd'hui" de l'Espace personnel
-  // (TopPriorityActionsCard) — bascule/élévation légère de la ligne, pas
+  // (TopPriorityActionsCard) — élévation légère de la ligne (sans bascule
+  // 3D ni agrandissement : ils rendaient le texte flou au survol), pas
   // activé par défaut pour ne pas affecter l'onglet Tâches d'un projet
   // (ProjectViewsSwitcher, autre appelant de TaskListView).
   hoverLift3d?: boolean;
@@ -367,7 +368,7 @@ export function TaskListView({
   const subtaskParentTask = tasks.find((t) => t.id === subtaskParentId) ?? null;
 
   return (
-    <div className={cn("rounded-md border", hoverLift3d && "[perspective:1000px]", className)}>
+    <div className={cn("rounded-md border", className)}>
       {/* Table impose text-sm sur elle-meme (pas seulement herite) : un
           text-xs sur ce wrapper ne suffirait pas a le reduire — passe
           directement sur <Table>, uniquement pour la variante mes-taches
@@ -400,9 +401,8 @@ export function TaskListView({
                 <TableRow
                   className={cn(
                     hoverLift3d &&
-                      "relative transition-all duration-300 ease-out will-change-transform hover:z-10 hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-primary/40 hover:shadow-xl"
+                      "relative transition-all duration-200 ease-out hover:z-10 hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md"
                   )}
-                  style={hoverLift3d ? { transformStyle: "preserve-3d" } : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     // Demande utilisateur — les textes longs (titre, projet...)
