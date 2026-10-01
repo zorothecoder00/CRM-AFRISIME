@@ -15,9 +15,9 @@ const RANK_TONE = [
 // Moteur de priorisation IA (cahier des charges V2.2 §40) — "Top 5 des
 // actions à réaliser aujourd'hui", voir src/lib/task-priority.ts.
 //
-// Demande utilisateur — "rendre ça 3D au survol" : chaque ligne bascule en
-// carte avec effet de bascule 3D (perspective + rotation legere + elevation
-// d'ombre) au survol, au lieu d'une simple ligne de texte plate.
+// Demande utilisateur — chaque ligne se souleve au survol (elevation + ombre).
+// La bascule 3D / l'agrandissement d'origine ont ete retires : ils rendaient
+// le texte flou pendant le survol.
 export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore[] }) {
   // Demande utilisateur — plus de barre d'accent, fond en teinte unie
   // legere aux couleurs du logo (or, pour se distinguer du briefing bleu voisin).
@@ -33,7 +33,7 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
         {actions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune tâche active à prioriser.</p>
         ) : (
-          <ol className="space-y-2 [perspective:1000px]">
+          <ol className="space-y-2">
             {actions.map((a, i) => (
               <li key={a.taskId}>
                 <Link
@@ -41,8 +41,7 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
                   // Demande utilisateur — le vert (bg-success/15) jurait avec le
                   // fond beige/or de la carte : lignes sur le gris du site (bg-background)
                   // a bordure doree, comme les autres blocs du dashboard.
-                  className="group flex items-center gap-3 rounded-lg border border-[#f2b705]/30 bg-background p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-[#f2b705]/60 hover:bg-muted hover:shadow-xl"
-                  style={{ transformStyle: "preserve-3d" }}
+                  className="group flex items-center gap-3 rounded-lg border border-[#f2b705]/30 bg-background p-2.5 text-sm shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[#f2b705]/60 hover:bg-muted hover:shadow-md"
                 >
                   <span
                     className={cn(
