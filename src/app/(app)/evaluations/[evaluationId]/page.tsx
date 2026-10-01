@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForEvaluationStatus, accentForEvaluationStatus, toneForStatus } from "@/lib/status-tone";
+import { toneForEvaluationStatus, toneForStatus } from "@/lib/status-tone";
 import { EditEvaluationDialog } from "@/components/evaluations/edit-evaluation-dialog";
 import { AddCritereDialog } from "@/components/evaluations/add-critere-dialog";
 import { CritereList } from "@/components/evaluations/critere-list";
@@ -102,7 +102,7 @@ export default async function EvaluationDetailPage({
           </p>
         </div>
 
-        <Card accent={accentForEvaluationStatus(evaluation.statut)}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Informations générales</CardTitle>
             {isEvaluateur && evaluation.statut === "BROUILLON" && (
