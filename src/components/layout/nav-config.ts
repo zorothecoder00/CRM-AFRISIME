@@ -109,7 +109,6 @@ export const NAV_GROUPS: NavGroup[] = [
       // utilisateur) : Projets, Project Studio, Laboratoire d'idees, Appel a
       // projets. Portefeuille de projets reste le point d'entree unique.
       { titleKey: "portefeuilleProjets", href: "/projets/portefeuille", icon: Briefcase, permission: PERMISSIONS.PROJECT_READ },
-      { titleKey: "equipes", href: "/administration/equipes", icon: Users2, permission: PERMISSIONS.TEAM_CREATE },
     ],
   },
   {
@@ -199,6 +198,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "conformite", href: "/conformite", icon: ShieldCheck, permission: PERMISSIONS.GOVERNANCE_READ },
       { titleKey: "gouvernanceDonnees", href: "/gouvernance-donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
       { titleKey: "administrationDonnees", href: "/administration/donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
+      { titleKey: "equipes", href: "/administration/equipes", icon: Users2, permission: PERMISSIONS.TEAM_CREATE },
       {
         titleKey: "administrationUtilisateurs",
         href: "/administration/utilisateurs",
