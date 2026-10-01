@@ -31,6 +31,10 @@ export default async function MeetingDetailPage({
   params: Promise<{ meetingId: string }>;
 }) {
   const { meetingId } = await params;
+  // Departement destinataire (facultatif) propose a l'ajout d'un document.
+  const departmentOptions = (
+    await prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+  ).map((d) => ({ id: d.id, label: d.name }));
 
   const [meeting, users, contacts] = await Promise.all([
     prisma.meeting.findUnique({
@@ -170,6 +174,7 @@ export default async function MeetingDetailPage({
               <DocumentFormDialog
                 projectId={meeting.projectId}
                 meetingId={meeting.id}
+                departments={departmentOptions}
                 triggerLabel="Lier un document"
               />
             )}
