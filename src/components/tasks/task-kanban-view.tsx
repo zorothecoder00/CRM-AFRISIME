@@ -15,7 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { TaskEditDialog } from "@/components/tasks/task-edit-dialog";
-import { toneForPriority, toneForTaskStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
+import { toneForPriority } from "@/lib/status-tone";
+import { materialTone } from "@/lib/card-tones";
 import type { TaskRow } from "@/components/tasks/task-list-view";
 
 type Option = { id: string; label: string };
@@ -28,22 +29,6 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: "REPORTEE", label: "Reportée" },
   { key: "TERMINEE", label: "Terminée" },
 ];
-
-// Barre d'accent en tete de colonne : reprend la teinte de statut pour que
-// chaque etape du kanban se distingue au premier coup d'oeil (au lieu de
-// colonnes toutes identiques en gris).
-const COLUMN_ACCENT: Record<BadgeTone, string> = {
-  default: "border-t-border",
-  secondary: "border-t-border",
-  destructive: "border-t-destructive",
-  success: "border-t-success",
-  warning: "border-t-warning",
-  info: "border-t-info",
-  outline: "border-t-border",
-  violet: "border-t-violet-500",
-  ghost: "border-t-border",
-  link: "border-t-border",
-};
 
 const PRIORITY_LABELS: Record<string, string> = {
   TRES_HAUTE: "Très haute",
@@ -60,6 +45,7 @@ function TaskCard({
   onDeleted,
   onUpdated,
   currentUserId,
+  tone,
 }: {
   task: TaskRow;
   users: Option[];
@@ -68,6 +54,7 @@ function TaskCard({
   onDeleted: (id: string) => void;
   onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
   currentUserId?: string;
+  tone: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -86,9 +73,10 @@ function TaskCard({
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {/* Demande utilisateur — plus de barre d'accent (priorite deja visible via le badge),
+          fond Material Design : une teinte par colonne (voir KanbanColumn). */}
       <Card
-        accent={accentForPriority(task.priorite)}
-        className={`relative mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}
+        className={`relative mb-2 cursor-grab p-3 ${tone} ${isDragging ? "opacity-50" : ""}`}
       >
         {(canManage || canDelete) && (
           <div className="absolute top-1 right-1">
@@ -103,12 +91,16 @@ function TaskCard({
         <Link href={`/taches/${task.id}`} className="pr-6 text-sm font-medium hover:underline">
           {task.titre}
         </Link>
-        <div className="mt-1 text-xs text-muted-foreground">{task.projectNom}</div>
-        <div className="mt-2 flex items-center justify-between">
-          <Badge variant={toneForPriority(task.priorite)} className="text-xs">
-            {PRIORITY_LABELS[task.priorite]}
-          </Badge>
-          <span className="text-xs text-muted-foreground">{task.responsableNom}</span>
+        {/* Demande utilisateur — donnees de la carte sur le gris du site
+            (bg-background) plutot que sur la teinte Material de la carte. */}
+        <div className="mt-2 space-y-2 rounded-md bg-background p-2">
+          <div className="text-xs text-muted-foreground">{task.projectNom}</div>
+          <div className="flex items-center justify-between">
+            <Badge variant={toneForPriority(task.priorite)} className="text-xs">
+              {PRIORITY_LABELS[task.priorite]}
+            </Badge>
+            <span className="text-xs text-muted-foreground">{task.responsableNom}</span>
+          </div>
         </div>
       </Card>
       {editing && (
@@ -135,6 +127,7 @@ function KanbanColumn({
   onDeleted,
   onUpdated,
   currentUserId,
+  tone,
 }: {
   columnKey: string;
   label: string;
@@ -145,14 +138,14 @@ function KanbanColumn({
   onDeleted: (id: string) => void;
   onUpdated: (id: string, patch: { titre: string; priorite: string }) => void;
   currentUserId?: string;
+  tone: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
-  const accent = COLUMN_ACCENT[toneForTaskStatus(columnKey)];
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border border-t-2 bg-muted/20 p-2 ${accent} ${
+      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border bg-muted/20 p-2 ${
         isOver ? "bg-muted/50" : ""
       }`}
     >
@@ -170,6 +163,7 @@ function KanbanColumn({
           onDeleted={onDeleted}
           onUpdated={onUpdated}
           currentUserId={currentUserId}
+          tone={tone}
         />
       ))}
     </div>
@@ -220,9 +214,10 @@ export function TaskKanbanView({
   return (
     <DndContext id="task-kanban" onDragEnd={handleDragEnd}>
       <div className="flex gap-3 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
+        {COLUMNS.map((col, i) => (
           <KanbanColumn
             key={col.key}
+            tone={materialTone(i)}
             columnKey={col.key}
             label={col.label}
             tasks={tasks.filter((t) => t.statut === col.key)}
