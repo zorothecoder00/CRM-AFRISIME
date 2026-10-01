@@ -31,6 +31,13 @@ export const createFolderWithDocumentSchema = z.object({
 
 export type CreateFolderWithDocumentInput = z.infer<typeof createFolderWithDocumentSchema>;
 
+export const addDocumentsToFolderSchema = z.object({
+  folderId: z.string().min(1),
+  documentIds: z.array(z.string().min(1)).min(1, "Sélectionnez au moins un document.").max(200),
+});
+
+export type AddDocumentsToFolderInput = z.infer<typeof addDocumentsToFolderSchema>;
+
 export const documentTypeSchema = z.enum([
   "CONTRAT",
   "RAPPORT",

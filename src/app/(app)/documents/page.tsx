@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FolderBrowser, FolderTile } from "@/components/documents/folder-browser";
+import { AddDocumentsToFolderDialog } from "@/components/documents/add-documents-to-folder-dialog";
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
@@ -77,6 +78,7 @@ export default async function DocumentsPage({
   const session = await getAppSession();
   const canManageFolders = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
   const canMoveDocuments = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_UPDATE);
+  const canDeleteDocuments = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_DELETE);
   const [projects, users, departments, me] = await Promise.all([
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -187,7 +189,18 @@ export default async function DocumentsPage({
       type: d.type,
       statutSignature: d.statutSignature,
       estArchive: d.estArchive,
+      folderId: d.folderId,
     }));
+    // Dans un espace, chaque document reste rangeable depuis cette vue aussi.
+    const spaceFolderOptions =
+      (showLibres || projetId) && canMoveDocuments
+        ? folderPathOptions(
+            await prisma.documentFolder.findMany({
+              where: { projectId: showLibres ? null : projetId },
+              select: { id: true, nom: true, parentId: true },
+            })
+          )
+        : undefined;
 
     return (
       <div className="space-y-6">
@@ -228,7 +241,13 @@ export default async function DocumentsPage({
               </div>
             </CardHeader>
             <CardContent>
-              <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
+              <DocumentList
+                documents={rows}
+                cardClassName={DOCUMENT_CARD_TONE}
+                moveFolders={spaceFolderOptions}
+                canCreateFolder={canManageFolders}
+                canDelete={canDeleteDocuments}
+              />
             </CardContent>
           </Card>
         ) : (
@@ -303,6 +322,24 @@ export default async function DocumentsPage({
     const rows = documents.map(toRow);
     const folderOptions = folderPathOptions(folders);
     const activeFolder = folderId ? folders.find((f) => f.id === folderId) : undefined;
+    // "Ajouter des documents" : les documents du meme espace hors de ce
+    // dossier, avec leur emplacement actuel pour choisir en connaissance.
+    const folderLabelById = new Map(folderOptions.map((f) => [f.id, f.label]));
+    const candidates =
+      activeFolder && canMoveDocuments
+        ? (
+            await prisma.document.findMany({
+              where: { projectId: spaceProjectId, ...liveDocs, OR: [{ folderId: null }, { folderId: { not: activeFolder.id } }] },
+              select: { id: true, nom: true, folderId: true },
+              orderBy: { nom: "asc" },
+              take: 500,
+            })
+          ).map((d) => ({
+            id: d.id,
+            nom: d.nom,
+            emplacement: d.folderId ? (folderLabelById.get(d.folderId) ?? "Autre dossier") : "Non classé",
+          }))
+        : [];
     const projectName = projects.find((p) => p.id === projetId)?.nom ?? "Projet";
     const baseHref = projetId ? `/documents?projetId=${projetId}` : "/documents?libres=1";
     const crumbs = projetId
@@ -326,24 +363,7 @@ export default async function DocumentsPage({
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">{title}</CardTitle>
-            <div className="flex flex-wrap gap-2">
-              <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
-              {canManageFolders && !showUnfiled && (
-                <FolderFormDialog
-                  projectId={spaceProjectId ?? undefined}
-                  parentId={folderId}
-                  triggerLabel={folderId ? "Nouveau sous-dossier" : "Nouveau dossier"}
-                />
-              )}
-              {/* Sans choix de projet : un document ajoute dans un espace
-                  appartient a cet espace, dans le dossier ouvert. */}
-              <DocumentFormDialog
-                projectId={spaceProjectId ?? undefined}
-                departments={departmentOptions}
-                folders={folderOptions}
-                currentFolderId={folderId}
-              />
-            </div>
+            <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
           </CardHeader>
           <CardContent className="space-y-4">
             <FolderBrowser
@@ -356,14 +376,53 @@ export default async function DocumentsPage({
               unfiled={{ href: `${baseHref}&nonClasses=1`, count: unfiledCount }}
               tileClassName={DOCUMENT_CARD_TONE}
             />
-            {showDocuments ? (
+            {/* Demande utilisateur — actions du dossier ouvert bien visibles,
+                juste sous le fil d'Ariane, plutot qu'en petit dans l'en-tete. */}
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2">
+              {activeFolder && canMoveDocuments && (
+                <AddDocumentsToFolderDialog folderId={activeFolder.id} folderName={activeFolder.nom} candidates={candidates} />
+              )}
+              {/* Sans choix de projet : un document ajoute dans un espace
+                  appartient a cet espace, dans le dossier ouvert. */}
+              <DocumentFormDialog
+                projectId={spaceProjectId ?? undefined}
+                departments={departmentOptions}
+                folders={folderOptions}
+                currentFolderId={folderId}
+                triggerLabel={activeFolder ? "Déposer un nouveau document ici" : "Nouveau document"}
+              />
+              {canManageFolders && !showUnfiled && (
+                <FolderFormDialog
+                  projectId={spaceProjectId ?? undefined}
+                  parentId={folderId}
+                  triggerLabel={folderId ? "Nouveau sous-dossier" : "Nouveau dossier"}
+                />
+              )}
+            </div>
+            {showDocuments && rows.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {activeFolder
+                  ? "Ce dossier est vide. Utilisez « Ajouter des documents » pour y ranger des documents déjà déposés, ou déposez-en un nouveau."
+                  : "Aucun document hors dossier."}
+              </p>
+            )}
+            {showDocuments && rows.length > 0 && canMoveDocuments && (
+              <p className="text-xs text-muted-foreground">
+                {activeFolder
+                  ? "Sur chaque document : « Déplacer » pour le retirer de ce dossier ou le changer de dossier, « Supprimer » pour l'envoyer à la corbeille (aussi par clic droit)."
+                  : "Sur chaque document : « Ranger » pour le mettre dans un dossier (ou en créer un avec ce document dedans), « Supprimer » pour l'envoyer à la corbeille (aussi par clic droit)."}
+              </p>
+            )}
+            {showDocuments && rows.length > 0 ? (
               <DocumentList
                 documents={rows}
                 cardClassName={DOCUMENT_CARD_TONE}
                 moveFolders={canMoveDocuments ? folderOptions : undefined}
                 canCreateFolder={canManageFolders}
+                canDelete={canDeleteDocuments}
               />
             ) : (
+              !showDocuments &&
               folders.length === 0 &&
               unfiledCount === 0 && <p className="text-sm text-muted-foreground">Aucun dossier ni document pour le moment.</p>
             )}

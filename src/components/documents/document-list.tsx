@@ -46,6 +46,7 @@ export function DocumentList({
   cardClassName,
   moveFolders,
   canCreateFolder = false,
+  canDelete = false,
 }: {
   documents: DocumentRow[];
   /** Classes en plus sur chaque carte document (ex. teinte de fond). */
@@ -54,6 +55,8 @@ export function DocumentList({
   moveFolders?: { id: string; label: string }[];
   /** Propose aussi "Nouveau dossier avec ce document" dans ce menu. */
   canCreateFolder?: boolean;
+  /** Ajoute un bouton "Supprimer" (corbeille) a cote de "Ranger". */
+  canDelete?: boolean;
 }) {
   if (documents.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun document.</p>;
@@ -69,7 +72,7 @@ export function DocumentList({
               className={cn(
                 "flex-row flex-wrap items-center justify-between gap-2 transition-all hover:-translate-y-0.5 hover:bg-muted/50 sm:flex-nowrap",
                 // Place pour le bouton "Ranger" pose par-dessus, a droite.
-                moveFolders && "pr-10",
+                moveFolders && (canDelete ? "pr-52" : "pr-28"),
                 cardClassName
               )}
             >
@@ -107,6 +110,7 @@ export function DocumentList({
                 folderId={doc.folderId ?? null}
                 folders={moveFolders}
                 canCreateFolder={canCreateFolder}
+                canDelete={canDelete}
               >
                 {card}
               </DocumentFilingRow>

@@ -12,6 +12,7 @@ import {
   updateFolderSchema,
   moveDocumentToFolderSchema,
   createFolderWithDocumentSchema,
+  addDocumentsToFolderSchema,
   createDocumentSchema,
   addDocumentVersionSchema,
   setDocumentVersionValidationSchema,
@@ -22,6 +23,7 @@ import {
   type UpdateFolderInput,
   type MoveDocumentToFolderInput,
   type CreateFolderWithDocumentInput,
+  type AddDocumentsToFolderInput,
   type CreateDocumentInput,
   type AddDocumentVersionInput,
   type SetDocumentVersionValidationInput,
@@ -187,6 +189,40 @@ export async function moveDocumentToFolder(input: MoveDocumentToFolderInput) {
 
   revalidateFolderPaths(document.projectId);
   revalidatePath(`/documents/${document.id}`);
+}
+
+/**
+ * Bouton "Ajouter des documents" d'un dossier ouvert : y range d'un coup
+ * plusieurs documents deja deposes. Seuls ceux du meme espace que le dossier
+ * (meme projet, ou libres) sont deplaces ; les autres sont ignores plutot
+ * que de faire echouer tout le lot.
+ */
+export async function addDocumentsToFolder(input: AddDocumentsToFolderInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const data = addDocumentsToFolderSchema.parse(input);
+  const folder = await prisma.documentFolder.findUnique({
+    where: { id: data.folderId },
+    select: { id: true, nom: true, projectId: true },
+  });
+  if (!folder) throw new Error("Dossier introuvable.");
+
+  const { count } = await prisma.document.updateMany({
+    where: { id: { in: data.documentIds }, projectId: folder.projectId, deletedAt: null },
+    data: { folderId: folder.id },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document_folder.documents_added",
+    entityType: "DocumentFolder",
+    entityId: folder.id,
+    changes: { nom: folder.nom, count },
+  });
+
+  revalidateFolderPaths(folder.projectId);
+  return { count };
 }
 
 /**
