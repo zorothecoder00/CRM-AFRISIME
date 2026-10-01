@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { accentForOrganizationType } from "@/lib/status-tone";
 import { OrganizationFormDialog } from "@/components/crm/organization-form-dialog";
 import { getUserEntityScope, crmOrganizationScopeWhere } from "@/lib/entity-scope";
 import { cn } from "@/lib/utils";
@@ -44,7 +43,6 @@ export default async function CrmOrganizationsPage() {
         {organizations.map((org, i) => (
           <Link key={org.id} href={`/crm/organisations/${org.id}`}>
             <Card
-              accent={accentForOrganizationType(org.type)}
               className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
             >
               <CardHeader>

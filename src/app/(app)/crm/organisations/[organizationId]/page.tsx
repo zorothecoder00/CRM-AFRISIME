@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForOpportunityStatus, accentForOrganizationType } from "@/lib/status-tone";
+import { toneForOpportunityStatus } from "@/lib/status-tone";
 import { InteractionLog } from "@/components/crm/interaction-log";
 import { RelationshipGraphView } from "@/components/crm/relationship-graph-view";
 import { buildRelationshipGraph } from "@/lib/relationship-graph";
@@ -90,7 +90,7 @@ export default async function CrmOrganizationDetailPage({
           </div>
         </div>
 
-        <Card accent={accentForOrganizationType(organization.type)}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>
