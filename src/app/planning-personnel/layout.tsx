@@ -79,7 +79,9 @@ export default async function PlanningPersonnelLayout({ children }: { children: 
       {/* Demande utilisateur — impression de l'agenda (voir AgendaExportButton) :
           seul le contenu de la page doit apparaître sur le papier, pas le
           chrome du module (sidebar/topbar/barre d'outils/lien retour). */}
-      <div className="print:hidden">
+      {/* flex : la sidebar prend la hauteur de l'ecran (et non celle de son
+          contenu) pour que son menu defile au lieu d'allonger la page. */}
+      <div className="flex print:hidden">
         <PersonalPlanningSidebar
           aPlanifierCount={aPlanifierCount}
           alertesCount={unreadCount}

@@ -134,7 +134,7 @@ export function PersonalPlanningSidebarNav({
   );
 
   return (
-    <nav className="flex-1 space-y-5 overflow-y-auto p-3">
+    <nav className="thin-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto p-3">
       <div className="space-y-1">{renderItem(PERSONAL_PLANNING_HOME_ITEM)}</div>
       {visibleGroups.map((group) => (
         <div key={group.title} className="space-y-1">

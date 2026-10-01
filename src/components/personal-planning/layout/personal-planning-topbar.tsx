@@ -49,7 +49,8 @@ export function PersonalPlanningTopbar({
     .toUpperCase();
 
   return (
-    <header className="flex h-16 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur">
+    // Demande utilisateur — bandeau en bleu nuit, comme la sidebar.
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground">
       <div className="flex items-center gap-3">
         <PersonalPlanningMobileSidebar
           aPlanifierCount={aPlanifierCount}
@@ -57,13 +58,13 @@ export function PersonalPlanningTopbar({
           permissions={permissions}
           notifications={sidebarNotifications}
         />
-        <CalendarCheck2 className="hidden size-6 text-primary sm:block" />
+        <CalendarCheck2 className="hidden size-6 text-sidebar-primary sm:block" />
         <div>
           <div className="flex items-baseline gap-2">
             <h1 className="text-base font-semibold leading-none">Planning personnel</h1>
-            <span className="show-from-lg text-xs text-muted-foreground">Planifier · Collaborer · Exécuter · Contrôler</span>
+            <span className="show-from-lg text-xs text-sidebar-foreground/70">Planifier · Collaborer · Exécuter · Contrôler</span>
           </div>
-          <p className="show-from-lg text-xs text-muted-foreground">
+          <p className="show-from-lg text-xs text-sidebar-foreground/70">
             <span className="capitalize">{dateLabel}</span> · Seule votre disponibilité (occupé/libre) est visible des autres.
           </p>
         </div>
@@ -75,7 +76,7 @@ export function PersonalPlanningTopbar({
           name="q"
           type="search"
           placeholder="Rechercher tâche, activité, réunion, projet…"
-          className="h-9 w-full rounded-md border bg-background pl-8 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-9 w-full rounded-md border bg-background pl-8 pr-3 text-sm text-foreground outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
         />
       </form>
 
@@ -83,14 +84,14 @@ export function PersonalPlanningTopbar({
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
+            <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-sidebar-accent hover:text-sidebar-foreground">
               <Avatar className="h-8 w-8 ring-2 ring-primary/20">
                 {userImage && <AvatarImage src={userImage} alt={userName} />}
                 <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
               </Avatar>
               <div className="show-from-sm text-left">
                 <div className="text-sm font-medium leading-none">{userName}</div>
-                <div className="text-xs text-muted-foreground">{roleLabel}</div>
+                <div className="text-xs text-sidebar-foreground/70">{roleLabel}</div>
               </div>
             </Button>
           </DropdownMenuTrigger>

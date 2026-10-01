@@ -3,7 +3,6 @@ import { formatHours } from "@/lib/personal-planning-workload";
 import { KpiCard, type KpiDelta } from "@/components/ui/kpi-card";
 import type { CardAccent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { TONE_BG, alertBg } from "@/lib/card-tones";
 
 export type PersonalPlanningStatsData = {
   tachesJour: number;
@@ -52,7 +51,10 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
   // remplissait que sa propre hauteur de contenu au lieu de la hauteur de
   // ligne déjà étirée par la grille (comportement par défaut d'un enfant
   // block, qui n'hérite pas de la hauteur stretchée sans h-full explicite).
-  const cardClassName = "h-full";
+  // Demande utilisateur — plus de barre d'accent en tete de carte, mais on
+  // garde la teinte de fond que donne la prop `accent` : border-t-0 masque
+  // seulement la barre (border-t-4 de <Card>).
+  const cardClassName = "h-full border-t-0";
   // Police à chiffres alignés (Geist Mono, déjà chargée par l'app) pour les
   // valeurs — plus lisible/soigné qu'un sans-serif proportionnel sur des
   // nombres (demande utilisateur, "un font plus joli").
@@ -65,6 +67,7 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           label="Mes tâches (jour)"
           value={stats.tachesJour}
           delta={dayDelta(stats.tachesJour, stats.tachesJourHier)}
+          accent="primary"
           size="sm"
           compact
           className={cardClassName}
@@ -76,9 +79,10 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           label="En retard"
           value={stats.enRetard}
           delta={dayDelta(stats.enRetard, stats.enRetardHier, false)}
+          accent={stats.enRetard > 0 ? "destructive" : "success"}
           size="sm"
           compact
-          className={cn(cardClassName, stats.enRetard > 0 && TONE_BG.destructive)}
+          className={cardClassName}
           valueClassName={valueClassName}
         />
       </Link>
@@ -86,9 +90,10 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         <KpiCard
           label="Temps disponible"
           value={`${formatHours(disponibleHeures)}`}
+          accent={disponibleAccent}
           size="sm"
           compact
-          className={cn(cardClassName, alertBg(disponibleAccent))}
+          className={cardClassName}
           valueClassName={valueClassName}
         />
       </Link>
@@ -97,6 +102,7 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           label="Réunions (jour)"
           value={stats.reunions}
           delta={dayDelta(stats.reunions, stats.reunionsHier)}
+          accent="primary"
           size="sm"
           compact
           className={cardClassName}
@@ -107,9 +113,10 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         <KpiCard
           label="Charge de travail"
           value={`${formatHours(stats.chargeHeures)} / ${formatHours(stats.capaciteHeures)}`}
+          accent={chargeAccent}
           size="sm"
           compact
-          className={cn(cardClassName, alertBg(chargeAccent))}
+          className={cardClassName}
           valueClassName={cn(valueClassName, "text-lg")}
         />
       </Link>
@@ -117,9 +124,10 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         <KpiCard
           label="Planning Health"
           value={`${stats.planningHealth}/100`}
+          accent={healthAccent}
           size="sm"
           compact
-          className={cn(cardClassName, alertBg(healthAccent))}
+          className={cardClassName}
           valueClassName={valueClassName}
         />
       </Link>

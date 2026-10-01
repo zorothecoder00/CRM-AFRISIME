@@ -138,7 +138,7 @@ export function SidebarNav({
   }
 
   return (
-    <nav className={cn("flex-1 space-y-5 overflow-y-auto p-3", className)}>
+    <nav className={cn("thin-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto p-3", className)}>
       {contextualItems.length > 0 && (
         <div className="space-y-1">
           {!collapsed && (
