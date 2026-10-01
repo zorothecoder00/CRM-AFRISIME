@@ -27,7 +27,9 @@ export default async function SecuritePage() {
     redirect("/dashboard");
   }
   const canManageSessions = session!.user.permissions.includes(PERMISSIONS.SESSION_MANAGE);
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  // `new Date().getTime()` et non `Date.now()` (signale impur par
+  // react-hooks/purity) — meme convention que planning-personnel/mes-taches.
+  const thirtyDaysAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const [
     logs,
