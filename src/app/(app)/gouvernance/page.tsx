@@ -28,8 +28,8 @@ export default async function GouvernancePage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {instances.map((instance) => (
           <Link key={instance.id} href={`/gouvernance/${instance.id}`}>
+            {/* Demande utilisateur — plus de barre d'accent (instance inactive deja signalee par un badge). */}
             <Card
-              accent={instance.estActive ? "success" : "none"}
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
             >
               <CardHeader>
