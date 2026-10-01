@@ -188,24 +188,28 @@ export default async function PortfolioPage({
           href={withFrom("/projets", currentUrl)}
           icon={FolderKanban}
           title="Projets"
+          tone="blue"
           description="Liste détaillée, filtres et vues (kanban, gantt...)."
         />
         <PortfolioBlockLink
           href={withFrom("/projets/studio", currentUrl)}
           icon={Sparkles}
           title="Project Studio"
+          tone="green"
           description="Cadrage assisté d'un nouveau projet."
         />
         <PortfolioBlockLink
           href={withFrom("/projets/idees", currentUrl)}
           icon={Lightbulb}
           title="Laboratoire d'idées"
+          tone="gold"
           description="Idées et opportunités à instruire."
         />
         <PortfolioBlockLink
           href={withFrom("/projets/appels-a-projets", currentUrl)}
           icon={HandCoins}
           title="Appel à projets"
+          tone="blue"
           description="Candidatures et opportunités de financement."
         />
       </div>
@@ -355,38 +359,45 @@ export default async function PortfolioPage({
   );
 }
 
+// Demande utilisateur — couleurs du logo (bleu / vert / jaune) au lieu du
+// rouge bordeaux ; texte fonce sur le jaune pour rester lisible.
+const BLOCK_LINK_TONES = {
+  blue: "bg-[#1d4fc4] text-white hover:bg-[#1a46ad]",
+  green: "bg-[#2f9e2f] text-white hover:bg-[#2a8c2a]",
+  gold: "bg-[#f2b705] text-neutral-900 hover:bg-[#dba604]",
+} as const;
+
 function PortfolioBlockLink({
   href,
   icon: Icon,
   title,
   description,
+  tone,
 }: {
   href: string;
   icon: LucideIcon;
   title: string;
   description: string;
+  tone: keyof typeof BLOCK_LINK_TONES;
 }) {
   return (
     // Demande utilisateur — ces blocs ressemblaient a du texte simple : bordure
     // gauche coloree + fleche persistante (pas seulement au survol) pour que
     // l'affordance "c'est cliquable" soit visible d'emblee, comme les autres
     // cartes-lien de l'appli (voir accentForStatus/toneForStatus ailleurs).
-    // Demande utilisateur — fond rouge bordeaux (red-800), texte blanc.
     <Link href={href} className="group block">
-      <Card
-        className="h-full bg-red-800 text-white transition-all hover:-translate-y-0.5 hover:bg-red-700"
-      >
+      <Card className={cn("h-full transition-all hover:-translate-y-0.5", BLOCK_LINK_TONES[tone])}>
         <CardContent className="flex items-center gap-3 px-(--card-spacing)">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-white/15 text-white">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-current/15">
             <Icon className="size-4.5" />
           </span>
           <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="text-sm font-semibold text-white underline decoration-white/40 underline-offset-2 group-hover:decoration-white">
+            <div className="text-sm font-semibold underline decoration-current/40 underline-offset-2 group-hover:decoration-current">
               {title}
             </div>
-            <p className="text-xs text-white/75">{description}</p>
+            <p className="text-xs opacity-75">{description}</p>
           </div>
-          <ChevronRight className="size-4 shrink-0 text-white/60 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
+          <ChevronRight className="size-4 shrink-0 opacity-60 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
         </CardContent>
       </Card>
     </Link>

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { ProjectEditDialog } from "@/components/projects/project-edit-dialog";
-import { toneForPriority, toneForStatus, accentForPriority, type BadgeTone } from "@/lib/status-tone";
+import { toneForPriority } from "@/lib/status-tone";
 import type { ProjectRow } from "@/components/projects/project-table-view";
 
 type Option = { id: string; label: string };
@@ -22,19 +22,6 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: "TERMINE", label: "Terminé" },
   { key: "ANNULE", label: "Annulé" },
 ];
-
-const COLUMN_ACCENT: Record<BadgeTone, string> = {
-  default: "border-t-border",
-  secondary: "border-t-border",
-  destructive: "border-t-destructive",
-  success: "border-t-success",
-  warning: "border-t-warning",
-  info: "border-t-info",
-  outline: "border-t-border",
-  violet: "border-t-violet-500",
-  ghost: "border-t-border",
-  link: "border-t-border",
-};
 
 const PRIORITY_LABELS: Record<string, string> = {
   BASSE: "Basse",
@@ -75,7 +62,7 @@ function ProjectCard({
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <Card accent={accentForPriority(project.priorite)} className={`relative mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}>
+      <Card className={`relative mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}>
         {(canManage || canDelete) && (
           <div className="absolute top-1 right-1">
             <RowActionsMenu
@@ -133,12 +120,11 @@ function KanbanColumn({
   onUpdated: (id: string, patch: { nom: string; priorite: string }) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
-  const accent = COLUMN_ACCENT[toneForStatus(columnKey)];
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border border-t-2 bg-muted/20 p-2 ${accent} ${
+      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border bg-muted/20 p-2 ${
         isOver ? "bg-muted/50" : ""
       }`}
     >

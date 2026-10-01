@@ -7,7 +7,7 @@ import { useAction } from "@/hooks/use-action";
 import { deleteProject } from "@/actions/trash.actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus, toneForPriority } from "@/lib/status-tone";
 import { RowActionsMenu } from "@/components/ui/row-actions-menu";
 import { ProjectEditDialog } from "@/components/projects/project-edit-dialog";
 import type { ProjectRow } from "@/components/projects/project-table-view";
@@ -62,8 +62,8 @@ export function ProjectListCard({
         </div>
       )}
       <Link href={`/projets/${project.id}`}>
+        {/* Demande utilisateur — plus de barre d'accent (statut deja visible via le badge). */}
         <Card
-          accent={accentForStatus(project.statut)}
           className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
         >
           <CardHeader>
