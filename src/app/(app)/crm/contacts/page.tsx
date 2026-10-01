@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { accentForContactType } from "@/lib/status-tone";
 import { ContactFormDialog } from "@/components/crm/contact-form-dialog";
 import { getUserEntityScope, crmContactScopeWhere } from "@/lib/entity-scope";
 import { cn } from "@/lib/utils";
@@ -56,7 +55,6 @@ export default async function CrmContactsPage() {
         {contacts.map((contact, i) => (
           <Link key={contact.id} href={`/crm/contacts/${contact.id}`}>
             <Card
-              accent={accentForContactType(contact.type)}
               className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
             >
               <CardHeader>
