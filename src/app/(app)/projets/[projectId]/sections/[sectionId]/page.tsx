@@ -28,6 +28,10 @@ export default async function SectionDetailPage({
   params: Promise<{ projectId: string; sectionId: string }>;
 }) {
   const { projectId, sectionId } = await params;
+  // Departement destinataire (facultatif) propose a l'ajout d'un document.
+  const departmentOptions = (
+    await prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+  ).map((d) => ({ id: d.id, label: d.name }));
 
   const section = await prisma.projectSection.findUnique({
     where: { id: sectionId },
@@ -105,7 +109,7 @@ export default async function SectionDetailPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents</CardTitle>
-            <DocumentFormDialog projectId={projectId} sectionId={section.id} triggerLabel="Ajouter un document" />
+            <DocumentFormDialog projectId={projectId} sectionId={section.id} departments={departmentOptions} triggerLabel="Ajouter un document" />
           </CardHeader>
           <CardContent>
             <DocumentList documents={documentRows} />

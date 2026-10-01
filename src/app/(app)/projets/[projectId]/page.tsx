@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FolderTree } from "@/components/documents/folder-tree";
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
+import { prisma } from "@/lib/prisma";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList } from "@/components/documents/document-list";
 import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
@@ -129,6 +130,10 @@ export default async function ProjectDetailPage({
     folderOptions,
     documentRows,
     ruleData } = await loadProjectPageData(projectId);
+  // Departement destinataire (facultatif) propose a l'ajout d'un document.
+  const departmentOptions = (
+    await prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+  ).map((d) => ({ id: d.id, label: d.name }));
 
   // Une sous-tache (parentTaskId non nul) a deja sa place dans "Sous-taches"
   // sur la fiche de sa tache mere : l'onglet "Taches" (liste plate) n'affiche
@@ -444,7 +449,7 @@ export default async function ProjectDetailPage({
             <div className="flex gap-2">
               <GenerateStandardFoldersButton projectId={project.id} />
               <FolderFormDialog projectId={project.id} triggerLabel="Nouveau dossier" />
-              <DocumentFormDialog projectId={project.id} folders={folderOptions} />
+              <DocumentFormDialog projectId={project.id} departments={departmentOptions} folders={folderOptions} />
               <Link href={`/documents?projetId=${project.id}`}>
                 <Button variant="outline" size="sm">
                   Ouvrir l&apos;espace complet
