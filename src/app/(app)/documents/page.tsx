@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getAppSession } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { Prisma, DocumentType } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { MATERIAL_TONES } from "@/lib/card-tones";
 import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 import { documentUploaderName } from "@/lib/document-uploader";
+import { folderPathOptions } from "@/lib/document-folders";
 
 // Demande utilisateur — fond Material ambre (teinte "chemise cartonnee", qui
 // evoque la gestion documentaire) sur les cartes projet et document ; hover:bg-card
@@ -90,6 +92,7 @@ export default async function DocumentsPage({
   const showLibres = libres === "1" && !projetId;
 
   const session = await getAppSession();
+  const canManageFolders = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
   const [projects, users, libresCount, departments, me] = await Promise.all([
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -183,17 +186,27 @@ export default async function DocumentsPage({
   }
 
   if (showLibres) {
-    const documents = await prisma.document.findMany({
-      where: { projectId: null, estArchive: false, deletedAt: null },
-      include: {
-        uploadedBy: true,
-        uploadedByContact: true,
-        task: true,
-        meeting: true,
-        _count: { select: { versions: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    // Dossiers de documents libres (projectId null), meme mise en page que
+    // l'espace documentaire d'un projet : arbre a gauche, contenu a droite.
+    const [folders, documents] = await Promise.all([
+      prisma.documentFolder.findMany({
+        where: { projectId: null },
+        include: { _count: { select: { documents: true } } },
+        orderBy: { nom: "asc" },
+      }),
+      prisma.document.findMany({
+        where: { projectId: null, folderId: folderId || null, estArchive: false, deletedAt: null },
+        include: {
+          uploadedBy: true,
+          uploadedByContact: true,
+          task: true,
+          meeting: true,
+          _count: { select: { versions: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    const tree = buildFolderTree(folders);
     const rows: DocumentRow[] = documents.map((d) => ({
       id: d.id,
       nom: d.nom,
@@ -209,22 +222,53 @@ export default async function DocumentsPage({
       statutSignature: d.statutSignature,
       estArchive: d.estArchive,
     }));
+    const activeFolder = folderId ? folders.find((f) => f.id === folderId) : undefined;
 
     return (
       <div className="space-y-6">
         <DocumentsHeader projects={projects} users={users} libres libresCount={libresCount} departments={departmentOptions} query={q} />
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Documents libres</CardTitle>
-            <div className="flex gap-2">
-              <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
-              <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
-          </CardContent>
-        </Card>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-1">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Dossiers libres</CardTitle>
+              {canManageFolders && <FolderFormDialog triggerLabel="Nouveau" />}
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/documents?libres=1"
+                className={`mb-2 block text-sm ${!folderId ? "font-semibold" : "hover:underline"}`}
+              >
+                Racine
+              </Link>
+              <FolderTree
+                nodes={tree}
+                activeFolderId={folderId}
+                canManage={canManageFolders}
+                buildHref={(id) => `/documents?libres=1${id ? `&folderId=${id}` : ""}`}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">{activeFolder ? activeFolder.nom : "Documents libres"}</CardTitle>
+              <div className="flex gap-2">
+                <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
+                {/* Pas de choix de projet ici : un document ajoute dans
+                    l'espace des documents libres reste libre. */}
+                <DocumentFormDialog
+                  departments={departmentOptions}
+                  folders={folderPathOptions(folders)}
+                  currentFolderId={folderId}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -287,7 +331,7 @@ export default async function DocumentsPage({
   ]);
 
   const tree = buildFolderTree(folders);
-  const folderOptions = folders.map((f) => ({ id: f.id, label: f.nom }));
+  const folderOptions = folderPathOptions(folders);
 
   const rows: DocumentRow[] = documents.map((d) => ({
     id: d.id,
@@ -313,7 +357,7 @@ export default async function DocumentsPage({
         <Card className="lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Dossiers</CardTitle>
-            <FolderFormDialog projectId={projetId} triggerLabel="Nouveau" />
+            {canManageFolders && <FolderFormDialog projectId={projetId} triggerLabel="Nouveau" />}
           </CardHeader>
           <CardContent>
             <Link
@@ -326,6 +370,7 @@ export default async function DocumentsPage({
               nodes={tree}
               projectId={projetId}
               activeFolderId={folderId}
+              canManage={canManageFolders}
               buildHref={(id) => `/documents?projetId=${projetId}${id ? `&folderId=${id}` : ""}`}
             />
           </CardContent>

@@ -3181,8 +3181,14 @@ model MeetingDecision {
 // sous-dossiers (cahier des charges §10 : « classement par dossiers »).
 model DocumentFolder {
   id             String                @id @default(cuid())
-  projectId      String
-  project        Project               @relation(fields: [projectId], references: [id])
+  // Deux types de dossiers (demande utilisateur 2026-10-01) : projectId
+  // renseigne = dossier de documents d'un projet ; null = dossier de
+  // documents libres (sans projet). Le type se deduit de ce champ plutot
+  // que d'un enum separe qui pourrait le contredire. Un dossier, ses
+  // sous-dossiers et ses documents partagent toujours le meme projectId
+  // (verifie cote serveur, voir assertFolderScope dans document.actions.ts).
+  projectId      String?
+  project        Project?              @relation(fields: [projectId], references: [id], onDelete: Restrict)
   // Multi-tenant Phase 1 lot 5 (2026-08-20) — meme statut que Meeting.
   organizationId String?
   organization   PlatformOrganization? @relation("PlatformOrganizationDocumentFolders", fields: [organizationId], references: [id])

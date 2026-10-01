@@ -9,6 +9,8 @@ import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import {
   createFolderSchema,
+  updateFolderSchema,
+  moveDocumentToFolderSchema,
   createDocumentSchema,
   addDocumentVersionSchema,
   setDocumentVersionValidationSchema,
@@ -16,6 +18,8 @@ import {
   depositPortalDocumentSchema,
   reviewPortalDeliverableSchema,
   type CreateFolderInput,
+  type UpdateFolderInput,
+  type MoveDocumentToFolderInput,
   type CreateDocumentInput,
   type AddDocumentVersionInput,
   type SetDocumentVersionValidationInput,
@@ -44,16 +48,43 @@ async function withNotFoundMessage<T>(fn: () => Promise<T>, message: string): Pr
   }
 }
 
+/**
+ * Verifie qu'un dossier appartient bien au meme espace que l'element qu'on y
+ * range : meme projet, ou les deux "libres" (projectId null). Sans ce
+ * controle, un document libre pourrait atterrir dans un dossier de projet
+ * (ou l'inverse) et n'apparaitrait plus nulle part dans /documents.
+ */
+async function assertFolderScope(folderId: string, projectId: string | null) {
+  const folder = await prisma.documentFolder.findUnique({ where: { id: folderId }, select: { projectId: true } });
+  if (!folder) throw new Error("Dossier introuvable.");
+  if (folder.projectId !== projectId) {
+    throw new Error(
+      projectId
+        ? "Ce dossier n'appartient pas au projet du document."
+        : "Un document libre ne peut être rangé que dans un dossier de documents libres."
+    );
+  }
+}
+
+function revalidateFolderPaths(projectId: string | null) {
+  revalidatePath("/documents");
+  if (projectId) revalidatePath(`/projets/${projectId}`);
+}
+
 export async function createFolder(input: CreateFolderInput) {
   const session = await requireSession();
   requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
 
   const data = createFolderSchema.parse(input);
+  // Sans projet : dossier de documents libres.
+  const projectId = data.projectId || null;
+  const parentId = data.parentId || undefined;
+  if (parentId) await assertFolderScope(parentId, projectId);
 
   const folder = await prisma.documentFolder.create({
     data: {
-      projectId: data.projectId,
-      parentId: data.parentId || undefined,
+      projectId,
+      parentId,
       nom: data.nom,
       createdById: session.user.id,
     },
@@ -64,12 +95,96 @@ export async function createFolder(input: CreateFolderInput) {
     action: "document_folder.created",
     entityType: "DocumentFolder",
     entityId: folder.id,
-    changes: { nom: folder.nom, projectId: data.projectId },
+    changes: { nom: folder.nom, projectId },
   });
 
-  revalidatePath("/documents");
-  revalidatePath(`/projets/${data.projectId}`);
+  revalidateFolderPaths(projectId);
   return folder;
+}
+
+export async function updateFolder(input: UpdateFolderInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
+
+  const data = updateFolderSchema.parse(input);
+  const folder = await withNotFoundMessage(
+    () => prisma.documentFolder.update({ where: { id: data.id }, data: { nom: data.nom } }),
+    "Dossier introuvable."
+  );
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document_folder.renamed",
+    entityType: "DocumentFolder",
+    entityId: folder.id,
+    changes: { nom: folder.nom },
+  });
+
+  revalidateFolderPaths(folder.projectId);
+  return folder;
+}
+
+/**
+ * Supprime un dossier SANS supprimer son contenu : ses documents et ses
+ * sous-dossiers remontent d'un niveau (dans le dossier parent, ou a la
+ * racine de l'espace). Un document ne disparait donc jamais avec un dossier
+ * — la suppression d'un document reste un geste explicite (corbeille).
+ */
+export async function deleteFolder(folderId: string) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
+
+  const folder = await prisma.documentFolder.findUnique({
+    where: { id: folderId },
+    select: { id: true, nom: true, projectId: true, parentId: true },
+  });
+  if (!folder) throw new Error("Dossier introuvable.");
+
+  const [movedDocuments, movedFolders] = await prisma.$transaction([
+    prisma.document.updateMany({ where: { folderId: folder.id }, data: { folderId: folder.parentId } }),
+    prisma.documentFolder.updateMany({ where: { parentId: folder.id }, data: { parentId: folder.parentId } }),
+    prisma.documentFolder.delete({ where: { id: folder.id } }),
+  ]);
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document_folder.deleted",
+    entityType: "DocumentFolder",
+    entityId: folder.id,
+    changes: { nom: folder.nom, documentsDeplaces: movedDocuments.count, sousDossiersDeplaces: movedFolders.count },
+  });
+
+  revalidateFolderPaths(folder.projectId);
+  return { movedDocuments: movedDocuments.count, movedFolders: movedFolders.count };
+}
+
+/** Range un document dans un dossier de son espace, ou l'en retire (folderId vide). */
+export async function moveDocumentToFolder(input: MoveDocumentToFolderInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const data = moveDocumentToFolderSchema.parse(input);
+  const document = await prisma.document.findUnique({
+    where: { id: data.documentId },
+    select: { id: true, projectId: true, folderId: true },
+  });
+  if (!document) throw new Error("Document introuvable.");
+
+  const folderId = data.folderId || null;
+  if (folderId) await assertFolderScope(folderId, document.projectId);
+
+  await prisma.document.update({ where: { id: document.id }, data: { folderId } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: folderId ? "document.moved_to_folder" : "document.removed_from_folder",
+    entityType: "Document",
+    entityId: document.id,
+    changes: { folderId, previousFolderId: document.folderId },
+  });
+
+  revalidateFolderPaths(document.projectId);
+  revalidatePath(`/documents/${document.id}`);
 }
 
 // Project Data Room (Project Studio §38) — dossiers standards suggeres par
@@ -125,16 +240,20 @@ export async function createDocument(input: CreateDocumentInput) {
   requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_CREATE);
 
   const data = createDocumentSchema.parse(input);
-  // Document libre (sans projet) : dossiers et phases sont propres a un
-  // projet, on ne les rattache donc qu'en presence d'un projet.
+  // Document libre (sans projet) : les phases sont propres a un projet, on
+  // ne les rattache donc qu'en presence d'un projet.
   const projectId = data.projectId || undefined;
   const departmentId = data.departmentId || undefined;
+  // Dossier : de projet pour un document de projet, libre pour un document
+  // libre — jamais l'un dans l'autre.
+  const folderId = data.folderId || undefined;
+  if (folderId) await assertFolderScope(folderId, projectId ?? null);
 
   const document = await prisma.document.create({
     data: {
       projectId,
       departmentId,
-      folderId: projectId ? data.folderId || undefined : undefined,
+      folderId,
       sectionId: projectId ? data.sectionId || undefined : undefined,
       taskId: data.taskId || undefined,
       meetingId: data.meetingId || undefined,

@@ -9,6 +9,8 @@ import { AddVersionForm } from "@/components/documents/add-version-form";
 import { DocumentAccessManager } from "@/components/documents/document-access-manager";
 import { DocumentSignatureForm } from "@/components/documents/document-signature-form";
 import { DocumentArchiveButton } from "@/components/documents/document-archive-button";
+import { DocumentFolderSelect } from "@/components/documents/document-folder-select";
+import { folderPathOptions } from "@/lib/document-folders";
 import { DocumentPartageExterneToggle } from "@/components/documents/document-partage-externe-toggle";
 import { RequestExternalValidationButton } from "@/components/documents/request-external-validation-button";
 import { DocumentVersionValidationToggle } from "@/components/documents/document-version-validation-toggle";
@@ -96,6 +98,16 @@ export default async function DocumentDetailPage({
     ? await prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
     : [];
   const tags = await getTagsFor("Document", document.id);
+  // Dossiers du meme espace que le document (son projet, ou les dossiers
+  // libres pour un document libre) — proposes pour l'y ranger ou l'en retirer.
+  const folderOptions = canManageAccess
+    ? folderPathOptions(
+        await prisma.documentFolder.findMany({
+          where: { projectId: document.projectId },
+          select: { id: true, nom: true, parentId: true },
+        })
+      )
+    : [];
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -222,6 +234,20 @@ export default async function DocumentDetailPage({
           <CardContent className="space-y-3 text-sm">
             <Info label="Ajouté par" value={documentUploaderName(document)} />
             <Info label="Ajouté le" value={new Date(document.createdAt).toLocaleDateString("fr-FR")} />
+            {canManageAccess ? (
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Dossier</div>
+                {folderOptions.length > 0 ? (
+                  <DocumentFolderSelect documentId={document.id} folderId={document.folderId} folders={folderOptions} />
+                ) : (
+                  <p className="text-muted-foreground">
+                    Aucun dossier {document.projectId ? "dans ce projet" : "de documents libres"} pour le moment.
+                  </p>
+                )}
+              </div>
+            ) : (
+              document.folder && <Info label="Dossier" value={document.folder.nom} />
+            )}
             {document.task && (
               <div>
                 <div className="text-xs text-muted-foreground">Tâche liée</div>

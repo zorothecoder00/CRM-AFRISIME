@@ -41,6 +41,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const NO_PROJECT = "__none__";
+const NO_FOLDER = "__root__";
 
 export function DocumentFormDialog({
   projectId,
@@ -211,13 +212,14 @@ export function DocumentFormDialog({
             <div className="space-y-2">
               <Label>Dossier</Label>
               <Select
-                defaultValue={currentFolderId}
-                onValueChange={(v) => setValue("folderId", v)}
+                defaultValue={currentFolderId ?? NO_FOLDER}
+                onValueChange={(v) => setValue("folderId", v === NO_FOLDER ? undefined : v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Racine (sans dossier)" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_FOLDER}>Racine (sans dossier)</SelectItem>
                   {folders.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.label}

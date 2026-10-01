@@ -1,12 +1,28 @@
 import { z } from "zod";
 
 export const createFolderSchema = z.object({
-  projectId: z.string().min(1, "Un projet est requis."),
+  // Facultatif : sans projet, c'est un dossier de documents libres.
+  projectId: z.string().optional(),
   parentId: z.string().optional(),
   nom: z.string().min(2, "Le nom est requis."),
 });
 
 export type CreateFolderInput = z.infer<typeof createFolderSchema>;
+
+export const updateFolderSchema = z.object({
+  id: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+});
+
+export type UpdateFolderInput = z.infer<typeof updateFolderSchema>;
+
+export const moveDocumentToFolderSchema = z.object({
+  documentId: z.string().min(1),
+  // Vide = retirer le document de son dossier (retour a la racine).
+  folderId: z.string().optional(),
+});
+
+export type MoveDocumentToFolderInput = z.infer<typeof moveDocumentToFolderSchema>;
 
 export const documentTypeSchema = z.enum([
   "CONTRAT",

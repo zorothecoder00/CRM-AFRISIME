@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
+import { FolderActionsMenu } from "@/components/documents/folder-actions-menu";
 import { Folder } from "lucide-react";
 
 export type FolderNode = {
@@ -15,19 +16,25 @@ export function FolderTree({
   projectId,
   activeFolderId,
   buildHref,
+  canManage = true,
   depth = 0,
 }: {
   nodes: FolderNode[];
-  projectId: string;
+  /** Absent : arbre des dossiers de documents libres (sans projet). */
+  projectId?: string;
   activeFolderId?: string;
   buildHref: (folderId: string | undefined) => string;
+  /** Affiche les actions (sous-dossier, renommer, supprimer). */
+  canManage?: boolean;
   depth?: number;
 }) {
   if (nodes.length === 0 && depth === 0) {
     return (
       <div className="flex items-center justify-between rounded-md border border-dashed p-3">
-        <p className="text-sm text-muted-foreground">Aucun dossier pour ce projet.</p>
-        <FolderFormDialog projectId={projectId} triggerLabel="Créer un dossier" />
+        <p className="text-sm text-muted-foreground">
+          {projectId ? "Aucun dossier pour ce projet." : "Aucun dossier de documents libres."}
+        </p>
+        {canManage && <FolderFormDialog projectId={projectId} triggerLabel="Créer un dossier" />}
       </div>
     );
   }
@@ -49,12 +56,17 @@ export function FolderTree({
                 {node.documentCount}
               </Badge>
             </Link>
-            <FolderFormDialog
-              projectId={projectId}
-              parentId={node.id}
-              triggerLabel="Sous-dossier"
-              variant="outline"
-            />
+            {canManage && (
+              <div className="flex shrink-0 items-center gap-1">
+                <FolderFormDialog
+                  projectId={projectId}
+                  parentId={node.id}
+                  triggerLabel="Sous-dossier"
+                  variant="outline"
+                />
+                <FolderActionsMenu folder={{ id: node.id, nom: node.nom }} />
+              </div>
+            )}
           </div>
           {node.children.length > 0 && (
             <FolderTree
@@ -62,6 +74,7 @@ export function FolderTree({
               projectId={projectId}
               activeFolderId={activeFolderId}
               buildHref={buildHref}
+              canManage={canManage}
               depth={depth + 1}
             />
           )}
