@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { accentForOpportunityStatus } from "@/lib/status-tone";
 import { InteractionLog } from "@/components/crm/interaction-log";
 import { OpportunityStatusSelect } from "@/components/crm/opportunity-status-select";
 import { ContractFormDialog } from "@/components/crm/contract-form-dialog";
@@ -106,7 +105,7 @@ export default async function CrmOpportunityDetailPage({
           <ConvertOpportunityDialog opportunityId={opportunity.id} users={userOptions} departments={departmentOptions} />
         )}
 
-        <Card accent={accentForOpportunityStatus(opportunity.statut)} className={materialTone(0)}>
+        <Card className={materialTone(0)}>
           <CardHeader>
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>
