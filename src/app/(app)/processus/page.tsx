@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { ProcessusFormDialog } from "@/components/processus/processus-form-dialog";
 
 const STATUT_LABELS: Record<string, string> = {
@@ -48,7 +48,6 @@ export default async function ProcessusPage() {
         {processus.map((p) => (
           <Link key={p.id} href={`/processus/${p.id}`}>
             <Card
-              accent={accentForStatus(p.statut)}
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
             >
               <CardHeader>
