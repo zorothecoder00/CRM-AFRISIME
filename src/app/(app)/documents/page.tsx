@@ -226,7 +226,7 @@ export default async function DocumentsPage({
   if (!projetId) {
     return (
       <div className="space-y-6">
-        <DocumentsHeader projects={projects} users={users} libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} />
+        <DocumentsHeader projects={projects} users={users} libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} hideSpaceChips />
         <div className="flex justify-end">
           <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
         </div>
@@ -354,6 +354,7 @@ function DocumentsHeader({
   archives,
   dateFrom,
   dateTo,
+  hideSpaceChips,
 }: {
   projects: { id: string; nom: string }[];
   users: { id: string; name: string }[];
@@ -370,6 +371,10 @@ function DocumentsHeader({
   archives?: boolean;
   dateFrom?: string;
   dateTo?: string;
+  // Demande utilisateur — sur l'accueil, les cartes listent deja "Documents
+  // libres" et chaque projet : les pastilles ne serviraient qu'a doublonner.
+  // Elles restent utiles a l'interieur d'un espace pour passer a un autre.
+  hideSpaceChips?: boolean;
 }) {
   const hasFilters = activeProjectId || libres || departementId || query || uploadedById || type || docType || archives || dateFrom || dateTo;
   const selectClass = "h-9 rounded-md border border-input bg-transparent px-2 text-sm";
@@ -392,7 +397,7 @@ function DocumentsHeader({
           className="max-w-sm"
         />
         <select name="type" defaultValue={type ?? ""} className={selectClass}>
-          <option value="">Tous types</option>
+          <option value="">Tous formats</option>
           {Object.entries(MIME_GROUP_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -400,7 +405,7 @@ function DocumentsHeader({
           ))}
         </select>
         <select name="uploadedById" defaultValue={uploadedById ?? ""} className={selectClass}>
-          <option value="">Tout le monde</option>
+          <option value="">Déposé par : tout le monde</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name}
@@ -408,7 +413,7 @@ function DocumentsHeader({
           ))}
         </select>
         <select name="docType" defaultValue={docType ?? ""} className={selectClass}>
-          <option value="">Tous les types</option>
+          <option value="">Toutes catégories</option>
           {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -425,14 +430,22 @@ function DocumentsHeader({
             ))}
           </select>
         )}
-        <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
-        <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
+        {/* Demande utilisateur — sans libelle, les deux champs date
+            ressemblaient a un meme filtre affiche deux fois. */}
+        <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          Déposé du
+          <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
+        </label>
+        <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          au
+          <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
+        </label>
         <label className="flex h-9 items-center gap-1.5 rounded-md border border-input px-2 text-sm text-muted-foreground">
           <input type="checkbox" name="archives" value="1" defaultChecked={archives} className="h-3.5 w-3.5" />
           Afficher les archives
         </label>
         <Button type="submit" variant="outline">
-          Rechercher
+          Appliquer les filtres
         </Button>
         {hasFilters && (
           <Link href="/documents">
@@ -442,14 +455,16 @@ function DocumentsHeader({
           </Link>
         )}
       </form>
-      {(projects.length > 0 || libresCount > 0) && (
+      {((!hideSpaceChips && (projects.length > 0 || libresCount > 0)) || myDepartmentId) && (
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link
-            href="/documents?libres=1"
-            className={`rounded-full border px-3 py-1 ${libres ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            Documents libres ({libresCount})
-          </Link>
+          {!hideSpaceChips && (
+            <Link
+              href="/documents?libres=1"
+              className={`rounded-full border px-3 py-1 ${libres ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+            >
+              Documents libres ({libresCount})
+            </Link>
+          )}
           {myDepartmentId && (
             <Link
               href={`/documents?departementId=${myDepartmentId}`}
@@ -457,10 +472,10 @@ function DocumentsHeader({
                 departementId === myDepartmentId ? "bg-primary text-primary-foreground" : "hover:bg-muted"
               }`}
             >
-              Mon département
+              Documents de mon département
             </Link>
           )}
-          {projects.map((p) => (
+          {!hideSpaceChips && projects.map((p) => (
             <Link
               key={p.id}
               href={`/documents?projetId=${p.id}`}
