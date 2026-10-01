@@ -24,6 +24,13 @@ export const moveDocumentToFolderSchema = z.object({
 
 export type MoveDocumentToFolderInput = z.infer<typeof moveDocumentToFolderSchema>;
 
+export const createFolderWithDocumentSchema = z.object({
+  documentId: z.string().min(1),
+  nom: z.string().min(2, "Le nom est requis."),
+});
+
+export type CreateFolderWithDocumentInput = z.infer<typeof createFolderWithDocumentSchema>;
+
 export const documentTypeSchema = z.enum([
   "CONTRAT",
   "RAPPORT",

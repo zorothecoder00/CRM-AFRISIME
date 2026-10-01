@@ -6,13 +6,13 @@ import type { Prisma, DocumentType } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FolderTree, type FolderNode } from "@/components/documents/folder-tree";
+import { FolderBrowser, FolderTile } from "@/components/documents/folder-browser";
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { MATERIAL_TONES } from "@/lib/card-tones";
+import { Building2, FileText, Folder, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Building2 } from "lucide-react";
 import { documentUploaderName } from "@/lib/document-uploader";
 import { folderPathOptions } from "@/lib/document-folders";
 
@@ -50,25 +50,6 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
-function buildFolderTree(
-  folders: { id: string; nom: string; parentId: string | null; _count: { documents: number } }[]
-): FolderNode[] {
-  const nodeById = new Map<string, FolderNode>();
-  for (const f of folders) {
-    nodeById.set(f.id, { id: f.id, nom: f.nom, documentCount: f._count.documents, children: [] });
-  }
-  const roots: FolderNode[] = [];
-  for (const f of folders) {
-    const node = nodeById.get(f.id)!;
-    if (f.parentId && nodeById.has(f.parentId)) {
-      nodeById.get(f.parentId)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  return roots;
-}
-
 export default async function DocumentsPage({
   searchParams,
 }: {
@@ -77,6 +58,8 @@ export default async function DocumentsPage({
     libres?: string;
     departementId?: string;
     folderId?: string;
+    nonClasses?: string;
+    vue?: string;
     q?: string;
     uploadedById?: string;
     type?: string;
@@ -86,17 +69,17 @@ export default async function DocumentsPage({
     dateTo?: string;
   }>;
 }) {
-  const { projetId, libres, departementId, folderId, q, uploadedById, type, docType, archives, dateFrom, dateTo } = await searchParams;
+  const { projetId, libres, departementId, folderId, nonClasses, vue, q, uploadedById, type, docType, archives, dateFrom, dateTo } = await searchParams;
   const showArchives = archives === "1";
   // Demande utilisateur — documents deposes sans projet ("documents libres").
   const showLibres = libres === "1" && !projetId;
 
   const session = await getAppSession();
   const canManageFolders = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
-  const [projects, users, libresCount, departments, me] = await Promise.all([
+  const canMoveDocuments = session!.user.permissions.includes(PERMISSIONS.DOCUMENT_UPDATE);
+  const [projects, users, departments, me] = await Promise.all([
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.document.count({ where: { projectId: null, estArchive: false, deletedAt: null } }),
     prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.user.findUnique({ where: { id: session!.user.id }, select: { departmentId: true } }),
   ]);
@@ -108,7 +91,55 @@ export default async function DocumentsPage({
   const hasAdvancedFilters = !!uploadedById || !!type || !!docType || !!dateFrom || !!dateTo || !!departementId;
 
   // Recherche globale : ignore le dossier courant, peut être limitée à un projet
-  if (q || hasAdvancedFilters || showArchives) {
+  // Vue "Documents" (bascule en haut de page) : tous les documents a plat,
+  // avec les filtres — l'autre vue, "Dossiers", est la navigation par
+  // dossiers. Une recherche ou un filtre y mene aussi.
+  const isFiltering = !!q || hasAdvancedFilters || showArchives;
+  if (vue === "documents" && !isFiltering && !showLibres && !projetId) {
+    const [libresCount, projectCounts] = await Promise.all([
+      prisma.document.count({ where: { projectId: null, estArchive: false, deletedAt: null } }),
+      prisma.document.groupBy({
+        by: ["projectId"],
+        where: { projectId: { not: null }, estArchive: false, deletedAt: null },
+        _count: { _all: true },
+      }),
+    ]);
+    const projectCount = (id: string) => projectCounts.find((c) => c.projectId === id)?._count._all ?? 0;
+
+    return (
+      <div className="space-y-6">
+        <DocumentsHeader showFilters users={users} departments={departmentOptions} query={q} />
+        <div className="flex flex-wrap justify-end gap-2">
+          <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
+          <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Link href="/documents?vue=documents&libres=1">
+            <Card className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}>
+              <CardHeader>
+                <CardTitle className="text-base">Documents libres</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">{libresCount} document(s) sans projet</CardContent>
+            </Card>
+          </Link>
+          {projects.map((p) => (
+            <Link key={p.id} href={`/documents?vue=documents&projetId=${p.id}`}>
+              <Card className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}>
+                <CardHeader>
+                  <CardTitle className="text-base">{p.nom}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">{projectCount(p.id)} document(s)</CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Vue Documents d'un espace (tous ses documents, quel que soit leur
+  // dossier) ou resultats d'une recherche / de filtres.
+  if (vue === "documents" || isFiltering) {
     const where: Prisma.DocumentWhereInput = {
       projectId: showLibres ? null : projetId || undefined,
       uploadedById: uploadedById || undefined,
@@ -161,11 +192,10 @@ export default async function DocumentsPage({
     return (
       <div className="space-y-6">
         <DocumentsHeader
-          projects={projects}
+          showFilters
           users={users}
           activeProjectId={projetId}
           libres={showLibres}
-          libresCount={libresCount}
           departments={departmentOptions}
           departementId={departementId}
           query={q}
@@ -176,91 +206,24 @@ export default async function DocumentsPage({
           dateFrom={dateFrom}
           dateTo={dateTo}
         />
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">{rows.length} résultat(s)</p>
-          <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} active={!!myDepartmentId && departementId === myDepartmentId} />
-        </div>
-        <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
-      </div>
-    );
-  }
-
-  if (showLibres) {
-    // Dossiers de documents libres (projectId null), meme mise en page que
-    // l'espace documentaire d'un projet : arbre a gauche, contenu a droite.
-    const [folders, documents] = await Promise.all([
-      prisma.documentFolder.findMany({
-        where: { projectId: null },
-        include: { _count: { select: { documents: true } } },
-        orderBy: { nom: "asc" },
-      }),
-      prisma.document.findMany({
-        where: { projectId: null, folderId: folderId || null, estArchive: false, deletedAt: null },
-        include: {
-          uploadedBy: true,
-          uploadedByContact: true,
-          task: true,
-          meeting: true,
-          _count: { select: { versions: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
-    const tree = buildFolderTree(folders);
-    const rows: DocumentRow[] = documents.map((d) => ({
-      id: d.id,
-      nom: d.nom,
-      description: d.description,
-      uploadedByName: documentUploaderName(d),
-      createdAt: d.createdAt.toISOString(),
-      versionCount: d._count.versions,
-      taskTitre: d.task?.titre ?? null,
-      taskId: d.taskId,
-      meetingTitre: d.meeting?.titre ?? null,
-      meetingId: d.meetingId,
-      type: d.type,
-      statutSignature: d.statutSignature,
-      estArchive: d.estArchive,
-    }));
-    const activeFolder = folderId ? folders.find((f) => f.id === folderId) : undefined;
-
-    return (
-      <div className="space-y-6">
-        <DocumentsHeader projects={projects} users={users} libres libresCount={libresCount} departments={departmentOptions} query={q} />
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-1">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Dossiers libres</CardTitle>
-              {canManageFolders && <FolderFormDialog triggerLabel="Nouveau" />}
-            </CardHeader>
-            <CardContent>
-              <Link
-                href="/documents?libres=1"
-                className={`mb-2 block text-sm ${!folderId ? "font-semibold" : "hover:underline"}`}
-              >
-                Racine
-              </Link>
-              <FolderTree
-                nodes={tree}
-                activeFolderId={folderId}
-                canManage={canManageFolders}
-                buildHref={(id) => `/documents?libres=1${id ? `&folderId=${id}` : ""}`}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">{activeFolder ? activeFolder.nom : "Documents libres"}</CardTitle>
-              <div className="flex gap-2">
+        {showLibres || projetId ? (
+          <Card>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+              <div className="space-y-1">
+                <Link href="/documents?vue=documents" className="text-xs text-muted-foreground hover:underline">
+                  ← Tous les espaces
+                </Link>
+                <CardTitle className="text-base">
+                  {showLibres ? "Documents libres" : (projects.find((p) => p.id === projetId)?.nom ?? "Projet")}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">{rows.length} document(s)</span>
+                </CardTitle>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
-                {/* Pas de choix de projet ici : un document ajoute dans
-                    l'espace des documents libres reste libre. */}
                 <DocumentFormDialog
+                  projectId={projetId}
+                  projects={showLibres ? undefined : projectOptions}
                   departments={departmentOptions}
-                  folders={folderPathOptions(folders)}
-                  currentFolderId={folderId}
                 />
               </div>
             </CardHeader>
@@ -268,72 +231,36 @@ export default async function DocumentsPage({
               <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
             </CardContent>
           </Card>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">{rows.length} document(s)</p>
+              <div className="flex flex-wrap gap-2">
+                <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} active={!!myDepartmentId && departementId === myDepartmentId} />
+                <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+              </div>
+            </div>
+            <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
+          </>
+        )}
       </div>
     );
   }
 
-  if (!projetId) {
-    return (
-      <div className="space-y-6">
-        <DocumentsHeader projects={projects} users={users} libresCount={libresCount} departments={departmentOptions} query={q} hideSpaceChips />
-        <div className="flex justify-end gap-2">
-          <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
-          <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Link href="/documents?libres=1">
-            <Card className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}>
-              <CardHeader>
-                <CardTitle className="text-base">Documents libres</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                {libresCount} document(s) sans projet
-              </CardContent>
-            </Card>
-          </Link>
-          {projects.map((p) => (
-            <Link key={p.id} href={`/documents?projetId=${p.id}`}>
-              <Card
-                className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}
-              >
-                <CardHeader>
-                  <CardTitle className="text-base">{p.nom}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Ouvrir l&apos;espace documentaire
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const [folders, documents] = await Promise.all([
-    prisma.documentFolder.findMany({
-      where: { projectId: projetId },
-      include: { _count: { select: { documents: true } } },
-      orderBy: { nom: "asc" },
-    }),
-    prisma.document.findMany({
-      where: { projectId: projetId, folderId: folderId || null, estArchive: false, deletedAt: null },
-      include: {
-        uploadedBy: true,
-        uploadedByContact: true,
-        task: true,
-        meeting: true,
-        _count: { select: { versions: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-
-  const tree = buildFolderTree(folders);
-  const folderOptions = folderPathOptions(folders);
-
-  const rows: DocumentRow[] = documents.map((d) => ({
+  // Demande utilisateur (2026-10-01) — les dossiers servent a masquer les
+  // documents, qui deviennent vite trop nombreux : un espace (documents
+  // libres ou un projet) n'affiche a sa racine QUE ses dossiers (et une
+  // tuile "Non classés" pour les documents rangés nulle part) ; les
+  // documents ne s'affichent qu'une fois un dossier (ou "Non classés") ouvert.
+  const docRowsInclude = {
+    uploadedBy: true,
+    uploadedByContact: true,
+    task: true,
+    meeting: true,
+    _count: { select: { versions: true } },
+  } as const;
+  const liveDocs = { estArchive: false, deletedAt: null };
+  const toRow = (d: Prisma.DocumentGetPayload<{ include: typeof docRowsInclude }>): DocumentRow => ({
     id: d.id,
     nom: d.nom,
     description: d.description,
@@ -347,51 +274,168 @@ export default async function DocumentsPage({
     type: d.type,
     statutSignature: d.statutSignature,
     estArchive: d.estArchive,
-  }));
+    folderId: d.folderId,
+  });
+  const loadSpaceFolders = async (projectId: string | null) => {
+    const folders = await prisma.documentFolder.findMany({
+      where: { projectId },
+      include: { _count: { select: { documents: { where: liveDocs } } } },
+      orderBy: { nom: "asc" },
+    });
+    return folders.map((f) => ({ id: f.id, nom: f.nom, parentId: f.parentId, documentCount: f._count.documents }));
+  };
 
-  return (
-    <div className="space-y-6">
-      <DocumentsHeader projects={projects} users={users} activeProjectId={projetId} libresCount={libresCount} departments={departmentOptions} query={q} />
+  if (projetId || (showLibres && (folderId || nonClasses === "1"))) {
+    const spaceProjectId = projetId ?? null;
+    const showUnfiled = nonClasses === "1" && !folderId;
+    const showDocuments = !!folderId || showUnfiled;
+    const [folders, documents, unfiledCount] = await Promise.all([
+      loadSpaceFolders(spaceProjectId),
+      showDocuments
+        ? prisma.document.findMany({
+            where: { projectId: spaceProjectId, folderId: folderId || null, ...liveDocs },
+            include: docRowsInclude,
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+      prisma.document.count({ where: { projectId: spaceProjectId, folderId: null, ...liveDocs } }),
+    ]);
+    const rows = documents.map(toRow);
+    const folderOptions = folderPathOptions(folders);
+    const activeFolder = folderId ? folders.find((f) => f.id === folderId) : undefined;
+    const projectName = projects.find((p) => p.id === projetId)?.nom ?? "Projet";
+    const baseHref = projetId ? `/documents?projetId=${projetId}` : "/documents?libres=1";
+    const crumbs = projetId
+      ? [
+          { label: "Documents", href: "/documents" },
+          { label: projectName, href: baseHref },
+        ]
+      : [{ label: "Documents libres", href: "/documents" }];
+    const title = activeFolder ? activeFolder.nom : showUnfiled ? "Non classés" : projetId ? projectName : "Documents libres";
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Dossiers</CardTitle>
-            {canManageFolders && <FolderFormDialog projectId={projetId} triggerLabel="Nouveau" />}
-          </CardHeader>
-          <CardContent>
-            <Link
-              href={`/documents?projetId=${projetId}`}
-              className={`mb-2 block text-sm ${!folderId ? "font-semibold" : "hover:underline"}`}
-            >
-              Racine
-            </Link>
-            <FolderTree
-              nodes={tree}
-              projectId={projetId}
-              activeFolderId={folderId}
-              canManage={canManageFolders}
-              buildHref={(id) => `/documents?projetId=${projetId}${id ? `&folderId=${id}` : ""}`}
-            />
-          </CardContent>
-        </Card>
+    return (
+      <div className="space-y-6">
+        <DocumentsHeader
+          users={users}
+          activeProjectId={projetId}
+          libres={!projetId}
+          departments={departmentOptions}
+          query={q}
+        />
 
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Documents</CardTitle>
-            <div className="flex gap-2">
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">{title}</CardTitle>
+            <div className="flex flex-wrap gap-2">
               <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
-              <DocumentFormDialog projectId={projetId} departments={departmentOptions} folders={folderOptions} currentFolderId={folderId} />
+              {canManageFolders && !showUnfiled && (
+                <FolderFormDialog
+                  projectId={spaceProjectId ?? undefined}
+                  parentId={folderId}
+                  triggerLabel={folderId ? "Nouveau sous-dossier" : "Nouveau dossier"}
+                />
+              )}
+              {/* Sans choix de projet : un document ajoute dans un espace
+                  appartient a cet espace, dans le dossier ouvert. */}
+              <DocumentFormDialog
+                projectId={spaceProjectId ?? undefined}
+                departments={departmentOptions}
+                folders={folderOptions}
+                currentFolderId={folderId}
+              />
             </div>
           </CardHeader>
-          <CardContent>
-            <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
+          <CardContent className="space-y-4">
+            <FolderBrowser
+              folders={showUnfiled ? [] : folders}
+              currentFolderId={folderId}
+              crumbs={crumbs}
+              extraCrumb={showUnfiled ? "Non classés" : undefined}
+              buildHref={(id) => `${baseHref}&folderId=${id}`}
+              canManage={canManageFolders}
+              unfiled={{ href: `${baseHref}&nonClasses=1`, count: unfiledCount }}
+              tileClassName={DOCUMENT_CARD_TONE}
+            />
+            {showDocuments ? (
+              <DocumentList
+                documents={rows}
+                cardClassName={DOCUMENT_CARD_TONE}
+                moveFolders={canMoveDocuments ? folderOptions : undefined}
+                canCreateFolder={canManageFolders}
+              />
+            ) : (
+              folders.length === 0 &&
+              unfiledCount === 0 && <p className="text-sm text-muted-foreground">Aucun dossier ni document pour le moment.</p>
+            )}
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Accueil : les dossiers directement, en deux sections — dossiers libres
+  // (+ "Non classés"), puis un dossier par projet.
+  const [freeFolders, freeUnfiledCount, folderCounts, documentCounts] = await Promise.all([
+    loadSpaceFolders(null),
+    prisma.document.count({ where: { projectId: null, folderId: null, ...liveDocs } }),
+    prisma.documentFolder.groupBy({ by: ["projectId"], where: { projectId: { not: null } }, _count: { _all: true } }),
+    prisma.document.groupBy({ by: ["projectId"], where: { projectId: { not: null }, ...liveDocs }, _count: { _all: true } }),
+  ]);
+  const projectSummary = (projectId: string) => {
+    const nbFolders = folderCounts.find((c) => c.projectId === projectId)?._count._all ?? 0;
+    const nbDocuments = documentCounts.find((c) => c.projectId === projectId)?._count._all ?? 0;
+    return `${nbFolders} dossier(s) · ${nbDocuments} document(s)`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <DocumentsHeader users={users} departments={departmentOptions} query={q} />
+      {/* Demande utilisateur — les trois actions sur une meme ligne. */}
+      <div className="flex flex-wrap justify-end gap-2">
+        <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
+        {canManageFolders && <FolderFormDialog triggerLabel="Nouveau dossier" />}
+        <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+      </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dossiers libres</h2>
+        {freeFolders.length === 0 && freeUnfiledCount === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun dossier libre pour le moment.</p>
+        ) : (
+          <FolderBrowser
+            folders={freeFolders}
+            buildHref={(id) => `/documents?libres=1&folderId=${id}`}
+            canManage={canManageFolders}
+            unfiled={{ href: "/documents?libres=1&nonClasses=1", count: freeUnfiledCount }}
+            tileClassName={DOCUMENT_CARD_TONE}
+          />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dossiers de projets</h2>
+        {projects.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun projet.</p>
+        ) : (
+          <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {projects.map((p) => (
+              <li key={p.id}>
+                <FolderTile
+                  href={`/documents?projetId=${p.id}`}
+                  label={p.nom}
+                  detail={projectSummary(p.id)}
+                  className={DOCUMENT_CARD_TONE}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
+
+
 
 // Demande utilisateur — raccourci de navigation (pas un filtre) place a cote
 // de "+ Nouveau document", en Material Green : Green 100 au repos, Green 700
@@ -417,12 +461,36 @@ function MyDepartmentDocumentsLink({ myDepartmentId, active }: { myDepartmentId?
   );
 }
 
+/**
+ * Bascule entre les deux facons de parcourir /documents (demande
+ * utilisateur 2026-10-01) : par dossiers (les documents restent caches
+ * dans leurs dossiers) ou par documents (liste complete + filtres).
+ */
+function ViewToggle({ active }: { active: "dossiers" | "documents" }) {
+  const item = (key: "dossiers" | "documents", href: string, label: string, Icon: typeof Folder) => (
+    <Link
+      href={href}
+      aria-current={active === key ? "page" : undefined}
+      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
+        active === key ? "bg-background font-medium shadow-sm" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </Link>
+  );
+  return (
+    <div className="flex rounded-lg bg-muted p-1" role="tablist" aria-label="Mode d'affichage">
+      {item("dossiers", "/documents", "Dossiers", Folder)}
+      {item("documents", "/documents?vue=documents", "Documents", FileText)}
+    </div>
+  );
+}
+
 function DocumentsHeader({
-  projects,
   users,
   activeProjectId,
   libres,
-  libresCount = 0,
   departments = [],
   departementId,
   query,
@@ -432,13 +500,11 @@ function DocumentsHeader({
   archives,
   dateFrom,
   dateTo,
-  hideSpaceChips,
+  showFilters,
 }: {
-  projects: { id: string; nom: string }[];
   users: { id: string; name: string }[];
   activeProjectId?: string;
   libres?: boolean;
-  libresCount?: number;
   departments?: { id: string; label: string }[];
   departementId?: string;
   query?: string;
@@ -448,111 +514,96 @@ function DocumentsHeader({
   archives?: boolean;
   dateFrom?: string;
   dateTo?: string;
-  // Demande utilisateur — sur l'accueil, les cartes listent deja "Documents
-  // libres" et chaque projet : les pastilles ne serviraient qu'a doublonner.
-  // Elles restent utiles a l'interieur d'un espace pour passer a un autre.
-  hideSpaceChips?: boolean;
+  // Demande utilisateur (2026-10-01) — en navigation par dossiers, les
+  // filtres de documents (format, categorie, deposant, dates...) n'ont pas
+  // de sens : seule la recherche reste. Ils n'apparaissent que sur la page
+  // de resultats, pour affiner une liste qui, elle, est faite de documents.
+  showFilters?: boolean;
 }) {
-  const hasFilters = activeProjectId || libres || departementId || query || uploadedById || type || docType || archives || dateFrom || dateTo;
   const selectClass = "h-9 rounded-md border border-input bg-transparent px-2 text-sm";
 
   return (
     <div className="space-y-3">
-      <div>
-        <h1 className="text-2xl font-semibold">Documents</h1>
-        <p className="text-sm text-muted-foreground">
-          Espace documentaire : documents par projet (classés par dossiers) ou documents libres, recherche, historique des versions.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Documents</h1>
+          <p className="text-sm text-muted-foreground">
+            Dossiers libres et dossiers de projets, recherche, historique des versions.
+          </p>
+        </div>
+        <ViewToggle active={showFilters ? "documents" : "dossiers"} />
       </div>
       <form className="flex flex-wrap items-center gap-2" action="/documents">
+        {showFilters && <input type="hidden" name="vue" value="documents" />}
         {activeProjectId && <input type="hidden" name="projetId" value={activeProjectId} />}
         {libres && <input type="hidden" name="libres" value="1" />}
-        <Input
-          name="q"
-          placeholder="Rechercher un document..."
-          defaultValue={query}
-          className="max-w-sm"
-        />
-        <select name="type" defaultValue={type ?? ""} className={selectClass}>
-          <option value="">Tous formats</option>
-          {Object.entries(MIME_GROUP_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select name="uploadedById" defaultValue={uploadedById ?? ""} className={selectClass}>
-          <option value="">Déposé par : tout le monde</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
-        <select name="docType" defaultValue={docType ?? ""} className={selectClass}>
-          <option value="">Toutes catégories</option>
-          {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {departments.length > 0 && (
-          <select name="departementId" defaultValue={departementId ?? ""} className={selectClass}>
-            <option value="">Tous les départements</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input name="q" placeholder="Rechercher un document (Entrée)" defaultValue={query} className="pl-8" />
+        </div>
+        {showFilters && (
+          <>
+            <select name="type" defaultValue={type ?? ""} className={selectClass}>
+              <option value="">Tous formats</option>
+              {Object.entries(MIME_GROUP_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select name="uploadedById" defaultValue={uploadedById ?? ""} className={selectClass}>
+              <option value="">Déposé par : tout le monde</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+            <select name="docType" defaultValue={docType ?? ""} className={selectClass}>
+              <option value="">Toutes catégories</option>
+              {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            {departments.length > 0 && (
+              <select name="departementId" defaultValue={departementId ?? ""} className={selectClass}>
+                <option value="">Tous les départements</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {/* Demande utilisateur — sans libelle, les deux champs date
+                ressemblaient a un meme filtre affiche deux fois. */}
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              Déposé du
+              <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              au
+              <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
+            </label>
+            <label className="flex h-9 items-center gap-1.5 rounded-md border border-input px-2 text-sm text-muted-foreground">
+              <input type="checkbox" name="archives" value="1" defaultChecked={archives} className="h-3.5 w-3.5" />
+              Afficher les archives
+            </label>
+            <Button type="submit" variant="outline">
+              Appliquer les filtres
+            </Button>
+          </>
         )}
-        {/* Demande utilisateur — sans libelle, les deux champs date
-            ressemblaient a un meme filtre affiche deux fois. */}
-        <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          Déposé du
-          <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
-        </label>
-        <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          au
-          <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
-        </label>
-        <label className="flex h-9 items-center gap-1.5 rounded-md border border-input px-2 text-sm text-muted-foreground">
-          <input type="checkbox" name="archives" value="1" defaultChecked={archives} className="h-3.5 w-3.5" />
-          Afficher les archives
-        </label>
-        <Button type="submit" variant="outline">
-          Appliquer les filtres
-        </Button>
-        {hasFilters && (
-          <Link href="/documents">
+        {showFilters && (
+          <Link href="/documents?vue=documents">
             <Button type="button" variant="ghost">
               Réinitialiser
             </Button>
           </Link>
         )}
       </form>
-      {!hideSpaceChips && (projects.length > 0 || libresCount > 0) && (
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link
-            href="/documents?libres=1"
-            className={`rounded-full border px-3 py-1 ${libres ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-          >
-            Documents libres ({libresCount})
-          </Link>
-          {projects.map((p) => (
-            <Link
-              key={p.id}
-              href={`/documents?projetId=${p.id}`}
-              className={`rounded-full border px-3 py-1 ${
-                activeProjectId === p.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              }`}
-            >
-              {p.nom}
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

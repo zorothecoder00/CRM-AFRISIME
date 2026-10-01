@@ -11,6 +11,7 @@ import {
   createFolderSchema,
   updateFolderSchema,
   moveDocumentToFolderSchema,
+  createFolderWithDocumentSchema,
   createDocumentSchema,
   addDocumentVersionSchema,
   setDocumentVersionValidationSchema,
@@ -20,6 +21,7 @@ import {
   type CreateFolderInput,
   type UpdateFolderInput,
   type MoveDocumentToFolderInput,
+  type CreateFolderWithDocumentInput,
   type CreateDocumentInput,
   type AddDocumentVersionInput,
   type SetDocumentVersionValidationInput,
@@ -185,6 +187,50 @@ export async function moveDocumentToFolder(input: MoveDocumentToFolderInput) {
 
   revalidateFolderPaths(document.projectId);
   revalidatePath(`/documents/${document.id}`);
+}
+
+/**
+ * Clic droit sur un document > "Nouveau dossier avec ce document" : cree le
+ * dossier dans le meme espace (meme projet, ou libre) et au meme niveau que
+ * le document, puis l'y range — en une transaction, pour ne pas laisser un
+ * dossier vide si le deplacement echouait.
+ */
+export async function createFolderWithDocument(input: CreateFolderWithDocumentInput) {
+  const session = await requireSession();
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_MANAGE_FOLDERS);
+  requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_UPDATE);
+
+  const data = createFolderWithDocumentSchema.parse(input);
+  const document = await prisma.document.findUnique({
+    where: { id: data.documentId },
+    select: { id: true, projectId: true, folderId: true },
+  });
+  if (!document) throw new Error("Document introuvable.");
+
+  const folder = await prisma.$transaction(async (tx) => {
+    const created = await tx.documentFolder.create({
+      data: {
+        projectId: document.projectId,
+        parentId: document.folderId,
+        nom: data.nom,
+        createdById: session.user.id,
+      },
+    });
+    await tx.document.update({ where: { id: document.id }, data: { folderId: created.id } });
+    return created;
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "document_folder.created",
+    entityType: "DocumentFolder",
+    entityId: folder.id,
+    changes: { nom: folder.nom, projectId: document.projectId, avecDocument: document.id },
+  });
+
+  revalidateFolderPaths(document.projectId);
+  revalidatePath(`/documents/${document.id}`);
+  return folder;
 }
 
 // Project Data Room (Project Studio §38) — dossiers standards suggeres par

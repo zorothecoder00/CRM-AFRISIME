@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DocumentFilingRow } from "@/components/documents/document-filing-row";
 
 export type DocumentRow = {
   id: string;
@@ -19,6 +20,8 @@ export type DocumentRow = {
   type: string;
   statutSignature: string;
   estArchive: boolean;
+  /** Dossier courant (requis pour le menu "Ranger dans…"). */
+  folderId?: string | null;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -41,10 +44,16 @@ const SIGNATURE_LABELS: Record<string, string> = {
 export function DocumentList({
   documents,
   cardClassName,
+  moveFolders,
+  canCreateFolder = false,
 }: {
   documents: DocumentRow[];
   /** Classes en plus sur chaque carte document (ex. teinte de fond). */
   cardClassName?: string;
+  /** Dossiers de l'espace : rend chaque document rangeable (clic droit ou bouton "Ranger"). */
+  moveFolders?: { id: string; label: string }[];
+  /** Propose aussi "Nouveau dossier avec ce document" dans ce menu. */
+  canCreateFolder?: boolean;
 }) {
   if (documents.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun document.</p>;
@@ -52,13 +61,15 @@ export function DocumentList({
 
   return (
     <ul className="space-y-2">
-      {documents.map((doc) => (
-        <li key={doc.id}>
+      {documents.map((doc) => {
+        const card = (
           <Link href={`/documents/${doc.id}`}>
             <Card
               size="sm"
               className={cn(
                 "flex-row flex-wrap items-center justify-between gap-2 transition-all hover:-translate-y-0.5 hover:bg-muted/50 sm:flex-nowrap",
+                // Place pour le bouton "Ranger" pose par-dessus, a droite.
+                moveFolders && "pr-10",
                 cardClassName
               )}
             >
@@ -87,8 +98,24 @@ export function DocumentList({
               </div>
             </Card>
           </Link>
-        </li>
-      ))}
+        );
+        return (
+          <li key={doc.id}>
+            {moveFolders ? (
+              <DocumentFilingRow
+                documentId={doc.id}
+                folderId={doc.folderId ?? null}
+                folders={moveFolders}
+                canCreateFolder={canCreateFolder}
+              >
+                {card}
+              </DocumentFilingRow>
+            ) : (
+              card
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
