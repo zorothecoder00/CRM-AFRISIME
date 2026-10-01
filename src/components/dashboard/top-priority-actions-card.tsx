@@ -39,9 +39,9 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
                 <Link
                   href={a.href}
                   // Demande utilisateur — le vert (bg-success/15) jurait avec le
-                  // fond beige/or de la carte : lignes blanches a bordure doree,
-                  // teinte or au survol, pour rester dans la meme famille.
-                  className="group flex items-center gap-3 rounded-lg border border-[#f2b705]/30 bg-card p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-[#f2b705]/60 hover:bg-[color-mix(in_oklch,var(--card),#f2b705_12%)] hover:shadow-xl"
+                  // fond beige/or de la carte : lignes sur le gris du site (bg-background)
+                  // a bordure doree, comme les autres blocs du dashboard.
+                  className="group flex items-center gap-3 rounded-lg border border-[#f2b705]/30 bg-background p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-[#f2b705]/60 hover:bg-muted hover:shadow-xl"
                   style={{ transformStyle: "preserve-3d" }}
                 >
                   <span

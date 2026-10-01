@@ -89,7 +89,7 @@ export function DailyBriefingCard({ userName, briefing }: { userName: string | n
                 <Link
                   key={item.key}
                   href={item.href}
-                  className="group flex items-center gap-2.5 rounded-lg border bg-card p-2.5 text-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted/50 hover:shadow-md"
+                  className="group flex items-center gap-2.5 rounded-lg border bg-background p-2.5 text-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted hover:shadow-md"
                 >
                   <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md transition-transform group-hover:scale-110", item.tone)}>
                     <Icon className="size-4" />

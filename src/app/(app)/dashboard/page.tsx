@@ -19,16 +19,16 @@ import { computeTop5Actions } from "@/lib/task-priority";
 import { TopPriorityActionsCard } from "@/components/dashboard/top-priority-actions-card";
 import { TeamActivityList } from "@/components/dashboard/team-activity-list";
 
-// Ligne cliquable des widgets du dashboard : fond legerement teinte (au lieu
-// de blanc sur blanc) + effet de survol anime (leger soulevement, halo
+// Ligne cliquable des widgets du dashboard : fond gris du site (bg-background,
+// demande utilisateur — pas la teinte du bloc) + effet de survol anime (leger soulevement, halo
 // colore). `block` par defaut pour ne pas casser les listes dont le contenu
 // s'empile (titre + apercu sur plusieurs lignes) ; combiner avec "flex ..."
 // pour les lignes sur une seule ligne (titre + meta a droite).
 const ROW_LINK =
-  "block rounded-lg border border-transparent bg-muted/40 px-3 py-2.5 text-sm ring-1 ring-transparent transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5 hover:shadow-sm hover:ring-primary/10";
+  "block rounded-lg border border-transparent bg-background px-3 py-2.5 text-sm ring-1 ring-transparent transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-muted hover:shadow-sm hover:ring-primary/10";
 
 // Meme traitement de surface, sans interaction (evenements/conges : pas de lien).
-const STATIC_ROW = "flex justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm";
+const STATIC_ROW = "flex justify-between rounded-lg border border-border/60 bg-background px-3 py-2 text-sm";
 
 const ADMIN_REQUEST_STATUS_LABELS: Record<string, string> = {
   EN_ATTENTE: "En attente",
