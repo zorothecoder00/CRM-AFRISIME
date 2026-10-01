@@ -43,13 +43,13 @@ export function materialTone(index: number): string {
 }
 
 // Couleurs du logo AfriSime (bleu roi / vert / or) — dégradé sur fond de
-// carte + barre de tête colorée. S'applique à l'enveloppe d'un widget qui
+// carte, sans barre de tête (retirée à la demande). S'applique à l'enveloppe d'un widget qui
 // rend lui-même sa <Card> (ciblée via [&>[data-slot=card]]).
 export const BRAND_TINTS = {
-  blue: "[&>[data-slot=card]]:border-t-[#1d4fc4] [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#1d4fc4_24%),color-mix(in_oklch,var(--card),#1d4fc4_9%)_70%)]",
+  blue: "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#1d4fc4_24%),color-mix(in_oklch,var(--card),#1d4fc4_9%)_70%)]",
   green:
-    "[&>[data-slot=card]]:border-t-[#2f9e2f] [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#2f9e2f_24%),color-mix(in_oklch,var(--card),#2f9e2f_9%)_70%)]",
-  gold: "[&>[data-slot=card]]:border-t-[#f2b705] [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#f2b705_24%),color-mix(in_oklch,var(--card),#f2b705_9%)_70%)]",
+    "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#2f9e2f_24%),color-mix(in_oklch,var(--card),#2f9e2f_9%)_70%)]",
+  gold: "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#f2b705_24%),color-mix(in_oklch,var(--card),#f2b705_9%)_70%)]",
 } as const;
 
 export type BrandTint = keyof typeof BRAND_TINTS;
