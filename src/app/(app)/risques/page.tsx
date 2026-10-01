@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForCriticite, toneForRiskStatus, accentForCriticite } from "@/lib/status-tone";
+import { toneForCriticite, toneForRiskStatus } from "@/lib/status-tone";
 import { RiskFormDialog } from "@/components/risques/risk-form-dialog";
 import { computeCriticite } from "@/lib/risk-matrix";
 import type { RiskProbability, RiskImpact, RiskCriticite } from "@/generated/prisma/enums";
@@ -140,7 +140,7 @@ export default async function RisquesPage({
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {risks.map((risk) => (
-          <Card key={risk.id} accent={accentForCriticite(risk.criticite)}>
+          <Card key={risk.id}>
             <CardHeader className="flex flex-row items-start justify-between gap-2">
               <div>
                 <CardTitle className="text-base">{risk.titre}</CardTitle>
