@@ -6,7 +6,7 @@ import type { ObjectivePeriod, ObjectiveScope } from "@/generated/prisma/enums";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { ObjectiveFormDialog } from "@/components/objectives/objective-form-dialog";
 import { ProgressBar } from "@/components/objectives/progress-bar";
 import { ContextualBackLink } from "@/components/ui/contextual-back-link";
@@ -146,8 +146,8 @@ export default async function ObjectifsPage({
 
           return (
             <Link key={objective.id} href={`/objectifs/${objective.id}`}>
+              {/* Demande utilisateur — plus de barre d'accent (statut deja visible via le badge). */}
               <Card
-                accent={accentForStatus(objective.statut)}
                 className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
               >
                 <CardHeader>
