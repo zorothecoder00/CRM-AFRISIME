@@ -78,7 +78,7 @@ export default async function DecisionMatrixDetailPage({
       </div>
 
       {recommended && (
-        <Card accent="success">
+        <Card>
           <CardHeader className="flex flex-row items-center gap-2">
             <Trophy className="size-5 text-success" />
             <CardTitle className="text-base">Recommandation : {recommended.nom}</CardTitle>
@@ -138,7 +138,7 @@ export default async function DecisionMatrixDetailPage({
           const rec = recommendations.find((r) => r.optionId === o.id);
           const isTop = recommended?.optionId === o.id;
           return (
-            <Card key={o.id} accent={isTop ? "success" : "none"}>
+            <Card key={o.id}>
               <CardHeader className="flex flex-row items-start justify-between gap-2">
                 <CardTitle className="text-base">
                   {o.nom} {isTop && <Badge variant="success">Recommandée</Badge>}
