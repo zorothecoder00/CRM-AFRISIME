@@ -63,6 +63,10 @@ export default async function TaskDetailPage({
   searchParams: Promise<{ from?: string }>;
 }) {
   const { taskId } = await params;
+  // Departement destinataire (facultatif) propose a l'ajout d'un document.
+  const departmentOptions = (
+    await prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+  ).map((d) => ({ id: d.id, label: d.name }));
   const { from } = await searchParams;
   const session = await getAppSession();
 
@@ -398,7 +402,7 @@ export default async function TaskDetailPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents liés</CardTitle>
-            <DocumentFormDialog projectId={task.projectId} taskId={task.id} triggerLabel="Lier un document" />
+            <DocumentFormDialog projectId={task.projectId} taskId={task.id} departments={departmentOptions} triggerLabel="Lier un document" />
           </CardHeader>
           <CardContent>
             <DocumentList documents={documentRows} />
