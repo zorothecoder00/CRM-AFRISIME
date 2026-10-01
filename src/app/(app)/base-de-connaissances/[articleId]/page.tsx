@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForArticleStatus, accentForArticleStatus } from "@/lib/status-tone";
+import { toneForArticleStatus } from "@/lib/status-tone";
 import { ArticleFormDialog } from "@/components/knowledge/article-form-dialog";
 import { PublishToggleButton } from "@/components/knowledge/publish-toggle-button";
 import { BackLink } from "@/components/ui/back-link";
@@ -77,7 +77,7 @@ export default async function ArticleDetailPage({
           )}
         </div>
 
-        <Card accent={accentForArticleStatus(article.statut)}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Contenu</CardTitle>
             {canEdit && (
