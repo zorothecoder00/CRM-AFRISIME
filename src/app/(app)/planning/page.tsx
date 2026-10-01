@@ -370,7 +370,9 @@ export default async function PlanningPage({
       </div>
 
       {overdueOutsideRange.length > 0 && (
-        <Card accent="destructive">
+        // Demande utilisateur — plus de barre d'accent : fond rouge uni (comme
+        // les taches en retard de /dashboard), lignes sur le gris du site.
+        <Card className="bg-destructive/20">
           <CardHeader className="flex flex-row items-center gap-2">
             <TriangleAlert className="h-4 w-4 text-destructive" />
             <CardTitle className="text-base">
@@ -382,7 +384,7 @@ export default async function PlanningPage({
               <Link
                 key={t.id}
                 href={`/taches/${t.id}`}
-                className="flex items-start justify-between gap-2 rounded-md border-l-2 border-l-destructive bg-destructive/5 p-1.5 text-xs transition-colors hover:bg-destructive/10"
+                className="flex items-start justify-between gap-2 rounded-md border-l-2 border-l-destructive bg-background p-1.5 text-xs transition-colors hover:bg-muted"
               >
                 <span className="min-w-0 break-words">
                   <span className="block font-medium text-destructive">{t.titre}</span>
