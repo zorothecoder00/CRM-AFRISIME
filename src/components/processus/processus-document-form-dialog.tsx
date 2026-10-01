@@ -20,10 +20,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, FileCheck2 } from "lucide-react";
 import { UploadButton } from "@/lib/uploadthing";
 
-export function ProcessusDocumentFormDialog({ processusId }: { processusId: string }) {
+const NO_DEPARTMENT = "__none__";
+
+export function ProcessusDocumentFormDialog({
+  processusId,
+  departments,
+}: {
+  processusId: string;
+  /** Departements proposes comme destinataire facultatif (membres notifies). */
+  departments?: { id: string; label: string }[];
+}) {
   const [open, setOpen] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const {
@@ -97,6 +107,29 @@ export function ProcessusDocumentFormDialog({ processusId }: { processusId: stri
             )}
             {errors.url && <p className="text-sm text-destructive">{errors.url.message}</p>}
           </div>
+
+          {departments && departments.length > 0 && (
+            <div className="space-y-2">
+              <Label>Envoyer à un département (facultatif)</Label>
+              <Select
+                defaultValue={NO_DEPARTMENT}
+                onValueChange={(v) => setValue("departmentId", v === NO_DEPARTMENT ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_DEPARTMENT}>Aucun département</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Les membres du département seront notifiés.</p>
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ajout..." : "Ajouter"}

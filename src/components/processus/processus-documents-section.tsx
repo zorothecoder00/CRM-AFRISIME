@@ -10,6 +10,8 @@ export type ProcessusDocumentRow = {
   nom: string;
   url: string;
   uploadedByName: string;
+  /** Departement destinataire, s'il y en a un. */
+  departmentName?: string | null;
 };
 
 export function ProcessusDocumentsSection({
@@ -35,7 +37,10 @@ export function ProcessusDocumentsSection({
           <a href={doc.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline">
             {doc.nom}
           </a>
-          <span className="text-xs text-muted-foreground">{doc.uploadedByName}</span>
+          <span className="text-xs text-muted-foreground">
+            {doc.uploadedByName}
+            {doc.departmentName && ` · Envoyé au département ${doc.departmentName}`}
+          </span>
           {canManage && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(doc.id)} disabled={removing}>
               <X className="h-3.5 w-3.5" />

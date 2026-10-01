@@ -28,6 +28,10 @@ export default async function ProcessusDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Departement destinataire (facultatif) propose a l'ajout d'un document.
+  const departmentOptions = (
+    await prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+  ).map((d) => ({ id: d.id, label: d.name }));
   const session = await getAppSession();
   const canManage = session!.user.permissions.includes(PERMISSIONS.PROCESS_MANAGE);
 
@@ -40,7 +44,7 @@ export default async function ProcessusDetailPage({
         etapes: { orderBy: { ordre: "asc" }, include: { responsable: true } },
         executions: { orderBy: { dateDebut: "desc" }, include: { etapeActuelle: true } },
         versions: { orderBy: { createdAt: "desc" } },
-        documents: { include: { uploadedBy: true }, orderBy: { createdAt: "desc" } },
+        documents: { include: { uploadedBy: true, department: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -106,7 +110,7 @@ export default async function ProcessusDetailPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents</CardTitle>
-            {canManage && <ProcessusDocumentFormDialog processusId={processus.id} />}
+            {canManage && <ProcessusDocumentFormDialog processusId={processus.id} departments={departmentOptions} />}
           </CardHeader>
           <CardContent>
             <ProcessusDocumentsSection
@@ -115,6 +119,7 @@ export default async function ProcessusDetailPage({
                 nom: doc.nom,
                 url: doc.url,
                 uploadedByName: doc.uploadedBy.name,
+                departmentName: doc.department?.name ?? null,
               }))}
               canManage={canManage}
             />

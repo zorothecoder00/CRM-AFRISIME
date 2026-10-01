@@ -66,6 +66,8 @@ export const closeExecutionSchema = z.object({
 // uploadthing cote client, seuls url/nom/mimeType/sizeBytes remontent ici.
 export const addProcessusDocumentSchema = z.object({
   processusId: z.string().min(1),
+  // Departement destinataire (facultatif) : ses membres sont notifies.
+  departmentId: z.string().optional(),
   nom: z.string().min(1, "Le nom du document est requis."),
   url: z.string().min(1, "Le fichier est requis."),
   mimeType: z.string().optional(),

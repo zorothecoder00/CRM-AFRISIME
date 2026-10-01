@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS, requirePermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { notifyMany } from "@/lib/notify";
 import {
   createProcessusSchema,
   updateProcessusStatutSchema,
@@ -183,10 +184,12 @@ export async function addProcessusDocument(input: AddProcessusDocumentInput) {
   requirePermission(session.user.permissions, PERMISSIONS.PROCESS_MANAGE);
 
   const data = addProcessusDocumentSchema.parse(input);
+  const departmentId = data.departmentId || undefined;
 
   const document = await prisma.processusDocument.create({
     data: {
       processusId: data.processusId,
+      departmentId,
       nom: data.nom,
       url: data.url,
       mimeType: data.mimeType,
@@ -200,8 +203,25 @@ export async function addProcessusDocument(input: AddProcessusDocumentInput) {
     action: "processus.document_added",
     entityType: "Processus",
     entityId: data.processusId,
-    changes: { nom: document.nom },
+    changes: { nom: document.nom, departmentId: departmentId ?? null },
   });
+
+  // Document envoye a un departement : ses membres actifs sont notifies
+  // (meme principe que createDocument, l'auteur exclu par notifyMany).
+  if (departmentId) {
+    const members = await prisma.user.findMany({ where: { departmentId, isActive: true }, select: { id: true } });
+    await notifyMany(
+      members.map((m) => m.id),
+      session.user.id,
+      {
+        type: "DOCUMENT_DEPARTEMENT",
+        titre: `Nouveau document de processus pour votre département : ${document.nom}`,
+        lien: `/processus/${data.processusId}`,
+        entityType: "ProcessusDocument",
+        entityId: document.id,
+      }
+    );
+  }
 
   revalidatePath(`/processus/${data.processusId}`);
   return document;
