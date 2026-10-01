@@ -151,7 +151,7 @@ export default async function CrmHomePage() {
       </div>
 
       {dueRelances.length > 0 && (
-        <Card accent="warning">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <BellRing className="h-4 w-4 text-warning" />
