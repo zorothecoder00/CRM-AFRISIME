@@ -8,8 +8,14 @@ import { FolderTree, type FolderNode } from "@/components/documents/folder-tree"
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
-import { accentForStatus } from "@/lib/status-tone";
+import { MATERIAL_TONES } from "@/lib/card-tones";
+
 import { documentUploaderName } from "@/lib/document-uploader";
+
+// Demande utilisateur — fond Material ambre (teinte "chemise cartonnee", qui
+// evoque la gestion documentaire) sur les cartes document ; hover:bg-card
+// garde la teinte au survol (sinon remplacee par bg-muted/50), assombrie.
+const DOCUMENT_CARD_TONE = `${MATERIAL_TONES[2]} hover:bg-card hover:brightness-95`;
 
 const MIME_GROUPS: Record<string, string[]> = {
   pdf: ["application/pdf"],
@@ -149,7 +155,7 @@ export default async function DocumentsPage({
           dateTo={dateTo}
         />
         <p className="text-sm text-muted-foreground">{rows.length} résultat(s)</p>
-        <DocumentList documents={rows} />
+        <DocumentList documents={rows} accentBars={false} cardClassName={DOCUMENT_CARD_TONE} />
       </div>
     );
   }
@@ -162,7 +168,6 @@ export default async function DocumentsPage({
           {projects.map((p) => (
             <Link key={p.id} href={`/documents?projetId=${p.id}`}>
               <Card
-                accent={accentForStatus(p.statut)}
                 className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
               >
                 <CardHeader>
@@ -249,7 +254,7 @@ export default async function DocumentsPage({
             <DocumentFormDialog projectId={projetId} folders={folderOptions} currentFolderId={folderId} />
           </CardHeader>
           <CardContent>
-            <DocumentList documents={rows} />
+            <DocumentList documents={rows} accentBars={false} cardClassName={DOCUMENT_CARD_TONE} />
           </CardContent>
         </Card>
       </div>

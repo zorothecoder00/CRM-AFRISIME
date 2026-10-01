@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, type CardAccent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type DocumentRow = {
   id: string;
@@ -49,10 +50,13 @@ function accentForDocument(doc: DocumentRow): CardAccent {
 export function DocumentList({
   documents,
   accentBars = true,
+  cardClassName,
 }: {
   documents: DocumentRow[];
   /** false : sans barre d'accent (demande utilisateur sur /projets/[id]). */
   accentBars?: boolean;
+  /** Classes en plus sur chaque carte document (ex. teinte de fond). */
+  cardClassName?: string;
 }) {
   if (documents.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun document.</p>;
@@ -66,7 +70,10 @@ export function DocumentList({
             <Card
               accent={accentBars ? accentForDocument(doc) : "none"}
               size="sm"
-              className="flex-row flex-wrap items-center justify-between gap-2 transition-all hover:-translate-y-0.5 hover:bg-muted/50 sm:flex-nowrap"
+              className={cn(
+                "flex-row flex-wrap items-center justify-between gap-2 transition-all hover:-translate-y-0.5 hover:bg-muted/50 sm:flex-nowrap",
+                cardClassName
+              )}
             >
               <div className="flex items-center gap-2 px-(--card-spacing)">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
