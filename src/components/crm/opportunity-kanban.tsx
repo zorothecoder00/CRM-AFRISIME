@@ -7,7 +7,6 @@ import { useAction } from "@/hooks/use-action";
 import { updateOpportunityStatus } from "@/actions/crm.actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { toneForOpportunityStatus, accentForOpportunityStatus, type BadgeTone } from "@/lib/status-tone";
 
 export type OpportunityRow = {
   id: string;
@@ -28,21 +27,6 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: "PERDUE", label: "Perdue" },
 ];
 
-// Meme logique que le kanban des taches : la barre d'accent en tete de
-// colonne reprend la teinte de l'etape (cf. status-tone.ts).
-const COLUMN_ACCENT: Record<BadgeTone, string> = {
-  default: "border-t-border",
-  secondary: "border-t-border",
-  destructive: "border-t-destructive",
-  success: "border-t-success",
-  warning: "border-t-warning",
-  info: "border-t-info",
-  outline: "border-t-border",
-  violet: "border-t-violet-500",
-  ghost: "border-t-border",
-  link: "border-t-border",
-};
-
 function formatMontant(montant: number | null) {
   if (montant === null) return null;
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(montant);
@@ -59,8 +43,8 @@ function OpportunityCard({ opportunity, devise }: { opportunity: OpportunityRow;
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {/* Demande utilisateur — plus de barre d'accent (l'etape est donnee par la colonne). */}
       <Card
-        accent={accentForOpportunityStatus(opportunity.statut)}
         className={`mb-2 cursor-grab p-3 ${isDragging ? "opacity-50" : ""}`}
       >
         <Link href={`/crm/opportunites/${opportunity.id}`} className="text-sm font-medium hover:underline">
@@ -96,13 +80,12 @@ function KanbanColumn({
   devise: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: columnKey });
-  const accent = COLUMN_ACCENT[toneForOpportunityStatus(columnKey)];
   const total = opportunities.reduce((sum, o) => sum + (o.montantEstime ?? 0), 0);
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border border-t-2 bg-muted/20 p-2 ${accent} ${
+      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border bg-muted/20 p-2 ${
         isOver ? "bg-muted/50" : ""
       }`}
     >
