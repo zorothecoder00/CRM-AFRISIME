@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAppSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { Prisma, DocumentType } from "@/generated/prisma/client";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { MATERIAL_TONES } from "@/lib/card-tones";
-import { Building2, FileText, Folder, Search } from "lucide-react";
+import { Briefcase, Building2, FileText, Folder, Inbox, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { documentUploaderName } from "@/lib/document-uploader";
 import { folderPathOptions } from "@/lib/document-folders";
@@ -119,7 +120,11 @@ export default async function DocumentsPage({
           <Link href="/documents?vue=documents&libres=1">
             <Card className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}>
               <CardHeader>
-                <CardTitle className="text-base">Documents libres</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Inbox className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  Documents libres
+                  <Badge variant="outline">Sans projet</Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">{libresCount} document(s) sans projet</CardContent>
             </Card>
@@ -128,7 +133,11 @@ export default async function DocumentsPage({
             <Link key={p.id} href={`/documents?vue=documents&projetId=${p.id}`}>
               <Card className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}>
                 <CardHeader>
-                  <CardTitle className="text-base">{p.nom}</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Briefcase className="h-5 w-5 shrink-0 text-info" />
+                    <span className="truncate">{p.nom}</span>
+                    <Badge variant="info">Projet</Badge>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">{projectCount(p.id)} document(s)</CardContent>
               </Card>
@@ -228,6 +237,11 @@ export default async function DocumentsPage({
                 </Link>
                 <CardTitle className="text-base">
                   {showLibres ? "Documents libres" : (projects.find((p) => p.id === projetId)?.nom ?? "Projet")}
+                  {!showLibres && (
+                    <Badge variant="info" className="ml-2">
+                      Projet
+                    </Badge>
+                  )}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">{rows.length} document(s)</span>
                 </CardTitle>
               </div>
@@ -362,7 +376,13 @@ export default async function DocumentsPage({
 
         <Card>
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base">{title}</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              {projetId && !activeFolder && !showUnfiled && <Briefcase className="h-4 w-4 shrink-0 text-info" />}
+              {title}
+              {projetId && (
+                <Badge variant="info">{activeFolder || showUnfiled ? `Projet : ${projectName}` : "Projet"}</Badge>
+              )}
+            </CardTitle>
             <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
           </CardHeader>
           <CardContent className="space-y-4">
@@ -457,7 +477,10 @@ export default async function DocumentsPage({
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dossiers libres</h2>
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dossiers libres</h2>
+          <p className="text-xs text-muted-foreground">Dossiers de documents rattachés à aucun projet.</p>
+        </div>
         {freeFolders.length === 0 && freeUnfiledCount === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun dossier libre pour le moment.</p>
         ) : (
@@ -472,7 +495,12 @@ export default async function DocumentsPage({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dossiers de projets</h2>
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Projets</h2>
+          <p className="text-xs text-muted-foreground">
+            Chaque projet a son propre espace documentaire, avec ses dossiers. Ouvrez un projet pour les voir.
+          </p>
+        </div>
         {projects.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun projet.</p>
         ) : (
@@ -483,6 +511,8 @@ export default async function DocumentsPage({
                   href={`/documents?projetId=${p.id}`}
                   label={p.nom}
                   detail={projectSummary(p.id)}
+                  icon="project"
+                  badge="Projet"
                   className={DOCUMENT_CARD_TONE}
                 />
               </li>

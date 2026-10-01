@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FolderActionsMenu } from "@/components/documents/folder-actions-menu";
-import { ChevronRight, Folder, Inbox } from "lucide-react";
+import { Briefcase, ChevronRight, Folder, Inbox } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export type BrowserFolder = {
@@ -126,13 +127,18 @@ export function FolderTile({
   label,
   detail,
   icon = "folder",
+  badge,
   actions,
   className,
 }: {
   href: string;
   label: string;
   detail: string;
-  icon?: "folder" | "unfiled";
+  /** "project" : espace documentaire d'un projet (demande utilisateur — ne
+   *  doit pas se confondre avec un dossier). */
+  icon?: "folder" | "unfiled" | "project";
+  /** Pastille a cote du titre, ex. "Projet". */
+  badge?: string;
   actions?: ReactNode;
   className?: string;
 }) {
@@ -140,14 +146,17 @@ export function FolderTile({
     <Card className={cn("relative h-full transition-all hover:-translate-y-0.5", className)}>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="flex min-w-0 items-center gap-2 text-base">
-          {icon === "folder" ? (
-            <Folder className="h-5 w-5 shrink-0 fill-current text-amber-500" />
-          ) : (
-            <Inbox className="h-5 w-5 shrink-0 text-muted-foreground" />
-          )}
+          {icon === "folder" && <Folder className="h-5 w-5 shrink-0 fill-current text-amber-500" />}
+          {icon === "unfiled" && <Inbox className="h-5 w-5 shrink-0 text-muted-foreground" />}
+          {icon === "project" && <Briefcase className="h-5 w-5 shrink-0 text-info" />}
           <Link href={href} className="truncate after:absolute after:inset-0">
             {label}
           </Link>
+          {badge && (
+            <Badge variant="info" className="shrink-0">
+              {badge}
+            </Badge>
+          )}
         </CardTitle>
         {actions && <div className="relative z-10">{actions}</div>}
       </CardHeader>
