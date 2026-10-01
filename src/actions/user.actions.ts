@@ -11,6 +11,7 @@ import { logAudit } from "@/lib/audit";
 import { createUserSchema, updateUserSchema, type CreateUserInput, type UpdateUserInput } from "@/lib/validations/user.schema";
 import { createPasswordResetToken } from "@/lib/password-reset";
 import { revokeActiveSessionsForUser } from "@/lib/session-revocation";
+import { removeUserFromGroupConversation } from "@/lib/conversation-membership";
 
 const SENSITIVE_USER_FIELDS = new Set(["passwordHash", "mfaSecret", "mfaBackupCodes"]);
 
@@ -128,7 +129,10 @@ export async function updateUser(input: UpdateUserInput) {
       select: { roleId: true },
     })) !== null;
 
-  const before = await prisma.user.findUniqueOrThrow({ where: { id: data.id }, select: { roleId: true, isActive: true } });
+  const before = await prisma.user.findUniqueOrThrow({
+    where: { id: data.id },
+    select: { roleId: true, isActive: true, departmentId: true },
+  });
   const roleChanged = before.roleId !== data.roleId;
   if (roleChanged && before.isActive && (await hasAdminPermission(before.roleId)) && !(await hasAdminPermission(data.roleId))) {
     // Vérifié AVANT d'écrire : si ce compte est le dernier admin et que le
@@ -165,12 +169,24 @@ export async function updateUser(input: UpdateUserInput) {
     await revokeActiveSessionsForUser(user.id, session.user.id);
   }
 
+  // Changement de departement : l'utilisateur quitte le canal de l'ancien
+  // (il rejoint celui du nouveau a sa prochaine ouverture de /messages).
+  const departmentChanged = before.departmentId !== user.departmentId;
+  if (departmentChanged && before.departmentId) {
+    await removeUserFromGroupConversation({ departmentId: before.departmentId }, user.id);
+  }
+
   await logAudit({
     userId: session.user.id,
     action: "user.updated",
     entityType: "User",
     entityId: user.id,
-    changes: { name: user.name, roleId: data.roleId, managerId: data.managerId ?? null },
+    changes: {
+      name: user.name,
+      roleId: data.roleId,
+      managerId: data.managerId ?? null,
+      ...(departmentChanged && { departmentId: user.departmentId, previousDepartmentId: before.departmentId }),
+    },
   });
 
   revalidatePath("/administration/utilisateurs");

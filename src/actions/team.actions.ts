@@ -8,6 +8,7 @@ import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { analyzeTeamDeletionImpact } from "@/lib/impact-analysis";
 import { isRoleSeniorTo } from "@/lib/role-hierarchy";
+import { removeUserFromGroupConversation } from "@/lib/conversation-membership";
 import {
   createTeamSchema,
   updateTeamSchema,
@@ -169,6 +170,8 @@ export async function removeTeamMember(input: TeamMemberInput) {
   await assertCanManageTeam(session, data.teamId);
 
   await prisma.teamMember.deleteMany({ where: { teamId: data.teamId, userId: data.userId } });
+  // Il ne doit plus recevoir les messages du canal de l'equipe quittee.
+  await removeUserFromGroupConversation({ teamId: data.teamId }, data.userId);
 
   await logAudit({
     userId: session.user.id,

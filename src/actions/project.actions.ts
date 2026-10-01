@@ -98,6 +98,7 @@ import {
   type UpdateProjectScopeInput,
 } from "@/lib/validations/project.schema";
 import { createNotification } from "@/lib/notify";
+import { removeUserFromGroupConversation } from "@/lib/conversation-membership";
 
 export async function createProject(input: CreateProjectInput) {
   const session = await getServerSession(authOptions);
@@ -426,6 +427,8 @@ export async function removeProjectMember(input: RemoveProjectMemberInput) {
   const member = await withTenantScopedSession(session.user.organizationId, (tx) =>
     tx.projectMember.delete({ where: { id: data.memberId } })
   );
+  // Meme principe que removeTeamMember : il quitte le canal du projet.
+  await removeUserFromGroupConversation({ projectId: member.projectId }, member.userId);
 
   await logAudit({
     userId: session.user.id,
