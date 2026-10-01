@@ -15,7 +15,7 @@ import { TaskPortfolioView } from "@/components/tasks/task-portfolio-view";
 import { TaskWhiteboardView } from "@/components/tasks/task-whiteboard-view";
 import { TaskViewSwitcher } from "@/components/tasks/task-view-switcher";
 import { PeriodFilter } from "@/components/ui/period-filter";
-import { ContextualBackLink } from "@/components/ui/contextual-back-link";
+import { ContextualBackLink, withFrom } from "@/components/ui/contextual-back-link";
 import { ProjectFilter } from "@/components/ui/project-filter";
 import { TaskPriorityFilter } from "@/components/ui/task-priority-filter";
 import { TaskStatusFilter } from "@/components/ui/task-status-filter";
@@ -61,6 +61,15 @@ export default async function TachesPage({
     const me = await prisma.user.findUnique({ where: { id: userId }, select: { defaultTaskView: true } });
     vue = me?.defaultTaskView ?? "liste";
   }
+
+  // Chemin courant (vue resolue + filtres) transmis en ?from= aux raccourcis
+  // Calendrier / Charge de travail, pour que leur lien de retour ramene ici
+  // plutot que sur le tableau de bord.
+  const currentParams = new URLSearchParams();
+  for (const [k, v] of Object.entries({ vue, projetId, mine, annee, mois, from, priorite, statut })) {
+    if (v) currentParams.set(k, v);
+  }
+  const currentPath = `/taches?${currentParams.toString()}`;
 
   // Filtre "Mes tâches" : responsable principal OU assigné, combiné (pas
   // fusionné) avec le taskScope des rôles externes qui a déjà son propre OR.
@@ -207,12 +216,12 @@ export default async function TachesPage({
               de charge déjà dans sa propre sidebar — masqués dans ce contexte. */}
           {from !== "planning-personnel" && (
             <div className="flex rounded-md border">
-              <Link href="/calendrier">
+              <Link href={withFrom("/calendrier", currentPath)}>
                 <Button variant="ghost" size="sm" className="rounded-r-none">
                   Calendrier
                 </Button>
               </Link>
-              <Link href="/charge-de-travail">
+              <Link href={withFrom("/charge-de-travail", currentPath)}>
                 <Button variant="ghost" size="sm" className="rounded-l-none">
                   Charge de travail
                 </Button>

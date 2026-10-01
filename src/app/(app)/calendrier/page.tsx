@@ -26,13 +26,18 @@ import { EventFormDialog } from "@/components/calendar/event-form-dialog";
 import { PendingLeavesSection, type PendingLeave } from "@/components/calendar/pending-leaves-section";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { materialTone } from "@/lib/card-tones";
+import { ContextualBackLink, safeInternalPath, withFrom } from "@/components/ui/contextual-back-link";
 
 export default async function CalendrierPage({
   searchParams,
 }: {
-  searchParams: Promise<{ annee?: string; mois?: string; jour?: string }>;
+  searchParams: Promise<{ annee?: string; mois?: string; jour?: string; from?: string }>;
 }) {
-  const { annee, mois, jour } = await searchParams;
+  const { annee, mois, jour, from } = await searchParams;
+  // ?from= (ex. depuis /taches) : lien de retour vers la page d'origine,
+  // conserve en naviguant de mois en mois / de jour en jour.
+  const fromPath = safeInternalPath(from);
+  const keepFrom = (href: string) => (fromPath ? withFrom(href, fromPath) : href);
   const session = await getAppSession();
   const userId = session!.user.id;
   const canManageLeaves = session!.user.permissions.includes(PERMISSIONS.LEAVE_MANAGE);
@@ -141,8 +146,8 @@ export default async function CalendrierPage({
 
   const prevMonth = subMonths(currentMonth, 1);
   const nextMonth = addMonths(currentMonth, 1);
-  const monthHref = (d: Date) => `/calendrier?annee=${d.getFullYear()}&mois=${d.getMonth() + 1}`;
-  const dayHref = (key: string) => `/calendrier?annee=${year}&mois=${month}&jour=${key}`;
+  const monthHref = (d: Date) => keepFrom(`/calendrier?annee=${d.getFullYear()}&mois=${d.getMonth() + 1}`);
+  const dayHref = (key: string) => keepFrom(`/calendrier?annee=${year}&mois=${month}&jour=${key}`);
 
   const pendingLeaveRows: PendingLeave[] = pendingLeaves.map((l) => ({
     id: l.id,
@@ -156,6 +161,7 @@ export default async function CalendrierPage({
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
+        {fromPath && <ContextualBackLink from={fromPath} />}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">Calendrier</h1>

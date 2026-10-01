@@ -12,6 +12,7 @@ const PATH_LABELS: [string, string][] = [
   ["/projets/idees", "Retour au laboratoire d'idées"],
   ["/projets/appels-a-projets", "Retour aux appels à projets"],
   ["/projets", "Retour aux projets"],
+  ["/taches", "Retour aux tâches"],
   ["/dashboard", "Retour au tableau de bord"],
 ];
 
