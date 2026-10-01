@@ -13,6 +13,12 @@ function toneForScore(score: number): "success" | "warning" | "destructive" {
   return "destructive";
 }
 
+const SCORE_BG = {
+  success: "bg-success/15",
+  warning: "bg-warning/15",
+  destructive: "bg-destructive/15",
+} as const;
+
 // Organizational Health Score (cahier des charges V3.0 §13) — score
 // synthétique 0-100, moyenne pondérée de 9 dimensions actives (TURNOVER
 // exclu par défaut, aucune donnée pertinente disponible dans ce MVP) —
@@ -37,7 +43,9 @@ export default async function OrganizationalHealthPage() {
         </p>
       </div>
 
-      <Card accent={toneForScore(health.score)}>
+      {/* Demande utilisateur — plus de barre d'accent : le niveau du score
+          (vert / orange / rouge) passe sur le fond du bloc. */}
+      <Card className={SCORE_BG[toneForScore(health.score)]}>
         <CardHeader>
           <CardTitle className="text-base">Organizational Health Score</CardTitle>
         </CardHeader>
