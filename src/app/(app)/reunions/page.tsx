@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { MeetingFormDialog } from "@/components/meetings/meeting-form-dialog";
 import { ContextualBackLink } from "@/components/ui/contextual-back-link";
 import { Repeat } from "lucide-react";
@@ -78,8 +78,8 @@ export default async function ReunionsPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {meetings.map((meeting) => (
           <Link key={meeting.id} href={`/reunions/${meeting.id}`}>
+            {/* Demande utilisateur — plus de barre d'accent (statut deja visible via le badge). */}
             <Card
-              accent={accentForStatus(meeting.statut)}
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
             >
               <CardHeader>
