@@ -11,6 +11,7 @@ import { DocumentFormDialog } from "@/components/documents/document-form-dialog"
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { MATERIAL_TONES } from "@/lib/card-tones";
 import { cn } from "@/lib/utils";
+import { Building2 } from "lucide-react";
 import { documentUploaderName } from "@/lib/document-uploader";
 
 // Demande utilisateur — fond Material ambre (teinte "chemise cartonnee", qui
@@ -164,7 +165,6 @@ export default async function DocumentsPage({
           libresCount={libresCount}
           departments={departmentOptions}
           departementId={departementId}
-          myDepartmentId={myDepartmentId}
           query={q}
           uploadedById={uploadedById}
           type={type}
@@ -173,7 +173,10 @@ export default async function DocumentsPage({
           dateFrom={dateFrom}
           dateTo={dateTo}
         />
-        <p className="text-sm text-muted-foreground">{rows.length} résultat(s)</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">{rows.length} résultat(s)</p>
+          <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} active={!!myDepartmentId && departementId === myDepartmentId} />
+        </div>
         <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
       </div>
     );
@@ -209,11 +212,14 @@ export default async function DocumentsPage({
 
     return (
       <div className="space-y-6">
-        <DocumentsHeader projects={projects} users={users} libres libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} />
+        <DocumentsHeader projects={projects} users={users} libres libresCount={libresCount} departments={departmentOptions} query={q} />
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents libres</CardTitle>
-            <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+            <div className="flex gap-2">
+              <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
+              <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+            </div>
           </CardHeader>
           <CardContent>
             <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
@@ -226,8 +232,9 @@ export default async function DocumentsPage({
   if (!projetId) {
     return (
       <div className="space-y-6">
-        <DocumentsHeader projects={projects} users={users} libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} hideSpaceChips />
-        <div className="flex justify-end">
+        <DocumentsHeader projects={projects} users={users} libresCount={libresCount} departments={departmentOptions} query={q} hideSpaceChips />
+        <div className="flex justify-end gap-2">
+          <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
           <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -300,7 +307,7 @@ export default async function DocumentsPage({
 
   return (
     <div className="space-y-6">
-      <DocumentsHeader projects={projects} users={users} activeProjectId={projetId} libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} />
+      <DocumentsHeader projects={projects} users={users} activeProjectId={projetId} libresCount={libresCount} departments={departmentOptions} query={q} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -327,7 +334,10 @@ export default async function DocumentsPage({
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents</CardTitle>
-            <DocumentFormDialog projectId={projetId} departments={departmentOptions} folders={folderOptions} currentFolderId={folderId} />
+            <div className="flex gap-2">
+              <MyDepartmentDocumentsLink myDepartmentId={myDepartmentId} />
+              <DocumentFormDialog projectId={projetId} departments={departmentOptions} folders={folderOptions} currentFolderId={folderId} />
+            </div>
           </CardHeader>
           <CardContent>
             <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
@@ -335,6 +345,30 @@ export default async function DocumentsPage({
         </Card>
       </div>
     </div>
+  );
+}
+
+// Demande utilisateur — raccourci de navigation (pas un filtre) place a cote
+// de "+ Nouveau document", en Material Green : Green 100 au repos, Green 700
+// quand la vue "documents de mon departement" est deja ouverte.
+function MyDepartmentDocumentsLink({ myDepartmentId, active }: { myDepartmentId?: string; active?: boolean }) {
+  if (!myDepartmentId) return null;
+  return (
+    <Button
+      asChild
+      size="sm"
+      variant="outline"
+      className={
+        active
+          ? "border-[#388E3C] bg-[#388E3C] text-white hover:bg-[#2E7D32] hover:text-white"
+          : "border-[#A5D6A7] bg-[#C8E6C9] text-[#1B5E20] hover:bg-[#A5D6A7] hover:text-[#1B5E20] dark:border-[#2E7D32] dark:bg-[color-mix(in_oklch,oklch(0.205_0_0),#1B5E20_40%)] dark:text-[#C8E6C9] dark:hover:bg-[color-mix(in_oklch,oklch(0.205_0_0),#1B5E20_60%)]"
+      }
+    >
+      <Link href={`/documents?departementId=${myDepartmentId}`}>
+        <Building2 className="mr-1 h-4 w-4" />
+        Documents de mon département
+      </Link>
+    </Button>
   );
 }
 
@@ -346,7 +380,6 @@ function DocumentsHeader({
   libresCount = 0,
   departments = [],
   departementId,
-  myDepartmentId,
   query,
   uploadedById,
   type,
@@ -363,7 +396,6 @@ function DocumentsHeader({
   libresCount?: number;
   departments?: { id: string; label: string }[];
   departementId?: string;
-  myDepartmentId?: string;
   query?: string;
   uploadedById?: string;
   type?: string;
@@ -455,27 +487,15 @@ function DocumentsHeader({
           </Link>
         )}
       </form>
-      {((!hideSpaceChips && (projects.length > 0 || libresCount > 0)) || myDepartmentId) && (
+      {!hideSpaceChips && (projects.length > 0 || libresCount > 0) && (
         <div className="flex flex-wrap gap-2 text-sm">
-          {!hideSpaceChips && (
-            <Link
-              href="/documents?libres=1"
-              className={`rounded-full border px-3 py-1 ${libres ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-            >
-              Documents libres ({libresCount})
-            </Link>
-          )}
-          {myDepartmentId && (
-            <Link
-              href={`/documents?departementId=${myDepartmentId}`}
-              className={`rounded-full border px-3 py-1 ${
-                departementId === myDepartmentId ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              }`}
-            >
-              Documents de mon département
-            </Link>
-          )}
-          {!hideSpaceChips && projects.map((p) => (
+          <Link
+            href="/documents?libres=1"
+            className={`rounded-full border px-3 py-1 ${libres ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            Documents libres ({libresCount})
+          </Link>
+          {projects.map((p) => (
             <Link
               key={p.id}
               href={`/documents?projetId=${p.id}`}
