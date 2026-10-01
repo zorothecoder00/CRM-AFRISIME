@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { getUserEntityScope, getAllowedDepartmentIds } from "@/lib/entity-scope";
 import { Badge } from "@/components/ui/badge";
-import { toneForTaskStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
+import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checklist } from "@/components/tasks/checklist";
+import { materialTone } from "@/lib/card-tones";
 import { SubtasksSection } from "@/components/tasks/subtasks-section";
 import { TaskEditButton } from "@/components/tasks/task-edit-button";
 import { CommentSection } from "@/components/tasks/comment-section";
@@ -323,20 +324,25 @@ export default async function TaskDetailPage({
           </Card>
         )}
 
-        <Card>
+        {/* Demande utilisateur — blocs Checklist / Sous-taches / Details sur
+            fond Material, leur contenu restant sur le gris du site
+            (encart bg-background ; lignes bordees via materialTone). */}
+        <Card className={materialTone(2)}>
           <CardHeader>
             <CardTitle className="text-base">Checklist</CardTitle>
           </CardHeader>
           <CardContent>
-            <Checklist
-              taskId={task.id}
-              items={checklistRows}
-              members={projectMembers.map((m) => ({ id: m.user.id, name: m.user.name }))}
-            />
+            <div className="rounded-lg bg-background p-3">
+              <Checklist
+                taskId={task.id}
+                items={checklistRows}
+                members={projectMembers.map((m) => ({ id: m.user.id, name: m.user.name }))}
+              />
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={materialTone(1)}>
           <CardHeader>
             <CardTitle className="text-base">Sous-tâches</CardTitle>
           </CardHeader>
@@ -395,7 +401,7 @@ export default async function TaskDetailPage({
             <DocumentFormDialog projectId={task.projectId} taskId={task.id} triggerLabel="Lier un document" />
           </CardHeader>
           <CardContent>
-            <DocumentList documents={documentRows} />
+            <DocumentList documents={documentRows} accentBars={false} />
           </CardContent>
         </Card>
 
@@ -431,59 +437,61 @@ export default async function TaskDetailPage({
             }))}
           />
         )}
-        <Card accent={accentForStatus(task.statut)}>
+        <Card className={materialTone(0)}>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <Info label="Responsable principal" value={task.responsablePrincipal.name} />
-            <Info
-              label="Co-responsables"
-              value={task.assignees.map((a) => a.user.name).join(", ") || "—"}
-            />
-            <Info
-              label="Date de début"
-              value={task.dateDebut ? new Date(task.dateDebut).toLocaleDateString("fr-FR") : "—"}
-            />
-            {task.personalPlanningEntries[0] && (
+          <CardContent className="text-sm">
+            <div className="space-y-3 rounded-lg bg-background p-3">
+              <Info label="Responsable principal" value={task.responsablePrincipal.name} />
               <Info
-                label="Créneau"
-                value={`${new Date(task.personalPlanningEntries[0].dateDebut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} → ${new Date(task.personalPlanningEntries[0].dateFin).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
+                label="Co-responsables"
+                value={task.assignees.map((a) => a.user.name).join(", ") || "—"}
               />
-            )}
-            <Info
-              label="Échéance"
-              value={task.echeance ? new Date(task.echeance).toLocaleDateString("fr-FR") : "—"}
-            />
-            {isOwner && !task.deletedAt && (
-              <div className="flex flex-wrap gap-2">
-                <TaskDateChangeRequestDialog
-                  taskId={task.id}
-                  currentDateDebut={task.dateDebut ? task.dateDebut.toISOString() : null}
-                  currentEcheance={task.echeance ? task.echeance.toISOString() : null}
+              <Info
+                label="Date de début"
+                value={task.dateDebut ? new Date(task.dateDebut).toLocaleDateString("fr-FR") : "—"}
+              />
+              {task.personalPlanningEntries[0] && (
+                <Info
+                  label="Créneau"
+                  value={`${new Date(task.personalPlanningEntries[0].dateDebut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} → ${new Date(task.personalPlanningEntries[0].dateFin).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
                 />
-                {task.personalPlanningEntries[0] && (
-                  <TaskRescheduleSlotDialog
-                    taskId={task.id}
-                    entryId={task.personalPlanningEntries[0].id}
-                    currentDateDebut={task.personalPlanningEntries[0].dateDebut.toISOString()}
-                    currentDateFin={task.personalPlanningEntries[0].dateFin.toISOString()}
-                  />
-                )}
-              </div>
-            )}
-            <Info
-              label="Temps estimé"
-              value={task.tempsEstimeHeures ? `${task.tempsEstimeHeures} h` : "—"}
-            />
-            <div>
-              <div className="mb-1 text-xs text-muted-foreground">Temps réel (h)</div>
-              <ActualTimeForm
-                taskId={task.id}
-                initialValue={task.tempsReelHeures !== null ? Number(task.tempsReelHeures) : null}
+              )}
+              <Info
+                label="Échéance"
+                value={task.echeance ? new Date(task.echeance).toLocaleDateString("fr-FR") : "—"}
               />
+              {isOwner && !task.deletedAt && (
+                <div className="flex flex-wrap gap-2">
+                  <TaskDateChangeRequestDialog
+                    taskId={task.id}
+                    currentDateDebut={task.dateDebut ? task.dateDebut.toISOString() : null}
+                    currentEcheance={task.echeance ? task.echeance.toISOString() : null}
+                  />
+                  {task.personalPlanningEntries[0] && (
+                    <TaskRescheduleSlotDialog
+                      taskId={task.id}
+                      entryId={task.personalPlanningEntries[0].id}
+                      currentDateDebut={task.personalPlanningEntries[0].dateDebut.toISOString()}
+                      currentDateFin={task.personalPlanningEntries[0].dateFin.toISOString()}
+                    />
+                  )}
+                </div>
+              )}
+              <Info
+                label="Temps estimé"
+                value={task.tempsEstimeHeures ? `${task.tempsEstimeHeures} h` : "—"}
+              />
+              <div>
+                <div className="mb-1 text-xs text-muted-foreground">Temps réel (h)</div>
+                <ActualTimeForm
+                  taskId={task.id}
+                  initialValue={task.tempsReelHeures !== null ? Number(task.tempsReelHeures) : null}
+                />
+              </div>
+              <Info label="Avancement" value={`${task.avancement}%`} />
             </div>
-            <Info label="Avancement" value={`${task.avancement}%`} />
           </CardContent>
         </Card>
 
