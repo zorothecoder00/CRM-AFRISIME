@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForEvaluationStatus, accentForEvaluationStatus } from "@/lib/status-tone";
+import { toneForEvaluationStatus } from "@/lib/status-tone";
 import { EvaluationFormDialog } from "@/components/evaluations/evaluation-form-dialog";
 import { cn } from "@/lib/utils";
 import { materialTone } from "@/lib/card-tones";
@@ -84,7 +84,6 @@ export default async function EvaluationsPage() {
             {menees.map((evaluation, i) => (
               <Link key={evaluation.id} href={`/evaluations/${evaluation.id}`}>
                 <Card
-                  accent={accentForEvaluationStatus(evaluation.statut)}
                   className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
                 >
                   <CardHeader>
@@ -119,7 +118,6 @@ export default async function EvaluationsPage() {
           {recues.map((evaluation, i) => (
             <Link key={evaluation.id} href={`/evaluations/${evaluation.id}`}>
               <Card
-                accent={accentForEvaluationStatus(evaluation.statut)}
                 className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i))}
               >
                 <CardHeader>
