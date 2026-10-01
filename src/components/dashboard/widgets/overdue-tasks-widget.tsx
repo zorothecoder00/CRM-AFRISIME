@@ -37,9 +37,10 @@ export function OverdueTasksWidget({
             // Demande utilisateur — a partir de md, une 5e ligne desequilibrait
             // la hauteur par rapport a la carte Performance par departement ;
             // sur mobile/petit ecran, ou les cartes ne s'alignent plus cote a
-            // cote, les 5 restent visibles.
+            // cote, les 5 restent visibles. Fond gris du site (bg-background)
+            // plutot que la teinte du bloc, comme sur /dashboard.
             className={cn(
-              "flex items-center justify-between rounded-md border p-2 text-sm hover:bg-muted",
+              "flex items-center justify-between rounded-md border bg-background p-2 text-sm hover:bg-muted",
               i === 4 && "md:hidden"
             )}
           >
