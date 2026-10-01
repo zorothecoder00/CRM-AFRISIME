@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { BRAND_CARD_BG } from "@/lib/card-tones";
 import { Target } from "lucide-react";
 import type { TaskPriorityScore } from "@/lib/task-priority";
 
@@ -18,13 +19,10 @@ const RANK_TONE = [
 // carte avec effet de bascule 3D (perspective + rotation legere + elevation
 // d'ombre) au survol, au lieu d'une simple ligne de texte plate.
 export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore[] }) {
-  // Demande utilisateur — fond de la carte nettement colore (pas juste
-  // blanc/gris) ; garde le bleu ici (accent d'origine, pas vise par la
-  // remarque "trop de bleu", qui portait sur les lignes ci-dessous). bg-none
-  // neutralise le degrade par defaut de l'accent (qui finit en var(--card),
-  // quasi-blanc) au profit d'une teinte pleine et visible.
+  // Demande utilisateur — plus de barre d'accent, fond en teinte unie
+  // legere aux couleurs du logo (or, pour se distinguer du briefing bleu voisin).
   return (
-    <Card accent="primary" className="bg-none bg-primary/10">
+    <Card className={BRAND_CARD_BG.gold}>
       <CardHeader className="flex flex-row items-center gap-2">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Target className="size-4" />
@@ -40,12 +38,10 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
               <li key={a.taskId}>
                 <Link
                   href={a.href}
-                  // Demande utilisateur — chaque ligne était en bg-card (blanc) ;
-                  // "success" (vert, une couleur du logo) plutot que primary
-                  // (bleu, deja la couleur de la carte englobante juste
-                  // au-dessus) pour que les lignes restent distinctes sans
-                  // ajouter encore du bleu.
-                  className="group flex items-center gap-3 rounded-lg border bg-success/15 p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-success/40 hover:bg-success/20 hover:shadow-xl"
+                  // Demande utilisateur — le vert (bg-success/15) jurait avec le
+                  // fond beige/or de la carte : lignes blanches a bordure doree,
+                  // teinte or au survol, pour rester dans la meme famille.
+                  className="group flex items-center gap-3 rounded-lg border border-[#f2b705]/30 bg-card p-2.5 text-sm shadow-sm transition-all duration-300 ease-out will-change-transform hover:-translate-y-1 hover:scale-[1.02] hover:rotate-x-6 hover:border-[#f2b705]/60 hover:bg-[color-mix(in_oklch,var(--card),#f2b705_12%)] hover:shadow-xl"
                   style={{ transformStyle: "preserve-3d" }}
                 >
                   <span
@@ -57,7 +53,7 @@ export function TopPriorityActionsCard({ actions }: { actions: TaskPriorityScore
                     {i + 1}
                   </span>
                   <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate font-medium group-hover:text-success group-hover:underline">
+                    <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">
                       {a.titre}
                     </span>
                     <span className="shrink-0 truncate text-xs text-muted-foreground">{a.projectNom}</span>

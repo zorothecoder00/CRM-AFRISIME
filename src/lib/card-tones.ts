@@ -53,3 +53,11 @@ export const BRAND_TINTS = {
 } as const;
 
 export type BrandTint = keyof typeof BRAND_TINTS;
+
+// Meme teinte que BRAND_TINTS, a poser directement en className sur une
+// <Card> sans accent (bg-card remplace via tailwind-merge).
+export const BRAND_CARD_BG: Record<BrandTint, string> = {
+  blue: "bg-[color-mix(in_oklch,var(--card),#1d4fc4_6%)]",
+  green: "bg-[color-mix(in_oklch,var(--card),#2f9e2f_6%)]",
+  gold: "bg-[color-mix(in_oklch,var(--card),#f2b705_6%)]",
+};

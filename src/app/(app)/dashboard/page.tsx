@@ -11,6 +11,7 @@ import { objectiveProgress } from "@/lib/objective-progress";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { computeWorkload } from "@/lib/workload";
 import { cn } from "@/lib/utils";
+import { BRAND_CARD_BG } from "@/lib/card-tones";
 import { toneForAdminRequestStatus } from "@/lib/status-tone";
 import { generateDailyBriefing } from "@/lib/daily-briefing";
 import { DailyBriefingCard } from "@/components/dashboard/daily-briefing-card";
@@ -266,20 +267,21 @@ export default async function DashboardPage() {
             title="Mes tâches du jour"
             tasks={todayTasks}
             emptyLabel="Aucune tâche aujourd'hui."
-            accent="success"
+            tone="today"
             voirToutHref={`/planning-personnel/mes-taches?jour=${todayKey}`}
           />
           <TaskWidget
             title="Mes tâches en retard"
             tasks={overdueTasks}
             emptyLabel="Aucune tâche en retard."
-            accent="destructive"
+            tone="overdue"
             voirToutHref="/planning-personnel/mes-taches"
           />
           <TaskWidget
             title="Mes tâches de la semaine"
             tasks={weekTasks}
             emptyLabel="Aucune tâche cette semaine."
+            tone="week"
             voirToutHref={`/planning-personnel/mes-taches?semaine=${todayKey}`}
           />
         </div>
@@ -290,24 +292,24 @@ export default async function DashboardPage() {
           <KpiCard
             label="Mon taux d'occupation"
             value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
-            accent={myWorkload?.enSurcharge ? "destructive" : "primary"}
+            className={myWorkload?.enSurcharge ? "bg-destructive/10" : BRAND_CARD_BG.blue}
           />
           <KpiCard
             label="Ma disponibilité restante"
             value={myWorkload ? `${myWorkload.disponibiliteHeures} h` : "—"}
-            accent="info"
+            className={BRAND_CARD_BG.green}
           />
           <KpiCard
             label="Temps moyen de réalisation"
             value={myWorkload?.tempsMoyenRealisationHeures != null ? `${myWorkload.tempsMoyenRealisationHeures} h` : "—"}
-            accent="success"
+            className={BRAND_CARD_BG.gold}
           />
         </div>
       </DashboardSection>
 
       <DashboardSection title="À traiter">
         <div className="grid gap-4 md:grid-cols-3">
-          <Card accent="warning">
+          <Card className={BRAND_CARD_BG.gold}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes validations en attente</CardTitle>
               {myPendingApprovals.length > 0 && <Badge variant="destructive">{myPendingApprovals.length}</Badge>}
@@ -329,7 +331,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent="info">
+          <Card className={BRAND_CARD_BG.blue}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Mes notifications</CardTitle>
               {myNotifications.some((n) => !n.isRead) && <Badge>Nouveau</Badge>}
@@ -357,7 +359,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent="primary">
+          <Card className={BRAND_CARD_BG.green}>
             <CardHeader>
               <CardTitle className="text-base">Mes demandes</CardTitle>
             </CardHeader>
@@ -388,7 +390,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Cette semaine">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card accent="info">
+          <Card className={BRAND_CARD_BG.blue}>
             <CardHeader>
               <CardTitle className="text-base">Mes réunions</CardTitle>
             </CardHeader>
@@ -415,7 +417,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent="success">
+          <Card className={BRAND_CARD_BG.green}>
             <CardHeader>
               <CardTitle className="text-base">Mon calendrier (14 jours)</CardTitle>
             </CardHeader>
@@ -448,7 +450,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Équipe & collaboration">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card accent="warning">
+          <Card className={BRAND_CARD_BG.gold}>
             <CardHeader>
               <CardTitle className="text-base">Mes messages</CardTitle>
             </CardHeader>
@@ -481,7 +483,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent="primary">
+          <Card className={BRAND_CARD_BG.blue}>
             <CardHeader>
               <CardTitle className="text-base">Mes documents récents</CardTitle>
             </CardHeader>
@@ -509,7 +511,7 @@ export default async function DashboardPage() {
 
       <DashboardSection title="Mes projets & objectifs">
         <div className="space-y-4">
-          <Card accent="info">
+          <Card className={BRAND_CARD_BG.blue}>
             <CardHeader>
               <CardTitle className="text-base">Mes projets</CardTitle>
             </CardHeader>
@@ -537,7 +539,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent="success">
+          <Card className={BRAND_CARD_BG.green}>
             <CardHeader>
               <CardTitle className="text-base">Mes objectifs</CardTitle>
             </CardHeader>
@@ -573,7 +575,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card accent="warning">
+          <Card className={BRAND_CARD_BG.gold}>
             <CardHeader>
               <CardTitle className="text-base">Activités récentes de l&apos;équipe</CardTitle>
             </CardHeader>
@@ -616,26 +618,32 @@ type TaskWithProject = {
 
 const TASK_WIDGET_MAX = 5;
 
+const TASK_WIDGET_TONES = {
+  overdue: { bg: "bg-destructive/12", title: "text-destructive" },
+  today: { bg: "bg-success/12", title: "text-success" },
+  week: { bg: "bg-info/12", title: undefined },
+} as const;
+
 function TaskWidget({
   title,
   tasks,
   emptyLabel,
-  accent,
+  tone,
   voirToutHref,
 }: {
   title: string;
   tasks: TaskWithProject[];
   emptyLabel: string;
-  /** "destructive" (en retard) / "success" (aujourd'hui) — sinon accent "info" par defaut. */
-  accent?: "destructive" | "success";
+  /** Demande utilisateur — fond rouge (en retard), vert (du jour), bleu (semaine). */
+  tone: keyof typeof TASK_WIDGET_TONES;
   /** Demande utilisateur — liste limitee a 5, lien "Voir tout" vers la liste complete filtree si plus. */
   voirToutHref: string;
 }) {
   const visible = tasks.slice(0, TASK_WIDGET_MAX);
-  const titleColor = accent === "destructive" ? "text-destructive" : accent === "success" ? "text-success" : undefined;
+  const { bg, title: titleColor } = TASK_WIDGET_TONES[tone];
 
   return (
-    <Card accent={accent ?? "info"}>
+    <Card className={bg}>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>

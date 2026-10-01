@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { BRAND_CARD_BG } from "@/lib/card-tones";
 import {
   Sunrise,
   ListChecks,
@@ -50,11 +51,10 @@ export function DailyBriefingCard({ userName, briefing }: { userName: string | n
   const greeting = now.getHours() >= 18 ? "Bonsoir" : now.getHours() >= 12 ? "Bon après-midi" : "Bonjour";
   const visibleItems = ITEMS.filter((item) => (briefing[item.key] as number) > 0);
 
-  // Demande utilisateur — fond nettement colore (pas juste blanc/gris) :
-  // bg-none neutralise le degrade par defaut de l'accent (qui finit en
-  // var(--card), quasi-blanc) au profit d'une teinte pleine et visible.
+  // Demande utilisateur — plus de barre d'accent, fond en teinte unie
+  // legere aux couleurs du logo (comme /tableaux-de-bord).
   return (
-    <Card accent="info" className="overflow-hidden bg-none bg-info/10">
+    <Card className={cn("overflow-hidden", BRAND_CARD_BG.blue)}>
       <CardHeader className="flex flex-row items-center gap-2">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
           <Sunrise className="size-4" />
