@@ -58,7 +58,7 @@ export function IncidentReportForm({ projects }: { projects: { id: string; label
   }
 
   return (
-    <Card accent="warning">
+    <Card>
       <CardHeader className="flex flex-row items-center gap-2">
         <TriangleAlert className="size-5 text-warning" />
         <CardTitle className="text-base">Signaler un incident</CardTitle>
