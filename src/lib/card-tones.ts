@@ -42,14 +42,14 @@ export function materialTone(index: number): string {
   return `${MATERIAL_TONES[index % MATERIAL_TONES.length]} ${NEUTRAL_ROWS}`;
 }
 
-// Couleurs du logo AfriSime (bleu roi / vert / or) — dégradé sur fond de
+// Couleurs du logo AfriSime (bleu roi / vert / or) — teinte unie légère sur fond de
 // carte, sans barre de tête (retirée à la demande). S'applique à l'enveloppe d'un widget qui
 // rend lui-même sa <Card> (ciblée via [&>[data-slot=card]]).
 export const BRAND_TINTS = {
-  blue: "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#1d4fc4_24%),color-mix(in_oklch,var(--card),#1d4fc4_9%)_70%)]",
+  blue: "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[color-mix(in_oklch,var(--card),#1d4fc4_6%)]",
   green:
-    "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#2f9e2f_24%),color-mix(in_oklch,var(--card),#2f9e2f_9%)_70%)]",
-  gold: "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[linear-gradient(160deg,color-mix(in_oklch,var(--card),#f2b705_24%),color-mix(in_oklch,var(--card),#f2b705_9%)_70%)]",
+    "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[color-mix(in_oklch,var(--card),#2f9e2f_6%)]",
+  gold: "[&>[data-slot=card]]:border-t-0 [&>[data-slot=card]]:bg-[color-mix(in_oklch,var(--card),#f2b705_6%)]",
 } as const;
 
 export type BrandTint = keyof typeof BRAND_TINTS;
