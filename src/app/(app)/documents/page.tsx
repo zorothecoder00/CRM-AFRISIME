@@ -9,11 +9,11 @@ import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
 import { MATERIAL_TONES } from "@/lib/card-tones";
-
+import { cn } from "@/lib/utils";
 import { documentUploaderName } from "@/lib/document-uploader";
 
 // Demande utilisateur — fond Material ambre (teinte "chemise cartonnee", qui
-// evoque la gestion documentaire) sur les cartes document ; hover:bg-card
+// evoque la gestion documentaire) sur les cartes projet et document ; hover:bg-card
 // garde la teinte au survol (sinon remplacee par bg-muted/50), assombrie.
 const DOCUMENT_CARD_TONE = `${MATERIAL_TONES[2]} hover:bg-card hover:brightness-95`;
 
@@ -168,7 +168,7 @@ export default async function DocumentsPage({
           {projects.map((p) => (
             <Link key={p.id} href={`/documents?projetId=${p.id}`}>
               <Card
-                className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
+                className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}
               >
                 <CardHeader>
                   <CardTitle className="text-base">{p.nom}</CardTitle>
