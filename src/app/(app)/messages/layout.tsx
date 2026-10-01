@@ -2,12 +2,18 @@ import type { ReactNode } from "react";
 import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unreadCountsByConversation } from "@/lib/unread-messages";
+import { ensureDepartmentConversation } from "@/lib/department-conversation";
 import { MessagesShell, type ConversationListItem } from "@/components/messages/messages-shell";
 import { ConversationFormDialog } from "@/components/messages/conversation-form-dialog";
 
 export default async function MessagesLayout({ children }: { children: ReactNode }) {
   const session = await getAppSession();
   const userId = session!.user.id;
+
+  // Canal de departement : l'utilisateur rattache a un departement y est
+  // ajoute automatiquement (et le canal cree s'il n'existe pas encore).
+  const me = await prisma.user.findUnique({ where: { id: userId }, select: { departmentId: true } });
+  if (me?.departmentId) await ensureDepartmentConversation(me.departmentId, userId);
 
   const [conversations, users, unreadByConversation] = await Promise.all([
     prisma.conversation.findMany({

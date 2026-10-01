@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getAppSession } from "@/lib/auth";
 import type { Prisma, DocumentType } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,8 @@ export default async function DocumentsPage({
 }: {
   searchParams: Promise<{
     projetId?: string;
+    libres?: string;
+    departementId?: string;
     folderId?: string;
     q?: string;
     uploadedById?: string;
@@ -80,21 +83,32 @@ export default async function DocumentsPage({
     dateTo?: string;
   }>;
 }) {
-  const { projetId, folderId, q, uploadedById, type, docType, archives, dateFrom, dateTo } = await searchParams;
+  const { projetId, libres, departementId, folderId, q, uploadedById, type, docType, archives, dateFrom, dateTo } = await searchParams;
   const showArchives = archives === "1";
+  // Demande utilisateur — documents deposes sans projet ("documents libres").
+  const showLibres = libres === "1" && !projetId;
 
-  const [projects, users] = await Promise.all([
+  const session = await getAppSession();
+  const [projects, users, libresCount, departments, me] = await Promise.all([
     prisma.project.findMany({ orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.document.count({ where: { projectId: null, estArchive: false, deletedAt: null } }),
+    prisma.department.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.user.findUnique({ where: { id: session!.user.id }, select: { departmentId: true } }),
   ]);
+  const projectOptions = projects.map((p) => ({ id: p.id, label: p.nom }));
+  // Demande utilisateur — documents envoyes a un departement.
+  const departmentOptions = departments.map((d) => ({ id: d.id, label: d.name }));
+  const myDepartmentId = me?.departmentId ?? undefined;
 
-  const hasAdvancedFilters = !!uploadedById || !!type || !!docType || !!dateFrom || !!dateTo;
+  const hasAdvancedFilters = !!uploadedById || !!type || !!docType || !!dateFrom || !!dateTo || !!departementId;
 
   // Recherche globale : ignore le dossier courant, peut être limitée à un projet
   if (q || hasAdvancedFilters || showArchives) {
     const where: Prisma.DocumentWhereInput = {
-      projectId: projetId || undefined,
+      projectId: showLibres ? null : projetId || undefined,
       uploadedById: uploadedById || undefined,
+      departmentId: departementId || undefined,
       mimeType: type && MIME_GROUPS[type] ? { in: MIME_GROUPS[type] } : undefined,
       type: docType && DOC_TYPE_LABELS[docType] ? (docType as DocumentType) : undefined,
       estArchive: showArchives ? undefined : false,
@@ -127,7 +141,7 @@ export default async function DocumentsPage({
       id: d.id,
       nom: d.nom,
       description: d.description,
-      projectNom: d.project.nom,
+      projectNom: d.project?.nom ?? "Document libre",
       uploadedByName: documentUploaderName(d),
       createdAt: d.createdAt.toISOString(),
       versionCount: d._count.versions,
@@ -146,6 +160,11 @@ export default async function DocumentsPage({
           projects={projects}
           users={users}
           activeProjectId={projetId}
+          libres={showLibres}
+          libresCount={libresCount}
+          departments={departmentOptions}
+          departementId={departementId}
+          myDepartmentId={myDepartmentId}
           query={q}
           uploadedById={uploadedById}
           type={type}
@@ -160,11 +179,68 @@ export default async function DocumentsPage({
     );
   }
 
+  if (showLibres) {
+    const documents = await prisma.document.findMany({
+      where: { projectId: null, estArchive: false, deletedAt: null },
+      include: {
+        uploadedBy: true,
+        uploadedByContact: true,
+        task: true,
+        meeting: true,
+        _count: { select: { versions: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    const rows: DocumentRow[] = documents.map((d) => ({
+      id: d.id,
+      nom: d.nom,
+      description: d.description,
+      uploadedByName: documentUploaderName(d),
+      createdAt: d.createdAt.toISOString(),
+      versionCount: d._count.versions,
+      taskTitre: d.task?.titre ?? null,
+      taskId: d.taskId,
+      meetingTitre: d.meeting?.titre ?? null,
+      meetingId: d.meetingId,
+      type: d.type,
+      statutSignature: d.statutSignature,
+      estArchive: d.estArchive,
+    }));
+
+    return (
+      <div className="space-y-6">
+        <DocumentsHeader projects={projects} users={users} libres libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Documents libres</CardTitle>
+            <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+          </CardHeader>
+          <CardContent>
+            <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!projetId) {
     return (
       <div className="space-y-6">
-        <DocumentsHeader projects={projects} users={users} query={q} />
+        <DocumentsHeader projects={projects} users={users} libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} />
+        <div className="flex justify-end">
+          <DocumentFormDialog projects={projectOptions} departments={departmentOptions} />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Link href="/documents?libres=1">
+            <Card className={cn("h-full transition-all hover:-translate-y-0.5", DOCUMENT_CARD_TONE)}>
+              <CardHeader>
+                <CardTitle className="text-base">Documents libres</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {libresCount} document(s) sans projet
+              </CardContent>
+            </Card>
+          </Link>
           {projects.map((p) => (
             <Link key={p.id} href={`/documents?projetId=${p.id}`}>
               <Card
@@ -224,7 +300,7 @@ export default async function DocumentsPage({
 
   return (
     <div className="space-y-6">
-      <DocumentsHeader projects={projects} users={users} activeProjectId={projetId} query={q} />
+      <DocumentsHeader projects={projects} users={users} activeProjectId={projetId} libresCount={libresCount} departments={departmentOptions} myDepartmentId={myDepartmentId} query={q} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -251,7 +327,7 @@ export default async function DocumentsPage({
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents</CardTitle>
-            <DocumentFormDialog projectId={projetId} folders={folderOptions} currentFolderId={folderId} />
+            <DocumentFormDialog projectId={projetId} departments={departmentOptions} folders={folderOptions} currentFolderId={folderId} />
           </CardHeader>
           <CardContent>
             <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
@@ -266,6 +342,11 @@ function DocumentsHeader({
   projects,
   users,
   activeProjectId,
+  libres,
+  libresCount = 0,
+  departments = [],
+  departementId,
+  myDepartmentId,
   query,
   uploadedById,
   type,
@@ -277,6 +358,11 @@ function DocumentsHeader({
   projects: { id: string; nom: string }[];
   users: { id: string; name: string }[];
   activeProjectId?: string;
+  libres?: boolean;
+  libresCount?: number;
+  departments?: { id: string; label: string }[];
+  departementId?: string;
+  myDepartmentId?: string;
   query?: string;
   uploadedById?: string;
   type?: string;
@@ -285,7 +371,7 @@ function DocumentsHeader({
   dateFrom?: string;
   dateTo?: string;
 }) {
-  const hasFilters = activeProjectId || query || uploadedById || type || docType || archives || dateFrom || dateTo;
+  const hasFilters = activeProjectId || libres || departementId || query || uploadedById || type || docType || archives || dateFrom || dateTo;
   const selectClass = "h-9 rounded-md border border-input bg-transparent px-2 text-sm";
 
   return (
@@ -293,11 +379,12 @@ function DocumentsHeader({
       <div>
         <h1 className="text-2xl font-semibold">Documents</h1>
         <p className="text-sm text-muted-foreground">
-          Espace documentaire par projet : classement par dossiers, recherche, historique des versions.
+          Espace documentaire : documents par projet (classés par dossiers) ou documents libres, recherche, historique des versions.
         </p>
       </div>
       <form className="flex flex-wrap items-center gap-2" action="/documents">
         {activeProjectId && <input type="hidden" name="projetId" value={activeProjectId} />}
+        {libres && <input type="hidden" name="libres" value="1" />}
         <Input
           name="q"
           placeholder="Rechercher un document..."
@@ -328,6 +415,16 @@ function DocumentsHeader({
             </option>
           ))}
         </select>
+        {departments.length > 0 && (
+          <select name="departementId" defaultValue={departementId ?? ""} className={selectClass}>
+            <option value="">Tous les départements</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        )}
         <input type="date" name="dateFrom" defaultValue={dateFrom} className={selectClass} />
         <input type="date" name="dateTo" defaultValue={dateTo} className={selectClass} />
         <label className="flex h-9 items-center gap-1.5 rounded-md border border-input px-2 text-sm text-muted-foreground">
@@ -345,8 +442,24 @@ function DocumentsHeader({
           </Link>
         )}
       </form>
-      {projects.length > 0 && (
+      {(projects.length > 0 || libresCount > 0) && (
         <div className="flex flex-wrap gap-2 text-sm">
+          <Link
+            href="/documents?libres=1"
+            className={`rounded-full border px-3 py-1 ${libres ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            Documents libres ({libresCount})
+          </Link>
+          {myDepartmentId && (
+            <Link
+              href={`/documents?departementId=${myDepartmentId}`}
+              className={`rounded-full border px-3 py-1 ${
+                departementId === myDepartmentId ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+              }`}
+            >
+              Mon département
+            </Link>
+          )}
           {projects.map((p) => (
             <Link
               key={p.id}

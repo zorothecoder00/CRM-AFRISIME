@@ -65,6 +65,7 @@ export default async function DocumentDetailPage({
     include: {
       project: true,
       folder: true,
+      department: { select: { name: true } },
       task: true,
       meeting: true,
       uploadedBy: true,
@@ -126,11 +127,20 @@ export default async function DocumentDetailPage({
             )}
             {document.estArchive && <Badge variant="outline">Archivé</Badge>}
           </div>
-          <Link href={`/projets/${document.projectId}`} className="text-sm text-muted-foreground hover:underline">
-            {document.project.nom}
-          </Link>
+          {document.project ? (
+            <Link href={`/projets/${document.project.id}`} className="text-sm text-muted-foreground hover:underline">
+              {document.project.nom}
+            </Link>
+          ) : (
+            <Link href="/documents?libres=1" className="text-sm text-muted-foreground hover:underline">
+              Document libre (sans projet)
+            </Link>
+          )}
           {document.folder && (
             <span className="text-sm text-muted-foreground"> · {document.folder.nom}</span>
+          )}
+          {document.department && (
+            <span className="text-sm text-muted-foreground"> · Envoyé au département {document.department.name}</span>
           )}
           <div className="mt-2">
             <EntityTagsEditor entityType="Document" entityId={document.id} initialTags={tags} canManage={canManageAccess} />

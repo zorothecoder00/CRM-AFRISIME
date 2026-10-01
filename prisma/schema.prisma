@@ -223,6 +223,8 @@ enum NotificationType {
   // quand le statut change, independamment du moteur AutomationRule
   // (optionnel/configurable) — notification directe et systematique.
   STATUT_MODIFIE
+  // Document envoye a un departement (Document.departmentId) : notifie ses membres.
+  DOCUMENT_DEPARTEMENT
 }
 
 // Cahier des charges §9 — circuit de validation configurable : une chaine
@@ -884,6 +886,11 @@ model Department {
   transformations     Transformation[]
   orgDesignDrafts     OrgDesignDraft[]
   projectIdeas        ProjectIdea[]
+  // Demande utilisateur 2026-10-01 — documents envoyes au departement et
+  // canal de discussion du departement (voir Document.departmentId /
+  // Conversation.departmentId).
+  documents           Document[]
+  conversation        Conversation?
   createdAt           DateTime              @default(now())
 
   @@index([entityId])
@@ -3233,8 +3240,10 @@ enum DocumentValidationStatus {
 
 model Document {
   id                           String                   @id @default(cuid())
-  projectId                    String
-  project                      Project                  @relation(fields: [projectId], references: [id])
+  // Facultatif (demande utilisateur 2026-10-01) : un document peut etre
+  // depose dans /documents sans etre rattache a un projet ("document libre").
+  projectId                    String?
+  project                      Project?                 @relation(fields: [projectId], references: [id], onDelete: Restrict)
   // Multi-tenant Phase 1 lot 4 (2026-08-20) — meme statut que Task/
   // ProjectSection : nullable, reversible, denormalise depuis
   // project.organizationId.
@@ -3242,6 +3251,11 @@ model Document {
   organization                 PlatformOrganization?    @relation("PlatformOrganizationDocuments", fields: [organizationId], references: [id])
   folderId                     String?
   folder                       DocumentFolder?          @relation(fields: [folderId], references: [id])
+  // Departement destinataire (facultatif) : ses membres sont notifies au
+  // depot et retrouvent le document via le filtre departement de /documents.
+  // Le document reste visible des autres comme avant (pas de restriction).
+  departmentId                 String?
+  department                   Department?              @relation(fields: [departmentId], references: [id])
   sectionId                    String?
   section                      ProjectSection?          @relation(fields: [sectionId], references: [id])
   taskId                       String?
@@ -3295,6 +3309,7 @@ model Document {
 
   @@index([projectId])
   @@index([folderId])
+  @@index([departmentId])
   @@index([sectionId])
   @@index([taskId])
   @@index([meetingId])
@@ -3868,6 +3883,11 @@ model Conversation {
   // synchronises sur TeamMember plutot que geres manuellement.
   teamId         String?               @unique
   team           Team?                 @relation(fields: [teamId], references: [id])
+  // Canal de departement, meme principe que teamId : un seul canal par
+  // departement, participants synchronises sur User.departmentId (voir
+  // src/lib/department-conversation.ts).
+  departmentId   String?               @unique
+  department     Department?           @relation(fields: [departmentId], references: [id])
   createdById    String
   createdBy      User                  @relation("ConversationCreatedBy", fields: [createdById], references: [id])
   // Multi-tenant Phase 1 lot 9 (2026-08-20) — meme statut que les lots

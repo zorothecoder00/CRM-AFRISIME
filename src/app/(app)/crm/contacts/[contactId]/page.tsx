@@ -275,7 +275,7 @@ export default async function CrmContactDetailPage({
                         <Link href={`/documents/${d.id}`} className="text-primary hover:underline">
                           {d.nom}
                         </Link>
-                        <span className="text-muted-foreground"> · {d.project.nom}</span>
+                        <span className="text-muted-foreground"> · {d.project?.nom ?? "Document libre"}</span>
                       </li>
                     ))}
                   </ul>

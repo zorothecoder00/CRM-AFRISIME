@@ -36,6 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
   DEMANDE_REAFFECTATION_TACHE: "Demande de réaffectation",
   DISPONIBILITE_MODIFIEE: "Disponibilité modifiée",
   STATUT_MODIFIE: "Statut modifié",
+  DOCUMENT_DEPARTEMENT: "Document reçu (département)",
 };
 
 export default async function NotificationsPage() {

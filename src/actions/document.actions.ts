@@ -24,7 +24,7 @@ import {
   type ReviewPortalDeliverableInput,
 } from "@/lib/validations/document.schema";
 import { getPortalSession } from "@/lib/portal-auth";
-import { createNotification } from "@/lib/notify";
+import { createNotification, notifyMany } from "@/lib/notify";
 
 async function requireSession() {
   const session = await getServerSession(authOptions);
@@ -125,12 +125,17 @@ export async function createDocument(input: CreateDocumentInput) {
   requirePermission(session.user.permissions, PERMISSIONS.DOCUMENT_CREATE);
 
   const data = createDocumentSchema.parse(input);
+  // Document libre (sans projet) : dossiers et phases sont propres a un
+  // projet, on ne les rattache donc qu'en presence d'un projet.
+  const projectId = data.projectId || undefined;
+  const departmentId = data.departmentId || undefined;
 
   const document = await prisma.document.create({
     data: {
-      projectId: data.projectId,
-      folderId: data.folderId || undefined,
-      sectionId: data.sectionId || undefined,
+      projectId,
+      departmentId,
+      folderId: projectId ? data.folderId || undefined : undefined,
+      sectionId: projectId ? data.sectionId || undefined : undefined,
       taskId: data.taskId || undefined,
       meetingId: data.meetingId || undefined,
       nom: data.nom,
@@ -158,12 +163,32 @@ export async function createDocument(input: CreateDocumentInput) {
     action: "document.created",
     entityType: "Document",
     entityId: document.id,
-    changes: { nom: document.nom, projectId: data.projectId },
+    changes: { nom: document.nom, projectId: projectId ?? null, departmentId: departmentId ?? null },
   });
 
+  // Document envoye a un departement : ses membres actifs sont notifies
+  // (l'auteur exclu par notifyMany).
+  if (departmentId) {
+    const members = await prisma.user.findMany({
+      where: { departmentId, isActive: true },
+      select: { id: true },
+    });
+    await notifyMany(
+      members.map((m) => m.id),
+      session.user.id,
+      {
+        type: "DOCUMENT_DEPARTEMENT",
+        titre: `Nouveau document pour votre département : ${document.nom}`,
+        lien: `/documents/${document.id}`,
+        entityType: "Document",
+        entityId: document.id,
+      }
+    );
+  }
+
   revalidatePath("/documents");
-  revalidatePath(`/projets/${data.projectId}`);
-  if (data.sectionId) revalidatePath(`/projets/${data.projectId}/sections/${data.sectionId}`);
+  if (projectId) revalidatePath(`/projets/${projectId}`);
+  if (projectId && data.sectionId) revalidatePath(`/projets/${projectId}/sections/${data.sectionId}`);
   if (data.taskId) revalidatePath(`/taches/${data.taskId}`);
   if (data.meetingId) revalidatePath(`/reunions/${data.meetingId}`);
   return document;

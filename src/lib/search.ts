@@ -251,7 +251,7 @@ export async function globalSearch(
           type: "Document" as const,
           id: d.id,
           title: d.nom,
-          subtitle: d.project.nom,
+          subtitle: d.project?.nom ?? "Document libre",
           href: `/documents/${d.id}`,
           _entityType: "Document",
         }));

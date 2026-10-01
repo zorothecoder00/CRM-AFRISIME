@@ -19,7 +19,10 @@ export const documentTypeSchema = z.enum([
 ]);
 
 export const createDocumentSchema = z.object({
-  projectId: z.string().min(1, "Un projet est requis."),
+  // Facultatif : sans projet, le document est un "document libre" de /documents.
+  projectId: z.string().optional(),
+  // Departement destinataire (facultatif) : ses membres sont notifies.
+  departmentId: z.string().optional(),
   folderId: z.string().optional(),
   sectionId: z.string().optional(),
   taskId: z.string().optional(),

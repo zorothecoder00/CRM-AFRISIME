@@ -14,6 +14,7 @@ import {
   Handshake,
   Users,
   Users2,
+  Building,
   Building2,
   Kanban,
   Layers,
@@ -199,6 +200,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { titleKey: "gouvernanceDonnees", href: "/gouvernance-donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
       { titleKey: "administrationDonnees", href: "/administration/donnees", icon: Database, permission: PERMISSIONS.DATA_BACKUP_MANAGE },
       { titleKey: "equipes", href: "/administration/equipes", icon: Users2, permission: PERMISSIONS.TEAM_CREATE },
+      { titleKey: "departements", href: "/administration/departements", icon: Building, permission: PERMISSIONS.DEPARTMENT_MANAGE },
       {
         titleKey: "administrationUtilisateurs",
         href: "/administration/utilisateurs",

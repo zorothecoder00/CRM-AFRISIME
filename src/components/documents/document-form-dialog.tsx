@@ -40,8 +40,12 @@ const TYPE_LABELS: Record<string, string> = {
   MODELE: "Modèle",
 };
 
+const NO_PROJECT = "__none__";
+
 export function DocumentFormDialog({
   projectId,
+  projects,
+  departments,
   folders,
   currentFolderId,
   sectionId,
@@ -49,7 +53,12 @@ export function DocumentFormDialog({
   meetingId,
   triggerLabel = "Nouveau document",
 }: {
-  projectId: string;
+  /** Absent : document libre, avec choix facultatif d'un projet via `projects`. */
+  projectId?: string;
+  /** Projets proposes quand `projectId` n'est pas impose (rattachement facultatif). */
+  projects?: Option[];
+  /** Departements proposes comme destinataire facultatif (membres notifies). */
+  departments?: Option[];
   folders?: Option[];
   currentFolderId?: string;
   sectionId?: string;
@@ -73,9 +82,9 @@ export function DocumentFormDialog({
   const { run: submit, isPending } = useAction(createDocument, { successMessage: "Document ajouté." });
 
   async function onSubmit(data: CreateDocumentInput) {
-    const result = await submit({ ...data, projectId, sectionId, taskId, meetingId });
+    const result = await submit({ ...data, projectId: projectId ?? data.projectId, sectionId, taskId, meetingId });
     if (result.ok) {
-      reset();
+      reset({ projectId, folderId: currentFolderId, sectionId, taskId, meetingId, type: "AUTRE", nom: "", url: "", description: "" });
       setUploadedFileName(null);
       setOpen(false);
     }
@@ -152,6 +161,51 @@ export function DocumentFormDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {!projectId && projects && (
+            <div className="space-y-2">
+              <Label>Projet (facultatif)</Label>
+              <Select
+                defaultValue={NO_PROJECT}
+                onValueChange={(v) => setValue("projectId", v === NO_PROJECT ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_PROJECT}>Aucun projet (document libre)</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {departments && departments.length > 0 && (
+            <div className="space-y-2">
+              <Label>Envoyer à un département (facultatif)</Label>
+              <Select
+                defaultValue={NO_PROJECT}
+                onValueChange={(v) => setValue("departmentId", v === NO_PROJECT ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_PROJECT}>Aucun département</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Les membres du département seront notifiés.</p>
+            </div>
+          )}
 
           {folders && folders.length > 0 && (
             <div className="space-y-2">

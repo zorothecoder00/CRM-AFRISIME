@@ -110,7 +110,7 @@ export default async function CorbeillePage() {
               <div>
                 <p className="text-sm font-medium">{d.nom}</p>
                 <p className="text-xs text-muted-foreground">
-                  {d.project.nom} · Supprimé par {d.deletedBy?.name ?? "—"} le {d.deletedAt!.toLocaleDateString("fr-FR")}
+                  {d.project?.nom ?? "Document libre"} · Supprimé par {d.deletedBy?.name ?? "—"} le {d.deletedAt!.toLocaleDateString("fr-FR")}
                   {" · "}
                   <Badge variant="outline">{daysUntilPurge(d.deletedAt!)} j avant purge recommandée</Badge>
                 </p>

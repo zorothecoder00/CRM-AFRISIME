@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { MessagesSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DepartmentFormDialog } from "@/components/administration/department-form-dialog";
 import { cn } from "@/lib/utils";
 import { materialTone } from "@/lib/card-tones";
@@ -54,6 +57,13 @@ export function DepartmentTree({
               </span>
             </div>
             <div className="flex items-center gap-1">
+              {/* Canal de discussion du departement (cree a la premiere ouverture). */}
+              <Button asChild variant="ghost" size="sm">
+                <Link href={`/messages/departement/${node.id}`}>
+                  <MessagesSquare className="mr-1 h-4 w-4" />
+                  Canal
+                </Link>
+              </Button>
               <DepartmentFormDialog
                 parentOptions={parentOptions}
                 entities={entities}
