@@ -5,7 +5,6 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RuleFormDialog } from "@/components/automation/rule-form-dialog";
 import { RuleList, type RuleData } from "@/components/automation/rule-list";
-import { accentForStatus } from "@/lib/status-tone";
 import { Globe2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { materialTone } from "@/lib/card-tones";
@@ -42,7 +41,6 @@ export default async function AutomatisationsPage({
           {projects.map((p, i) => (
             <Link key={p.id} href={`/automatisations?projetId=${p.id}`}>
               <Card
-                accent={accentForStatus(p.statut)}
                 className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(i + 1))}
               >
                 <CardHeader>

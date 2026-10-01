@@ -82,10 +82,9 @@ export default async function PilotagePage() {
               return (
                 <Link key={direction.id} href={`/pilotage/departement/${direction.id}`}>
                   <Card
-                    accent={accent}
                     className={cn(
                       "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg",
-                      noActiveProjects && "border-dashed border-t-muted-foreground/40", materialTone(i))}
+                      materialTone(i))}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">
                       <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md", iconToneForAccent(accent))}>

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { toneForStatus } from "@/lib/status-tone";
+import { TONE_BG } from "@/lib/card-tones";
 
 export type ExecutionTaskRow = {
   id: string;
@@ -56,8 +57,8 @@ export function ProjectExecutionView({
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard label="Avancement" value={`${avancement}%`} />
-        <KpiCard label="Tâches ouvertes" value={openTasks.length} accent={overdueTasks.length > 0 ? "destructive" : undefined} />
-        <KpiCard label="Risques actifs" value={activeRisks.length} accent={activeRisks.length > 0 ? "warning" : undefined} />
+        <KpiCard label="Tâches ouvertes" value={openTasks.length} className={overdueTasks.length > 0 ? TONE_BG.destructive : undefined} />
+        <KpiCard label="Risques actifs" value={activeRisks.length} className={activeRisks.length > 0 ? TONE_BG.warning : undefined} />
         <KpiCard label="Budget engagé" value={`${Math.round((budgetEngage / (budgetPrevu || 1)) * 100)}%`} />
       </div>
 

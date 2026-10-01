@@ -76,7 +76,7 @@ export default async function OrchestrationPage() {
       ) : (
         <div className="space-y-3">
           {playbooks.map((pb) => (
-            <Card key={pb.id} accent={pb.isActive ? "success" : "none"}>
+            <Card key={pb.id}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-base">{pb.nom}</CardTitle>

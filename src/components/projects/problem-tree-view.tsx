@@ -34,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GripVertical, Plus, Trash2, Pencil, Link2 } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 type Option = { id: string; label: string };
 export type LinkedDocument = { linkId: string; documentId: string; nom: string };
@@ -95,7 +96,7 @@ export function ProblemTreeView({
         Conséquences et causes directes/profondes autour du problème central.
       </p>
 
-      <Card accent="destructive">
+      <Card className={TONE_BG.destructive}>
         <CardContent className="space-y-1 px-(--card-spacing)">
           <div className="flex items-start justify-between gap-2">
             <div>

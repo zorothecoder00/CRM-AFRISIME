@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, EyeOff } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 const AGENT_LABELS: Record<string, string> = {
   PROJECT_MANAGER: "AI Project Manager",
@@ -60,7 +61,7 @@ function InsightCard({ insight }: { insight: InsightData }) {
   const tone = TYPE_TONE[insight.type] ?? "info";
 
   return (
-    <Card accent={statut === "NOUVEAU" ? tone : "none"}>
+    <Card className={statut === "NOUVEAU" ? TONE_BG[tone] : undefined}>
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div>
           <div className="flex flex-wrap items-center gap-2">

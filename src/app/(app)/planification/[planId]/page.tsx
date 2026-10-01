@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { PlanFormDialog } from "@/components/planning/plan-form-dialog";
 import { LinkObjectiveForm } from "@/components/planning/link-objective-form";
 import { LinkProgrammeForm } from "@/components/planning/link-programme-form";
@@ -103,7 +103,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
           )}
         </div>
 
-        <Card accent={accentForStatus(plan.statut)}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Informations générales</CardTitle>
             {canManage && (

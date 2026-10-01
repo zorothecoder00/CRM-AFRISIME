@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { CriticalPathResult } from "@/lib/critical-path";
+import { TONE_BG } from "@/lib/card-tones";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -52,7 +53,7 @@ export function CriticalPathView({
             <div className="text-lg font-semibold">{projectEndDays} jour(s)</div>
           </CardContent>
         </Card>
-        <Card size="sm" accent={impactJours !== null && impactJours > 0 ? "destructive" : undefined}>
+        <Card size="sm" className={impactJours !== null && impactJours > 0 ? TONE_BG.destructive : undefined}>
           <CardContent className="px-(--card-spacing)">
             <div className="text-xs text-muted-foreground">Impact sur la date finale</div>
             <div className="text-lg font-semibold">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, type CardAccent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,23 +38,11 @@ const SIGNATURE_LABELS: Record<string, string> = {
   REFUSE: "Signature refusée",
 };
 
-// Un document rattache a une tache ou une reunion est colore en consequence
-// (info/primary) ; un document a la racine du projet reste neutre. Donne un
-// repere visuel immediat sur la provenance du document dans une longue liste.
-function accentForDocument(doc: DocumentRow): CardAccent {
-  if (doc.taskId) return "info";
-  if (doc.meetingId) return "primary";
-  return "none";
-}
-
 export function DocumentList({
   documents,
-  accentBars = true,
   cardClassName,
 }: {
   documents: DocumentRow[];
-  /** false : sans barre d'accent (demande utilisateur sur /projets/[id]). */
-  accentBars?: boolean;
   /** Classes en plus sur chaque carte document (ex. teinte de fond). */
   cardClassName?: string;
 }) {
@@ -68,7 +56,6 @@ export function DocumentList({
         <li key={doc.id}>
           <Link href={`/documents/${doc.id}`}>
             <Card
-              accent={accentBars ? accentForDocument(doc) : "none"}
               size="sm"
               className={cn(
                 "flex-row flex-wrap items-center justify-between gap-2 transition-all hover:-translate-y-0.5 hover:bg-muted/50 sm:flex-nowrap",

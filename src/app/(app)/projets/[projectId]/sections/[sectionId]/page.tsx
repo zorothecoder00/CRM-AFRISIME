@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
@@ -114,7 +114,7 @@ export default async function SectionDetailPage({
       </div>
 
       <div className="space-y-6">
-        <Card accent={accentForStatus(section.statut)}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>

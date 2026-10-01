@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Plus } from "lucide-react";
 import type { TreeNode } from "@/lib/tree";
+import { TONE_BG } from "@/lib/card-tones";
 
 export type ObjectiveNodeData = SmartCriteria & {
   id: string;
@@ -67,7 +68,7 @@ export function ProjectObjectivesBuilder({
       </div>
 
       {issues.length > 0 && (
-        <Card accent="warning">
+        <Card className={TONE_BG.warning}>
           <CardContent className="space-y-1 px-(--card-spacing)">
             <div className="flex items-center gap-2 text-sm font-medium">
               <AlertTriangle className="h-4 w-4" />

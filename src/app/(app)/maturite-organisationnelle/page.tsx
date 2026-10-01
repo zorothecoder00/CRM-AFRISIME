@@ -6,7 +6,7 @@ import { computeMaturityAssessment } from "@/lib/maturity-assessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/objectives/progress-bar";
-import { materialTone } from "@/lib/card-tones";
+import { materialTone, TONE_BG } from "@/lib/card-tones";
 
 function toneForScore(score: number): "success" | "warning" | "destructive" {
   if (score >= 70) return "success";
@@ -36,7 +36,7 @@ export default async function MaturiteOrganisationnellePage() {
         </p>
       </div>
 
-      <Card accent={toneForScore(assessment.score)}>
+      <Card className={TONE_BG[toneForScore(assessment.score)]}>
         <CardHeader>
           <CardTitle className="text-base">Maturité organisationnelle</CardTitle>
         </CardHeader>

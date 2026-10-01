@@ -10,6 +10,7 @@ import { StakeholderProjectsSection } from "@/components/stakeholders/stakeholde
 import { StakeholderCommunications } from "@/components/stakeholders/stakeholder-communications";
 import { Users as UsersIcon, AlertTriangle } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
+import { TONE_BG } from "@/lib/card-tones";
 
 const NIVEAU_LABELS: Record<string, string> = { FAIBLE: "Faible", MOYEN: "Moyen", ELEVE: "Élevé" };
 const POSITION_LABELS: Record<string, string> = { FAVORABLE: "Favorable", NEUTRE: "Neutre", OPPOSANT: "Opposant" };
@@ -194,7 +195,7 @@ export default async function StakeholderDetailPage({
         </Card>
 
         {stakeholder.risquesRelationnels && (
-          <Card accent="destructive">
+          <Card className={TONE_BG.destructive}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <AlertTriangle className="h-4 w-4" />

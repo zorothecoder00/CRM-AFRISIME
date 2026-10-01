@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForOpportunityStatus, accentForOpportunityStatus } from "@/lib/status-tone";
+import { toneForOpportunityStatus } from "@/lib/status-tone";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
@@ -93,7 +93,7 @@ export default async function PortalOpportunityDetailPage({
           </Badge>
         </div>
 
-        <Card accent={accentForOpportunityStatus(opportunity.statut)}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>

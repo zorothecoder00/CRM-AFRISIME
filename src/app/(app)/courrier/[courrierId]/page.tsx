@@ -6,7 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { canViewCourrier } from "@/lib/courrier-access";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForCourrierStatus, accentForCourrierStatus } from "@/lib/status-tone";
+import { toneForCourrierStatus } from "@/lib/status-tone";
 import { CourrierFormDialog } from "@/components/courrier/courrier-form-dialog";
 import { CourrierStatusSelect } from "@/components/courrier/courrier-status-select";
 import { LinkTaskForm } from "@/components/courrier/link-task-form";
@@ -78,7 +78,7 @@ export default async function CourrierDetailPage({
           <p className="mt-1 text-sm text-muted-foreground">{courrier.reference}</p>
         </div>
 
-        <Card accent={accentForCourrierStatus(courrier.statut)}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Informations</CardTitle>
             {canManage && (

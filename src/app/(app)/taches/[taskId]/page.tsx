@@ -401,7 +401,7 @@ export default async function TaskDetailPage({
             <DocumentFormDialog projectId={task.projectId} taskId={task.id} triggerLabel="Lier un document" />
           </CardHeader>
           <CardContent>
-            <DocumentList documents={documentRows} accentBars={false} />
+            <DocumentList documents={documentRows} />
           </CardContent>
         </Card>
 

@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { GripVertical, Plus, Trash2, Pencil, Wand2 } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 export type SolutionTreeNodeData = {
   id: string;
@@ -83,7 +84,7 @@ export function SolutionTreeView({
 
   return (
     <div className="space-y-6">
-      <Card accent="success">
+      <Card className={TONE_BG.success}>
         <CardContent className="space-y-1 px-(--card-spacing)">
           <div className="flex items-start justify-between gap-2">
             <div>

@@ -155,7 +155,7 @@ export default async function DocumentsPage({
           dateTo={dateTo}
         />
         <p className="text-sm text-muted-foreground">{rows.length} résultat(s)</p>
-        <DocumentList documents={rows} accentBars={false} cardClassName={DOCUMENT_CARD_TONE} />
+        <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
       </div>
     );
   }
@@ -254,7 +254,7 @@ export default async function DocumentsPage({
             <DocumentFormDialog projectId={projetId} folders={folderOptions} currentFolderId={folderId} />
           </CardHeader>
           <CardContent>
-            <DocumentList documents={rows} accentBars={false} cardClassName={DOCUMENT_CARD_TONE} />
+            <DocumentList documents={rows} cardClassName={DOCUMENT_CARD_TONE} />
           </CardContent>
         </Card>
       </div>

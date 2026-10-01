@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { WorkforceControlSimulateButton } from "@/components/personal-planning/workforce-control-simulate-button";
 import { Grid3x3, BrainCircuit } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 /**
  * "Workforce Control" (prototype V2, groupe Management) — remplace
@@ -97,7 +98,7 @@ export default async function WorkforceControlPage() {
         />
       </div>
 
-      <Card accent={overloaded ? "warning" : "none"}>
+      <Card className={overloaded ? TONE_BG.warning : undefined}>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <BrainCircuit className="h-4 w-4" />

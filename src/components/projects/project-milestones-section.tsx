@@ -140,7 +140,7 @@ export function ProjectMilestonesSection({
                           />
                         )}
                       </div>
-                      <DependencyList dependencies={m.dependencies} canManage={canManage} accentBars={false} />
+                      <DependencyList dependencies={m.dependencies} canManage={canManage} />
                     </div>
                   )}
                 </CardContent>

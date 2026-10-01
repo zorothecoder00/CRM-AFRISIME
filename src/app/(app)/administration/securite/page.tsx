@@ -18,7 +18,7 @@ import {
 import { SessionList } from "@/components/security/session-list";
 import { detectSuspiciousActivity, computePermissionsOverview } from "@/lib/security-trust-center";
 import { withTenantScopedSession } from "@/lib/tenant-scoped-prisma";
-import { materialTone } from "@/lib/card-tones";
+import { materialTone, MATERIAL_RED } from "@/lib/card-tones";
 import { ExpandableTableRows } from "@/components/ui/expandable-list";
 
 export default async function SecuritePage() {
@@ -128,7 +128,7 @@ export default async function SecuritePage() {
       </div>
 
       {suspiciousActivity.length > 0 && (
-        <Card className={materialTone(0)} accent="destructive">
+        <Card className={MATERIAL_RED}>
           <CardHeader>
             <CardTitle className="text-base">Activités suspectes</CardTitle>
           </CardHeader>
@@ -262,7 +262,7 @@ export default async function SecuritePage() {
       </Card>
 
       {pushFailuresCount > 0 && (
-        <Card className={materialTone(6)} accent="destructive">
+        <Card className={MATERIAL_RED}>
           <CardHeader>
             <CardTitle className="text-base">
               Échecs d&apos;envoi push (30 derniers jours) — {pushFailuresCount}

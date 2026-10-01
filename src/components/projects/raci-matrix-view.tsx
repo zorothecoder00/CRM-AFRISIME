@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Plus, X } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 type Option = { id: string; label: string };
 
@@ -71,7 +72,7 @@ export function RaciMatrixView({
       </p>
 
       {issues.length > 0 && (
-        <Card accent="warning">
+        <Card className={TONE_BG.warning}>
           <CardContent className="space-y-1 px-(--card-spacing)">
             <div className="flex items-center gap-2 text-sm font-medium">
               <AlertTriangle className="h-4 w-4" />

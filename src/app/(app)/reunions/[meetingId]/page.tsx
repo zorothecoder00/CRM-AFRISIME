@@ -180,7 +180,7 @@ export default async function MeetingDetailPage({
                 Réunion sans projet : liez-la à un projet pour pouvoir y attacher des documents.
               </p>
             )}
-            <DocumentList documents={documentRows} accentBars={false} />
+            <DocumentList documents={documentRows} />
           </CardContent>
         </Card>
       </div>

@@ -62,3 +62,20 @@ export const BRAND_CARD_BG: Record<BrandTint, string> = {
   green: "bg-[color-mix(in_oklch,var(--card),#2f9e2f_12%)]",
   gold: "bg-[color-mix(in_oklch,var(--card),#f2b705_12%)]",
 };
+
+// Demande utilisateur — plus de barres d'accent en tete de carte : quand la
+// couleur portait un sens (alerte, score, categorie SWOT...), elle passe sur
+// le fond du bloc via ces teintes, indexees comme la prop `accent` de <Card>.
+export const TONE_BG = {
+  none: "",
+  primary: "bg-primary/15",
+  info: "bg-info/15",
+  success: "bg-success/15",
+  warning: "bg-warning/15",
+  destructive: "bg-destructive/15",
+} as const;
+
+/** Fond d'alerte uniquement (rouge / orange) ; rien pour les tons neutres ou positifs. */
+export function alertBg(tone: keyof typeof TONE_BG): string {
+  return tone === "destructive" || tone === "warning" ? TONE_BG[tone] : "";
+}

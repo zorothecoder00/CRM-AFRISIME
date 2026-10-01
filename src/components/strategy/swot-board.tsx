@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 const CATEGORY_META: Record<(typeof SWOT_CATEGORIES)[number], { label: string; accent: "success" | "destructive" | "info" | "warning" }> = {
   FORCE: { label: "Forces", accent: "success" },
@@ -67,7 +68,7 @@ export function SwotBoard({ board, canManage }: { board: SwotBoardData; canManag
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {SWOT_CATEGORIES.map((cat) => (
-        <Card key={cat} accent={CATEGORY_META[cat].accent}>
+        <Card key={cat} className={TONE_BG[CATEGORY_META[cat].accent]}>
           <CardHeader>
             <CardTitle className="text-sm">{CATEGORY_META[cat].label}</CardTitle>
           </CardHeader>

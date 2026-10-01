@@ -317,7 +317,7 @@ export default async function ProjectDetailPage({
                 />
               )}
             </div>
-            <DependencyList dependencies={dependencyRows} canManage={canUpdateProject} accentBars={false} />
+            <DependencyList dependencies={dependencyRows} canManage={canUpdateProject} />
           </div>
         </TabsContent>
 
@@ -469,7 +469,7 @@ export default async function ProjectDetailPage({
               <CardTitle className="text-base">Documents (racine)</CardTitle>
             </CardHeader>
             <CardContent>
-              <DocumentList documents={documentRows} accentBars={false} />
+              <DocumentList documents={documentRows} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -503,7 +503,7 @@ export default async function ProjectDetailPage({
               />
             )}
           </div>
-          <RuleList rules={ruleData} canManage={canManageAutomation} accentBars={false} />
+          <RuleList rules={ruleData} canManage={canManageAutomation} />
         </TabsContent>
 
       </Tabs>

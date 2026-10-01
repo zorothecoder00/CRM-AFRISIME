@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
@@ -43,7 +43,6 @@ export default async function PortalProgrammesPage() {
         {programmes.map((programme) => (
           <Link key={programme.id} href={`/portail/programmes/${programme.id}`}>
             <Card
-              accent={accentForStatus(programme.statut)}
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
             >
               <CardHeader>

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar } from "@/components/objectives/progress-bar";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
-import { materialTone } from "@/lib/card-tones";
+import { materialTone, MATERIAL_RED } from "@/lib/card-tones";
 
 const TOP_N = 10;
 
@@ -70,7 +70,7 @@ export default async function PredictionsPage() {
         </p>
       </div>
 
-      <Card accent={earlyWarning.risqueEmergent ? "destructive" : "none"} className={materialTone(4)}>
+      <Card className={earlyWarning.risqueEmergent ? MATERIAL_RED : materialTone(4)}>
         <CardHeader className="flex flex-row items-center gap-2">
           <ShieldAlert className="size-4 text-muted-foreground" />
           <CardTitle className="text-base">Signaux faibles (Early Warning System)</CardTitle>

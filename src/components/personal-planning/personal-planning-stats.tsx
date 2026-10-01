@@ -3,6 +3,7 @@ import { formatHours } from "@/lib/personal-planning-workload";
 import { KpiCard, type KpiDelta } from "@/components/ui/kpi-card";
 import type { CardAccent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { TONE_BG, alertBg } from "@/lib/card-tones";
 
 export type PersonalPlanningStatsData = {
   tachesJour: number;
@@ -64,7 +65,6 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           label="Mes tâches (jour)"
           value={stats.tachesJour}
           delta={dayDelta(stats.tachesJour, stats.tachesJourHier)}
-          accent="primary"
           size="sm"
           compact
           className={cardClassName}
@@ -76,10 +76,9 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           label="En retard"
           value={stats.enRetard}
           delta={dayDelta(stats.enRetard, stats.enRetardHier, false)}
-          accent={stats.enRetard > 0 ? "destructive" : "success"}
           size="sm"
           compact
-          className={cardClassName}
+          className={cn(cardClassName, stats.enRetard > 0 && TONE_BG.destructive)}
           valueClassName={valueClassName}
         />
       </Link>
@@ -87,10 +86,9 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         <KpiCard
           label="Temps disponible"
           value={`${formatHours(disponibleHeures)}`}
-          accent={disponibleAccent}
           size="sm"
           compact
-          className={cardClassName}
+          className={cn(cardClassName, alertBg(disponibleAccent))}
           valueClassName={valueClassName}
         />
       </Link>
@@ -99,7 +97,6 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
           label="Réunions (jour)"
           value={stats.reunions}
           delta={dayDelta(stats.reunions, stats.reunionsHier)}
-          accent="primary"
           size="sm"
           compact
           className={cardClassName}
@@ -110,10 +107,9 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         <KpiCard
           label="Charge de travail"
           value={`${formatHours(stats.chargeHeures)} / ${formatHours(stats.capaciteHeures)}`}
-          accent={chargeAccent}
           size="sm"
           compact
-          className={cardClassName}
+          className={cn(cardClassName, alertBg(chargeAccent))}
           valueClassName={cn(valueClassName, "text-lg")}
         />
       </Link>
@@ -121,10 +117,9 @@ export function PersonalPlanningStats({ stats }: { stats: PersonalPlanningStatsD
         <KpiCard
           label="Planning Health"
           value={`${stats.planningHealth}/100`}
-          accent={healthAccent}
           size="sm"
           compact
-          className={cardClassName}
+          className={cn(cardClassName, alertBg(healthAccent))}
           valueClassName={valueClassName}
         />
       </Link>

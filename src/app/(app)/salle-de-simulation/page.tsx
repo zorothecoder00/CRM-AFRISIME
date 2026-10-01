@@ -63,7 +63,7 @@ export default async function SalleDeSimulationPage({
         </p>
       </div>
 
-      <Card accent="info">
+      <Card>
         <CardHeader className="flex flex-row items-center gap-2">
           <Gauge className="size-5 text-info" />
           <CardTitle className="text-base">Situation actuelle</CardTitle>

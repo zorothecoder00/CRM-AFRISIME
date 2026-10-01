@@ -13,7 +13,7 @@ import {
 import { ScopePilotagePanel } from "@/components/pilotage/scope-pilotage-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus, iconToneForAccent } from "@/lib/status-tone";
+import { toneForStatus, iconToneForAccent } from "@/lib/status-tone";
 import { UserAvatar } from "@/components/messages/user-avatar";
 import { getOrganizationDevise } from "@/lib/currency";
 import { cn } from "@/lib/utils";
@@ -139,10 +139,8 @@ export default async function DepartmentPilotagePage({
               return (
                 <Link key={child.id} href={`/pilotage/departement/${child.id}`}>
                   <Card
-                    accent={accent}
                     className={cn(
-                      "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg",
-                      noActiveProjects && "border-dashed border-t-muted-foreground/40"
+                      "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
                     )}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">
@@ -182,7 +180,7 @@ export default async function DepartmentPilotagePage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {members.map((m) => (
               <Link key={m.id} href={`/pilotage/utilisateur/${m.id}`}>
-                <Card accent="info" className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg">
+                <Card className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg">
                   <CardContent className="flex items-center gap-3 py-3">
                     <UserAvatar name={m.name} image={m.image} />
                     <div className="min-w-0">
@@ -205,7 +203,6 @@ export default async function DepartmentPilotagePage({
               <Link key={t.id} href={`/pilotage/equipe/${t.id}`}>
                 <Card
                   size="sm"
-                  accent="primary"
                   className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
                 >
                   <CardContent className="flex items-center gap-2.5 py-3">
@@ -236,7 +233,6 @@ export default async function DepartmentPilotagePage({
             {projects.map((p) => (
               <Link key={p.id} href={`/projets/${p.id}?from=pilotage-departement&deptId=${departmentId}`}>
                 <Card
-                  accent={accentForStatus(p.statut)}
                   className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
                 >
                   <CardContent className="space-y-1 py-3">

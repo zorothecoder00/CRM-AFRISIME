@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
 
 export type BudgetLineRow = {
   id: string;
@@ -84,7 +85,7 @@ export function ProjectBudgetSection({
         <KpiCard label="Budget total" value={totalPrevu} />
         <KpiCard label="Engagé" value={totalEngage} />
         <KpiCard label="Payé" value={totalPaye} />
-        <KpiCard label="Solde" value={solde} accent={solde < 0 ? "destructive" : undefined} />
+        <KpiCard label="Solde" value={solde} className={solde < 0 ? TONE_BG.destructive : undefined} />
         <KpiCard label="Taux d'exécution" value={`${tauxExecution}%`} />
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useAction } from "@/hooks/use-action";
 import { updateIntegrationStatus, deleteIntegration } from "@/actions/integration.actions";
-import { Card, CardContent, CardHeader, CardTitle, type CardAccent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
+import { TONE_BG } from "@/lib/card-tones";
+import { cn } from "@/lib/utils";
 
 type IntegrationRow = {
   id: string;
@@ -35,12 +37,6 @@ const STATUS_VARIANT: Record<string, "success" | "secondary" | "destructive"> = 
   ERREUR: "destructive",
 };
 
-const STATUS_ACCENT: Record<string, CardAccent> = {
-  CONNECTE: "success",
-  DECONNECTE: "none",
-  ERREUR: "destructive",
-};
-
 export function IntegrationCard({ integration, className }: { integration: IntegrationRow; className?: string }) {
   const statusAction = useAction(updateIntegrationStatus);
   const deleteAction = useAction(deleteIntegration, { successMessage: "Intégration supprimée." });
@@ -55,7 +51,7 @@ export function IntegrationCard({ integration, className }: { integration: Integ
   }
 
   return (
-    <Card accent={STATUS_ACCENT[integration.statut]} className={className}>
+    <Card className={cn(integration.statut === "ERREUR" && TONE_BG.destructive, className)}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">{integration.nom}</CardTitle>
         <Badge variant={STATUS_VARIANT[integration.statut]}>{STATUS_LABELS[integration.statut]}</Badge>

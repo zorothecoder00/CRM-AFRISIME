@@ -4,7 +4,7 @@ import { getAppSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForAdminRequestStatus, accentForAdminRequestStatus } from "@/lib/status-tone";
+import { toneForAdminRequestStatus } from "@/lib/status-tone";
 import { AdminRequestDecisionActions } from "@/components/admin-requests/admin-request-decision-actions";
 import { getOrganizationDevise } from "@/lib/currency";
 import { BackLink } from "@/components/ui/back-link";
@@ -75,7 +75,7 @@ export default async function AdminRequestDetailPage({
           </p>
         </div>
 
-        <Card accent={accentForAdminRequestStatus(request.statut)}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Informations</CardTitle>
           </CardHeader>

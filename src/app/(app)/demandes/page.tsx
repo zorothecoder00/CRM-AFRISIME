@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForAdminRequestStatus, accentForAdminRequestStatus } from "@/lib/status-tone";
+import { toneForAdminRequestStatus } from "@/lib/status-tone";
 import { AdminRequestFormDialog } from "@/components/admin-requests/admin-request-form-dialog";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -76,7 +76,6 @@ export default async function DemandesPage() {
               {myPendingApprovals.map((a) => (
                 <Link key={a.id} href={`/demandes/${a.run.adminRequest.id}`}>
                   <Card
-                    accent="warning"
                     className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
                   >
                     <CardHeader>
@@ -104,7 +103,6 @@ export default async function DemandesPage() {
             {myRequests.map((request) => (
               <Link key={request.id} href={`/demandes/${request.id}`}>
                 <Card
-                  accent={accentForAdminRequestStatus(request.statut)}
                   className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
                 >
                   <CardHeader>

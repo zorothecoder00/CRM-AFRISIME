@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DecisionOutcomeFormDialog } from "@/components/decisions/decision-outcome-form-dialog";
 import { DecisionOutcomeEvaluateDialog } from "@/components/decisions/decision-outcome-evaluate-dialog";
+import { TONE_BG } from "@/lib/card-tones";
 
 // Decision Intelligence (cahier des charges V3.0 §37) — conserve
 // l'historique des décisions et mesure leurs conséquences (ex. "Ouvrir une
@@ -38,7 +39,7 @@ export default async function IntelligenceDecisionsPage() {
           {outcomes.map((o) => {
             const dueForReview = !o.evaluatedAt && o.dateEvaluationPrevue !== null && o.dateEvaluationPrevue <= now;
             return (
-              <Card key={o.id} accent={o.evaluatedAt ? (o.objectifAtteint ? "success" : "destructive") : dueForReview ? "warning" : "none"}>
+              <Card key={o.id} className={TONE_BG[o.evaluatedAt ? (o.objectifAtteint ? "success" : "destructive") : dueForReview ? "warning" : "none"]}>
                 <CardHeader className="flex flex-row items-start justify-between gap-2">
                   <CardTitle className="text-base">{o.titre}</CardTitle>
                   {o.evaluatedAt ? (

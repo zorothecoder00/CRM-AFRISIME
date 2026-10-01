@@ -5,7 +5,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForOpportunityStatus, accentForOpportunityStatus, toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForOpportunityStatus, toneForStatus } from "@/lib/status-tone";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
@@ -133,7 +133,7 @@ export default async function PortalDashboardPage() {
           résumé proactif plutôt qu'une recherche manuelle, cf. "Votre
           journée" §50) — réutilise des données déjà chargées ci-dessus. */}
       {(echeances.length > 0 || visibility.unreadMessages > 0) && (
-        <Card accent="info">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4" />
@@ -189,7 +189,6 @@ export default async function PortalDashboardPage() {
             {projects.map((project) => (
               <Link key={project.id} href={`/portail/projets/${project.id}`}>
                 <Card
-                  accent={accentForStatus(project.statut)}
                   className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
                 >
                   <CardHeader>
@@ -213,7 +212,6 @@ export default async function PortalDashboardPage() {
             {missions.map((mission) => (
               <Link key={mission.id} href={`/portail/missions/${mission.id}`}>
                 <Card
-                  accent={accentForStatus(mission.statut)}
                   className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
                 >
                   <CardHeader>
@@ -241,7 +239,6 @@ export default async function PortalDashboardPage() {
         {opportunities.map((opportunity) => (
           <Link key={opportunity.id} href={`/portail/opportunites/${opportunity.id}`}>
             <Card
-              accent={accentForOpportunityStatus(opportunity.statut)}
               className="h-full transition-all hover:-translate-y-0.5 hover:bg-muted/50"
             >
               <CardHeader>

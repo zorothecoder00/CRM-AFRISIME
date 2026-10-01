@@ -6,7 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { objectiveProgress } from "@/lib/objective-progress";
 import { computeWorkload } from "@/lib/workload";
 import { WorkloadTable } from "@/components/workload/workload-table";
@@ -178,7 +178,7 @@ export default async function ProgrammeDetailPage({
         </TabsList>
 
         <TabsContent value="apercu" className="mt-4 space-y-6">
-          <Card accent={accentForStatus(programme.statut)}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Informations générales</CardTitle>
             </CardHeader>
@@ -314,7 +314,7 @@ export default async function ProgrammeDetailPage({
                 );
                 return (
                   <Link key={o.id} href={`/objectifs/${o.id}`}>
-                    <Card accent={accentForStatus(o.statut)} className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(idx))}>
+                    <Card className={cn("h-full transition-all hover:-translate-y-0.5 hover:brightness-95", materialTone(idx))}>
                       <CardHeader>
                         <CardTitle className="text-base">{o.titre}</CardTitle>
                       </CardHeader>

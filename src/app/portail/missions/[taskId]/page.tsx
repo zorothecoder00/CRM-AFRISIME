@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForTaskStatus, toneForPriority, accentForStatus } from "@/lib/status-tone";
+import { toneForTaskStatus, toneForPriority } from "@/lib/status-tone";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalDocumentUploadForm } from "@/components/portal/portal-document-upload-form";
 import { PortalDeliverableReview } from "@/components/portal/portal-deliverable-review";
@@ -78,7 +78,7 @@ export default async function PortalMissionDetailPage({
         </div>
         <p className="text-sm text-muted-foreground">{task.project.nom}</p>
 
-        <Card accent={accentForStatus(task.statut)}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Détails</CardTitle>
           </CardHeader>

@@ -8,7 +8,7 @@ import { StatCard, type StatCardTone } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/messages/user-avatar";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { ListChecks, Clock, Gauge, Star, Target, ChevronRight } from "lucide-react";
 
 const PROJECT_STATUS_LABELS: Record<string, string> = {
@@ -163,7 +163,6 @@ export default async function IndividualPilotagePage({
             {p.projects.map((project) => (
               <Link key={project.id} href={`/projets/${project.id}?from=pilotage-utilisateur&userId=${userId}`}>
                 <Card
-                  accent={accentForStatus(project.statut)}
                   className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
                 >
                   <CardContent className="space-y-1 py-3">

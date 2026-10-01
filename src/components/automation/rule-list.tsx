@@ -91,12 +91,9 @@ export type RuleData = {
 export function RuleList({
   rules,
   canManage,
-  accentBars = true,
 }: {
   rules: RuleData[];
   canManage: boolean;
-  /** false : sans barre d'accent (demande utilisateur sur /projets/[id]). */
-  accentBars?: boolean;
 }) {
   if (rules.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucune règle d&apos;automatisation pour ce projet.</p>;
@@ -105,7 +102,7 @@ export function RuleList({
   return (
     <div className="space-y-3">
       {rules.map((rule) => (
-        <Card key={rule.id} accent={accentBars && rule.isActive ? "success" : "none"}>
+        <Card key={rule.id}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">{rule.nom}</CardTitle>
             {canManage && <ToggleRuleButton ruleId={rule.id} isActive={rule.isActive} />}

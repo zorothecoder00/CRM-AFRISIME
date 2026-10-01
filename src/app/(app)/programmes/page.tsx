@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { materialTone } from "@/lib/card-tones";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { ProgrammeFormDialog } from "@/components/programmes/programme-form-dialog";
 
 // Demande utilisateur — blocs de programme sur fonds colores Material
@@ -50,9 +50,8 @@ export default async function ProgrammesPage() {
         {programmes.map((programme, i) => (
           <Link key={programme.id} href={`/programmes/${programme.id}`}>
             <Card
-              accent={accentForStatus(programme.statut)}
               className={cn(
-                "h-full bg-none! bg-card transition-all hover:-translate-y-0.5 hover:brightness-95",
+                "h-full transition-all hover:-translate-y-0.5 hover:brightness-95",
                 materialTone(i),
               )}
             >

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalSession } from "@/lib/portal-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toneForStatus, accentForStatus, toneForDeliverableStatus } from "@/lib/status-tone";
+import { toneForStatus, toneForDeliverableStatus } from "@/lib/status-tone";
 import { portalLabelForContactType } from "@/lib/contact-portal-label";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { computePortalNavVisibility } from "@/lib/portal-nav-visibility";
@@ -82,7 +82,7 @@ export default async function PortalProjectDetailPage({
       </div>
       {project.description && <p className="text-sm text-muted-foreground">{project.description}</p>}
 
-      <Card accent={accentForStatus(project.statut)}>
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Détails</CardTitle>
         </CardHeader>
