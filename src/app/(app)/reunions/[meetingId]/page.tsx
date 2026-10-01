@@ -170,21 +170,16 @@ export default async function MeetingDetailPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Documents liés</CardTitle>
-            {meeting.projectId && (
-              <DocumentFormDialog
-                projectId={meeting.projectId}
-                meetingId={meeting.id}
-                departments={departmentOptions}
-                triggerLabel="Lier un document"
-              />
-            )}
+            {/* Reunion sans projet : le document est un "document libre"
+                rattache a la reunion (Document.projectId facultatif). */}
+            <DocumentFormDialog
+              projectId={meeting.projectId ?? undefined}
+              meetingId={meeting.id}
+              departments={departmentOptions}
+              triggerLabel="Lier un document"
+            />
           </CardHeader>
           <CardContent>
-            {!meeting.projectId && documentRows.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Réunion sans projet : liez-la à un projet pour pouvoir y attacher des documents.
-              </p>
-            )}
             <DocumentList documents={documentRows} />
           </CardContent>
         </Card>
