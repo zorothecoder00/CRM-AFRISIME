@@ -11,7 +11,7 @@ import { AddIndicatorDialog } from "@/components/objectives/add-indicator-dialog
 import { ObjectiveStatusSelect } from "@/components/objectives/objective-status-select";
 import { ObjectiveEditDialog } from "@/components/objectives/objective-edit-dialog";
 import { LinkParentObjectiveForm } from "@/components/objectives/link-parent-objective-form";
-import { accentForStatus, toneForStatus } from "@/lib/status-tone";
+import { toneForStatus } from "@/lib/status-tone";
 import { BackLink } from "@/components/ui/back-link";
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -139,7 +139,7 @@ export default async function ObjectiveDetailPage({
           </div>
         </div>
 
-        <Card accent={accentForStatus(objective.statut)}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Résultats clés (Key Results)</CardTitle>
             <AddIndicatorDialog objectiveId={objective.id} />
