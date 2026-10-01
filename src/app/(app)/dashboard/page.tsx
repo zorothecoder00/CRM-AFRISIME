@@ -292,7 +292,7 @@ export default async function DashboardPage() {
           <KpiCard
             label="Mon taux d'occupation"
             value={myWorkload ? `${myWorkload.tauxOccupation}%` : "—"}
-            className={myWorkload?.enSurcharge ? "bg-destructive/10" : BRAND_CARD_BG.blue}
+            className={myWorkload?.enSurcharge ? "bg-destructive/20" : BRAND_CARD_BG.blue}
           />
           <KpiCard
             label="Ma disponibilité restante"
@@ -619,9 +619,9 @@ type TaskWithProject = {
 const TASK_WIDGET_MAX = 5;
 
 const TASK_WIDGET_TONES = {
-  overdue: { bg: "bg-destructive/12", title: "text-destructive" },
-  today: { bg: "bg-success/12", title: "text-success" },
-  week: { bg: "bg-info/12", title: undefined },
+  overdue: { bg: "bg-destructive/20", title: "text-destructive" },
+  today: { bg: "bg-success/20", title: "text-success" },
+  week: { bg: "bg-info/20", title: undefined },
 } as const;
 
 function TaskWidget({
