@@ -34,7 +34,7 @@ export function GuideToc() {
               href={`#${chapter.id}`}
               className={cn(
                 "flex gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted",
-                active === chapter.id && "bg-sidebar text-sidebar-foreground hover:bg-sidebar"
+                active === chapter.id && "bg-sidebar-accent font-medium text-sidebar-accent-foreground hover:bg-sidebar-accent"
               )}
             >
               <span className={cn("w-5 shrink-0 font-mono text-xs leading-5 text-muted-foreground", active === chapter.id && "text-sidebar-foreground/70")}>

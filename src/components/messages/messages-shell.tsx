@@ -60,7 +60,7 @@ export function MessagesShell({
   }, [router]);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[520px] overflow-hidden rounded-2xl border bg-card ring-1 ring-foreground/[0.1] shadow-[0_1px_2px_rgb(0_0_0/0.05),0_14px_28px_-18px_rgb(0_0_0/0.16)]">
+    <div className="flex h-[calc(100vh-8rem)] min-h-[520px] overflow-hidden rounded-lg border bg-card">
       <div
         className={cn(
           "w-full flex-col md:flex md:w-80 md:shrink-0 md:border-r",

@@ -57,11 +57,11 @@ export function PersonalPlanningSidebarNav({
 
   function itemClassName(active: boolean) {
     return cn(
-      "group relative flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
+      "group relative flex min-h-8 w-full items-center gap-2.5 rounded-[4px] px-2 py-1 text-left text-sm transition-colors",
       collapsed && "justify-center px-0",
       active
-        ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
-        : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
+        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:top-1.5 before:bottom-1.5 before:left-0 before:w-[3px] before:rounded-r-sm before:bg-sidebar-primary before:content-['']"
+        : "text-sidebar-foreground hover:bg-hover hover:text-foreground active:bg-pressed"
     );
   }
 
@@ -72,8 +72,8 @@ export function PersonalPlanningSidebarNav({
       <>
         <span
           className={cn(
-            "relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
-            active ? "bg-black/20 text-sidebar-primary shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+            "relative flex h-6 w-6 shrink-0 items-center justify-center",
+            active ? "text-sidebar-accent-foreground" : "text-sidebar-foreground"
           )}
         >
           <Icon className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function PersonalPlanningSidebarNav({
           <>
             <span className="min-w-0 flex-1 leading-tight">{item.label}</span>
             {count > 0 && (
-              <span className="ml-auto rounded-full bg-sidebar-primary/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              <span className="ml-auto rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-semibold text-foreground tabular-nums">
                 {count}
               </span>
             )}

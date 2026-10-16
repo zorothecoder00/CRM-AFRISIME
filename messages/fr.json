@@ -4,20 +4,23 @@
     "description": "Plateforme collaborative de gestion des projets, des tâches et de la performance."
   },
   "nav": {
-    "pourVous": "Pour vous",
+    "pourVous": "Suggéré pour votre rôle",
     "moduleAVenir": "Module à venir",
     "groups": {
-      "apercu": "Aperçu",
-      "crm": "CRM",
       "travail": "Travail",
+      "crm": "CRM",
       "collaboration": "Collaboration",
-      "pilotage": "Pilotage",
-      "gouvernanceRisques": "Gouvernance & Risques",
-      "ia": "IA",
-      "administration": "Administration"
+      "strategie": "Stratégie & performance",
+      "personnes": "Personnes & organisation",
+      "gouvernanceRisques": "Gouvernance & risques",
+      "analyse": "Rapports & analyses",
+      "ia": "IA & automatisation",
+      "administration": "Administration",
+      "apercu": "Aperçu",
+      "pilotage": "Pilotage"
     },
     "items": {
-      "dashboard": "Espace personnel",
+      "dashboard": "Pour vous",
       "centreDeCommande": "Centre de commande",
       "salleDeSimulation": "Executive Simulation Room",
       "planning": "Mon agenda",
@@ -29,7 +32,7 @@
       "pilotage": "Niveaux de pilotage",
       "recherche": "Recherche",
       "assistant": "Assistant",
-      "crm": "Aperçu CRM",
+      "crm": "Vue d'ensemble",
       "crmContacts": "Contacts",
       "crmOrganisations": "Organisations",
       "crmPipeline": "Pipeline",
@@ -98,6 +101,13 @@
       "conformite": "Conformité",
       "administrationUtilisateurs": "Administration",
       "administrationPlateforme": "Plateforme multi-organisation"
-    }
+    },
+    "espaces": "Espaces",
+    "recents": "Récents",
+    "favoris": "Favoris",
+    "favorisVide": "Survolez une entrée puis cliquez sur l'étoile pour l'épingler ici.",
+    "recentsVide": "Les pages visitées apparaîtront ici.",
+    "ajouterFavori": "Ajouter aux favoris",
+    "retirerFavori": "Retirer des favoris"
   }
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PersonalPlanningSidebarNav } from "./personal-planning-sidebar-nav";
+import { BrandMark } from "@/components/layout/brand-mark";
 import type { NotificationPreview } from "@/components/notifications/notification-bell";
 
 export function PersonalPlanningMobileSidebar({
@@ -28,9 +28,9 @@ export function PersonalPlanningMobileSidebar({
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
-        <SheetHeader className="flex flex-col items-center border-b bg-white px-4 py-0">
-          <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
+      <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="w-[280px] gap-0 text-sidebar-foreground">
+        <SheetHeader className="flex h-14 flex-row items-center border-b px-3 py-0">
+          <BrandMark className="-ml-1" />
           <SheetTitle className="sr-only">Planning personnel</SheetTitle>
         </SheetHeader>
         <PersonalPlanningSidebarNav

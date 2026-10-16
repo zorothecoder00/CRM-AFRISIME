@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { SidebarNav } from "./sidebar-nav";
+import { BrandMark } from "./brand-mark";
 
 export function MobileSidebar({ permissions, roleKey }: { permissions: string[]; roleKey?: string }) {
   const [open, setOpen] = useState(false);
@@ -17,14 +17,14 @@ export function MobileSidebar({ permissions, roleKey }: { permissions: string[];
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" showCloseButton={false} aria-describedby={undefined} className="text-sidebar-foreground">
-        <SheetHeader className="flex flex-col items-center border-b bg-white px-4 py-0">
-          {/* Le logo integre deja le nom "AfriSime Work Space" — le libelle
-              texte visible a ete retire (redondant), SheetTitle garde pour
-              l'accessibilite (lecteur d'ecran) mais visuellement masque. Fond
-              blanc — demande utilisateur : alignement sur Planning personnel
-              (personal-planning-mobile-sidebar.tsx). */}
-          <Image src="/logo.png" alt="AfriSime Work Space" width={240} height={160} className="h-32 w-auto" />
+      <SheetContent
+        side="left"
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="w-[280px] gap-0 text-sidebar-foreground"
+      >
+        <SheetHeader className="flex h-14 flex-row items-center border-b px-3 py-0">
+          <BrandMark className="-ml-1" />
           <SheetTitle className="sr-only">AfriSime Work Space</SheetTitle>
         </SheetHeader>
         <SidebarNav permissions={permissions} roleKey={roleKey} onNavigate={() => setOpen(false)} />

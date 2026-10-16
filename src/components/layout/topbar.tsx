@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { signOut } from "next-auth/react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { LogOut, ShieldCheck, UserRound, Search, Mic, Clock, Bell, Mail, ClipboardList, MessageSquare, LifeBuoy, type LucideIcon } from "lucide-react";
+import {
+  LogOut,
+  ShieldCheck,
+  UserRound,
+  Search,
+  Mic,
+  Clock,
+  Bell,
+  Mail,
+  ClipboardList,
+  MessageSquare,
+  LifeBuoy,
+  PanelLeft,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { NotificationBell, type NotificationPreview } from "@/components/notifications/notification-bell";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
+import { BrandMark } from "@/components/layout/brand-mark";
+import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
 import { Badge } from "@/components/ui/badge";
 import { PERMISSIONS } from "@/lib/permissions";
 
@@ -28,13 +44,13 @@ function TopbarShortcut({ href, label, icon: Icon, count }: { href: string; labe
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative" asChild>
+        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" asChild>
           <Link href={href} aria-label={label}>
-            <Icon className="h-5 w-5" />
+            <Icon className="h-[18px] w-[18px]" />
             {!!count && count > 0 && (
               <Badge
                 variant="destructive"
-                className="absolute -right-1 -top-1 h-5 w-5 justify-center rounded-full p-0 text-[10px]"
+                className="absolute -top-0.5 -right-0.5 h-4 min-w-4 justify-center rounded-full bg-destructive px-1 text-[10px] text-white normal-case dark:text-background"
               >
                 {count > 9 ? "9+" : count}
               </Badge>
@@ -70,12 +86,23 @@ export function Topbar({
   pendingCourriersCount?: number;
   permissions: string[];
 }) {
-  const pathname = usePathname();
-  // Demande utilisateur — la barre de recherche de /tableaux-de-bord
-  // deplacee du corps de page vers la topbar, juste a cote du bandeau
-  // "Planifier · Collaborer · Exécuter · Contrôler" (uniquement sur cette
-  // page : pas de recherche globale dans la topbar ailleurs).
-  const showDashboardSearch = pathname === "/tableaux-de-bord";
+  const { toggle: toggleSidebar } = useSidebarCollapsed("sidebar-collapsed");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Raccourci « / » (comme Jira) : place le curseur dans la recherche globale,
+  // sauf si l'utilisateur est deja en train de saisir ailleurs.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const initials = userName
     .split(" ")
     .map((part) => part[0])
@@ -83,32 +110,51 @@ export function Topbar({
     .join("")
     .toUpperCase();
 
-  // Demande utilisateur — header sur le meme bleu marine que la sidebar
-  // (bg-sidebar, identique en clair/sombre), texte
-  // blanc. Les boutons ghost heritent du blanc ; le champ de recherche
-  // (fond clair) force text-foreground pour rester lisible.
+  // Refonte « façon Jira » : barre blanche pleine largeur au-dessus de la
+  // sidebar — marque a gauche, recherche globale au centre (disponible sur
+  // toutes les pages), raccourcis et profil a droite.
   return (
-    <header className="flex h-16 items-center justify-between gap-2 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground shadow-sm">
-      <div className="flex items-center gap-2">
-        <MobileSidebar permissions={permissions} roleKey={roleKey} />
-        <div className="hidden items-center gap-3 lg:flex">
-          <span className="whitespace-nowrap text-sm text-white/85">
-            Planifier · Collaborer · Exécuter · Contrôler
-          </span>
-          {showDashboardSearch && (
-            <form action="/recherche" className="relative w-64">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                name="q"
-                type="search"
-                placeholder="Rechercher tâche, projet, document…"
-                className="h-9 w-full rounded-md border bg-background text-foreground pl-8 pr-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </form>
-          )}
-        </div>
-      </div>
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-3">
       <div className="flex items-center gap-1">
+        <MobileSidebar permissions={permissions} roleKey={roleKey} />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="show-desktop text-muted-foreground hover:text-foreground"
+              onClick={toggleSidebar}
+              aria-label="Afficher / masquer la barre latérale"
+            >
+              <PanelLeft className="h-[18px] w-[18px]" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Barre latérale</TooltipContent>
+        </Tooltip>
+        <BrandMark />
+      </div>
+
+      <form action="/recherche" role="search" className="relative mx-auto hidden w-full max-w-[560px] sm:block">
+        <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          ref={searchRef}
+          name="q"
+          type="search"
+          placeholder="Rechercher une tâche, un projet, un contact…"
+          aria-label="Recherche globale"
+          className="h-8 w-full rounded-md border border-input bg-background pr-9 pl-8 text-sm text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:bg-surface-sunken focus-visible:border-ring focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
+        />
+        <kbd className="pointer-events-none absolute top-1/2 right-2 hidden h-5 -translate-y-1/2 items-center rounded-[3px] border bg-surface-sunken px-1.5 font-mono text-[11px] text-muted-foreground md:inline-flex">
+          /
+        </kbd>
+      </form>
+
+      <div className="ml-auto flex items-center gap-0.5 sm:ml-0">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground sm:hidden" asChild>
+          <Link href="/recherche" aria-label="Recherche">
+            <Search className="h-[18px] w-[18px]" />
+          </Link>
+        </Button>
         {permissions.includes(PERMISSIONS.ADMIN_REQUEST_READ) && (
           <TopbarShortcut href="/demandes" label="Demandes" icon={ClipboardList} count={pendingRequestsCount} />
         )}
@@ -119,21 +165,21 @@ export function Topbar({
           <TopbarShortcut href="/courrier" label="Courrier" icon={Mail} count={pendingCourriersCount} />
         )}
         <NotificationBell notifications={notifications} unreadCount={unreadCount} />
+        <TopbarShortcut href="/guide" label="Aide" icon={LifeBuoy} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+            <Button variant="ghost" size="icon" className="ml-1 rounded-full" aria-label="Mon compte">
+              <Avatar className="h-7 w-7">
                 {userImage && <AvatarImage src={userImage} alt={userName} />}
-                <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-[11px] font-semibold text-primary-foreground">{initials}</AvatarFallback>
               </Avatar>
-              <div className="show-from-sm text-left">
-                <div className="text-sm font-medium leading-none">{userName}</div>
-                <div className="text-xs text-white/75">{roleLabel}</div>
-              </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{userName}</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuLabel className="font-normal">
+              <div className="text-sm font-semibold text-foreground">{userName}</div>
+              <div className="text-xs text-muted-foreground">{roleLabel}</div>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/parametres/profil">

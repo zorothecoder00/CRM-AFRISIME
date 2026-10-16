@@ -76,7 +76,7 @@ function TaskCard({
       {/* Demande utilisateur — plus de barre d'accent (priorite deja visible via le badge),
           fond Material Design : une teinte par colonne (voir KanbanColumn). */}
       <Card
-        className={`relative mb-2 cursor-grab p-3 ${tone} ${isDragging ? "opacity-50" : ""}`}
+        className={`relative mb-1.5 cursor-grab gap-0 p-3 shadow-[0_1px_1px_rgb(9_30_66/0.2)] hover:bg-muted ${tone} ${isDragging ? "opacity-50" : ""}`}
       >
         {(canManage || canDelete) && (
           <div className="absolute top-1 right-1">
@@ -145,12 +145,12 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[300px] w-64 flex-shrink-0 flex-col rounded-md border bg-muted/20 p-2 ${
-        isOver ? "bg-muted/50" : ""
+      className={`flex min-h-[300px] w-[272px] flex-shrink-0 flex-col rounded-md bg-surface-sunken p-1.5 ${
+        isOver ? "ring-2 ring-ring/50" : ""
       }`}
     >
       <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{label}</span>
         <Badge variant="secondary">{tasks.length}</Badge>
       </div>
       {tasks.map((task) => (

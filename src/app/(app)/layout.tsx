@@ -6,6 +6,7 @@ import { countPendingAdminRequestApprovals } from "@/lib/admin-request-workflow"
 import { countUnreadMessages } from "@/lib/unread-messages";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getAppSession();
@@ -40,30 +41,35 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ]);
 
   return (
-    <div className="flex h-screen">
-      <Sidebar permissions={session.user.permissions} roleKey={session.user.roleKey} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar
-          userName={session.user.name ?? session.user.email ?? ""}
-          userImage={session.user.image}
-          roleLabel={session.user.roleLabel}
-          roleKey={session.user.roleKey}
-          permissions={session.user.permissions}
-          notifications={recentNotifications.map((n) => ({
-            id: n.id,
-            titre: n.titre,
-            lien: n.lien,
-            isRead: n.isRead,
-            createdAt: n.createdAt.toISOString(),
-            type: n.type,
-          }))}
-          unreadCount={unreadCount}
-          pendingRequestsCount={pendingRequestsCount}
-          unreadMessagesCount={unreadMessagesCount}
-          pendingCourriersCount={pendingCourriersCount}
-        />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+    // Disposition « façon Jira » : barre superieure pleine largeur, puis
+    // sidebar claire + contenu sur fond blanc.
+    <div className="flex h-screen flex-col">
+      <Topbar
+        userName={session.user.name ?? session.user.email ?? ""}
+        userImage={session.user.image}
+        roleLabel={session.user.roleLabel}
+        roleKey={session.user.roleKey}
+        permissions={session.user.permissions}
+        notifications={recentNotifications.map((n) => ({
+          id: n.id,
+          titre: n.titre,
+          lien: n.lien,
+          isRead: n.isRead,
+          createdAt: n.createdAt.toISOString(),
+          type: n.type,
+        }))}
+        unreadCount={unreadCount}
+        pendingRequestsCount={pendingRequestsCount}
+        unreadMessagesCount={unreadMessagesCount}
+        pendingCourriersCount={pendingCourriersCount}
+      />
+      <div className="flex min-h-0 flex-1">
+        <Sidebar permissions={session.user.permissions} roleKey={session.user.roleKey} />
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-8 sm:py-6">
+            <Breadcrumbs />
+            {children}
+          </div>
         </main>
       </div>
     </div>

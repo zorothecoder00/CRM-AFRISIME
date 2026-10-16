@@ -15,7 +15,7 @@ export type RoadmapProjectRow = {
 // (PLANIFIE/EN_COURS/EN_PAUSE/TERMINE/ANNULE) plutot que TaskStatus.
 const STATUS_COLOR: Record<string, string> = {
   TERMINE: "#0ca30c",
-  EN_COURS: "#2a78d6",
+  EN_COURS: "#0c66e4",
   EN_PAUSE: "#fab219",
   PLANIFIE: "#8994a0",
   ANNULE: "#8994a0",

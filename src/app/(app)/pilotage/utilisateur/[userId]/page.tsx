@@ -163,7 +163,7 @@ export default async function IndividualPilotagePage({
             {p.projects.map((project) => (
               <Link key={project.id} href={`/projets/${project.id}?from=pilotage-utilisateur&userId=${userId}`}>
                 <Card
-                  className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                  className="transition-colors hover:bg-hover"
                 >
                   <CardContent className="space-y-1 py-3">
                     <div className="text-sm font-medium">{project.nom}</div>

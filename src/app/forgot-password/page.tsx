@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AuthShell } from "@/components/auth/auth-shell";
 
-const ACCENT = "#2a78d6";
+const ACCENT = "#0c66e4";
 
 async function requestPasswordReset(email: string) {
   const res = await fetch("/api/auth/forgot-password", {
@@ -67,13 +67,13 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 rounded-xl focus-visible:border-[#2a78d6] focus-visible:ring-[#2a78d6]/25"
+                  className="h-11 rounded-xl focus-visible:border-[#0c66e4] focus-visible:ring-[#0c66e4]/25"
                   required
                 />
               </div>
               <Button
                 type="submit"
-                className="h-11 w-full rounded-xl text-white shadow-md shadow-[#2a78d6]/25 transition-transform hover:opacity-90 active:scale-[0.99]"
+                className="h-11 w-full rounded-xl text-white shadow-md shadow-[#0c66e4]/25 transition-transform hover:opacity-90 active:scale-[0.99]"
                 style={{ backgroundColor: ACCENT }}
                 disabled={isPending}
               >

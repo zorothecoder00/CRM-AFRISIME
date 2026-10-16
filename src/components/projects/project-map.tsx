@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
 // statut projet a travers les vues, sans dependre d'un fichier partage.
 const STATUS_COLOR: Record<string, string> = {
   TERMINE: "#0ca30c",
-  EN_COURS: "#2a78d6",
+  EN_COURS: "#0c66e4",
   EN_PAUSE: "#fab219",
   PLANIFIE: "#8994a0",
   ANNULE: "#8994a0",

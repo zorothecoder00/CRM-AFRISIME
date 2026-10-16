@@ -82,13 +82,10 @@ export default async function TableauxDeBordPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#122f7a] via-[#1d4fc4] to-[#2f9e2f] px-5 py-4 shadow-lg">
-        {/* text-white limite a ce bloc : pose sur le bandeau entier, il etait
-            herite par le bouton "Configurer" (variante outline, fond clair
-            sans couleur de texte propre) et le rendait illisible. */}
-        <div className="text-white">
+      <div className="flex items-start justify-between gap-4">
+        <div>
           <h1 className="text-2xl font-semibold">Tableaux de bord</h1>
-          <p className="text-sm text-white/80">
+          <p className="text-sm text-muted-foreground">
             Widgets personnalisables — avancement, retards, charge, temps passé,
             productivité et indicateurs RH.
           </p>
@@ -96,10 +93,7 @@ export default async function TableauxDeBordPage() {
         <WidgetConfigDialog initialOrder={order} />
       </div>
 
-      {/* Demande utilisateur — la barre de recherche vit maintenant dans la
-          topbar, juste a cote de "Planifier · Collaborer · Exécuter ·
-          Contrôler" (voir components/layout/topbar.tsx), plus dans le corps
-          de page. */}
+      {/* La recherche vit dans la topbar globale (voir components/layout/topbar.tsx). */}
 
       {/* items-start — sans ca, une carte courte s'etirait a la hauteur de sa
           voisine sur la meme ligne (grille "stretch" par defaut), laissant un

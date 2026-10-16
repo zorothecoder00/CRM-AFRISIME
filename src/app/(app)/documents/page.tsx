@@ -12,16 +12,13 @@ import { AddDocumentsToFolderDialog } from "@/components/documents/add-documents
 import { FolderFormDialog } from "@/components/documents/folder-form-dialog";
 import { DocumentFormDialog } from "@/components/documents/document-form-dialog";
 import { DocumentList, type DocumentRow } from "@/components/documents/document-list";
-import { MATERIAL_TONES } from "@/lib/card-tones";
 import { Briefcase, Building2, FileText, Folder, Inbox, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { documentUploaderName } from "@/lib/document-uploader";
 import { folderPathOptions } from "@/lib/document-folders";
 
-// Demande utilisateur — fond Material ambre (teinte "chemise cartonnee", qui
-// evoque la gestion documentaire) sur les cartes projet et document ; hover:bg-card
-// garde la teinte au survol (sinon remplacee par bg-muted/50), assombrie.
-const DOCUMENT_CARD_TONE = `${MATERIAL_TONES[2]} hover:bg-card hover:brightness-95`;
+// Refonte « épurée façon Jira » : cartes blanches, simple surlignage au survol.
+const DOCUMENT_CARD_TONE = "hover:bg-hover";
 
 const MIME_GROUPS: Record<string, string[]> = {
   pdf: ["application/pdf"],

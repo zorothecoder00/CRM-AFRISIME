@@ -27,7 +27,7 @@ export function PortalHeader({
       <Link href="/portail" className="flex items-center gap-2.5 text-sm font-semibold">
         <div
           className="flex h-8 w-8 items-center justify-center rounded-lg text-white"
-          style={{ backgroundColor: "#2a78d6" }}
+          style={{ backgroundColor: "#0c66e4" }}
         >
           <Workflow className="h-4 w-4" />
         </div>

@@ -140,7 +140,7 @@ export default async function DepartmentPilotagePage({
                 <Link key={child.id} href={`/pilotage/departement/${child.id}`}>
                   <Card
                     className={cn(
-                      "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                      "h-full transition-colors hover:bg-hover"
                     )}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">
@@ -180,7 +180,7 @@ export default async function DepartmentPilotagePage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {members.map((m) => (
               <Link key={m.id} href={`/pilotage/utilisateur/${m.id}`}>
-                <Card className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg">
+                <Card className="transition-colors hover:bg-hover">
                   <CardContent className="flex items-center gap-3 py-3">
                     <UserAvatar name={m.name} image={m.image} />
                     <div className="min-w-0">
@@ -203,7 +203,7 @@ export default async function DepartmentPilotagePage({
               <Link key={t.id} href={`/pilotage/equipe/${t.id}`}>
                 <Card
                   size="sm"
-                  className="h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                  className="h-full transition-colors hover:bg-hover"
                 >
                   <CardContent className="flex items-center gap-2.5 py-3">
                     <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-md", iconToneForAccent("primary"))}>
@@ -233,7 +233,7 @@ export default async function DepartmentPilotagePage({
             {projects.map((p) => (
               <Link key={p.id} href={`/projets/${p.id}?from=pilotage-departement&deptId=${departmentId}`}>
                 <Card
-                  className="transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg"
+                  className="transition-colors hover:bg-hover"
                 >
                   <CardContent className="space-y-1 py-3">
                     <div className="text-sm font-medium">{p.nom}</div>

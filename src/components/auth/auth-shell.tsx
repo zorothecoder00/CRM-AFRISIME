@@ -15,7 +15,7 @@ import Image from "next/image";
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="show-desktop-lg relative w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#2a78d6] via-[#3a5fc4] to-[#4a3aa7] p-12 text-white">
+      <div className="show-desktop-lg relative w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0c66e4] via-[#3a5fc4] to-[#4a3aa7] p-12 text-white">
         <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute right-0 -bottom-16 h-80 w-80 translate-x-1/4 rounded-full bg-[#fab219]/20 blur-3xl" />
 

@@ -9,7 +9,7 @@ export type GanttDependency = { taskId: string; dependsOnTaskId: string; type: s
 // libellé de statut deja affiche par ailleurs sur la ligne.
 const STATUS_COLOR: Record<string, string> = {
   TERMINEE: "#0ca30c",
-  EN_COURS: "#2a78d6",
+  EN_COURS: "#0c66e4",
   EN_REVISION: "#fab219",
   BLOQUEE: "#d03b3b",
   A_FAIRE: "#8994a0",

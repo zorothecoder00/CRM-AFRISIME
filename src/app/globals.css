@@ -45,6 +45,9 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-hover: var(--hover);
+  --color-pressed: var(--pressed);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -55,96 +58,91 @@
 }
 
 :root {
-  /* Meme canevas que la page de login : legerement gris plutot que blanc
-     pur, pour que les cartes (blanches) se detachent visuellement — en
-     blanc-sur-blanc, seul un ring a 10% d'opacite les separait du fond. */
-  --background: #f4f6fb;
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Palette reprise de la page de login (validee CVD-safe par la skill
-     dataviz, deja utilisee dans StatCard/KpiCard) : un seul changement de
-     token ici recolore boutons primaires, liens, anneaux de focus et l'etat
-     actif de la sidebar dans toute l'app. */
-  --primary: #2a78d6;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  /* Teintes semantiques additionnelles (statuts) : memes valeurs que la
-     palette CVD-safe deja utilisee dans StatCard, promues en tokens pour
-     etre reutilisables par Badge et les vues de statut (taches, projets,
-     objectifs, reunions). */
-  --success: #157f3c;
-  --warning: #a15c07;
-  --info: #2a78d6;
-  --border: oklch(0.882 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: #2a78d6;
-  --chart-1: #2a78d6;
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  /* Sidebar navy fixe (inspiree de la maquette Afri.png fournie par
-     l'utilisateur, 2026-08-25) — volontairement independante du theme
-     clair/sombre du contenu principal : la sidebar reste dans cette meme
-     famille de bleu marine que le contenu soit en mode clair ou sombre
-     (voir bloc .dark ci-dessous), comme dans la reference. */
-  --sidebar: #0a1930;
-  --sidebar-foreground: #e8edf5;
-  --sidebar-primary: #2a78d6;
+  /* Refonte 2026-10 « épurée façon Jira » : palette inspirée des tokens
+     Atlassian (texte bleu-ardoise #172B4D, bleu marque #0C66E4, gris
+     neutres a faible contraste), surfaces blanches separees par des
+     bordures fines plutot que par des ombres, rayons courts (4-6px). */
+  --background: #ffffff;
+  --foreground: #172b4d;
+  --card: #ffffff;
+  --card-foreground: #172b4d;
+  --popover: #ffffff;
+  --popover-foreground: #172b4d;
+  --primary: #0c66e4;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f2f4;
+  --secondary-foreground: #172b4d;
+  --muted: #f7f8f9;
+  --muted-foreground: #626f86;
+  --accent: #f1f2f4;
+  --accent-foreground: #172b4d;
+  --destructive: #c9372c;
+  --success: #216e4e;
+  --warning: #a54800;
+  --info: #0c66e4;
+  --border: #dcdfe4;
+  --input: #c5ccd6;
+  --ring: #388bff;
+  --chart-1: #0c66e4;
+  --chart-2: #22a06b;
+  --chart-3: #e2b203;
+  --chart-4: #6e5dc6;
+  --chart-5: #626f86;
+  --radius: 0.375rem;
+  /* Sidebar claire (Jira) : meme blanc que le contenu, separee par une
+     bordure ; l'element actif est un aplat bleu tres clair + texte bleu. */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #44546f;
+  --sidebar-primary: #0c66e4;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #163a63;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: #2a78d6;
+  --sidebar-accent: #e9f2ff;
+  --sidebar-accent-foreground: #0c66e4;
+  --sidebar-border: #dcdfe4;
+  --sidebar-ring: #388bff;
+  /* Surfaces secondaires propres a la refonte. */
+  --surface-sunken: #f7f8f9;
+  --hover: #091e420f;
+  --pressed: #091e4224;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: #3987e5;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --info: #3987e5;
-  --border: oklch(1 0 0 / 14%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: #3987e5;
-  --chart-1: #3987e5;
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  /* Meme bleu marine qu'en mode clair (voir :root) — la sidebar ne suit pas
-     la bascule clair/sombre du contenu. */
-  --sidebar: #0a1930;
-  --sidebar-foreground: #e8edf5;
-  --sidebar-primary: #3987e5;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #163a63;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #3987e5;
+  --background: #1d2125;
+  --foreground: #b6c2cf;
+  --card: #22272b;
+  --card-foreground: #c7d1db;
+  --popover: #282e33;
+  --popover-foreground: #c7d1db;
+  --primary: #579dff;
+  --primary-foreground: #1d2125;
+  --secondary: #2c333a;
+  --secondary-foreground: #c7d1db;
+  --muted: #22272b;
+  --muted-foreground: #8c9bab;
+  --accent: #2c333a;
+  --accent-foreground: #c7d1db;
+  --destructive: #f87168;
+  --success: #4bce97;
+  --warning: #f5cd47;
+  --info: #579dff;
+  --border: #38414a;
+  --input: #454f59;
+  --ring: #85b8ff;
+  --chart-1: #579dff;
+  --chart-2: #4bce97;
+  --chart-3: #f5cd47;
+  --chart-4: #9f8fef;
+  --chart-5: #8c9bab;
+  --sidebar: #1d2125;
+  --sidebar-foreground: #9fadbc;
+  --sidebar-primary: #579dff;
+  --sidebar-primary-foreground: #1d2125;
+  --sidebar-accent: #1c2b41;
+  --sidebar-accent-foreground: #579dff;
+  --sidebar-border: #38414a;
+  --sidebar-ring: #85b8ff;
+  --surface-sunken: #161a1d;
+  --hover: #a1bdd914;
+  --pressed: #a6c5e229;
 }
 
 @layer base {
@@ -153,6 +151,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1 {
+    letter-spacing: -0.01em;
   }
   html {
     @apply font-sans;

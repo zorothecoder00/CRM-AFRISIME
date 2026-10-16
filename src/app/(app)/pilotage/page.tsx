@@ -83,7 +83,7 @@ export default async function PilotagePage() {
                 <Link key={direction.id} href={`/pilotage/departement/${direction.id}`}>
                   <Card
                     className={cn(
-                      "h-full transition-all duration-200 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-lg",
+                      "h-full transition-colors hover:bg-hover",
                       materialTone(i))}
                   >
                     <CardHeader className="flex flex-row items-center gap-2.5">

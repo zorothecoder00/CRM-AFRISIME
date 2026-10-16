@@ -83,30 +83,30 @@ const STUDIO: [string, string][] = [
 export default function GuidePage() {
   return (
     <div className="space-y-8">
-      <header className="space-y-5 rounded-xl bg-sidebar p-6 text-sidebar-foreground sm:p-8">
-        <div className="font-mono text-xs uppercase tracking-widest text-sidebar-foreground/60">Documentation utilisateur</div>
-        <h1 className="text-3xl font-bold text-white text-balance sm:text-4xl">Guide d&apos;utilisation</h1>
-        <p className="max-w-3xl text-lg text-sidebar-foreground/80">
+      <header className="space-y-5 rounded-lg border bg-surface-sunken p-6 sm:p-8">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Documentation utilisateur</div>
+        <h1 className="text-3xl font-semibold text-foreground text-balance sm:text-4xl">Guide d&apos;utilisation</h1>
+        <p className="max-w-3xl text-lg text-muted-foreground">
           Comment fonctionne AfriSime Work-Space, de la connexion jusqu&apos;à la clôture d&apos;un projet. Ce guide s&apos;adresse à la
           Direction et à tous les utilisateurs, sans connaissance technique requise.
         </p>
         <div className="flex flex-wrap gap-2">
           {["Planifier", "Collaborer", "Exécuter", "Contrôler"].map((w) => (
-            <span key={w} className="rounded-full border border-white/20 px-3.5 py-1 text-sm text-white">
+            <span key={w} className="rounded-[3px] bg-sidebar-accent px-2 py-0.5 text-xs font-bold tracking-wide text-sidebar-accent-foreground uppercase">
               {w}
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border bg-border sm:grid-cols-4">
           {[
             [String(GUIDE_MODULES.length), "écrans décrits"],
             ["11", "rôles"],
             ["92", "droits d'accès"],
             ["1", "portail externe"],
           ].map(([n, l]) => (
-            <div key={l} className="bg-sidebar px-4 py-3">
-              <div className="text-2xl font-bold text-white tabular-nums">{n}</div>
-              <div className="text-sm text-sidebar-foreground/60">{l}</div>
+            <div key={l} className="bg-background px-4 py-3">
+              <div className="text-2xl font-semibold text-foreground tabular-nums">{n}</div>
+              <div className="text-sm text-muted-foreground">{l}</div>
             </div>
           ))}
         </div>

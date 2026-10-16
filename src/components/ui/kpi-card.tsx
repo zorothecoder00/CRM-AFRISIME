@@ -46,7 +46,7 @@ function Sparkline({ points }: { points: number[] }) {
         strokeLinejoin="round"
         className="stroke-muted-foreground/40"
       />
-      <circle cx={lastX} cy={lastY} r={3} strokeWidth={2} className="fill-[#2a78d6] stroke-card dark:fill-[#3987e5]" />
+      <circle cx={lastX} cy={lastY} r={3} strokeWidth={2} className="fill-[#0c66e4] stroke-card dark:fill-[#579dff]" />
     </svg>
   );
 }
@@ -85,15 +85,15 @@ export function KpiCard({
     const isGood = delta.isPositiveGood ?? true;
     const good = isUp === isGood;
     DeltaIcon = isUp ? ArrowUp : ArrowDown;
-    deltaColorClass = good ? "text-[#006300] dark:text-[#0ca30c]" : "text-destructive";
+    deltaColorClass = good ? "text-success" : "text-destructive";
   }
 
   return (
     <Card accent={accent} size={size} className={cn(className)}>
       <CardContent className="space-y-2">
-        <div className={cn("text-sm text-muted-foreground", compact && "text-xs")}>{label}</div>
+        <div className={cn("text-xs font-medium text-muted-foreground", compact && "text-[11px]")}>{label}</div>
         <div className="flex items-end justify-between gap-2">
-          <div className={cn("text-3xl font-semibold", compact && "text-xl", valueClassName)}>{displayValue}</div>
+          <div className={cn("text-2xl font-semibold tabular-nums", compact && "text-xl", valueClassName)}>{displayValue}</div>
           {trend && trend.length > 1 && <Sparkline points={trend} />}
         </div>
         {delta && DeltaIcon && (

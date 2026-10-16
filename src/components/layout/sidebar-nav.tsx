@@ -1,28 +1,43 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ChevronDown } from "lucide-react";
+import { ChevronRight, Clock3, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { NAV_GROUPS, getContextualNavItems, type NavItem } from "./nav-config";
+import {
+  ALL_NAV_ITEMS,
+  DEFAULT_OPEN_GROUPS,
+  NAV_GROUPS,
+  NAV_PRIMARY,
+  findNavLocation,
+  getContextualNavItems,
+  type NavItem,
+} from "./nav-config";
+import { pushRecent, useFavorites, useRecents } from "./nav-prefs";
 
-const SIDEBAR_OPEN_GROUPS_KEY = "sidebar-open-groups";
+const SIDEBAR_OPEN_GROUPS_KEY = "sidebar-open-groups-v2";
 const SIDEBAR_OPEN_GROUPS_EVENT = "sidebar-open-groups-change";
 
-// "Administration" fusionne desormais ~47 items (ex-groupes Gouvernance & Risques,
-// Pilotage, etc. — voir nav-config.ts) : replie par defaut pour ne pas allonger
-// la sidebar, les autres groupes (courts) restent ouverts par defaut.
+// Sections speciales (Recents / Favoris) stockees dans la meme table que les
+// espaces, sous des cles qui ne peuvent pas entrer en collision avec un labelKey.
+const RECENTS_SECTION = "__recents";
+const FAVORITES_SECTION = "__favoris";
+const CONTEXT_SECTION = "__contexte";
+
 function defaultOpenGroups(): Record<string, boolean> {
-  return Object.fromEntries(NAV_GROUPS.map((g) => [g.labelKey, g.labelKey !== "administration"]));
+  return {
+    ...Object.fromEntries(NAV_GROUPS.map((g) => [g.labelKey, DEFAULT_OPEN_GROUPS.includes(g.labelKey)])),
+    [RECENTS_SECTION]: true,
+    [FAVORITES_SECTION]: true,
+    [CONTEXT_SECTION]: false,
+  };
 }
 
 // Snapshot memoise (cle brute -> objet parse) : useSyncExternalStore exige une
-// reference stable tant que la donnee source n'a pas change, sinon re-render
-// en boucle. localStorage.setItem ne declenche pas l'evenement "storage" dans
-// le meme onglet, d'ou l'evenement custom dispatch par toggleGroup ci-dessous.
+// reference stable tant que la donnee source n'a pas change.
 const SERVER_SNAPSHOT = defaultOpenGroups();
 let cachedRaw: string | null | undefined;
 let cachedSnapshot: Record<string, boolean> = SERVER_SNAPSHOT;
@@ -54,124 +69,194 @@ function subscribeOpenGroups(callback: () => void) {
   };
 }
 
-/** Contenu de navigation partagé entre la sidebar desktop et le tiroir mobile. */
+function toggleGroup(key: string) {
+  const current = readStoredOpenGroups();
+  const next = { ...current, [key]: !current[key] };
+  try {
+    localStorage.setItem(SIDEBAR_OPEN_GROUPS_KEY, JSON.stringify(next));
+  } catch {
+    // localStorage indisponible : le repli n'est simplement pas memorise.
+  }
+  window.dispatchEvent(new Event(SIDEBAR_OPEN_GROUPS_EVENT));
+}
+
+function isPathActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
+function SectionHeader({ label, isOpen, count }: { label: string; isOpen: boolean; count?: number }) {
+  return (
+    <CollapsibleTrigger className="group/hdr flex h-7 w-full items-center gap-1.5 rounded-[4px] px-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-hover hover:text-foreground">
+      <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-150", isOpen && "rotate-90")} />
+      <span className="truncate">{label}</span>
+      {count !== undefined && (
+        <span className="ml-auto text-[11px] font-normal tabular-nums opacity-0 transition-opacity group-hover/hdr:opacity-100">
+          {count}
+        </span>
+      )}
+    </CollapsibleTrigger>
+  );
+}
+
+function EmptyHint({ children }: { children: React.ReactNode }) {
+  return <p className="px-2 py-1.5 pl-7 text-xs leading-relaxed text-muted-foreground">{children}</p>;
+}
+
+/**
+ * Navigation partagee entre la sidebar desktop et le tiroir mobile —
+ * organisation « façon Jira » : entrees de premier niveau, puis Recents et
+ * Favoris (memorises par navigateur), puis les espaces metier repliables.
+ */
 export function SidebarNav({
   permissions,
   roleKey,
   onNavigate,
   className,
-  collapsed = false,
 }: {
   permissions: string[];
   roleKey?: string;
   onNavigate?: () => void;
   className?: string;
-  /** Mode replie (rail d'icones) — jamais force sur le tiroir mobile, qui reste toujours en toutes lettres. */
-  collapsed?: boolean;
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const contextualItems = getContextualNavItems(roleKey, permissions);
   const openGroups = useSyncExternalStore(subscribeOpenGroups, readStoredOpenGroups, () => SERVER_SNAPSHOT);
+  const { favorites, toggleFavorite } = useFavorites();
+  const recents = useRecents();
 
-  function toggleGroup(labelKey: string) {
-    const current = readStoredOpenGroups();
-    const next = { ...current, [labelKey]: !(current[labelKey] ?? true) };
-    try {
-      localStorage.setItem(SIDEBAR_OPEN_GROUPS_KEY, JSON.stringify(next));
-    } catch {
-      // localStorage indisponible (navigation privee...) : le repli reste local a ce rendu.
-    }
-    window.dispatchEvent(new Event(SIDEBAR_OPEN_GROUPS_EVENT));
-  }
+  // Historique « Recents » : chaque page d'un module connu est memorisee.
+  useEffect(() => {
+    const location = findNavLocation(pathname);
+    if (location) pushRecent(location.item.href);
+  }, [pathname]);
 
-  function renderItem(item: NavItem) {
-    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+  const canSee = (item: NavItem) => !item.permission || permissions.includes(item.permission);
+  const byHref = (href: string) => ALL_NAV_ITEMS.find((item) => item.href === href);
+  // Lien le plus specifique pour la page courante (ex. /crm/pipeline ne doit
+  // pas aussi allumer /crm).
+  const activeHref = findNavLocation(pathname)?.item.href;
+
+  const contextualItems = getContextualNavItems(roleKey, permissions);
+  const favoriteItems = favorites.map(byHref).filter((i): i is NavItem => !!i && canSee(i));
+  const recentItems = recents
+    .map(byHref)
+    .filter((i): i is NavItem => !!i && canSee(i))
+    .slice(0, 5);
+
+  function renderItem(item: NavItem, keyPrefix = "") {
+    const isActive = item.href === activeHref || (activeHref === undefined && isPathActive(pathname, item.href));
     const Icon = item.icon;
     const title = t(`items.${item.titleKey}`);
+    const isFavorite = favorites.includes(item.href);
 
     if (item.disabled) {
       return (
         <div
-          key={item.href}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/30",
-            collapsed && "justify-center px-0"
-          )}
-          title={collapsed ? title : t("moduleAVenir")}
+          key={keyPrefix + item.href}
+          className="flex h-8 items-center gap-2.5 rounded-[4px] px-2 text-sm text-sidebar-foreground/40"
+          title={t("moduleAVenir")}
         >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-            <Icon className="h-4 w-4" />
-          </span>
-          {!collapsed && title}
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{title}</span>
         </div>
       );
     }
 
     return (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={onNavigate}
-        title={collapsed ? title : undefined}
-        className={cn(
-          "group relative flex items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98]",
-          collapsed && "justify-center px-0",
-          isActive
-            ? "bg-gradient-to-b from-sidebar-accent to-sidebar-accent/70 text-sidebar-accent-foreground shadow-[0_3px_10px_-2px_rgba(0,0,0,0.4)] ring-1 ring-white/10 before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-white/25 before:content-['']"
-            : "text-sidebar-foreground/70 hover:-translate-y-0.5 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]"
-        )}
-      >
-        <span
+      <div key={keyPrefix + item.href} className="group/item relative">
+        <Link
+          href={item.href}
+          onClick={onNavigate}
+          aria-current={isActive ? "page" : undefined}
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+            "relative flex h-8 items-center gap-2.5 rounded-[4px] pr-8 pl-2 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
             isActive
-              ? "bg-black/20 text-sidebar-primary shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]"
-              : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:top-1.5 before:bottom-1.5 before:left-0 before:w-[3px] before:rounded-r-sm before:bg-sidebar-primary before:content-['']"
+              : "text-sidebar-foreground hover:bg-hover hover:text-foreground active:bg-pressed"
           )}
         >
-          <Icon className="h-4 w-4" />
-        </span>
-        {!collapsed && title}
-      </Link>
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{title}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => toggleFavorite(item.href)}
+          aria-label={isFavorite ? t("retirerFavori") : t("ajouterFavori")}
+          title={isFavorite ? t("retirerFavori") : t("ajouterFavori")}
+          className={cn(
+            "absolute top-1/2 right-1 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-[3px] text-muted-foreground transition-opacity hover:bg-pressed hover:text-foreground focus-visible:opacity-100",
+            isFavorite ? "opacity-100" : "opacity-0 group-hover/item:opacity-100"
+          )}
+        >
+          <Star className={cn("h-3.5 w-3.5", isFavorite && "fill-[#e2b203] text-[#e2b203]")} />
+        </button>
+      </div>
     );
   }
 
   return (
-    <nav className={cn("thin-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto p-3", className)}>
-      {contextualItems.length > 0 && (
-        <div className="space-y-1">
-          {!collapsed && (
-            <div className="px-3 text-xs font-semibold tracking-wide text-sidebar-primary uppercase">{t("pourVous")}</div>
-          )}
-          {contextualItems.map(renderItem)}
-        </div>
-      )}
-      {NAV_GROUPS.map((group) => {
-        const items = group.items.filter((item) => !item.permission || permissions.includes(item.permission));
-        if (items.length === 0) return null;
+    <nav className={cn("thin-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-3", className)}>
+      <div className="space-y-0.5">{NAV_PRIMARY.filter(canSee).map((item) => renderItem(item, "primary-"))}</div>
 
-        // Rail d'icones (sidebar repliee) : pas d'en-tete cliquable possible, on affiche tout a plat.
-        if (collapsed) {
-          return (
-            <div key={group.labelKey} className="space-y-1">
-              {items.map(renderItem)}
-            </div>
-          );
-        }
+      <div className="mt-3 space-y-0.5">
+        <Collapsible open={!!openGroups[RECENTS_SECTION]} onOpenChange={() => toggleGroup(RECENTS_SECTION)}>
+          <SectionHeader isOpen={!!openGroups[RECENTS_SECTION]} label={t("recents")} />
+          <CollapsibleContent className="space-y-0.5 pt-0.5">
+            {recentItems.length > 0 ? (
+              recentItems.map((item) => renderItem(item, "recent-"))
+            ) : (
+              <EmptyHint>
+                <Clock3 className="mr-1 inline h-3 w-3 align-[-2px]" />
+                {t("recentsVide")}
+              </EmptyHint>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
-        const isOpen = openGroups[group.labelKey] ?? true;
+        <Collapsible open={!!openGroups[FAVORITES_SECTION]} onOpenChange={() => toggleGroup(FAVORITES_SECTION)}>
+          <SectionHeader isOpen={!!openGroups[FAVORITES_SECTION]} label={t("favoris")} />
+          <CollapsibleContent className="space-y-0.5 pt-0.5">
+            {favoriteItems.length > 0 ? (
+              favoriteItems.map((item) => renderItem(item, "fav-"))
+            ) : (
+              <EmptyHint>{t("favorisVide")}</EmptyHint>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
-        return (
-          <Collapsible key={group.labelKey} open={isOpen} onOpenChange={() => toggleGroup(group.labelKey)} className="space-y-1">
-            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-3 py-1 text-xs font-semibold tracking-wide text-sidebar-foreground/50 uppercase transition-colors hover:text-sidebar-foreground/80">
-              <span>{t(`groups.${group.labelKey}`)}</span>
-              <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-200", !isOpen && "-rotate-90")} />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-1">{items.map(renderItem)}</CollapsibleContent>
+        {contextualItems.length > 0 && (
+          <Collapsible open={!!openGroups[CONTEXT_SECTION]} onOpenChange={() => toggleGroup(CONTEXT_SECTION)}>
+            <SectionHeader isOpen={!!openGroups[CONTEXT_SECTION]} label={t("pourVous")} count={contextualItems.length} />
+            <CollapsibleContent className="space-y-0.5 pt-0.5">
+              {contextualItems.map((item) => renderItem(item, "ctx-"))}
+            </CollapsibleContent>
           </Collapsible>
-        );
-      })}
+        )}
+      </div>
+
+      <div className="mt-4 border-t border-sidebar-border pt-3">
+        <div className="px-2 pb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{t("espaces")}</div>
+        <div className="space-y-0.5">
+          {NAV_GROUPS.map((group) => {
+            const items = group.items.filter(canSee);
+            if (items.length === 0) return null;
+            const isOpen = !!openGroups[group.labelKey];
+            // Espace replie mais contenant la page courante : on garde
+            // l'entree active visible, comme Jira garde le projet courant.
+            const activeItem = !isOpen ? items.find((item) => item.href === activeHref) : undefined;
+
+            return (
+              <Collapsible key={group.labelKey} open={isOpen} onOpenChange={() => toggleGroup(group.labelKey)}>
+                <SectionHeader isOpen={isOpen} label={t(`groups.${group.labelKey}`)} count={items.length} />
+                <CollapsibleContent className="space-y-0.5 pt-0.5 pb-1.5 pl-3">
+                  {items.map((item) => renderItem(item))}
+                </CollapsibleContent>
+                {activeItem && <div className="pt-0.5 pb-1.5 pl-3">{renderItem(activeItem, "pinned-")}</div>}
+              </Collapsible>
+            );
+          })}
+        </div>
+      </div>
     </nav>
   );
 }

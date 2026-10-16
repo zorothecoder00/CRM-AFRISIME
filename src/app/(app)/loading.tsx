@@ -16,13 +16,13 @@ export default function Loading() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-20 rounded-2xl" />
+          <Skeleton key={i} className="h-20 rounded-lg" />
         ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className="h-36 rounded-2xl" />
+          <Skeleton key={i} className="h-36 rounded-lg" />
         ))}
       </div>
     </div>

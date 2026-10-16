@@ -53,7 +53,7 @@ export function GuideCatalog() {
               onClick={() => setGroup(g.key)}
               className={cn(
                 "rounded-full border px-3 py-1 text-sm transition-colors hover:bg-muted",
-                group === g.key && "border-sidebar bg-sidebar text-sidebar-foreground hover:bg-sidebar"
+                group === g.key && "border-sidebar-accent bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent"
               )}
             >
               {g.label}
